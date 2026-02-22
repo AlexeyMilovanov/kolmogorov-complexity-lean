@@ -1,0 +1,144 @@
+import Mathlib.Computability.Partrec
+import Mathlib.Computability.PartrecCode
+import Mathlib.Computability.Primrec.List
+import Mathlib.Data.Nat.Basic
+
+/-!
+# Unbounded Search Computability (The Mu-Operator)
+
+This module provides the "Computability Bridge" for unbounded search.
+It proves that if a predicate `P` is decidable and computable, and if an answer
+is guaranteed to exist for every input, then the search for the minimal such answer
+(`Nat.find`) is a total computable function.
+-/
+
+namespace Kolmogorov
+
+-- ==========================================================
+-- Basic Math Computability
+-- ==========================================================
+
+/-- Auxiliary lemma: Exponentiation 2^k is a computable function. -/
+lemma Computable.pow2 : Computable (fun k : ℕ => 2 ^ k) := by
+  apply Primrec.to_comp
+  rw [Primrec.nat_iff]
+  -- Broken into two lines for the 100-character limit
+  have h_eq : (fun k => (Nat.pair 2 k).unpair.1 ^ (Nat.pair 2 k).unpair.2) =
+              (fun k => 2 ^ k) := by
+    funext k
+    simp
+  rw [← h_eq]
+  exact Nat.Primrec.pow.comp (Nat.Primrec.pair (Nat.Primrec.const 2) Nat.Primrec.id)
+
+-- ==========================================================
+-- 1. Master Lemma (Unbounded Search)
+-- ==========================================================
+
+/--
+If a predicate `P` is decidable and its decision function is computable,
+and if for every `k` there exists an `n` such that `P k n` holds,
+then the function `k ↦ Nat.find (h_unbounded k)` is computable.
+-/
+lemma Computable.unboundedSearch {P : ℕ → ℕ → Prop} [∀ k n, Decidable (P k n)]
+    (hP_comp : Computable (fun p : ℕ × ℕ => decide (P p.1 p.2)))
+    (h_unbounded : ∀ k, ∃ n, P k n) :
+    Computable (fun k => Nat.find (h_unbounded k)) := by
+  have h_alg : Partrec (fun k => Nat.rfind (fun n => Part.some (decide (P k n)))) := by
+    apply Partrec.rfind
+    exact Computable.partrec hP_comp
+  have h_eq : (fun k => Nat.rfind (fun n => Part.some (decide (P k n)))) =
+              (fun k => Part.some (Nat.find (h_unbounded k))) := by
+    funext k
+    apply Part.eq_some_iff.mpr
+    apply Nat.mem_rfind.mpr
+    constructor
+    · have h1 : decide (P k (Nat.find (h_unbounded k))) = true :=
+        decide_eq_true (Nat.find_spec (h_unbounded k))
+      rw [h1]
+      exact ⟨trivial, rfl⟩
+    · intro m hm
+      have h2 : decide (P k m) = false :=
+        decide_eq_false (Nat.find_min (h_unbounded k) hm)
+      rw [h2]
+      exact ⟨trivial, rfl⟩
+  rw [h_eq] at h_alg
+  exact h_alg
+
+-- ==========================================================
+-- 2. Corollaries
+-- ==========================================================
+
+/-- Corollary 1: Equality Search.
+    If a function `f` is computable and surjective, its inverse search is computable. -/
+lemma Computable.inverse (f : ℕ → ℕ) (hf_comp : Computable f)
+    (h_surj : ∀ y, ∃ x, f x = y) :
+    Computable (fun y => Nat.find (h_surj y)) := by
+  refine Computable.unboundedSearch ?_ h_surj
+  exact (Primrec.to_comp Primrec.beq).comp
+    (Computable.pair (hf_comp.comp Computable.snd) Computable.fst)
+
+/-- Building block 1: Isolate the comparison operator. -/
+lemma Computable.natLt : Computable (fun p : ℕ × ℕ => decide (p.1 < p.2)) := by
+  obtain ⟨_, h_prim⟩ := Primrec.nat_lt
+  convert Primrec.to_comp h_prim
+
+/-- Building block 2: Prove the computability of the predicate P itself. -/
+lemma Computable.testP {P : ℕ → ℕ → Prop} [∀ k n, Decidable (P k n)]
+    {f g : ℕ → ℕ} (hf : Computable f) (hg : Computable g)
+    (h_equiv : ∀ k n, P k n ↔ f n > g k) :
+    Computable (fun p : ℕ × ℕ => decide (P p.1 p.2)) := by
+  let h_pair := (hg.comp Computable.fst).pair (hf.comp Computable.snd)
+  let h_alg := Computable.natLt.comp h_pair
+  convert h_alg using 1
+  funext p
+  simp [h_equiv]
+
+/-- Corollary 2: Inequality Search (Modular Edition). -/
+lemma Computable.searchCore {P : ℕ → ℕ → Prop} [∀ k n, Decidable (P k n)]
+    (f : ℕ → ℕ) (hf_comp : Computable f)
+    (g : ℕ → ℕ) (hg_comp : Computable g)
+    (h_equiv : ∀ k n, P k n ↔ f n > g k)
+    (h_unbounded : ∀ k, ∃ n, P k n) :
+    Computable (fun k => Nat.find (h_unbounded k)) :=
+  Computable.unboundedSearch (Computable.testP hf_comp hg_comp h_equiv) h_unbounded
+
+-- ==========================================================
+-- 3. List Bool Bijection Inverse
+-- ==========================================================
+
+/-- Auxiliary function: decodes a number into a list (returns [] on error). -/
+def listDecoder (x : ℕ) : List Bool :=
+  (Encodable.decode x).getD []
+
+/-- Prove the computability of our decoder. -/
+lemma listDecoder_computable : Computable listDecoder := by
+  apply Primrec.to_comp
+  exact Primrec.option_getD.comp Primrec.decode (Primrec.const [])
+
+/-- Corollary 3: If a function from lists to numbers is computable and a bijection,
+    then its inverse is also computable. -/
+lemma Computable.listInverse (f : List Bool → ℕ) (hf_comp : Computable f)
+    (g : ℕ → List Bool)
+    (h_right_inv : ∀ n, f (g n) = n)
+    (h_left_inv : ∀ s, g (f s) = s) :
+    Computable g := by
+  let f' : ℕ → ℕ := fun x => f (listDecoder x)
+  have hf'_comp : Computable f' := hf_comp.comp listDecoder_computable
+  have h_surj : ∀ y, ∃ x, f' x = y := by
+    intro y
+    use Encodable.encode (g y)
+    dsimp [f', listDecoder]
+    rw [Encodable.encodek]
+    exact h_right_inv y
+  have h_search := Computable.inverse f' hf'_comp h_surj
+  have h_eq : g = fun y => listDecoder (Nat.find (h_surj y)) := by
+    funext y
+    have h_find := Nat.find_spec (h_surj y)
+    dsimp [f'] at h_find
+    have h_apply := congrArg g h_find
+    rw [h_left_inv] at h_apply
+    exact h_apply.symm
+  rw [h_eq]
+  exact listDecoder_computable.comp h_search
+
+end Kolmogorov
