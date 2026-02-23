@@ -4,15 +4,15 @@ import Mathlib.Computability.Encoding
 import Mathlib.Data.List.Basic
 import Mathlib.Data.ENat.Lattice
 import KolmogorovMathlib.Core.Basic
-import KolmogorovMathlib.Core.UniversalMachine
+import KolmogorovMathlib.Core.UniversalDecompressor
 
 /-!
 # The Invariance Theorem
 
 This module formalizes the Kolmogorov-Solomonoff-Chaitin Invariance Theorem.
-It proves the existence of an optimal conditional decompressor (a universal machine).
+It proves the existence of an optimal conditional decompressor (a universal decompressor).
 This fundamental result ensures that Algorithmic Complexity is well-defined
-up to an additive constant, making it independent of the specific machine chosen.
+up to an additive constant, making it independent of the specific decompressor chosen.
 -/
 
 namespace Kolmogorov
@@ -21,8 +21,8 @@ namespace Kolmogorov
 -- BLOCK 1: Helper Lemmas for Computability and Sets
 -- ==========================================================
 
-/-- Every computable conditional machine D has a numerical code in our system. -/
-lemma exists_code_of_isDecompressor (D : Machine) (hD : isDecompressor D) :
+/-- Every computable conditional decompressor D has a numerical code in our system. -/
+lemma exists_code_of_isDecompressor (D : Map) (hD : isDecompressor D) :
     ∃ code : Nat.Partrec.Code, ∀ p y,
       (code.eval (Encodable.encode (p, y))).map
         (fun r => (Encodable.decode r : Option BitString).getD []) = D (p, y) := by
@@ -54,11 +54,11 @@ lemma sInf_le_sInf_add {S1 S2 : Set ENat} {c : ℕ}
 -- ==========================================================
 
 /-- Kolmogorov's Theorem: An optimal conditional decompressor exists.
-    We prove this by showing that our `universalMachine` satisfies the optimality predicate. -/
-theorem exists_isOptimalConditional : ∃ U : Machine, isOptimalConditional U := by
-  use universalMachine
+    We prove this by showing that our `universalDecompressor` satisfies the optimality predicate. -/
+theorem exists_isOptimalConditional : ∃ U : Map, isOptimalConditional U := by
+  use universalDecompressor
   constructor
-  · exact isDecompressor_universalMachine
+  · exact isDecompressor_universalDecompressor
   · intro D hD
     obtain ⟨code, hc⟩ := exists_code_of_isDecompressor D hD
     let pref_bits := unaryPrefix (Encodable.encode code)
@@ -73,8 +73,8 @@ theorem exists_isOptimalConditional : ∃ U : Machine, isOptimalConditional U :=
     constructor
     · use pref_bits ++ p
       constructor
-      · -- Goal: x ∈ universalMachine (pref_bits ++ p, y)
-        change x ∈ universalMachine (pref_bits ++ p, y)
+      · -- Goal: x ∈ universalDecompressor (pref_bits ++ p, y)
+        change x ∈ universalDecompressor (pref_bits ++ p, y)
         rw [universalSimulation, hc]
         exact hp_out
       · rfl

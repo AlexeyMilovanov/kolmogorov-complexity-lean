@@ -24,11 +24,11 @@ namespace Kolmogorov
 -- ==========================================================
 
 /-- The plain Kolmogorov complexity of a natural number. -/
-noncomputable def plainKNat (U : Machine) (n : ℕ) : ENat :=
+noncomputable def plainKNat (U : Map) (n : ℕ) : ENat :=
   plainK U (natToBits n)
 
 /-- The conditional Kolmogorov complexity of a natural number given string y. -/
-noncomputable def condKNat (U : Machine) (n : ℕ) (y : BitString) : ENat :=
+noncomputable def condKNat (U : Map) (n : ℕ) (y : BitString) : ENat :=
   condK U (natToBits n) y
 
 -- ==========================================================
@@ -38,7 +38,7 @@ noncomputable def condKNat (U : Machine) (n : ℕ) (y : BitString) : ENat :=
 /-- The Fundamental Theorem for Natural Numbers: For any threshold L,
     there exists a natural number n whose complexity is strictly greater than L.
     This follows directly from the string version via bijection. -/
-theorem exists_plainKNat_gt (U : Machine) (L : ℕ) :
+theorem exists_plainKNat_gt (U : Map) (L : ℕ) :
     ∃ n : ℕ, plainKNat U n > (L : ENat) := by
   obtain ⟨s, hs_complex⟩ := exists_complex_string U L
   exact ⟨bitsToNat s, by simpa [plainKNat] using hs_complex⟩
@@ -49,7 +49,7 @@ theorem exists_plainKNat_gt (U : Machine) (L : ℕ) :
 
 /-- Upper bound for nat complexity. We use ℕ instead of ENat for the
     constant c to ensure it is finite and usable in Berry's paradox. -/
-lemma plainKNat_le_length (U : Machine) (hU : isOptimalConditional U) :
+lemma plainKNat_le_length (U : Map) (hU : isOptimalConditional U) :
     ∃ c : ℕ, ∀ n : ℕ, plainKNat U n ≤ (programLength (natToBits n) : ENat) + c := by
   obtain ⟨c, hc⟩ := plainK_le_length U hU
   exact ⟨c, fun n => hc (natToBits n)⟩
@@ -61,7 +61,7 @@ lemma plainKNat_le_length (U : Machine) (hU : isOptimalConditional U) :
 /-- Invariance theorem: if an alternative encoding `e` is computable from
     our standard one via some computable function `f`, then the
     complexity difference is bounded by a constant. -/
-theorem plainKNat_invariance (U : Machine) (hU : isOptimalConditional U)
+theorem plainKNat_invariance (U : Map) (hU : isOptimalConditional U)
     (e : ℕ → BitString) (f : BitString → BitString) (hf : Computable f)
     (h_map : ∀ n, e n = f (natToBits n)) :
     ∃ c : ℕ, ∀ n : ℕ, plainK U (e n) ≤ plainKNat U n + (c : ENat) := by

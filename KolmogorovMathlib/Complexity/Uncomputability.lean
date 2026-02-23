@@ -58,7 +58,7 @@ lemma growth_lemma (c : ℕ) :
 -- ==========================================================
 
 /-- Translate the uncomputable predicate K(n) > L into a computable one f(n) > L. -/
-lemma plainKNat_gt_iff (U : Machine) (f : ℕ → ℕ) (L : ℕ)
+lemma plainKNat_gt_iff (U : Map) (f : ℕ → ℕ) (L : ℕ)
     (h_f_eq : ∀ n, plainKNat U n = (f n : ENat)) (n : ℕ) :
     plainKNat U n > (L : ENat) ↔ f n > L := by
   rw [h_f_eq n]
@@ -69,7 +69,7 @@ lemma plainKNat_gt_iff (U : Machine) (f : ℕ → ℕ) (L : ℕ)
 -- ==========================================================
 
 /-- The unbounded search function (Berry's algorithm) is strictly computable. -/
-lemma Computable.find_complex (U : Machine) (f : ℕ → ℕ)
+lemma Computable.find_complex (U : Map) (f : ℕ → ℕ)
     (h_f_eq : ∀ n, plainKNat U n = (f n : ENat))
     (h_f_comp : Computable f) :
     Computable (fun k => Nat.find (exists_plainKNat_gt U (2^k))) := by
@@ -78,7 +78,7 @@ lemma Computable.find_complex (U : Machine) (f : ℕ → ℕ)
   exact plainKNat_gt_iff U f (2^k) h_f_eq n
 
 /-- Computable functions on natural numbers do not increase complexity by more than a constant. -/
-lemma plainKNat_comp_le (U : Machine) (hU : isOptimalConditional U)
+lemma plainKNat_comp_le (U : Map) (hU : isOptimalConditional U)
     (g : ℕ → ℕ) (hg : Computable g) :
     ∃ c_g : ℕ, ∀ k, plainKNat U (g k) ≤ plainKNat U k + (c_g : ENat) := by
   let f_str : BitString → BitString := fun s => natToBits (g (bitsToNat s))
@@ -97,7 +97,7 @@ lemma plainKNat_comp_le (U : Machine) (hU : isOptimalConditional U)
 -- ==========================================================
 
 /-- Final assembly: the complexity of Berry's algorithm output is bounded by |k| + c. -/
-lemma plainKNat_find_complex_le (U : Machine) (hU : isOptimalConditional U)
+lemma plainKNat_find_complex_le (U : Map) (hU : isOptimalConditional U)
     (f : ℕ → ℕ) (h_f_comp : Computable f) (h_f_eq : ∀ n, plainKNat U n = (f n : ENat)) :
     ∃ c : ℕ, ∀ k, plainKNat U (Nat.find (exists_plainKNat_gt U (2^k))) ≤
       (programLength (natToBits k) : ENat) + (c : ENat) := by
@@ -120,7 +120,7 @@ lemma plainKNat_find_complex_le (U : Machine) (hU : isOptimalConditional U)
       rw [h_swap]
 
 /-- Main Theorem: Kolmogorov complexity is not computable. -/
-theorem not_computable_plainKNat (U : Machine) (hU : isOptimalConditional U) :
+theorem not_computable_plainKNat (U : Map) (hU : isOptimalConditional U) :
     ¬ ∃ f : ℕ → ℕ, Computable f ∧ ∀ n, plainKNat U n = (f n : ENat) := by
   rintro ⟨f, h_f_comp, h_f_eq⟩
   let g (k : ℕ) := Nat.find (exists_plainKNat_gt U (2^k))

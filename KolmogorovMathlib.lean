@@ -2,7 +2,7 @@ import KolmogorovMathlib.Foundation.ListPrimrec
 import KolmogorovMathlib.Foundation.UnboundedSearch
 import KolmogorovMathlib.Foundation.DyadicEquiv
 import KolmogorovMathlib.Core.Basic
-import KolmogorovMathlib.Core.UniversalMachine
+import KolmogorovMathlib.Core.UniversalDecompressor
 import KolmogorovMathlib.Core.Invariance
 import KolmogorovMathlib.Complexity.Properties
 import KolmogorovMathlib.Complexity.Incompressibility

@@ -7,12 +7,12 @@ import KolmogorovMathlib.Core.Basic
 import KolmogorovMathlib.Foundation.ListPrimrec
 
 /-!
-# Universal Machine Construction
+# Universal Decompressor Construction
 
-This module constructs the Conditional Universal Turing Machine `U`.
+This module constructs the Conditional Universal Decompressor `U`.
 It introduces unary prefix coding to multiplex multiple programs onto a single tape.
-We define both a human-readable machine (`universalMachine`) and a combinator-based
-equivalent (`universalMachineCombinator`), proving they are identical.
+We define both a human-readable decompressor (`universalDecompressor`) and a combinator-based
+equivalent (`universalDecompressorCombinator`), proving they are identical.
 Finally, we formally prove that `U` is computable (`Partrec`).
 -/
 
@@ -55,11 +55,11 @@ lemma drop_unaryPrefix (n : ℕ) (p : List Bool) :
       _ = p                                           := by rw [ih]
 
 -- ==========================================================
--- BLOCK 2: Universal Machine
+-- BLOCK 2: Universal Decompressor
 -- ==========================================================
 
-/-- A robust, human-readable definition of the Conditional Universal Machine. -/
-def universalMachine : Machine := fun p =>
+/-- A robust, human-readable definition of the Conditional Universal Decompressor. -/
+def universalDecompressor : Map := fun p =>
   let s := p.1
   let y := p.2
   let i := (s.takeWhile id).length
@@ -72,8 +72,8 @@ def universalMachine : Machine := fun p =>
       (code.eval input_nat).map (fun res_nat =>
         (Encodable.decode res_nat : Option BitString).getD [])
 
-/-- A strict, combinator-friendly version of universalMachine. -/
-def universalMachineCombinator : Machine := fun p =>
+/-- A strict, combinator-friendly version of universalDecompressor. -/
+def universalDecompressorCombinator : Map := fun p =>
   let s := p.1
   let y := p.2
   let code_part : Part Nat.Partrec.Code :=
@@ -116,26 +116,26 @@ lemma listDrop_eq_drop (s : List Bool) (n : ℕ) :
       _ = (s.drop n).tail                      := by rw [ih]
       _ = s.drop (n + 1)                       := dropTail_eq_dropSucc s n
 
-/-- The Bridge Lemma: The human-readable and combinator machines are identical. -/
-lemma universalMachine_eq_combinator (s y : BitString) :
-    universalMachine (s, y) = universalMachineCombinator (s, y) := by
-  unfold universalMachine universalMachineCombinator
+/-- The Bridge Lemma: The human-readable and combinator maps are identical. -/
+lemma universalDecompressor_eq_combinator (s y : BitString) :
+    universalDecompressor (s, y) = universalDecompressorCombinator (s, y) := by
+  unfold universalDecompressor universalDecompressorCombinator
   dsimp only
   rw [← prefixLen_eq_takeWhile, ← listDrop_eq_drop]
   cases (Encodable.decode (prefixLen s) : Option Nat.Partrec.Code) <;> simp
 
-/-- Simulation lemma: U(prefix(i) ++ p, y) = Machine_i(p, y) -/
+/-- Simulation lemma: U(prefix(i) ++ p, y) = Decompressor_i(p, y) -/
 lemma universalSimulation (code : Nat.Partrec.Code) (p y : BitString) :
-    universalMachine (unaryPrefix (Encodable.encode code) ++ p, y) =
+    universalDecompressor (unaryPrefix (Encodable.encode code) ++ p, y) =
     (code.eval (Encodable.encode (p, y))).map
       (fun r => (Encodable.decode r : Option BitString).getD []) := by
-  unfold universalMachine
+  unfold universalDecompressor
   dsimp only
   simp only [takeWhile_unaryPrefix, drop_unaryPrefix]
   rw [@Encodable.encodek Nat.Partrec.Code _ code]
 
 -- ==========================================================
--- BLOCK 4: Computability of the Universal Machine
+-- BLOCK 4: Computability of the Universal Decompressor
 -- ==========================================================
 
 /-- A total function that parses the tape from a natural number. -/
@@ -157,13 +157,13 @@ lemma parseTapeNat_primrec : Primrec parseTapeNat := by
       · apply Primrec.succ.comp
         exact Primrec.prefixLen.comp Primrec.snd
 
-/-- The core numerical Universal Machine taking a pair of (program_nat, context_nat). -/
+/-- The core numerical universal decompressor taking a pair of (program_nat, context_nat). -/
 def univNat (p : ℕ × ℕ) : Part ℕ :=
   let parsed := parseTapeNat p.1
   Part.bind (Part.ofOption (Encodable.decode parsed.1 : Option Nat.Partrec.Code))
     (fun code => code.eval (Nat.pair parsed.2 p.2))
 
-/-- Prove that the core numerical machine is partial recursive. -/
+/-- Prove that the core numerical map is partial recursive. -/
 lemma univNat_partrec : Partrec univNat := by
   unfold univNat
   have h_parsed : Primrec (fun p : ℕ × ℕ => parseTapeNat p.1) :=
@@ -183,13 +183,13 @@ lemma univNat_partrec : Partrec univNat := by
         Primrec.snd.comp Primrec.fst
       exact Primrec₂.natPair.comp h_parsed_2 h_ny
 
-/-- Final Lemma: universalMachineCombinator is a valid Decompressor. -/
-lemma universalCombinator_partrec : isDecompressor universalMachineCombinator := by
-  have h_eq : universalMachineCombinator = fun p =>
+/-- Final Lemma: universalDecompressorCombinator is a valid Decompressor. -/
+lemma universalDecompressorCombinator_partrec : isDecompressor universalDecompressorCombinator := by
+  have h_eq : universalDecompressorCombinator = fun p =>
       (univNat (Encodable.encode p.1, Encodable.encode p.2)).map
         (fun r => (Encodable.decode r : Option BitString).getD []) := by
     funext p
-    unfold universalMachineCombinator univNat parseTapeNat
+    unfold universalDecompressorCombinator univNat parseTapeNat
     dsimp only
     simp [Encodable.encodek]
   rw [h_eq]
@@ -215,12 +215,12 @@ lemma universalCombinator_partrec : isDecompressor universalMachineCombinator :=
         (Primrec.snd : Primrec (fun p : ℕ × BitString => p.2))
     exact Computable.comp (Primrec.to_comp h_post_prim) Computable.snd
 
-/-- UniversalMachine is a computable partial function. -/
-lemma isDecompressor_universalMachine : isDecompressor universalMachine := by
-  have h_eq : universalMachine = universalMachineCombinator := by
+/-- UniversalDecompressor is a computable partial function. -/
+lemma isDecompressor_universalDecompressor : isDecompressor universalDecompressor := by
+  have h_eq : universalDecompressor = universalDecompressorCombinator := by
     funext p
-    exact universalMachine_eq_combinator p.1 p.2
+    exact universalDecompressor_eq_combinator p.1 p.2
   rw [h_eq]
-  exact universalCombinator_partrec
+  exact universalDecompressorCombinator_partrec
 
 end Kolmogorov
