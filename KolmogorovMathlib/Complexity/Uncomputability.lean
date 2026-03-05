@@ -2,8 +2,8 @@ import Mathlib.Computability.PartrecCode
 import Mathlib.Computability.Partrec
 import KolmogorovMathlib.Core.Basic
 import KolmogorovMathlib.Complexity.Properties
-import KolmogorovMathlib.Foundation.DyadicEquiv
 import KolmogorovMathlib.Complexity.NatComplexity
+import KolmogorovMathlib.Foundation.NatEncoding
 import KolmogorovMathlib.Foundation.UnboundedSearch
 import Mathlib.Order.Lattice
 
@@ -32,12 +32,12 @@ namespace Kolmogorov
 /-- Growth Lemma: 2^k eventually dominates logarithmic description.
     For any constant c, there exists a k such that |k| + c < 2^k. -/
 lemma growth_lemma (c : ℕ) :
-    ∃ k, (programLength (natToBits k) : ENat) + (c : ENat) < (2^k : ENat) := by
+    ∃ k, (programLength (Nat.bits k) : ENat) + (c : ENat) < (2^k : ENat) := by
   -- We pick a k large enough to easily dominate the linear growth
   let k := c + 5
   use k
-  have h_len := length_natToBits_le k
-  have h_arith : (programLength (natToBits k) : ENat) + c ≤ (k : ENat) + c := by
+  have h_len := length_natBits_le k
+  have h_arith : (programLength (Nat.bits k) : ENat) + c ≤ (k : ENat) + c := by
     dsimp [programLength]
     exact add_le_add (ENat.coe_le_coe.mpr h_len) (le_refl (c : ENat))
   have h_exp : (k : ENat) + c < (2^k : ENat) := by
@@ -81,15 +81,15 @@ lemma Computable.find_complex (U : Map) (f : ℕ → ℕ)
 lemma plainKNat_comp_le (U : Map) (hU : isOptimalConditional U)
     (g : ℕ → ℕ) (hg : Computable g) :
     ∃ c_g : ℕ, ∀ k, plainKNat U (g k) ≤ plainKNat U k + (c_g : ENat) := by
-  let f_str : BitString → BitString := fun s => natToBits (g (bitsToNat s))
+  let f_str : BitString → BitString := fun s => Nat.bits (g (decodeBits s))
   have hf_comp : Computable f_str :=
-    natToBits_computable.comp (hg.comp bitsToNat_computable)
+    natBits_computable.comp (hg.comp decodeBits_computable)
   obtain ⟨c_g, hc⟩ := plainK_map_le U hU f_str hf_comp
   use c_g
   intro k
-  have h_bound := hc (natToBits k)
+  have h_bound := hc (Nat.bits k)
   dsimp [f_str] at h_bound
-  rw [bitsToNat_natToBits] at h_bound
+  rw [decodeBits_bits] at h_bound
   exact h_bound
 
 -- ==========================================================
@@ -100,7 +100,7 @@ lemma plainKNat_comp_le (U : Map) (hU : isOptimalConditional U)
 lemma plainKNat_find_complex_le (U : Map) (hU : isOptimalConditional U)
     (f : ℕ → ℕ) (h_f_comp : Computable f) (h_f_eq : ∀ n, plainKNat U n = (f n : ENat)) :
     ∃ c : ℕ, ∀ k, plainKNat U (Nat.find (exists_plainKNat_gt U (2^k))) ≤
-      (programLength (natToBits k) : ENat) + (c : ENat) := by
+      (programLength (Nat.bits k) : ENat) + (c : ENat) := by
   let g := fun k => Nat.find (exists_plainKNat_gt U (2^k))
   have hg_comp : Computable g := Computable.find_complex U f h_f_eq h_f_comp
   obtain ⟨c_g, h_bound_g⟩ := plainKNat_comp_le U hU g hg_comp
@@ -110,10 +110,10 @@ lemma plainKNat_find_complex_le (U : Map) (hU : isOptimalConditional U)
   calc
     plainKNat U (g k)
       ≤ plainKNat U k + (c_g : ENat) := h_bound_g k
-    _ ≤ ((programLength (natToBits k) : ENat) + c_len) + c_g := by
+    _ ≤ ((programLength (Nat.bits k) : ENat) + c_len) + c_g := by
       have h1 := h_bound_len k
       exact add_le_add h1 (le_refl _)
-    _ = (programLength (natToBits k) : ENat) + ((c_g + c_len : ℕ) : ENat) := by
+    _ = (programLength (Nat.bits k) : ENat) + ((c_g + c_len : ℕ) : ENat) := by
       push_cast
       rw [add_assoc]
       have h_swap : (c_len : ENat) + (c_g : ENat) = (c_g : ENat) + (c_len : ENat) := add_comm _ _

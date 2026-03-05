@@ -217,4 +217,60 @@ theorem exists_complex_string (U : Map) (L : ℕ) :
   have h_lt : (L : ENat) < (n : ENat) := by exact ENat.coe_lt_coe.mpr (Nat.lt_succ_self L)
   exact lt_of_lt_of_le h_lt h_complex
 
+open Classical in
+/-- Generalized Pigeonhole Principle: For any injective sequence of strings,
+    there exists an index n where the string f(n) has complexity strictly greater than L. -/
+theorem exists_complex_injective {f : ℕ → BitString} (hf : Function.Injective f) (U : Map) (L : ℕ) :
+    ∃ n : ℕ, plainK U (f n) > (L : ENat) := by
+  by_contra h_contra
+  push_neg at h_contra
+  -- S is the finite set of all strings whose complexity is ≤ L
+  let S := compressibleWords U [] L
+  have h_mem : ∀ n, f n ∈ S := by
+    intro n
+    -- Unfold S and compressibleWords to expose the Finset.filter
+    dsimp only [S]
+    rw [compressibleWords, Finset.mem_filter]
+    -- We need to prove two things: (1) f n is generated, (2) its complexity is ≤ L
+    constructor
+    · -- Part 1: Prove it's in generatedWords
+      have h_K_le := h_contra n
+      -- Since the complexity is <= L, it must be < L + 1
+      have h_K_lt : condK U (f n) [] < (L + 1 : ENat) :=
+        lt_of_le_of_lt h_K_le (ENat.coe_lt_coe.mpr (Nat.lt_succ_self L))
+      -- Extract the actual program using sInf_lt_iff
+      obtain ⟨len_enat, h_mem_len, h_val_lt⟩ := (sInf_lt_iff).mp h_K_lt
+      obtain ⟨p, hp_prod, rfl⟩ := h_mem_len
+      -- Convert ENat bound back to Nat bound
+      have h_len_le : programLength p ≤ L := by
+        have : (programLength p : ENat) < (L + 1 : ENat) := h_val_lt
+        exact ENat.coe_lt_coe.mp this |> Nat.lt_succ_iff.mp
+      -- Prove membership in generatedWords
+      rw [generatedWords, List.mem_toFinset, List.mem_filterMap]
+      exact ⟨p, mem_programsLe L p h_len_le, progToOut_eq_some.mpr hp_prod⟩
+    · -- Part 2: Prove its complexity is ≤ L
+      exact h_contra n
+  -- Let N be the size of the set of compressible words
+  let N := S.card
+  -- Create a set of the first N + 1 natural numbers: {0, 1, ..., N}
+  let domain := Finset.range (N + 1)
+  -- Map these N + 1 numbers to strings using f
+  let mapped := domain.image f
+  -- Because f is injective, the number of mapped strings is also N + 1
+  have h_mapped_card : mapped.card = N + 1 := by
+    rw [Finset.card_image_of_injective domain hf]
+    exact Finset.card_range (N + 1)
+  -- By our assumption (h_mem), all these mapped strings are in S
+  have h_subset : mapped ⊆ S := by
+    intro x hx
+    rw [Finset.mem_image] at hx
+    obtain ⟨n, _, rfl⟩ := hx
+    exact h_mem n
+  -- Therefore, the size of 'mapped' cannot exceed the size of S
+  have h_le : mapped.card ≤ N := Finset.card_le_card h_subset
+  -- Substitute mapped.card with N + 1 to get N + 1 ≤ N
+  rw [h_mapped_card] at h_le
+  -- This is a clear arithmetical contradiction
+  omega
+
 end Kolmogorov
