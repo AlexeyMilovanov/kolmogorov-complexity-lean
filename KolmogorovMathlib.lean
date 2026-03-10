@@ -1,6 +1,6 @@
 import KolmogorovMathlib.Foundation.ListPrimrec
 import KolmogorovMathlib.Foundation.UnboundedSearch
-import KolmogorovMathlib.Foundation.DyadicEquiv
+import KolmogorovMathlib.Foundation.NatEncoding
 import KolmogorovMathlib.Core.Basic
 import KolmogorovMathlib.Core.UniversalDecompressor
 import KolmogorovMathlib.Core.Invariance

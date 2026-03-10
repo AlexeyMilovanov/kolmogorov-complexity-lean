@@ -101,44 +101,4 @@ lemma Computable.searchCore {P : ℕ → ℕ → Prop} [∀ k n, Decidable (P k 
     (h_unbounded : ∀ k, ∃ n, P k n) :
     Computable (fun k => Nat.find (h_unbounded k)) :=
   Computable.unboundedSearch (Computable.testP hf_comp hg_comp h_equiv) h_unbounded
-
--- ==========================================================
--- 3. List Bool Bijection Inverse
--- ==========================================================
-
-/-- Auxiliary function: decodes a number into a list (returns [] on error). -/
-def listDecoder (x : ℕ) : List Bool :=
-  (Encodable.decode x).getD []
-
-/-- Prove the computability of our decoder. -/
-lemma listDecoder_computable : Computable listDecoder := by
-  apply Primrec.to_comp
-  exact Primrec.option_getD.comp Primrec.decode (Primrec.const [])
-
-/-- Corollary 3: If a function from lists to numbers is computable and a bijection,
-    then its inverse is also computable. -/
-lemma Computable.listInverse (f : List Bool → ℕ) (hf_comp : Computable f)
-    (g : ℕ → List Bool)
-    (h_right_inv : ∀ n, f (g n) = n)
-    (h_left_inv : ∀ s, g (f s) = s) :
-    Computable g := by
-  let f' : ℕ → ℕ := fun x => f (listDecoder x)
-  have hf'_comp : Computable f' := hf_comp.comp listDecoder_computable
-  have h_surj : ∀ y, ∃ x, f' x = y := by
-    intro y
-    use Encodable.encode (g y)
-    dsimp [f', listDecoder]
-    rw [Encodable.encodek]
-    exact h_right_inv y
-  have h_search := Computable.inverse f' hf'_comp h_surj
-  have h_eq : g = fun y => listDecoder (Nat.find (h_surj y)) := by
-    funext y
-    have h_find := Nat.find_spec (h_surj y)
-    dsimp [f'] at h_find
-    have h_apply := congrArg g h_find
-    rw [h_left_inv] at h_apply
-    exact h_apply.symm
-  rw [h_eq]
-  exact listDecoder_computable.comp h_search
-
 end Kolmogorov

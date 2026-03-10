@@ -1,7 +1,6 @@
 import Mathlib.Computability.PartrecCode
 import Mathlib.Computability.Partrec
 import Mathlib.Data.List.Basic
-import KolmogorovMathlib.Core.Basic
 
 /-!
 # Binary Encoding of Natural Numbers
@@ -30,36 +29,22 @@ def decodeBits : List Bool → ℕ
 theorem decodeBits_bits (n : ℕ) : decodeBits (Nat.bits n) = n := by
   induction n using Nat.binaryRec
   case zero =>
-    change decodeBits (Nat.binaryRec [] (fun b _ r => b :: r) 0) = 0
-    rw [Nat.binaryRec_zero]
-    rfl
+    simp [decodeBits]
   case bit b n' ih =>
     by_cases h_zero : n' = 0
     · subst h_zero
       cases b
-      · change decodeBits (Nat.binaryRec [] (fun b _ r => b :: r) 0) = 0
-        rw [Nat.binaryRec_zero]
-        rfl
+      · simp [decodeBits, Nat.bit, Nat.bits]
       · have h_app : Nat.bits (Nat.bit true 0) = true :: Nat.bits 0 := by
           apply Nat.bits_append_bit
-          intro _
-          rfl
+          intro _; rfl
         rw [h_app]
-        change 2 * decodeBits (Nat.binaryRec [] (fun b _ r => b :: r) 0) + 1 = 1
-        rw [Nat.binaryRec_zero]
-        rfl
+        simp [decodeBits, Nat.bit]
     · have h_app : Nat.bits (Nat.bit b n') = b :: Nat.bits n' := by
         apply Nat.bits_append_bit
-        intro h
-        contradiction
+        intro h; contradiction
       rw [h_app]
-      cases b
-      · change 2 * decodeBits (Nat.bits n') = Nat.bit false n'
-        rw [ih]
-        simp [Nat.bit]
-      · change 2 * decodeBits (Nat.bits n') + 1 = Nat.bit true n'
-        rw [ih]
-        simp [Nat.bit]
+      cases b <;> simp [decodeBits, ih, Nat.bit]
 
 /-- The standard binary representation of natural numbers is injective. -/
 theorem bits_injective : Function.Injective Nat.bits := by
@@ -72,51 +57,142 @@ theorem bits_injective : Function.Injective Nat.bits := by
 -- ==========================================================
 
 @[simp]
-lemma bits_zero : Nat.bits 0 = [] := by
-  -- We provide explicit arguments to Nat.binaryRec_zero to help Lean's elaborator
-  exact Nat.binaryRec_zero (zero := []) (bit := fun b _ r => b :: r)
+lemma bits_zero_eq : Nat.bits 0 = [] := by
+  simp [Nat.bits]
 
 /-- The length of a natural number's binary string is bounded by the number itself. -/
 lemma length_natBits_le (k : ℕ) : (Nat.bits k).length ≤ k := by
   induction k using Nat.binaryRec
   case zero =>
-    rw [bits_zero]
-    exact Nat.le_refl 0
+    simp
   case bit b n' ih =>
     by_cases h_zero : n' = 0
     · subst h_zero
       cases b
-      · -- Case: 0
-        rw [bits_zero]
-        exact Nat.le_refl 0
-      · -- Case: 1
-        have h_app : Nat.bits 1 = [true] := by
-          -- 1 is Nat.bit true 0
-          have h1 : 1 = Nat.bit true 0 := rfl
-          rw [h1, Nat.bits_append_bit]
-          · rw [bits_zero]
-          · intro _; rfl
+      · simp [Nat.bit, Nat.bits]
+      · have h_app : Nat.bits (Nat.bit true 0) = true :: Nat.bits 0 := by
+          apply Nat.bits_append_bit
+          intro _; rfl
         rw [h_app]
-        simp
-    · -- Case: n' > 0
-      have h_app : Nat.bits (Nat.bit b n') = b :: Nat.bits n' := by
+        simp [Nat.bit]
+    · have h_app : Nat.bits (Nat.bit b n') = b :: Nat.bits n' := by
         apply Nat.bits_append_bit
-        intro h
-        contradiction
+        intro h; contradiction
       rw [h_app]
       simp only [List.length_cons]
-      -- At this point, simp or omega usually finishes the job
       cases b <;> simp [Nat.bit] <;> omega
+
 -- ==========================================================
 -- 3. Computability
 -- ==========================================================
 
-/-- Converting a natural number to its binary representation is computable. -/
-lemma natBits_computable : Computable Nat.bits := by
-  sorry
+def decodeStep (b : Bool) (n : ℕ) : ℕ :=
+  Nat.bit b n
 
-/-- Decoding a binary string back to a natural number is computable. -/
-lemma decodeBits_computable : Computable decodeBits := by
-  sorry
+lemma decodeBits_eq_foldr (bs : List Bool) :
+    decodeBits bs = bs.foldr decodeStep 0 := by
+  induction bs with
+  | nil => rfl
+  | cons b tail ih =>
+    cases b <;> simp [decodeBits, decodeStep, ih, Nat.bit]
+
+lemma primrec_decodeStep : Primrec₂ decodeStep := by
+  have h_eq : ∀ p : Bool × ℕ, decodeStep p.1 p.2 = bif p.1 then 2 * p.2 + 1 else 2 * p.2 := by
+    intro p; cases p.1 <;> rfl
+  apply Primrec.of_eq _ h_eq
+  apply Primrec.cond Primrec.fst
+  · apply Primrec₂.comp Primrec.nat_add
+    · apply Primrec₂.comp Primrec.nat_mul
+      · exact Primrec.const 2
+      · exact Primrec.snd
+    · exact Primrec.const 1
+  · apply Primrec₂.comp Primrec.nat_mul
+    · exact Primrec.const 2
+    · exact Primrec.snd
+
+lemma primrec_decodeBits : Primrec decodeBits := by
+  have h_fold : Primrec (fun bs : List Bool => bs.foldr decodeStep 0) := by
+    have h_step : Primrec₂ (fun (_ : List Bool) (p : Bool × ℕ) => decodeStep p.1 p.2) :=
+      primrec_decodeStep.comp (Primrec.fst.comp Primrec.snd) (Primrec.snd.comp Primrec.snd)
+    exact Primrec.list_foldr Primrec.id (Primrec.const 0) h_step
+  exact Primrec.of_eq h_fold (fun bs => (decodeBits_eq_foldr bs).symm)
+
+lemma decodeBits_computable : Computable decodeBits :=
+  Primrec.to_comp primrec_decodeBits
+
+-- --- Nat.bits Computability ---
+
+def bits_g (_ : Unit) (l : List (List Bool)) : Option (List Bool) :=
+  let n := l.length
+  bif n == 0 then some []
+  else some ((n % 2 == 1) :: l.getD (n / 2) [])
+
+lemma primrec_bits_g : Primrec₂ bits_g := by
+  have h_eq : ∀ p : Unit × List (List Bool), bits_g p.1 p.2 =
+      bif (p.2.length == 0) then some []
+      else some ((p.2.length % 2 == 1) :: p.2.getD (p.2.length / 2) []) := by
+    intro p; rfl
+  apply Primrec.of_eq _ h_eq
+  apply Primrec.cond
+  · apply Primrec₂.comp Primrec.beq
+    · exact Primrec.comp Primrec.list_length Primrec.snd
+    · exact Primrec.const 0
+  · exact Primrec.const (some [])
+  · apply Primrec.comp Primrec.option_some
+    apply Primrec₂.comp Primrec.list_cons
+    · apply Primrec₂.comp Primrec.beq
+      · apply Primrec₂.comp Primrec.nat_mod
+        · exact Primrec.comp Primrec.list_length Primrec.snd
+        · exact Primrec.const 2
+      · exact Primrec.const 1
+    · apply Primrec₂.comp (Primrec.list_getD [])
+      · exact Primrec.snd
+      · apply Primrec₂.comp Primrec.nat_div
+        · exact Primrec.comp Primrec.list_length Primrec.snd
+        · exact Primrec.const 2
+
+lemma bits_g_valid (u : Unit) (n : ℕ) :
+    bits_g u (List.map (fun x => Nat.bits x) (List.range n)) = some (Nat.bits n) := by
+  unfold bits_g
+  simp only [List.length_map, List.length_range]
+  by_cases hn : n = 0
+  · subst hn
+    simp [Nat.bits]
+  · have h_beq : (n == 0) = false := by
+      cases h_eq : (n == 0)
+      · rfl
+      · have := beq_iff_eq.mp h_eq; contradiction
+    have h_n_eq : n = Nat.bit (n % 2 == 1) (n / 2) := by
+      simp [Nat.bit]
+      by_cases h_odd : n % 2 = 1
+      · simp [h_odd]; omega
+      · have h_even : n % 2 = 0 := by omega
+        have h_false : (n % 2 == 1) = false := by
+          cases h_eq : (n % 2 == 1)
+          · rfl
+          · have := beq_iff_eq.mp h_eq; omega
+        simp [h_false]; omega
+    have h_bits : Nat.bits (Nat.bit (n % 2 == 1) (n / 2)) = (n % 2 == 1) :: Nat.bits (n / 2) := by
+      apply Nat.bits_append_bit
+      intro h_zero
+      have h_n_one : n = 1 := by omega
+      subst h_n_one
+      rfl
+    have h_rhs : Nat.bits n = (n % 2 == 1) :: Nat.bits (n / 2) := by
+      conv_lhs => rw [h_n_eq]
+      exact h_bits
+    rw [h_beq]
+    rw [h_rhs]
+    have h_lt : n / 2 < n := Nat.div_lt_self (Nat.pos_of_ne_zero hn) (by omega)
+    have h_get : (List.range n)[n / 2]? = some (n / 2) := List.getElem?_range h_lt
+    simp [List.getD, h_get, List.getElem?_map]
+
+lemma primrec_natBits : Primrec Nat.bits := by
+  have h_strong : Primrec₂ (fun (u : Unit) (n : ℕ) => Nat.bits n) :=
+    Primrec.nat_strong_rec (fun _ n => Nat.bits n) primrec_bits_g bits_g_valid
+  exact h_strong.comp (Primrec.const ()) Primrec.id
+
+lemma natBits_computable : Computable Nat.bits :=
+  Primrec.to_comp primrec_natBits
 
 end Kolmogorov

@@ -1,7 +1,7 @@
 name = "logic"
 version = "0.1.0"
 keywords = ["math"]
-defaultTargets = ["Logic", "KolmogorovMathlib"]
+defaultTargets = ["KolmogorovMathlib"]
 
 [leanOptions]
 pp.unicode.fun = true # pretty-prints `fun a ↦ b`
@@ -13,9 +13,6 @@ maxSynthPendingDepth = 3
 name = "mathlib"
 scope = "leanprover-community"
 rev = "v4.27.0"
-
-[[lean_lib]]
-name = "Logic"
 
 [[lean_lib]]
 name = "KolmogorovMathlib"
