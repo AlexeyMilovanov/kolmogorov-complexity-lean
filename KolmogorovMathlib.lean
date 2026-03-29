@@ -1,6 +1,6 @@
-import KolmogorovMathlib.Foundation.ListPrimrec
 import KolmogorovMathlib.Foundation.UnboundedSearch
 import KolmogorovMathlib.Foundation.NatEncoding
+import KolmogorovMathlib.Foundation.RecursivelyEnumerable
 import KolmogorovMathlib.Core.Basic
 import KolmogorovMathlib.Core.UniversalDecompressor
 import KolmogorovMathlib.Core.Invariance
@@ -8,3 +8,8 @@ import KolmogorovMathlib.Complexity.Properties
 import KolmogorovMathlib.Complexity.Incompressibility
 import KolmogorovMathlib.Complexity.NatComplexity
 import KolmogorovMathlib.Complexity.Uncomputability
+import KolmogorovMathlib.Complexity.Chaitin
+import KolmogorovMathlib.Complexity.ChaitinCorollaries
+--import Foundation.FirstOrder.Arithmetic.PA
+--import Foundation.FirstOrder.Arithmetic.Definability
+--import Mathlib.Computability.Partrec

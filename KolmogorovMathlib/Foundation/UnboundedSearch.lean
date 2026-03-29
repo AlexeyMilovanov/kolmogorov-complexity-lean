@@ -2,6 +2,7 @@ import Mathlib.Computability.Partrec
 import Mathlib.Computability.PartrecCode
 import Mathlib.Computability.Primrec.List
 import Mathlib.Data.Nat.Basic
+import Mathlib.Data.List.Basic
 
 /-!
 # Unbounded Search Computability (The Mu-Operator)
@@ -14,31 +15,24 @@ is guaranteed to exist for every input, then the search for the minimal such ans
 
 namespace Kolmogorov
 
--- ==========================================================
--- Basic Math Computability
--- ==========================================================
+/-! ### Basic Math Computability -/
 
-/-- Auxiliary lemma: Exponentiation 2^k is a computable function. -/
+/-- Auxiliary lemma: Exponentiation `2^k` is a computable function. -/
 lemma Computable.pow2 : Computable (fun k : ℕ => 2 ^ k) := by
   apply Primrec.to_comp
   rw [Primrec.nat_iff]
-  -- Broken into two lines for the 100-character limit
   have h_eq : (fun k => (Nat.pair 2 k).unpair.1 ^ (Nat.pair 2 k).unpair.2) =
               (fun k => 2 ^ k) := by
     funext k
-    simp
+    simp only [Nat.unpair_pair]
   rw [← h_eq]
   exact Nat.Primrec.pow.comp (Nat.Primrec.pair (Nat.Primrec.const 2) Nat.Primrec.id)
 
--- ==========================================================
--- 1. Master Lemma (Unbounded Search)
--- ==========================================================
+/-! ### Master Lemma (Unbounded Search) -/
 
-/--
-If a predicate `P` is decidable and its decision function is computable,
+/-- If a predicate `P` is decidable and its decision function is computable,
 and if for every `k` there exists an `n` such that `P k n` holds,
-then the function `k ↦ Nat.find (h_unbounded k)` is computable.
--/
+then the search function `k ↦ Nat.find (h_unbounded k)` is computable. -/
 lemma Computable.unboundedSearch {P : ℕ → ℕ → Prop} [∀ k n, Decidable (P k n)]
     (hP_comp : Computable (fun p : ℕ × ℕ => decide (P p.1 p.2)))
     (h_unbounded : ∀ k, ∃ n, P k n) :
@@ -64,12 +58,10 @@ lemma Computable.unboundedSearch {P : ℕ → ℕ → Prop} [∀ k n, Decidable 
   rw [h_eq] at h_alg
   exact h_alg
 
--- ==========================================================
--- 2. Corollaries
--- ==========================================================
+/-! ### Corollaries -/
 
-/-- Corollary 1: Equality Search.
-    If a function `f` is computable and surjective, its inverse search is computable. -/
+/-- Equality Search: If a function `f` is computable and surjective,
+its inverse search function is computable. -/
 lemma Computable.inverse (f : ℕ → ℕ) (hf_comp : Computable f)
     (h_surj : ∀ y, ∃ x, f x = y) :
     Computable (fun y => Nat.find (h_surj y)) := by
@@ -77,12 +69,13 @@ lemma Computable.inverse (f : ℕ → ℕ) (hf_comp : Computable f)
   exact (Primrec.to_comp Primrec.beq).comp
     (Computable.pair (hf_comp.comp Computable.snd) Computable.fst)
 
-/-- Building block 1: Isolate the comparison operator. -/
+/-- Isolates the strict inequality comparison operator on natural numbers. -/
 lemma Computable.natLt : Computable (fun p : ℕ × ℕ => decide (p.1 < p.2)) := by
   obtain ⟨_, h_prim⟩ := Primrec.nat_lt
   convert Primrec.to_comp h_prim
 
-/-- Building block 2: Prove the computability of the predicate P itself. -/
+/-- Proves the computability of a predicate `P` defined by a strict inequality
+between two computable functions. -/
 lemma Computable.testP {P : ℕ → ℕ → Prop} [∀ k n, Decidable (P k n)]
     {f g : ℕ → ℕ} (hf : Computable f) (hg : Computable g)
     (h_equiv : ∀ k n, P k n ↔ f n > g k) :
@@ -91,9 +84,10 @@ lemma Computable.testP {P : ℕ → ℕ → Prop} [∀ k n, Decidable (P k n)]
   let h_alg := Computable.natLt.comp h_pair
   convert h_alg using 1
   funext p
-  simp [h_equiv]
+  simp only [h_equiv]
 
-/-- Corollary 2: Inequality Search (Modular Edition). -/
+/-- Inequality Search: A modular search function over a predicate defined
+by a strict inequality between two computable functions. -/
 lemma Computable.searchCore {P : ℕ → ℕ → Prop} [∀ k n, Decidable (P k n)]
     (f : ℕ → ℕ) (hf_comp : Computable f)
     (g : ℕ → ℕ) (hg_comp : Computable g)
@@ -101,4 +95,5 @@ lemma Computable.searchCore {P : ℕ → ℕ → Prop} [∀ k n, Decidable (P k 
     (h_unbounded : ∀ k, ∃ n, P k n) :
     Computable (fun k => Nat.find (h_unbounded k)) :=
   Computable.unboundedSearch (Computable.testP hf_comp hg_comp h_equiv) h_unbounded
+
 end Kolmogorov

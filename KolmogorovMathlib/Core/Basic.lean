@@ -14,9 +14,7 @@ which is the prerequisite for the Invariance Theorem.
 
 namespace Kolmogorov
 
--- ==========================================================
--- 1. Basic Types
--- ==========================================================
+/-! ### Basic Types -/
 
 /-- A bit string is simply a list of booleans. -/
 abbrev BitString := List Bool
@@ -26,9 +24,7 @@ abbrev BitString := List Bool
     We use `Part` to naturally model programs that loop indefinitely. -/
 abbrev Map := BitString × BitString →. BitString
 
--- ==========================================================
--- 2. Metrics & Execution
--- ==========================================================
+/-! ### Metrics & Execution -/
 
 /-- The length of a program is the number of bits it contains.
     Defined as `abbrev` so Lean automatically reduces it to `List.length`. -/
@@ -45,9 +41,7 @@ abbrev produces (D : Map) (p y x : BitString) : Prop := x ∈ D (p, y)
 abbrev candidateLengths (D : Map) (x y : BitString) : Set ENat :=
   {n | ∃ p, produces D p y x ∧ (programLength p : ENat) = n}
 
--- ==========================================================
--- 3. Kolmogorov Complexity Definitions
--- ==========================================================
+/-! ### Kolmogorov Complexity Definitions -/
 
 /-- Conditional Kolmogorov Complexity K_D(x|y).
     Defined as the infimum of the lengths of all valid programs.
@@ -60,9 +54,7 @@ noncomputable def condK (D : Map) (x y : BitString) : ENat :=
 noncomputable def plainK (D : Map) (x : BitString) : ENat :=
   condK D x []
 
--- ==========================================================
--- 4. Optimality (Universality)
--- ==========================================================
+/-! ### Optimality (Universality) -/
 
 /-- A map `U` is optimal (universal) if it can simulate any other
     computable decompressor `D` with at most a constant additive overhead `c`
