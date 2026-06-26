@@ -34,50 +34,38 @@ lemma computable_finset_range_sup {α : Type*} [Primcodable α]
     | succ n ih =>
       rw [Finset.range_add_one, Finset.sup_insert, ← ih])
 
+lemma comp_evalnDecodedScaled {α β} [Primcodable α] [Primcodable β]
+    {s c : α → ℕ} {x : α → β} {scale : α → ℕ}
+    (hs : Computable s) (hc : Computable c) (hx : Computable x) (hscale : Computable scale) :
+  Computable (fun a => evalnDecodedScaled (s a) (c a) (x a) (scale a)) := by
+  have hpow : Computable (fun p : α × ℕ => 2 ^ scale p.1) :=
+    @Computable.comp (α × ℕ) ℕ ℕ _ _ _ (fun p => 2 ^ p) (fun p => scale p.1)
+      (Primrec.to_comp primrec_two_pow) (hscale.comp Computable.fst)
+  have hmul : Computable (fun p : α × ℕ => p.2 * 2 ^ scale p.1) :=
+    @Computable.comp (α × ℕ) (ℕ × ℕ) ℕ _ _ _
+      (fun p : ℕ × ℕ => p.1 * p.2) (fun p : α × ℕ => (p.2, 2 ^ scale p.1))
+      (Primrec.to_comp Primrec.nat_mul) (Computable.pair Computable.snd hpow)
+  have hmul2 : Computable₂ (fun a (v : ℕ) => v * 2 ^ scale a) :=
+    Computable.of_eq hmul (fun _ => rfl)
+  convert Computable.option_casesOn (comp_evaln_decoded hs hc hx) (Computable.const 0) hmul2 using 1
+  exact funext fun a => by unfold evalnDecodedScaled; cases Computability.evalnDecoded (s a) (c a) (x a) <;> rfl
+
 lemma approxEnum_computable :
     Computable (fun p : ℕ × ℕ × BitString × BitString =>
       approxEnum p.1 p.2.1 p.2.2.1 p.2.2.2) := by
-  apply Computable.of_eq;
-  rotate_right;
-  exact fun p => ( Finset.range ( p.2.1 + 1 ) ).sup fun s' => match Computability.evalnDecoded p.2.1 p.1 ( s', p.2.2.1, p.2.2.2 ) with | some v => v * 2 ^ ( p.2.1 - s' ) | none => 0;
-  · convert computable_finset_range_sup _ _ _ _;
-    · exact Computable.succ.comp ( Computable.fst.comp ( Computable.snd ) );
-    · convert Computable.option_casesOn _ _ _ using 1;
-      rotate_left;
-      exact ℕ;
-      exact inferInstance;
-      exact fun p => Computability.evalnDecoded p.1.2.1 p.1.1 ( p.2, p.1.2.2.1, p.1.2.2.2 );
-      exact fun p => 0;
-      exact fun p v => v * 2 ^ ( p.1.2.1 - p.2 );
-      · exact comp_evaln_decoded (comp_fst_snd_fst Computable.id)
-          (comp_fst_fst Computable.id)
-          (Computable.snd.pair
-            ((comp_snd_snd_fst (comp_fst Computable.id)).pair
-              (comp_snd_snd_snd (comp_fst Computable.id))))
-      · exact Computable.const 0;
-      · refine Computable.of_eq
-          (f := fun p : ((ℕ × (ℕ × BitString × BitString)) × ℕ) × ℕ =>
-            p.2 * 2 ^ ( p.1.1.2.1 - p.1.2 )) ?_ ?_;
-        · have h_primrec : Primrec (fun p : ℕ × ℕ × BitString × BitString × ℕ => p.2.2.2.2 * 2 ^ (p.2.1 - p.1)) := by
-            have h_primrec : Primrec (fun p : ℕ × ℕ × BitString × BitString × ℕ => p.2.2.2.2) := by
-              exact Primrec.snd.comp ( Primrec.snd.comp ( Primrec.snd.comp ( Primrec.snd ) ) );
-            have h_primrec : Primrec (fun p : ℕ × ℕ × BitString × BitString × ℕ => 2 ^ (p.2.1 - p.1)) := by
-              have h_primrec : Primrec (fun p : ℕ × ℕ => 2 ^ (p.2 - p.1)) := by
-                have h_primrec : Primrec (fun p : ℕ × ℕ => p.2 - p.1) := by
-                  exact Primrec.nat_sub.comp ( Primrec.snd ) ( Primrec.fst );
-                have h_primrec : Primrec (fun p : ℕ => 2 ^ p) := by
-                  convert primrec_two_pow using 1;
-                exact h_primrec.comp ‹_›;
-              convert h_primrec.comp ( show Primrec ( fun p : ℕ × ℕ × BitString × BitString × ℕ => ( p.1, p.2.1 ) ) from ?_ ) using 1;
-              exact Primrec.pair ( Primrec.fst ) ( Primrec.fst.comp ( Primrec.snd ) );
-            exact Primrec.nat_mul.comp ( by assumption ) ( by assumption );
-          convert h_primrec.to_comp.comp _ using 1;
-          rotate_left;
-          exact fun p => ( p.1.2, p.1.1.2.1, p.1.1.2.2.1, p.1.1.2.2.2, p.2 );
-          · exact Computable.pair ( Computable.snd.comp Computable.fst ) ( Computable.pair ( Computable.fst.comp ( Computable.snd.comp ( Computable.fst.comp Computable.fst ) ) ) ( Computable.pair ( Computable.fst.comp ( Computable.snd.comp ( Computable.snd.comp ( Computable.fst.comp Computable.fst ) ) ) ) ( Computable.pair ( Computable.snd.comp ( Computable.snd.comp ( Computable.snd.comp ( Computable.fst.comp Computable.fst ) ) ) ) ( Computable.snd ) ) ) );
-          · exact funext fun p => by cases p; rfl;
-        · aesop;
-      · exact funext fun p => by cases Computability.evalnDecoded p.1.2.1 p.1.1 ( p.2, p.1.2.2.1, p.1.2.2.2 ) <;> rfl;
+  apply Computable.of_eq (f := fun p => (Finset.range (p.2.1 + 1)).sup (fun s' => evalnDecodedScaled p.2.1 p.1 (s', p.2.2.1, p.2.2.2) (p.2.1 - s')))
+  · apply computable_finset_range_sup
+    · exact Computable.succ.comp (Computable.fst.comp Computable.snd)
+    · apply comp_evalnDecodedScaled
+      · exact comp_fst_snd_fst Computable.id
+      · exact comp_fst_fst Computable.id
+      · exact Computable.snd.pair ((comp_snd_snd_fst (comp_fst Computable.id)).pair (comp_snd_snd_snd (comp_fst Computable.id)))
+      · have hsub : Computable (fun p : (ℕ × ℕ × BitString × BitString) × ℕ => p.1.2.1 - p.2) :=
+          @Computable.comp ((ℕ × ℕ × BitString × BitString) × ℕ) (ℕ × ℕ) ℕ _ _ _
+            (fun p => p.1 - p.2) (fun p => (p.1.2.1, p.2))
+            (Primrec.to_comp Primrec.nat_sub)
+            (Computable.pair (comp_fst_snd_fst Computable.id) Computable.snd)
+        exact Computable.of_eq hsub (fun _ => rfl)
   · intro p; cases p with | mk p_1 p_2 => cases p_2 with | mk p_2_1 p_2_2 => cases p_2_2 with | mk p_2_2_1 p_2_2_2 => unfold approxEnum; rfl
 
 lemma makeMono_computable (approx : ℕ → BitString → BitString → ℕ)

@@ -50,9 +50,10 @@ lemma exists_approxEnum (approx : ℕ → BitString → BitString → ℕ)
           exact ⟨ c, fun s out ctx => by simp +decide [ ← hh₂, hc ] ⟩;
         refine ⟨ Encodable.encode c, fun out ctx => le_antisymm ?_ ?_ ⟩ <;> simp_all +decide [ approxEnum ];
         · intro i
-          have h_term : ∀ s' ∈ Finset.range (i + 1), dyadicValue (match Computability.evalnDecoded i (Encodable.encode c) (s', out, ctx) with
-            | some v => v * 2 ^ (i - s')
-            | none => 0) i ≤ ⨆ s, dyadicValue (approx s out ctx) s := by
+          have h_term : ∀ s' ∈ Finset.range (i + 1),
+              dyadicValue
+                (evalnDecodedScaled i (Encodable.encode c) (s', out, ctx) (i - s')) i
+                ≤ ⨆ s, dyadicValue (approx s out ctx) s := by
               intro s' hs'
               have h_term : Computability.evalnDecoded i (Encodable.encode c) (s', out, ctx) = some (approx s' out ctx) ∨ Computability.evalnDecoded i (Encodable.encode c) (s', out, ctx) = none := by
                 cases h : Computability.evalnDecoded i (Encodable.encode c) (s', out, ctx) <;> simp_all +decide [ Part.eq_some_iff ];
@@ -61,7 +62,7 @@ lemma exists_approxEnum (approx : ℕ → BitString → BitString → ℕ)
                 simp_all +decide [ Part.mem_eq ] ;
                 cases hc s' out ctx ; aesop
               generalize_proofs at *; (
-              cases h_term <;> simp +decide [ *, dyadicValue ];
+              cases h_term <;> simp +decide [ *, dyadicValue, evalnDecodedScaled ];
               refine le_trans ?_ ( le_ciSup ?_ s' ) <;> norm_num [ div_eq_mul_inv, mul_assoc, mul_comm, mul_left_comm, pow_add ];
               rw [ show ( 2 ^ i : ℝ≥0∞ ) = 2 ^ ( i - s' ) * 2 ^ s' by rw [ ← pow_add, Nat.sub_add_cancel ( Finset.mem_range_succ_iff.mp hs' ) ] ] ; norm_num [ mul_assoc, mul_comm, mul_left_comm ];
               simp +decide [    ENNReal.mul_inv ];
@@ -83,6 +84,7 @@ lemma exists_approxEnum (approx : ℕ → BitString → BitString → ℕ)
             exact Nat.Partrec.Code.evaln_complete.mp (hc s out ctx);
           refine le_trans ?_ ( le_iSup _ ( Max.max s k ) );
           refine le_trans ?_ ( ENNReal.div_le_div ( Nat.cast_le.mpr <| Finset.le_sup <| Finset.mem_range.mpr <| Nat.lt_succ_of_le <| le_max_left s k ) le_rfl );
+          unfold evalnDecodedScaled
           rw [ show Computability.evalnDecoded (Max.max s k) (Encodable.encode c) (s, out, ctx) = some ( approx s out ctx ) from ?_ ];
           · unfold dyadicValue; norm_num [ pow_add, pow_one, pow_mul, mul_assoc, mul_comm, mul_left_comm, div_eq_mul_inv ] ;
             rw [ show ( 2 : ℝ≥0∞ ) ^ max s k = ( 2 : ℝ≥0∞ ) ^ ( max s k - s ) * ( 2 : ℝ≥0∞ ) ^ s by rw [ ← pow_add, Nat.sub_add_cancel ( le_max_left _ _ ) ] ] ; ring_nf ;

@@ -9,6 +9,12 @@ namespace Kolmogorov
 
 open scoped ENNReal
 
+/-- Evaluates a decoded code with a budget and scales the result if successful. -/
+def evalnDecodedScaled {β} [Encodable β] (s : ℕ) (c : ℕ) (x : β) (scale : ℕ) : ℕ :=
+  match Computability.evalnDecoded s c x with
+  | some v => v * 2 ^ scale
+  | none => 0
+
 /-- **The dovetailed `evaln`-budget enumeration of all lower-semicomputable
 approximations.**
 
@@ -28,9 +34,7 @@ lemmas are used). -/
 @[irreducible] def approxEnum : ℕ → ℕ → BitString → BitString → ℕ :=
   fun i s out ctx =>
     (Finset.range (s + 1)).sup (fun s' =>
-      match Computability.evalnDecoded s i (s', out, ctx) with
-      | some v => v * 2 ^ (s - s')
-      | none => 0)
+      evalnDecodedScaled s i (s', out, ctx) (s - s'))
 
 /-- The monotonic wrapper for an approximation to ensure `dyadicValue` is non-decreasing. -/
 def makeMono (approx : ℕ → BitString → BitString → ℕ) : ℕ → BitString → BitString → ℕ
