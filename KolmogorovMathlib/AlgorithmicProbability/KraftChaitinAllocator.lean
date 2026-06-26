@@ -855,14 +855,19 @@ lemma allocStep_computable :
   have hinner : Computable₂
       (fun (d : (Option (BitString × ℕ) × Option (List BitString)) × List BitString)
         (pr : BitString × ℕ) => (allocateOne d.2 pr.2).map Prod.snd) := by
-    refine comp_option_map ?_ (comp_snd_snd Computable.id)
-    exact allocateOne_computable.comp
-      ((Computable.snd.comp Computable.fst).pair (Computable.snd.comp Computable.snd))
+    have hf : Computable (fun p : ((Option (BitString × ℕ) × Option (List BitString)) × List BitString) × (BitString × ℕ) => allocateOne p.1.2 p.2.2) :=
+      allocateOne_computable.comp
+        ((Computable.snd.comp Computable.fst).pair (Computable.snd.comp Computable.snd))
+    exact comp_option_map hf (comp_snd_snd Computable.id)
   have hg : Computable
       (fun d : (Option (BitString × ℕ) × Option (List BitString)) × List BitString =>
         (d.1.1.map (fun pr => (allocateOne d.2 pr.2).map Prod.snd)).getD (some d.2)) := by
-    exact comp_option_getD (comp_option_map (comp_fst_fst Computable.id) hinner)
-      (Computable.option_some.comp (comp_snd Computable.id))
+    have h_map : Computable (fun d : (Option (BitString × ℕ) × Option (List BitString)) × List BitString =>
+      d.1.1.map (fun pr => (allocateOne d.2 pr.2).map Prod.snd)) :=
+      comp_option_map (comp_fst_fst Computable.id) hinner
+    have h_some : Computable (fun d : (Option (BitString × ℕ) × Option (List BitString)) × List BitString =>
+      some d.2) := Computable.option_some.comp (comp_snd Computable.id)
+    exact comp_option_getD h_map h_some
   exact (comp_option_bind Computable.snd hg.to₂).of_eq (fun _ => rfl)
 
 /-- `allocatorState` rewritten as an explicit `Nat.rec` with a combinator-friendly step. -/
@@ -937,13 +942,19 @@ lemma allocOut_computable :
   have hinner : Computable₂
       (fun (d : (Option (BitString × ℕ) × Option (List BitString)) × List BitString)
         (pr : BitString × ℕ) => (allocateOne d.2 pr.2).map Prod.fst) := by
-    refine comp_option_map ?_ (comp_snd_fst Computable.id)
-    exact allocateOne_computable.comp
-      ((Computable.snd.comp Computable.fst).pair (Computable.snd.comp Computable.snd))
+    have hf : Computable (fun p : ((Option (BitString × ℕ) × Option (List BitString)) × List BitString) × (BitString × ℕ) => allocateOne p.1.2 p.2.2) :=
+      allocateOne_computable.comp
+        ((Computable.snd.comp Computable.fst).pair (Computable.snd.comp Computable.snd))
+    exact comp_option_map hf (comp_snd_fst Computable.id)
   have hg : Computable
       (fun d : (Option (BitString × ℕ) × Option (List BitString)) × List BitString =>
         (d.1.1.map (fun pr => (allocateOne d.2 pr.2).map Prod.fst)).getD none) := by
-    exact comp_option_getD (comp_option_map (comp_fst_fst Computable.id) hinner) (Computable.const none)
+    have h_map : Computable (fun d : (Option (BitString × ℕ) × Option (List BitString)) × List BitString =>
+      d.1.1.map (fun pr => (allocateOne d.2 pr.2).map Prod.fst)) :=
+      comp_option_map (comp_fst_fst Computable.id) hinner
+    have h_none : Computable (fun d : (Option (BitString × ℕ) × Option (List BitString)) × List BitString =>
+      (@none (List BitString))) := Computable.const none
+    exact comp_option_getD h_map h_none
   exact (comp_option_bind Computable.snd hg.to₂).of_eq (fun _ => rfl)
 
 /-- `allocFun` rewritten as a bind over the allocator state. -/
