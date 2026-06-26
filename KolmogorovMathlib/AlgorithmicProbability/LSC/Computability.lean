@@ -40,12 +40,12 @@ lemma evOut_computable : Computable evOut := by
     exact (Computable.option_bind (Computable.decode (α := BitString)) hbranch).of_eq (fun n => by
       unfold Encodable.decode₂
       cases h : (Encodable.decode n : Option BitString) <;> simp [Option.guard])
-  exact hdecode₂.comp (Computable.fst.comp Computable.unpair)
+  exact hdecode₂.comp (comp_fst Computable.unpair)
 
 /-- `evK` is computable. -/
 lemma evK_computable : Computable evK := by
   unfold evK
-  exact Computable.snd.comp Computable.unpair
+  exact comp_snd Computable.unpair
 
 /-- The increment numerator is computable in `(k, out, ctx)`. -/
 lemma incNum_computable_f1 (approx : ℕ → BitString → BitString → ℕ)
@@ -86,10 +86,10 @@ lemma evNum_computable (hcomp : Computable
   have hg : Computable (fun p : ℕ × BitString => (0 : ℕ)) := Computable.const 0
   have hh : Computable₂ (fun (p : ℕ × BitString) (out : BitString) => incNum approx (evK p.1) out p.2) := by
     have h_q1 : Computable (fun q : (ℕ × BitString) × BitString => q.1) := Computable.fst
-    have h_q1_1 : Computable (fun q : (ℕ × BitString) × BitString => q.1.1) := Computable.fst.comp h_q1
+    have h_q1_1 : Computable (fun q : (ℕ × BitString) × BitString => q.1.1) := comp_fst h_q1
     have h_evK_q1_1 : Computable (fun q : (ℕ × BitString) × BitString => evK q.1.1) := evK_computable.comp h_q1_1
     have h_q2 : Computable (fun q : (ℕ × BitString) × BitString => q.2) := Computable.snd
-    have h_q1_2 : Computable (fun q : (ℕ × BitString) × BitString => q.1.2) := Computable.snd.comp h_q1
+    have h_q1_2 : Computable (fun q : (ℕ × BitString) × BitString => q.1.2) := comp_snd h_q1
     have h_inc_args : Computable (fun q : (ℕ × BitString) × BitString => (evK q.1.1, q.2, q.1.2)) :=
       Computable.pair h_evK_q1_1 (Computable.pair h_q2 h_q1_2)
     exact Computable.of_eq ((incNum_computable hcomp).comp h_inc_args) (fun q => beta_pair3 (incNum approx) (evK q.1.1) q.2 q.1.2)
@@ -106,9 +106,9 @@ lemma cumNumTerm_computable (hcomp : Computable
     Computable (fun q : (ℕ × ℕ × BitString) × ℕ => cumNumTerm approx q.1 q.2) := by
   have h_q1 : Computable (fun q : (ℕ × ℕ × BitString) × ℕ => q.1) := Computable.fst
   have h_q2 : Computable (fun q : (ℕ × ℕ × BitString) × ℕ => q.2) := Computable.snd
-  have h_q1_1 : Computable (fun q : (ℕ × ℕ × BitString) × ℕ => q.1.1) := Computable.fst.comp h_q1
+  have h_q1_1 : Computable (fun q : (ℕ × ℕ × BitString) × ℕ => q.1.1) := comp_fst h_q1
   have h_q1_22 : Computable (fun q : (ℕ × ℕ × BitString) × ℕ => q.1.2.2) :=
-    Computable.snd.comp (Computable.snd.comp h_q1)
+    comp_snd_snd h_q1
   have h_ev_args : Computable (fun q : (ℕ × ℕ × BitString) × ℕ => (q.2, q.1.2.2)) :=
     Computable.pair h_q2 h_q1_22
   have h_ev : Computable (fun q : (ℕ × ℕ × BitString) × ℕ => evNum approx q.2 q.1.2.2) :=
@@ -132,7 +132,7 @@ lemma cumNum_computable (hcomp : Computable
       (fun p : ℕ × BitString × BitString => approx p.1 p.2.1 p.2.2)) :
   Computable (cumNumPacked approx) := by
   have h_g : Computable₂ (cumNumTerm approx) := cumNumTerm_computable hcomp
-  have h_p21 : Computable (fun p : ℕ × ℕ × BitString => p.2.1) := Computable.fst.comp Computable.snd
+  have h_p21 : Computable (fun p : ℕ × ℕ × BitString => p.2.1) := comp_fst Computable.snd
   have h_computable : Computable (fun p : ℕ × ℕ × BitString => ∑ i ∈ Finset.range p.2.1, cumNumTerm approx p i) :=
     computable_range_sum (cumNumTerm approx) h_g (fun p : ℕ × ℕ × BitString => p.2.1) h_p21
   exact Computable.of_eq h_computable (fun p => (cumNumPacked_eq approx p).symm)
@@ -261,9 +261,9 @@ carried as a `Computable.fst`-style coordinate. -/
 lemma incNum_computable_uniform (b : ℕ → ℕ → BitString → BitString → ℕ)
     (hb : Computable (fun p : ℕ × ℕ × BitString × BitString => b p.1 p.2.1 p.2.2.1 p.2.2.2)) :
     Computable (incNumUniformPacked b) := by
-  have h_p22 : Computable (fun p : ℕ × ℕ × BitString × BitString => p.2.2) := Computable.snd.comp Computable.snd
-  have h_p221 : Computable (fun p : ℕ × ℕ × BitString × BitString => p.2.2.1) := Computable.fst.comp h_p22
-  have h_p222 : Computable (fun p : ℕ × ℕ × BitString × BitString => p.2.2.2) := Computable.snd.comp h_p22
+  have h_p22 : Computable (fun p : ℕ × ℕ × BitString × BitString => p.2.2) := comp_snd Computable.snd
+  have h_p221 : Computable (fun p : ℕ × ℕ × BitString × BitString => p.2.2.1) := comp_fst h_p22
+  have h_p222 : Computable (fun p : ℕ × ℕ × BitString × BitString => p.2.2.2) := comp_snd h_p22
   have hg_args : Computable (fun p : ℕ × ℕ × BitString × BitString => (p.1, 0, p.2.2.1, p.2.2.2)) :=
     Computable.pair Computable.fst (Computable.pair (Computable.const 0) (Computable.pair h_p221 h_p222))
   have hg : Computable (fun p : ℕ × ℕ × BitString × BitString => b p.1 0 p.2.2.1 p.2.2.2) :=
@@ -274,7 +274,7 @@ lemma incNum_computable_uniform (b : ℕ → ℕ → BitString → BitString →
     have h_q1 : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => q.1) := Computable.fst
     have h_q2 : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => q.2) := Computable.snd
     have h_succ_q2 : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => q.2 + 1) := Computable.succ.comp h_q2
-    have h_q1_1 : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => q.1.1) := Computable.fst.comp h_q1
+    have h_q1_1 : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => q.1.1) := comp_fst h_q1
     have h_q1_221 : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => q.1.2.2.1) := h_p221.comp h_q1
     have h_q1_222 : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => q.1.2.2.2) := h_p222.comp h_q1
     have h_f1_args : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => (q.1.1, q.2 + 1, q.1.2.2.1, q.1.2.2.2)) :=
@@ -287,7 +287,7 @@ lemma incNum_computable_uniform (b : ℕ → ℕ → BitString → BitString →
       Computable.of_eq (hb.comp h_f2_args) (fun q => beta_pair4 b q.1.1 q.2 q.1.2.2.1 q.1.2.2.2)
     have h_f2 : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => 2 * b q.1.1 q.2 q.1.2.2.1 q.1.2.2.2) := computable_two_mul.comp h_b2
     exact Computable.of_eq (h_sub.comp (Computable.pair h_f1 h_f2)) (fun q => beta_pair Nat.sub _ _)
-  have h_p21 : Computable (fun p : ℕ × ℕ × BitString × BitString => p.2.1) := Computable.fst.comp Computable.snd
+  have h_p21 : Computable (fun p : ℕ × ℕ × BitString × BitString => p.2.1) := comp_fst Computable.snd
   exact Computable.of_eq (f := fun p => Nat.casesOn p.2.1 (b p.1 0 p.2.2.1 p.2.2.2) (fun k => b p.1 (k + 1) p.2.2.1 p.2.2.2 - 2 * b p.1 k p.2.2.1 p.2.2.2))
     (Computable.nat_casesOn h_p21 hg hh)
     (fun p => incNumUniformPacked_eq_cases b p)
@@ -296,16 +296,16 @@ lemma incNum_computable_uniform (b : ℕ → ℕ → BitString → BitString →
 lemma evNum_computable_uniform (b : ℕ → ℕ → BitString → BitString → ℕ)
     (hb : Computable (fun p : ℕ × ℕ × BitString × BitString => b p.1 p.2.1 p.2.2.1 p.2.2.2)) :
     Computable (evNumUniformPacked b) := by
-  have h_p21 : Computable (fun p : ℕ × ℕ × BitString => p.2.1) := Computable.fst.comp Computable.snd
+  have h_p21 : Computable (fun p : ℕ × ℕ × BitString => p.2.1) := comp_fst Computable.snd
   have hf : Computable (fun p : ℕ × ℕ × BitString => evOut p.2.1) := evOut_computable.comp h_p21
   have hg : Computable (fun p : ℕ × ℕ × BitString => (0 : ℕ)) := Computable.const 0
   have hh : Computable₂ (fun (p : ℕ × ℕ × BitString) (out : BitString) => incNum (b p.1) (evK p.2.1) out p.2.2) := by
     have h_q1 : Computable (fun q : (ℕ × ℕ × BitString) × BitString => q.1) := Computable.fst
-    have h_q1_1 : Computable (fun q : (ℕ × ℕ × BitString) × BitString => q.1.1) := Computable.fst.comp h_q1
-    have h_q1_21 : Computable (fun q : (ℕ × ℕ × BitString) × BitString => q.1.2.1) := Computable.fst.comp (Computable.snd.comp h_q1)
+    have h_q1_1 : Computable (fun q : (ℕ × ℕ × BitString) × BitString => q.1.1) := comp_fst h_q1
+    have h_q1_21 : Computable (fun q : (ℕ × ℕ × BitString) × BitString => q.1.2.1) := comp_snd_fst h_q1
     have h_evK : Computable (fun q : (ℕ × ℕ × BitString) × BitString => evK q.1.2.1) := evK_computable.comp h_q1_21
     have h_q2 : Computable (fun q : (ℕ × ℕ × BitString) × BitString => q.2) := Computable.snd
-    have h_q1_22 : Computable (fun q : (ℕ × ℕ × BitString) × BitString => q.1.2.2) := Computable.snd.comp (Computable.snd.comp h_q1)
+    have h_q1_22 : Computable (fun q : (ℕ × ℕ × BitString) × BitString => q.1.2.2) := comp_snd_snd h_q1
     have h_args : Computable (fun q : (ℕ × ℕ × BitString) × BitString => (q.1.1, evK q.1.2.1, q.2, q.1.2.2)) :=
       Computable.pair h_q1_1 (Computable.pair h_evK (Computable.pair h_q2 h_q1_22))
     have h_inc : Computable (fun q : (ℕ × ℕ × BitString) × BitString => incNum (b q.1.1) (evK q.1.2.1) q.2 q.1.2.2) :=
@@ -319,9 +319,9 @@ lemma cumNumTermUniform_ev_computable (b : ℕ → ℕ → BitString → BitStri
     (hb : Computable (fun p : ℕ × ℕ × BitString × BitString => b p.1 p.2.1 p.2.2.1 p.2.2.2)) :
     Computable (fun q : (ℕ × ℕ × ℕ × BitString) × ℕ => evNum (b q.1.1) q.2 q.1.2.2.2) := by
   have h_q1 : Computable (fun q : (ℕ × ℕ × ℕ × BitString) × ℕ => q.1) := Computable.fst
-  have h_q1_1 : Computable (fun q : (ℕ × ℕ × ℕ × BitString) × ℕ => q.1.1) := Computable.fst.comp h_q1
+  have h_q1_1 : Computable (fun q : (ℕ × ℕ × ℕ × BitString) × ℕ => q.1.1) := comp_fst h_q1
   have h_q2 : Computable (fun q : (ℕ × ℕ × ℕ × BitString) × ℕ => q.2) := Computable.snd
-  have h_q1_222 : Computable (fun q : (ℕ × ℕ × ℕ × BitString) × ℕ => q.1.2.2.2) := Computable.snd.comp (Computable.snd.comp (Computable.snd.comp h_q1))
+  have h_q1_222 : Computable (fun q : (ℕ × ℕ × ℕ × BitString) × ℕ => q.1.2.2.2) := comp_snd_snd_snd h_q1
   have h_f1_args : Computable (fun q : (ℕ × ℕ × ℕ × BitString) × ℕ => (q.1.1, q.2, q.1.2.2.2)) :=
     Computable.pair h_q1_1 (Computable.pair h_q2 h_q1_222)
   exact Computable.of_eq ((evNum_computable_uniform b hb).comp h_f1_args)
@@ -331,7 +331,7 @@ lemma cumNumTermUniform_pow_computable :
     Computable (fun q : (ℕ × ℕ × ℕ × BitString) × ℕ => 2 ^ (q.1.2.1 - evK q.2)) := by
   have h_q1 : Computable (fun q : (ℕ × ℕ × ℕ × BitString) × ℕ => q.1) := Computable.fst
   have h_q2 : Computable (fun q : (ℕ × ℕ × ℕ × BitString) × ℕ => q.2) := Computable.snd
-  have h_q1_21 : Computable (fun q : (ℕ × ℕ × ℕ × BitString) × ℕ => q.1.2.1) := Computable.fst.comp (Computable.snd.comp h_q1)
+  have h_q1_21 : Computable (fun q : (ℕ × ℕ × ℕ × BitString) × ℕ => q.1.2.1) := comp_snd_fst h_q1
   have h_evK_q2 : Computable (fun q : (ℕ × ℕ × ℕ × BitString) × ℕ => evK q.2) := evK_computable.comp h_q2
   have h_sub : Computable (fun q : (ℕ × ℕ × ℕ × BitString) × ℕ => q.1.2.1 - evK q.2) :=
     Primrec.nat_sub.to_comp.comp h_q1_21 h_evK_q2
@@ -353,7 +353,7 @@ lemma cumNum_computable_uniform (b : ℕ → ℕ → BitString → BitString →
   have h_computable : Computable (fun p : ℕ × ℕ × ℕ × BitString => ∑ i ∈ Finset.range p.2.2.1, cumNumTermUniform b p i) :=
     computable_range_sum (cumNumTermUniform b) h_g
       (fun p : ℕ × ℕ × ℕ × BitString => p.2.2.1)
-      (Computable.fst.comp (Computable.snd.comp Computable.snd))
+      (Computable.fst.comp (comp_snd Computable.snd))
   exact Computable.of_eq h_computable (fun p => (cumNumUniformPacked_eq b p).symm)
 
 -- Cache the packed `evNum` argument before forming the product witness below.
@@ -362,8 +362,8 @@ lemma truncGTerm_computable_uniform_then_ev (b : ℕ → ℕ → BitString → B
     Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => evNum (b q.1.1) q.2 q.1.2.2.2) := by
   have h_q1 : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => q.1) := Computable.fst
   have h_q2 : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => q.2) := Computable.snd
-  have h_q1_1 : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => q.1.1) := Computable.fst.comp h_q1
-  have h_q1_222 : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => q.1.2.2.2) := Computable.snd.comp (Computable.snd.comp (Computable.snd.comp h_q1))
+  have h_q1_1 : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => q.1.1) := comp_fst h_q1
+  have h_q1_222 : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => q.1.2.2.2) := comp_snd_snd_snd h_q1
   have h_arg_ev : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => (q.1.1, q.2, q.1.2.2.2)) := Computable.pair h_q1_1 (Computable.pair h_q2 h_q1_222)
   exact Computable.of_eq ((evNum_computable_uniform b hb).comp h_arg_ev)
     (fun q => evNumUniformPacked_eq b (q.1.1, q.2, q.1.2.2.2))
@@ -373,7 +373,7 @@ lemma truncGTerm_computable_uniform_then_pow :
     Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => 2 ^ (q.1.2.1 - evK q.2)) := by
   have h_q1 : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => q.1) := Computable.fst
   have h_q2 : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => q.2) := Computable.snd
-  have h_q1_21 : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => q.1.2.1) := Computable.fst.comp (Computable.snd.comp h_q1)
+  have h_q1_21 : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => q.1.2.1) := comp_snd_fst h_q1
   have h_evK : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => evK q.2) := evK_computable.comp h_q2
   have h_sub : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => q.1.2.1 - evK q.2) :=
     Primrec.nat_sub.to_comp.comp h_q1_21 h_evK
@@ -393,9 +393,9 @@ lemma truncGTerm_computable_uniform_cond_A (b : ℕ → ℕ → BitString → Bi
     Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => cumNum (b q.1.1) q.1.2.1 (q.2 + 1) q.1.2.2.2) := by
   have h_q1 : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => q.1) := Computable.fst
   have h_q2 : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => q.2) := Computable.snd
-  have h_q1_1 : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => q.1.1) := Computable.fst.comp h_q1
-  have h_q1_21 : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => q.1.2.1) := Computable.fst.comp (Computable.snd.comp h_q1)
-  have h_q1_222 : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => q.1.2.2.2) := Computable.snd.comp (Computable.snd.comp (Computable.snd.comp h_q1))
+  have h_q1_1 : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => q.1.1) := comp_fst h_q1
+  have h_q1_21 : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => q.1.2.1) := comp_snd_fst h_q1
+  have h_q1_222 : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => q.1.2.2.2) := comp_snd_snd_snd h_q1
   have h_succ_q2 : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => q.2 + 1) := Computable.succ.comp h_q2
   have h_A_args : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => (q.1.1, q.1.2.1, q.2 + 1, q.1.2.2.2)) :=
     Computable.pair h_q1_1 (Computable.pair h_q1_21 (Computable.pair h_succ_q2 h_q1_222))
@@ -404,7 +404,7 @@ lemma truncGTerm_computable_uniform_cond_A (b : ℕ → ℕ → BitString → Bi
 lemma truncGTerm_computable_uniform_cond_B (d : ℕ) :
     Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => 2 ^ (d + q.1.2.1)) := by
   have h_q1 : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => q.1) := Computable.fst
-  have h_q1_21 : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => q.1.2.1) := Computable.fst.comp (Computable.snd.comp h_q1)
+  have h_q1_21 : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => q.1.2.1) := comp_snd_fst h_q1
   have h_d : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => d) := Computable.const d
   have h_add_d : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => d + q.1.2.1) :=
     Primrec.nat_add.to_comp.comp h_d h_q1_21
@@ -421,7 +421,7 @@ lemma truncGTerm_computable_uniform_cond_C2 :
     Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => decide (evOut q.2 = some q.1.2.2.1)) := by
   have h_q1 : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => q.1) := Computable.fst
   have h_q2 : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => q.2) := Computable.snd
-  have h_q1_221 : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => q.1.2.2.1) := Computable.fst.comp (Computable.snd.comp (Computable.snd.comp h_q1))
+  have h_q1_221 : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => q.1.2.2.1) := comp_snd_snd_fst h_q1
   have h_c2_args : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => (q.2, q.1.2.2.1)) := Computable.pair h_q2 h_q1_221
   exact Computable.of_eq (evOutEq_decide_computable.comp h_c2_args) (fun q => by rfl)
 
@@ -452,7 +452,7 @@ lemma truncGapprox_computable_uniform (b : ℕ → ℕ → BitString → BitStri
   exact Computable.of_eq
     (computable_range_sum (fun p t => truncGTermUniform b d (p, t)) hg
       (fun p : ℕ × ℕ × BitString × BitString => p.2.1)
-      (Computable.fst.comp Computable.snd))
+      (comp_fst Computable.snd))
     (fun p => (truncGapproxUniform_eq b d p).symm)
 
 end Truncate
