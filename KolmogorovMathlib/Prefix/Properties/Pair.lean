@@ -13,10 +13,9 @@ import KolmogorovMathlib.Prefix.CountingBound
 import KolmogorovMathlib.Prefix.Properties.Basic
 
 /-!
-# Properties of Prefix Complexity
+# Pair Properties of Prefix Complexity
 
-This module establishes the first layer of easy theorems about prefix complexity
-and its relationship to ordinary/plain Kolmogorov complexity, mirroring SUV Chapter 4.
+This module collects projection and subadditivity bounds for encoded pairs.
 -/
 
 namespace Kolmogorov

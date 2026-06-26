@@ -6,3 +6,9 @@ Authors: Alexey
 import KolmogorovMathlib.Prefix.Properties.Basic
 import KolmogorovMathlib.Prefix.Properties.Pair
 import KolmogorovMathlib.Prefix.Properties.Length
+
+/-!
+# Prefix Complexity Properties
+
+Compatibility aggregator for the split prefix-complexity property modules.
+-/

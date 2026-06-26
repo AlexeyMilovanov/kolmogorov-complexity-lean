@@ -13,10 +13,10 @@ import KolmogorovMathlib.Prefix.CountingBound
 import KolmogorovMathlib.Prefix.Properties.Pair
 
 /-!
-# Properties of Prefix Complexity
+# Length Properties of Prefix Complexity
 
-This module establishes the first layer of easy theorems about prefix complexity
-and its relationship to ordinary/plain Kolmogorov complexity, mirroring SUV Chapter 4.
+This module collects prefix-complexity bounds involving literal lengths,
+length encodings, and exact-length contexts.
 -/
 
 namespace Kolmogorov
