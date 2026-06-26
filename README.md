@@ -7,6 +7,20 @@ functions (`Part`).
 
 The project is currently pinned to Lean `v4.31.0` and Mathlib `v4.31.0`.
 
+## Current Status
+
+The `main` branch builds with the pinned Lean/Mathlib toolchain and the library
+sources are intended to stay free of `sorry`, `admit`, custom `axiom`, `unsafe`,
+`implemented_by`, `set_option profiler true`, and project-specific
+`set_option maxHeartbeats` overrides.
+
+The recent Lean 4.31 update also reorganized the prefix-complexity and
+algorithmic-probability layers into smaller modules. Large Kraft-Chaitin,
+lower-semicomputable semimeasure, prefix-counting, and universal-semimeasure
+files have compatibility aggregators at the old import paths, while their
+definitions, API lemmas, and computability proofs now live in more focused
+submodules.
+
 ## Build
 
 Install Lean through `elan`, then run:
@@ -66,9 +80,11 @@ The Lake package is named `kolmogorov_complexity`; the Lean library target is
 
 ## Development Notes
 
-Some computationally heavy Kraft-Chaitin proofs use local
-`set_option maxHeartbeats` overrides.  These are intentionally local to the
-affected declarations.
+The repository should remain buildable with `lake build` after every public
+change. Prefer small named helper lemmas and compatibility-preserving module
+splits over large monolithic computability proofs.
 
-The repository should remain free of `sorry`, `admit`, `axiom`, `unsafe`, and
-`set_option profiler true` in Lean sources.
+When adding new material, keep definitions and lightweight API lemmas separate
+from heavier computability or encoding proofs once a file starts to grow. This
+keeps the project usable as a base for a much larger formalization of
+algorithmic information theory.
