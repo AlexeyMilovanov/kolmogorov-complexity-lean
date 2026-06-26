@@ -489,4 +489,28 @@ lemma truncGapprox_computable_uniform (b : ℕ → ℕ → BitString → BitStri
 
 end Truncate
 
+/-- **Dynamic truncation of a lower-semicomputable function to a global mass bound.**
+
+Given a lower-semicomputable `f` and a level `d`, there is a lower-semicomputable
+`g` that is *globally* `2^{d}`-subnormalized (`∀ ctx, ∑_out g out ctx ≤ 2^{d}`) and
+agrees with `f` on every context whose own `f`-mass already respects the bound
+(`∑_out f out ctx ≤ 2^{d} → g = f` on that context).
+
+The construction is the online truncation `truncG`: enumerate all dyadic
+increments of `f` as a single `ℕ`-indexed stream, accept an increment iff the
+running cumulative mass stays `≤ 2^{d}`, and read off the accepted mass per
+output as the supremum of exact dyadic numerators over `2^S`. -/
+theorem IsLSC.truncate {f : BitString → BitString → ℝ≥0∞} (hf : IsLSC f) (d : ℕ) :
+    ∃ g : BitString → BitString → ℝ≥0∞, IsLSC g ∧
+      (∀ ctx : BitString, (∑' out : BitString, g out ctx) ≤ (2 : ℝ≥0∞) ^ d) ∧
+      (∀ ctx : BitString, (∑' out : BitString, f out ctx) ≤ (2 : ℝ≥0∞) ^ d →
+        ∀ out : BitString, g out ctx = f out ctx) := by
+  obtain ⟨approx, hmono, hsup, hcomp⟩ := hf
+  refine ⟨truncG approx d, ⟨truncGapprox approx d, ?_, ?_, ?_⟩, ?_, ?_⟩
+  · intro S out ctx; exact truncGapprox_mono d S out ctx
+  · intro out ctx; rfl
+  · exact truncGapprox_computable hcomp d
+  · intro ctx; exact tsum_truncG_le d ctx
+  · intro ctx hle out; exact truncG_eq_f_of_le hmono hsup d ctx hle out
+
 end Kolmogorov
