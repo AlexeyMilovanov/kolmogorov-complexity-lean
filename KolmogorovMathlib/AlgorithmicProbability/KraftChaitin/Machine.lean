@@ -18,7 +18,14 @@ namespace Kolmogorov
 open scoped ENNReal
 open Computability
 
-/-! ### Kraft–Chaitin realization engine (moved below the truncation/`ev*` machinery so that `extract_request_stream` can reuse it). -/
+/-! ### Kraft–Chaitin request realization and machine construction
+
+This file keeps the exact dyadic-increment request extractor together with the
+online allocator interface and the prefix-machine construction.  The geometric
+extractor in `KraftChaitin.Geometric` is the one used by the current realization
+bound, but the exact extractor is kept here as a stable compatibility lemma until
+the request-extraction API is split further.
+-/
 
 /-
 Step 1: Extract dyadic increments from a unit-mass lower-semicomputable function into a computable request stream family.
