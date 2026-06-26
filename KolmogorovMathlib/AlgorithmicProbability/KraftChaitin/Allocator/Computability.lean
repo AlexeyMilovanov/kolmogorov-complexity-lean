@@ -181,7 +181,6 @@ def allocStep (r : Option (BitString × ℕ)) (st : Option (List BitString)) : O
   st.bind (fun free =>
     (r.map (fun pr => (allocateOne free pr.2).map Prod.snd)).getD (some free))
 
-set_option maxHeartbeats 2000000 in
 -- The branch witness composes `allocateOne_computable` under nested
 -- `Option.map`/`Option.bind` over encoded product inputs; keeping it as a named
 -- helper localizes the remaining normalization cost.
@@ -192,8 +191,11 @@ lemma allocStep_computable :
       (fun (d : (Option (BitString × ℕ) × Option (List BitString)) × List BitString)
         (pr : BitString × ℕ) => (allocateOne d.2 pr.2).map Prod.snd) := by
     have hf : Computable (fun p : ((Option (BitString × ℕ) × Option (List BitString)) × List BitString) × (BitString × ℕ) => allocateOne p.1.2 p.2.2) :=
-      allocateOne_computable.comp
-        ((Computable.snd.comp Computable.fst).pair (Computable.snd.comp Computable.snd))
+      Computable.of_eq
+        (allocateOne_computable.comp
+          ((Computable.snd.comp Computable.fst).pair
+            (Computable.snd.comp Computable.snd)))
+        (fun _ => rfl)
     exact comp_option_map hf (comp_snd_snd Computable.id)
   have hg : Computable
       (fun d : (Option (BitString × ℕ) × Option (List BitString)) × List BitString =>
@@ -269,7 +271,6 @@ def allocOut (r : Option (BitString × ℕ)) (st : Option (List BitString)) : Op
   st.bind (fun free =>
     (r.map (fun pr => (allocateOne free pr.2).map Prod.fst)).getD none)
 
-set_option maxHeartbeats 2000000 in
 -- This is the output analogue of `allocStep_computable`; it has the same nested
 -- product and `Option.map` composition cost, isolated from `allocFun_computable`.
 /-- `allocOut` is computable. -/
@@ -279,8 +280,11 @@ lemma allocOut_computable :
       (fun (d : (Option (BitString × ℕ) × Option (List BitString)) × List BitString)
         (pr : BitString × ℕ) => (allocateOne d.2 pr.2).map Prod.fst) := by
     have hf : Computable (fun p : ((Option (BitString × ℕ) × Option (List BitString)) × List BitString) × (BitString × ℕ) => allocateOne p.1.2 p.2.2) :=
-      allocateOne_computable.comp
-        ((Computable.snd.comp Computable.fst).pair (Computable.snd.comp Computable.snd))
+      Computable.of_eq
+        (allocateOne_computable.comp
+          ((Computable.snd.comp Computable.fst).pair
+            (Computable.snd.comp Computable.snd)))
+        (fun _ => rfl)
     exact comp_option_map hf (comp_snd_fst Computable.id)
   have hg : Computable
       (fun d : (Option (BitString × ℕ) × Option (List BitString)) × List BitString =>

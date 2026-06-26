@@ -24,6 +24,8 @@ namespace Kolmogorov
 /-- A bit string is simply a list of booleans. -/
 abbrev BitString := List Bool
 
+instance prim_BitString : Primcodable BitString := @Primcodable.list Bool Primcodable.bool
+
 /-- A Map in our context is a partial function taking a pair of
     (program, context) and potentially returning a computed BitString.
     We use `Part` to naturally model programs that loop indefinitely. -/
