@@ -49,17 +49,11 @@ lemma approxEnum_computable :
       exact fun p => Nat.Partrec.Code.evaln p.1.2.1 ( ( Encodable.decode p.1.1 ).getD Nat.Partrec.Code.zero ) ( Encodable.encode ( p.2, p.1.2.2.1, p.1.2.2.2 ) );
       exact fun p => 0;
       exact fun p v => v * 2 ^ ( p.1.2.1 - p.2 );
-      · convert Nat.Partrec.Code.primrec_evaln.to_comp.comp _ using 1;
-        rotate_left;
-        exact fun p => ( ( p.1.2.1, ( Encodable.decode p.1.1 ).getD Nat.Partrec.Code.zero ), Encodable.encode ( p.2, p.1.2.2.1, p.1.2.2.2 ) );
-        · apply Computable.pair;
-          · apply Computable.pair;
-            · exact (comp_fst_snd_fst Computable.id).of_eq (fun _ => rfl);
-            · exact (comp_decode_getD (comp_fst_fst Computable.id) (Computable.const Nat.Partrec.Code.zero)).of_eq (fun _ => rfl);
-          · apply Computable.pair;
-            · exact Computable.snd;
-            · exact Computable.pair ( Computable.fst.comp ( Computable.snd.comp ( Computable.snd.comp Computable.fst ) ) ) ( Computable.snd.comp ( Computable.snd.comp ( Computable.snd.comp Computable.fst ) ) );
-        · rfl;
+      · exact comp_evaln_decoded (comp_fst_snd_fst Computable.id)
+          (comp_fst_fst Computable.id)
+          (Computable.snd.pair
+            ((comp_snd_snd_fst (comp_fst Computable.id)).pair
+              (comp_snd_snd_snd (comp_fst Computable.id))))
       · exact Computable.const 0;
       · refine Computable.of_eq
           (f := fun p : ((ℕ × (ℕ × BitString × BitString)) × ℕ) × ℕ =>
