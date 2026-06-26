@@ -3,64 +3,20 @@ Copyright (c) 2024 Alexey. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Alexey
 -/
-import KolmogorovMathlib.AlgorithmicProbability.Domination
-import KolmogorovMathlib.AlgorithmicProbability.KraftChaitin
-import KolmogorovMathlib.AlgorithmicProbability.UniversalMixture
-import KolmogorovMathlib.Prefix.Optimal
+import KolmogorovMathlib.AlgorithmicProbability.UniversalSemimeasure.Defs
 
 /-!
-# Universal Lower-Semicomputable Semimeasures
+# Universal Lower-Semicomputable Semimeasures: Basic API
 
 SUV Chapter 4 defines the universal a priori probability as a maximal
-lower-semicomputable semimeasure on strings. This file adds that unary interface.
-The existing `aprioriMeasure M x y` remains the machine-induced semimeasure
-obtained by summing program weights for a fixed map `M`; it is a useful source of
-examples and coding bounds, but not the primary definition of the universal
-semimeasure in this chapter.
+lower-semicomputable semimeasure on strings. The unary interface lives in
+`UniversalSemimeasure.Defs`; this file proves the basic closure, domination, and
+prefix-complexity facts for that interface.
 -/
 
 namespace Kolmogorov
 
 open scoped ENNReal
-
-/-- A unary semimeasure on strings is a function `m : BitString → ℝ≥0∞` whose
-total mass is at most `1`. Nonnegativity is built into `ℝ≥0∞`. -/
-def IsSemimeasure (m : BitString → ℝ≥0∞) : Prop :=
-  (∑' x : BitString, m x) ≤ 1
-
-/-- A lower-semicomputable unary semimeasure is a semimeasure with a uniform
-computable monotone dyadic approximation from below. We reuse the existing
-conditional `IsLSC` interface with a dummy context. -/
-def IsLowerSemicomputableSemimeasure (m : BitString → ℝ≥0∞) : Prop :=
-  IsSemimeasure m ∧ IsLSC (fun x _ => m x)
-
-/-- Domination for unary semimeasures: `m₁` dominates `m₂` with multiplicative
-constant `c` if `c * m₂ x ≤ m₁ x` for all `x`. -/
-def DominatesUnary (m₁ m₂ : BitString → ℝ≥0∞) (c : ℝ≥0∞) : Prop :=
-  ∀ x, c * m₂ x ≤ m₁ x
-
-/-- A universal (maximal) lower-semicomputable semimeasure dominates every
-lower-semicomputable semimeasure by some positive multiplicative constant. -/
-def IsUniversalSemimeasure (m : BitString → ℝ≥0∞) : Prop :=
-  IsLowerSemicomputableSemimeasure m ∧
-  ∀ m', IsLowerSemicomputableSemimeasure m' →
-    ∃ c : ℝ≥0∞, 0 < c ∧ DominatesUnary m m' c
-
-/-- Synonym matching the book terminology: a universal semimeasure is a maximal
-lower-semicomputable semimeasure. -/
-abbrev IsMaximalLowerSemicomputableSemimeasure (m : BitString → ℝ≥0∞) : Prop :=
-  IsUniversalSemimeasure m
-
-/-- The prefix complexity weight `2^{-KP_U(x|[])}`. -/
-noncomputable def prefixComplexityWeight (U : Map) (x : BitString) : ℝ≥0∞ :=
-  complexityWeight (KP U x [])
-
-/-! ### Unary mixtures -/
-
-/-- Weighted countable mixture of unary semimeasures. -/
-noncomputable def unaryMixture (w : ℕ → ℝ≥0∞)
-    (μ : ℕ → BitString → ℝ≥0∞) (x : BitString) : ℝ≥0∞ :=
-  ∑' i, w i * μ i x
 
 theorem unaryMixture_isSemimeasure (w : ℕ → ℝ≥0∞)
     (μ : ℕ → BitString → ℝ≥0∞) (hw : (∑' i, w i) ≤ 1)
@@ -75,11 +31,6 @@ theorem unaryMixture_dominates_component (w : ℕ → ℝ≥0∞)
     (μ : ℕ → BitString → ℝ≥0∞) (i : ℕ) :
     DominatesUnary (unaryMixture w μ) (μ i) (w i) :=
   fun x => show w i * μ i x ≤ unaryMixture w μ x from ENNReal.le_tsum i
-
-/-- Universality for a fixed countable family of unary semimeasures. -/
-def IsUniversalForUnary (ν : BitString → ℝ≥0∞)
-    (μ : ℕ → BitString → ℝ≥0∞) : Prop :=
-  IsSemimeasure ν ∧ ∀ i, ∃ c : ℝ≥0∞, 0 < c ∧ DominatesUnary ν (μ i) c
 
 /-- A subnormalized unary mixture with strictly positive weights is universal
 for its countable family. -/

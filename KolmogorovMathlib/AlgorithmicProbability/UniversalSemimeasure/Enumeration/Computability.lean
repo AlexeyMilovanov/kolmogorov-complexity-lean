@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Alexey
 -/
 import KolmogorovMathlib.AlgorithmicProbability.UniversalSemimeasure.Enumeration.Basic
+import KolmogorovMathlib.AlgorithmicProbability.UniversalSemimeasure.Basic
 
 namespace Kolmogorov
 
