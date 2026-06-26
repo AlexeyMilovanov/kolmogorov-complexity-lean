@@ -7,6 +7,7 @@ import Mathlib
 import KolmogorovMathlib.AlgorithmicProbability.Coding
 import KolmogorovMathlib.Prefix.Optimal
 import KolmogorovMathlib.AlgorithmicProbability.KraftChaitinAllocator
+import KolmogorovMathlib.AlgorithmicProbability.Computability.Tuple
 
 /-!
 # The abstract Kraft–Chaitin realization engine
@@ -45,6 +46,9 @@ the data an allocator consumes.
 namespace Kolmogorov
 
 open scoped ENNReal
+open Computability
+
+/-! ## Lower-Semicomputable Bounds -/
 
 /-- The **dyadic value** `n / 2^s` of a stage-`s` numerator `n`, in `ℝ≥0∞`. This is
 the value carried by one stage of a lower-semicomputable approximation. -/
@@ -578,58 +582,32 @@ lemma evOut_computable : Computable evOut := by
       cases h : (Encodable.decode n : Option BitString) <;> simp [Option.guard])
   exact hdecode₂.comp (Computable.fst.comp Computable.unpair)
 
-/-- Beta-reduction for a binary function over a packed pair. -/
-lemma beta_pair {α β γ} (f : α → β → γ) (x : α) (y : β) :
-  (fun p : α × β => f p.1 p.2) (x, y) = f x y := rfl
-
-/-- Beta-reduction for a ternary function over a right-associated packed triple. -/
-lemma beta_pair3 {α β γ δ} (f : α → β → γ → δ) (x : α) (y : β) (z : γ) :
-  (fun p : α × β × γ => f p.1 p.2.1 p.2.2) (x, y, z) = f x y z := rfl
-
-/-- Beta-reduction for a quaternary function over a right-associated packed tuple. -/
-lemma beta_pair4 {α β γ δ ε} (f : α → β → γ → δ → ε) (x : α) (y : β) (z : γ) (w : δ) :
-  (fun p : α × β × γ × δ => f p.1 p.2.1 p.2.2.1 p.2.2.2) (x, y, z, w) = f x y z w := rfl
-
 /-- `evK` is computable. -/
 lemma evK_computable : Computable evK := by
   unfold evK
   exact Computable.snd.comp Computable.unpair
 
 set_option maxHeartbeats 500000 in
--- Lean 4.31 spends the extra local budget normalizing the nested `Computable`
--- witness produced by `Computable.nat_casesOn` for packed projections.
+-- Needs extra budget for typeclass resolution of Tuple helpers
 /-- The increment numerator is computable in `(k, out, ctx)`. -/
 lemma incNum_computable (hcomp : Computable
       (fun p : ℕ × BitString × BitString => approx p.1 p.2.1 p.2.2)) :
     Computable (fun p : ℕ × BitString × BitString => incNum approx p.1 p.2.1 p.2.2) := by
-  have h_p2 : Computable (fun p : ℕ × BitString × BitString => p.2) := Computable.snd
-  have h_p21 : Computable (fun p : ℕ × BitString × BitString => p.2.1) := Computable.fst.comp h_p2
-  have h_p22 : Computable (fun p : ℕ × BitString × BitString => p.2.2) := Computable.snd.comp h_p2
-  have h_args : Computable (fun p : ℕ × BitString × BitString => (0, p.2.1, p.2.2)) :=
-    Computable.pair (Computable.const 0) (Computable.pair h_p21 h_p22)
-  have hg : Computable (fun p : ℕ × BitString × BitString => approx 0 p.2.1 p.2.2) := hcomp.comp h_args
+  have hg : Computable (fun p : ℕ × BitString × BitString => approx 0 p.2.1 p.2.2) :=
+    hcomp.comp (Computable.pair (Computable.const 0) Computable.snd)
   have hh : Computable₂ (fun (p : ℕ × BitString × BitString) (k : ℕ) => approx (k + 1) p.2.1 p.2.2 - 2 * approx k p.2.1 p.2.2) := by
-    have h_sub_comp := Primrec.nat_sub.to_comp
-    have h_sub : Computable (fun p : ℕ × ℕ => p.1 - p.2) := h_sub_comp
-    have h_q1 : Computable (fun q : (ℕ × BitString × BitString) × ℕ => q.1) := Computable.fst
-    have h_q1_2 : Computable (fun q : (ℕ × BitString × BitString) × ℕ => q.1.2) := Computable.snd.comp h_q1
-    have h_q1_21 : Computable (fun q : (ℕ × BitString × BitString) × ℕ => q.1.2.1) := Computable.fst.comp h_q1_2
-    have h_q1_22 : Computable (fun q : (ℕ × BitString × BitString) × ℕ => q.1.2.2) := Computable.snd.comp h_q1_2
-    have h_q2 : Computable (fun q : (ℕ × BitString × BitString) × ℕ => q.2) := Computable.snd
-    have h_succ_q2 : Computable (fun q : (ℕ × BitString × BitString) × ℕ => q.2 + 1) := Computable.succ.comp h_q2
-    have h_f1_args : Computable (fun q : (ℕ × BitString × BitString) × ℕ => (q.2 + 1, q.1.2.1, q.1.2.2)) :=
-      Computable.pair h_succ_q2 (Computable.pair h_q1_21 h_q1_22)
+    have h_sub : Computable (fun p : ℕ × ℕ => p.1 - p.2) := Primrec.nat_sub.to_comp
+    have h_k_1 : Computable (fun q : (ℕ × BitString × BitString) × ℕ => q.2 + 1) := Computable.succ.comp Computable.snd
+    have h_q1_2 : Computable (fun q : (ℕ × BitString × BitString) × ℕ => q.1.2) := comp_fst_snd Computable.id
     have h_f1 : Computable (fun q : (ℕ × BitString × BitString) × ℕ => approx (q.2 + 1) q.1.2.1 q.1.2.2) :=
-      hcomp.comp h_f1_args
-    have h_f2_args : Computable (fun q : (ℕ × BitString × BitString) × ℕ => (q.2, q.1.2.1, q.1.2.2)) :=
-      Computable.pair h_q2 (Computable.pair h_q1_21 h_q1_22)
+      hcomp.comp (Computable.pair h_k_1 h_q1_2)
     have h_approx2 : Computable (fun q : (ℕ × BitString × BitString) × ℕ => approx q.2 q.1.2.1 q.1.2.2) :=
-      hcomp.comp h_f2_args
+      hcomp.comp (Computable.pair Computable.snd h_q1_2)
     have h_f2 : Computable (fun q : (ℕ × BitString × BitString) × ℕ => 2 * approx q.2 q.1.2.1 q.1.2.2) :=
       computable_two_mul.comp h_approx2
     exact Computable.of_eq (h_sub.comp (Computable.pair h_f1 h_f2)) (fun q => beta_pair (fun x y => x - y) _ _)
-  exact Computable.of_eq (f := fun p => Nat.casesOn p.1 (approx 0 p.2.1 p.2.2) (fun k => approx (k + 1) p.2.1 p.2.2 - 2 * approx k p.2.1 p.2.2))
-    (Computable.nat_casesOn Computable.fst hg hh)
+  exact Computable.of_eq
+    (comp_nat_casesOn (comp_fst Computable.id) hg hh)
     (fun p => incNum_eq_cases approx p)
 
 /-- The event increment numerator is computable in `(t, ctx)`. -/
