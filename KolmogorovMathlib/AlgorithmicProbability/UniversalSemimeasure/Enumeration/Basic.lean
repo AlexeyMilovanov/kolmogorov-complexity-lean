@@ -39,15 +39,9 @@ lemma exists_approxEnum (approx : ℕ → BitString → BitString → ℕ)
         revert hcomp;
         intro hcomp
         obtain ⟨c, hc⟩ : ∃ c : Nat.Partrec.Code, ∀ s out ctx, Nat.Partrec.Code.eval c (Encodable.encode (s, out, ctx)) = some (approx s out ctx) := by
-          have h_total : ∃ h : ℕ → ℕ, Computable h ∧ ∀ s out ctx, h (Encodable.encode (s, out, ctx)) = approx s out ctx := by
-            use fun n => approx (Encodable.decode (α := ℕ × BitString × BitString) n |>.getD (0, [], [])).1 (Encodable.decode (α := ℕ × BitString × BitString) n |>.getD (0, [], [])).2.1 (Encodable.decode (α := ℕ × BitString × BitString) n |>.getD (0, [], [])).2.2;
-            convert hcomp.comp (comp_decode_getD Computable.id (Computable.const (0, [], []))) using 1;
-            simp +decide [ Encodable.encodek ];
-          obtain ⟨ h, hh₁, hh₂ ⟩ := h_total;
-          have := @Nat.Partrec.Code.exists_code;
-          obtain ⟨ c, hc ⟩ := this.mp (by
-            simpa [Computable, Partrec] using hh₁);
-          exact ⟨ c, fun s out ctx => by simp +decide [ ← hh₂, hc ] ⟩;
+          obtain ⟨c, hc⟩ := exists_code_of_computable_nat
+            (fun p : ℕ × BitString × BitString => approx p.1 p.2.1 p.2.2) hcomp
+          exact ⟨c, fun s out ctx => hc (s, out, ctx)⟩
         refine ⟨ Encodable.encode c, fun out ctx => le_antisymm ?_ ?_ ⟩ <;> simp_all +decide [ approxEnum ];
         · intro i
           have h_term : ∀ s' ∈ Finset.range (i + 1),

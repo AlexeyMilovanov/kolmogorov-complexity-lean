@@ -136,5 +136,18 @@ lemma comp_evaln_decoded {α β} [Primcodable α] [Primcodable β]
     (comp_decode_getD hc (Computable.const Nat.Partrec.Code.zero))
     (Computable.encode.comp hx)
 
+lemma exists_code_of_computable_nat {α} [Primcodable α] [Inhabited α]
+    (f : α → ℕ) (hf : Computable f) :
+    ∃ c : Nat.Partrec.Code, ∀ a : α,
+      Nat.Partrec.Code.eval c (Encodable.encode a) = some (f a) := by
+  have h_total : ∃ h : ℕ → ℕ, Computable h ∧ ∀ a : α, h (Encodable.encode a) = f a := by
+    use fun n => f ((Encodable.decode (α := α) n).getD default)
+    refine ⟨hf.comp (comp_decode_getD Computable.id (Computable.const default)), ?_⟩
+    intro a
+    simp [Encodable.encodek]
+  obtain ⟨h, hh₁, hh₂⟩ := h_total
+  obtain ⟨c, hc⟩ := Nat.Partrec.Code.exists_code.mp (by simpa [Computable, Partrec] using hh₁)
+  exact ⟨c, fun a => by simp [← hh₂, hc]⟩
+
 end Computability
 end Kolmogorov
