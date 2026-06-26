@@ -88,6 +88,19 @@ lemma comp_option_getD {α β} [Primcodable α] [Primcodable β]
     Computable (fun a => (f a).getD (g a)) :=
   Computable.option_getD hf hg
 
+/-! ## Encodable Combinators -/
+
+lemma comp_decode {α β} [Primcodable α] [Primcodable β]
+    {f : α → ℕ} (hf : Computable f) :
+    Computable (fun a => (Encodable.decode (f a) : Option β)) :=
+  Computable.decode.comp hf
+
+lemma comp_decode_getD {α β} [Primcodable α] [Primcodable β]
+    {f : α → ℕ} {d : α → β}
+    (hf : Computable f) (hd : Computable d) :
+    Computable (fun a => (Encodable.decode (f a) : Option β).getD (d a)) :=
+  Computable.option_getD (comp_decode hf) hd
+
 /-! ## Nat Recursion Combinators -/
 
 lemma comp_nat_rec {α β} [Primcodable α] [Primcodable β]

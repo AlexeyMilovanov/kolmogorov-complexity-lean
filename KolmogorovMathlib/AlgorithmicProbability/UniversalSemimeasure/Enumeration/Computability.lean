@@ -5,10 +5,12 @@ Authors: Alexey
 -/
 import KolmogorovMathlib.AlgorithmicProbability.UniversalSemimeasure.Enumeration.Basic
 import KolmogorovMathlib.AlgorithmicProbability.UniversalSemimeasure.Basic
+import KolmogorovMathlib.AlgorithmicProbability.Computability.Tuple
 
 namespace Kolmogorov
 
 open scoped ENNReal
+open Computability
 
 /-
 Computability of a stagewise `Finset.range` supremum: if `g` and the
@@ -52,8 +54,8 @@ lemma approxEnum_computable :
         exact fun p => ( ( p.1.2.1, ( Encodable.decode p.1.1 ).getD Nat.Partrec.Code.zero ), Encodable.encode ( p.2, p.1.2.2.1, p.1.2.2.2 ) );
         · apply Computable.pair;
           · apply Computable.pair;
-            · exact Computable.fst.comp ( Computable.snd.comp Computable.fst );
-            · convert Computable.option_getD ( Computable.decode.comp ( Computable.fst.comp Computable.fst ) ) ( Computable.const Nat.Partrec.Code.zero ) using 1;
+            · exact (comp_fst_snd_fst Computable.id).of_eq (fun _ => rfl);
+            · exact (comp_decode_getD (comp_fst_fst Computable.id) (Computable.const Nat.Partrec.Code.zero)).of_eq (fun _ => rfl);
           · apply Computable.pair;
             · exact Computable.snd;
             · exact Computable.pair ( Computable.fst.comp ( Computable.snd.comp ( Computable.snd.comp Computable.fst ) ) ) ( Computable.snd.comp ( Computable.snd.comp ( Computable.snd.comp Computable.fst ) ) );
@@ -135,7 +137,7 @@ lemma makeMono_computable_uniform (b : ℕ → ℕ → BitString → BitString �
   exact Computable.fst.comp Computable.snd;
   convert hb.comp _;
   exact fun p => ( p.1, 0, p.2.2.1, p.2.2.2 );
-  exact Computable.pair ( Computable.fst ) ( Computable.pair ( Computable.const 0 ) ( Computable.pair ( Computable.fst.comp ( Computable.snd.comp ( Computable.snd ) ) ) ( Computable.snd.comp ( Computable.snd.comp ( Computable.snd ) ) ) ) );
+  exact Computable.pair ( Computable.fst ) ( Computable.pair ( Computable.const 0 ) ( Computable.pair ( comp_snd_snd_fst Computable.id ) ( comp_snd_snd_snd Computable.id ) ) );
   rotate_left;
   exact fun p q => max ( 2 * q.2 ) ( b p.1 ( q.1 + 1 ) p.2.2.1 p.2.2.2 );
   · intro n; induction n.2.1 <;> simp +decide [ *, makeMono ] ;
@@ -157,8 +159,8 @@ lemma makeMono_computable_uniform (b : ℕ → ℕ → BitString → BitString �
             · apply Computable.pair;
               · exact Computable.succ.comp ( Computable.fst.comp ( Computable.snd ) );
               · apply Computable.pair;
-                · exact Computable.fst.comp ( Computable.snd.comp ( Computable.snd.comp Computable.fst ) );
-                · exact Computable.snd.comp ( Computable.snd.comp ( Computable.snd.comp Computable.fst ) );
+                · exact comp_snd_snd_fst (comp_fst Computable.id);
+                · exact comp_snd_snd_snd (comp_fst Computable.id);
           · rfl;
     · grind +extAll
 
