@@ -5,6 +5,7 @@ Authors: Alexey
 -/
 import Mathlib
 import KolmogorovMathlib.Prefix.Basic
+import KolmogorovMathlib.AlgorithmicProbability.Computability.Tuple
 
 /-!
 # The online Kraft–Chaitin allocator
@@ -37,6 +38,7 @@ namespace Kolmogorov
 namespace KraftChaitin
 
 open scoped ENNReal
+open Computability
 
 /-! ## Core definitions -/
 
@@ -881,9 +883,8 @@ lemma allocatorState_eq_rec (req : ℕ → Option (BitString × ℕ)) (n : ℕ) 
 attribute [local irreducible] allocatorState
 
 set_option maxHeartbeats 8000000 in
--- The raised heartbeat budget is needed because the `Nat.rec` step function is
--- built by `Computable` combinators over a deeply nested product of list types,
--- whose `Primcodable` encoders make elaboration unusually slow.
+-- The raised heartbeat budget is still needed because the `Nat.rec` step function is built
+-- by `Computable` combinators over a deeply nested product of list types.
 /-- The allocator state is computable uniformly in the context. -/
 lemma allocatorState_computable (req : BitString → ℕ → Option (BitString × ℕ))
     (hcomp : Computable (fun p : BitString × ℕ => req p.1 p.2)) :
@@ -894,22 +895,20 @@ lemma allocatorState_computable (req : BitString → ℕ → Option (BitString �
     have hinner : Computable₂
         (fun (d : ((BitString × ℕ) × (ℕ × Option (List BitString))) × List BitString)
           (pr : BitString × ℕ) => (allocateOne d.2 pr.2).map Prod.snd) := by
-      refine Computable.option_map ?_ (Computable.snd.comp Computable.snd).to₂
+      refine comp_option_map ?_ (comp_snd_snd Computable.id)
       exact allocateOne_computable.comp
         ((Computable.snd.comp Computable.fst).pair (Computable.snd.comp Computable.snd))
     have hreq : Computable
         (fun d : ((BitString × ℕ) × (ℕ × Option (List BitString))) × List BitString =>
           req d.1.1.1 d.1.2.1) :=
-      hcomp.comp ((Computable.fst.comp (Computable.fst.comp Computable.fst)).pair
-        (Computable.fst.comp (Computable.snd.comp Computable.fst)))
+      hcomp.comp (Computable.pair (comp_fst_fst_fst Computable.id) (comp_fst_snd_fst Computable.id))
     have hg : Computable
         (fun d : ((BitString × ℕ) × (ℕ × Option (List BitString))) × List BitString =>
           ((req d.1.1.1 d.1.2.1).map
             (fun pr => (allocateOne d.2 pr.2).map Prod.snd)).getD (some d.2)) :=
-      Computable.option_getD (Computable.option_map hreq hinner)
-        (Computable.option_some.comp Computable.snd)
-    exact Computable.option_bind (Computable.snd.comp Computable.snd) hg
-  refine (Computable.nat_rec Computable.snd (Computable.const (some [[]])) hstep).of_eq ?_
+      comp_option_getD (comp_option_map hreq hinner) (Computable.option_some.comp (comp_snd Computable.id))
+    exact comp_option_bind (comp_snd_snd Computable.id) hg
+  refine (Computable.nat_rec (comp_snd Computable.id) (Computable.const (some [[]])) hstep).of_eq ?_
   intro p
   exact (allocatorState_eq_rec (req p.1) p.2).symm
 
@@ -929,8 +928,8 @@ lemma allocFun_eq_bind (req : ℕ → Option (BitString × ℕ)) (n : ℕ) :
       rcases allocateOne free l with _ | ⟨a, free'⟩ <;> rfl
 
 set_option maxHeartbeats 500000 in
--- The final allocator proof still needs more than Lean's default heartbeat budget
--- to normalize composed `Computable` witnesses over nested encoded products.
+-- The final allocator proof still needs more than Lean's default heartbeat budget to
+-- normalize composed `Computable` witnesses over nested encoded products.
 /-- The allocation function is computable uniformly in the context. -/
 lemma allocFun_computable (req : BitString → ℕ → Option (BitString × ℕ))
     (hcomp : Computable (fun p : BitString × ℕ => req p.1 p.2)) :
@@ -939,13 +938,13 @@ lemma allocFun_computable (req : BitString → ℕ → Option (BitString × ℕ)
       ((req p.1 p.2).map (fun pr => (allocateOne free pr.2).map Prod.fst)).getD none) := by
     have hinner : Computable₂ (fun (e : (BitString × ℕ) × List BitString) (pr : BitString × ℕ) =>
         (allocateOne e.2 pr.2).map Prod.fst) := by
-      refine Computable.option_map ?_ (Computable.fst.comp Computable.snd).to₂
+      refine comp_option_map ?_ (comp_snd_fst Computable.id)
       exact allocateOne_computable.comp
         ((Computable.snd.comp Computable.fst).pair (Computable.snd.comp Computable.snd))
     have hreq : Computable (fun e : (BitString × ℕ) × List BitString => req e.1.1 e.1.2) :=
-      hcomp.comp Computable.fst
-    exact Computable.option_getD (Computable.option_map hreq hinner) (Computable.const none)
-  refine (Computable.option_bind (allocatorState_computable req hcomp) hg).of_eq ?_
+      hcomp.comp (comp_fst Computable.id)
+    exact comp_option_getD (comp_option_map hreq hinner) (Computable.const none)
+  refine (comp_option_bind (allocatorState_computable req hcomp) hg).of_eq ?_
   intro p
   exact (allocFun_eq_bind (req p.1) p.2).symm
 
