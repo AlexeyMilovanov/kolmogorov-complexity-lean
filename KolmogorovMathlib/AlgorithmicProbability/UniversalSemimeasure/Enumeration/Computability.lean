@@ -76,14 +76,12 @@ lemma makeMono_computable (approx : ℕ → BitString → BitString → ℕ)
     fun p q => max (2 * q.2) (approx (q.1 + 1) p.2.1 p.2.2)
   have hbase : Computable base := by
     exact hcomp.comp ((Computable.const 0).pair Computable.snd)
-  have hmul_two : Computable (fun n : ℕ => 2 * n) := by
-    exact (Primrec.nat_mul.comp (Primrec.const 2) Primrec.id).to_comp
   have hstep_uncurried :
       Computable (fun r : (ℕ × BitString × BitString) × (ℕ × ℕ) =>
         step r.1 r.2) := by
     have hleft : Computable (fun r : (ℕ × BitString × BitString) × (ℕ × ℕ) =>
         2 * r.2.2) :=
-      hmul_two.comp (Computable.snd.comp Computable.snd)
+      computable_two_mul.comp (Computable.snd.comp Computable.snd)
     have hstage : Computable (fun r : (ℕ × BitString × BitString) × (ℕ × ℕ) =>
         r.2.1 + 1) := by
       exact (Primrec.nat_add.comp (Primrec.fst.comp Primrec.snd) (Primrec.const 1)).to_comp
@@ -114,37 +112,31 @@ lemma makeMono_computable_uniform (b : ℕ → ℕ → BitString → BitString �
     (hb : Computable (fun p : ℕ × ℕ × BitString × BitString => b p.1 p.2.1 p.2.2.1 p.2.2.2)) :
     Computable (fun p : ℕ × ℕ × BitString × BitString =>
       makeMono (b p.1) p.2.1 p.2.2.1 p.2.2.2) := by
-  apply Computable.of_eq;
-  apply Computable.nat_rec;
-  exact Computable.fst.comp Computable.snd;
-  convert hb.comp _;
-  exact fun p => ( p.1, 0, p.2.2.1, p.2.2.2 );
-  exact Computable.pair ( Computable.fst ) ( Computable.pair ( Computable.const 0 ) ( Computable.pair ( comp_snd_snd_fst Computable.id ) ( comp_snd_snd_snd Computable.id ) ) );
-  rotate_left;
-  exact fun p q => max ( 2 * q.2 ) ( b p.1 ( q.1 + 1 ) p.2.2.1 p.2.2.2 );
-  · intro n; induction n.2.1 <;> simp +decide [ *, makeMono ] ;
-  · apply Computable.of_eq;
-    rotate_right;
-    exact fun p => max ( 2 * p.2.2 ) ( b p.1.1 ( p.2.1 + 1 ) p.1.2.2.1 p.1.2.2.2 );
-    · apply Computable.of_eq;
-      apply Computable.comp (Primrec.nat_max.to_comp);
-      rotate_left;
-      exact fun p => ( 2 * p.2.2, b p.1.1 ( p.2.1 + 1 ) p.1.2.2.1 p.1.2.2.2 );
-      · grind;
-      · apply Computable.pair;
-        · apply Computable.comp (Primrec.nat_mul.to_comp) (Computable.const 2 |> Computable.pair <| Computable.snd.comp Computable.snd);
-        · convert hb.comp _ using 1;
-          rotate_left;
-          exact fun p => ( p.1.1, p.2.1 + 1, p.1.2.2.1, p.1.2.2.2 );
-          · apply Computable.pair;
-            · exact Computable.fst.comp Computable.fst;
-            · apply Computable.pair;
-              · exact Computable.succ.comp ( Computable.fst.comp ( Computable.snd ) );
-              · apply Computable.pair;
-                · exact comp_snd_snd_fst (comp_fst Computable.id);
-                · exact comp_snd_snd_snd (comp_fst Computable.id);
-          · rfl;
-    · grind +extAll
+  let base : ℕ × ℕ × BitString × BitString → ℕ := fun p => b p.1 0 p.2.2.1 p.2.2.2
+  let step : ℕ × ℕ × BitString × BitString → ℕ × ℕ → ℕ :=
+    fun p q => max (2 * q.2) (b p.1 (q.1 + 1) p.2.2.1 p.2.2.2)
+  have hbase : Computable base := by
+    have h_args : Computable (fun p : ℕ × ℕ × BitString × BitString => (p.1, 0, p.2.2.1, p.2.2.2)) :=
+      Computable.fst.pair ((Computable.const 0).pair ((comp_snd_snd_fst Computable.id).pair (comp_snd_snd_snd Computable.id)))
+    exact Computable.of_eq (hb.comp h_args) (fun _ => rfl)
+  have hstep_uncurried : Computable (fun r : (ℕ × ℕ × BitString × BitString) × (ℕ × ℕ) => step r.1 r.2) := by
+    have hleft : Computable (fun r : (ℕ × ℕ × BitString × BitString) × (ℕ × ℕ) => 2 * r.2.2) :=
+      computable_two_mul.comp (Computable.snd.comp Computable.snd)
+    have hright : Computable (fun r : (ℕ × ℕ × BitString × BitString) × (ℕ × ℕ) => b r.1.1 (r.2.1 + 1) r.1.2.2.1 r.1.2.2.2) := by
+      have h_stage : Computable (fun r : (ℕ × ℕ × BitString × BitString) × (ℕ × ℕ) => r.2.1 + 1) :=
+        (Primrec.nat_add.comp (Primrec.fst.comp Primrec.snd) (Primrec.const 1)).to_comp
+      have h_args : Computable (fun r : (ℕ × ℕ × BitString × BitString) × (ℕ × ℕ) => (r.1.1, r.2.1 + 1, r.1.2.2.1, r.1.2.2.2)) :=
+        (Computable.fst.comp Computable.fst).pair (h_stage.pair ((comp_snd_snd_fst Computable.fst).pair (comp_snd_snd_snd Computable.fst)))
+      exact Computable.of_eq (hb.comp h_args) (fun _ => rfl)
+    exact (Primrec.nat_max.to_comp.comp hleft hright).of_eq (fun r => rfl)
+  have hrec : Computable (fun p : ℕ × ℕ × BitString × BitString => Nat.rec (motive := fun _ => ℕ) (base p) (fun y ih => step p (y, ih)) p.2.1) :=
+    Computable.nat_rec (Computable.fst.comp Computable.snd) hbase hstep_uncurried.to₂
+  exact hrec.of_eq (fun p => by
+    induction p.2.1 with
+    | zero => rfl
+    | succ s ih =>
+      change Nat.rec (motive := fun _ => ℕ) (base p) (fun y ih => step p (y, ih)) (s + 1) = makeMono (b p.1) (s + 1) p.2.2.1 p.2.2.2
+      simp [makeMono, step, ih])
 
 lemma lscEnum_isLSC (i : ℕ) : IsLSC (lscEnum i) := by
   refine ⟨truncGapprox (makeMono (approxEnum i)) 0, ?_, ?_, ?_⟩

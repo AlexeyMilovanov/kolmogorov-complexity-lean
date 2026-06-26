@@ -4,6 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Alexey
 -/
 import KolmogorovMathlib.AlgorithmicProbability.UniversalSemimeasure.Enumeration.Defs
+import KolmogorovMathlib.AlgorithmicProbability.UniversalSemimeasure.Enumeration.Eval
 import KolmogorovMathlib.AlgorithmicProbability.Computability.Tuple
 
 namespace Kolmogorov
@@ -49,18 +50,9 @@ lemma exists_approxEnum (approx : ℕ → BitString → BitString → ℕ)
                 (evalnDecodedScaled i (Encodable.encode c) (s', out, ctx) (i - s')) i
                 ≤ ⨆ s, dyadicValue (approx s out ctx) s := by
               intro s' hs'
-              have h_term : Computability.evalnDecoded i (Encodable.encode c) (s', out, ctx) = some (approx s' out ctx) ∨ Computability.evalnDecoded i (Encodable.encode c) (s', out, ctx) = none := by
-                cases h : Computability.evalnDecoded i (Encodable.encode c) (s', out, ctx) <;> simp_all +decide [ Part.eq_some_iff ];
-                have := Nat.Partrec.Code.evaln_sound (by
-                  simpa [Computability.evalnDecoded, Encodable.encodek] using h)
-                simp_all +decide [ Part.mem_eq ] ;
-                cases hc s' out ctx ; aesop
-              generalize_proofs at *; (
-              cases h_term <;> simp +decide [ *, dyadicValue, evalnDecodedScaled ];
-              refine le_trans ?_ ( le_ciSup ?_ s' ) <;> norm_num [ div_eq_mul_inv, mul_assoc, mul_comm, mul_left_comm, pow_add ];
-              rw [ show ( 2 ^ i : ℝ≥0∞ ) = 2 ^ ( i - s' ) * 2 ^ s' by rw [ ← pow_add, Nat.sub_add_cancel ( Finset.mem_range_succ_iff.mp hs' ) ] ] ; norm_num [ mul_assoc, mul_comm, mul_left_comm ];
-              simp +decide [    ENNReal.mul_inv ];
-              simp +decide [ mul_left_comm ( 2 ^ ( i - s' ) : ℝ≥0∞ ), ENNReal.mul_inv_cancel ]);
+              have h_eval := hc s' out ctx
+              have h_le := dyadicValue_evalnDecodedScaled_le_of_eval_eq_some h_eval (Finset.mem_range_succ_iff.mp hs')
+              exact le_trans h_le (le_iSup (fun s => dyadicValue (approx s out ctx) s) s')
           have h_sup : ∀ {S : Finset ℕ} {f : ℕ → ℕ}, (∀ s' ∈ S, dyadicValue (f s') i ≤ ⨆ s, dyadicValue (approx s out ctx) s) → dyadicValue (S.sup f) i ≤ ⨆ s, dyadicValue (approx s out ctx) s := by
             intro S f
             induction S using Finset.induction with
@@ -78,14 +70,7 @@ lemma exists_approxEnum (approx : ℕ → BitString → BitString → ℕ)
             exact Nat.Partrec.Code.evaln_complete.mp (hc s out ctx);
           refine le_trans ?_ ( le_iSup _ ( Max.max s k ) );
           refine le_trans ?_ ( ENNReal.div_le_div ( Nat.cast_le.mpr <| Finset.le_sup <| Finset.mem_range.mpr <| Nat.lt_succ_of_le <| le_max_left s k ) le_rfl );
-          unfold evalnDecodedScaled
-          rw [ show Computability.evalnDecoded (Max.max s k) (Encodable.encode c) (s, out, ctx) = some ( approx s out ctx ) from ?_ ];
-          · unfold dyadicValue; norm_num [ pow_add, pow_one, pow_mul, mul_assoc, mul_comm, mul_left_comm, div_eq_mul_inv ] ;
-            rw [ show ( 2 : ℝ≥0∞ ) ^ max s k = ( 2 : ℝ≥0∞ ) ^ ( max s k - s ) * ( 2 : ℝ≥0∞ ) ^ s by rw [ ← pow_add, Nat.sub_add_cancel ( le_max_left _ _ ) ] ] ; ring_nf ;
-            simp +decide [  mul_comm, mul_left_comm, ENNReal.mul_inv ];
-            rw [ mul_left_comm ( 2 ^ ( max s k - s ) : ℝ≥0∞ ), ENNReal.mul_inv_cancel ( by norm_num ) ( by norm_num ), mul_one ];
-          · simpa [Computability.evalnDecoded, Encodable.encodek] using
-              Nat.Partrec.Code.evaln_mono ( le_max_right _ _ ) hk
+          exact (dyadicValue_evalnDecodedScaled_of_evaln_eq_some hk).symm.le
 
 lemma makeMono_mono (approx : ℕ → BitString → BitString → ℕ) (s : ℕ) (out ctx : BitString) :
     dyadicValue (makeMono approx s out ctx) s ≤ dyadicValue (makeMono approx (s + 1) out ctx) (s + 1) := by
