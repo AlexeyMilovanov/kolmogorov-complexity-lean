@@ -9,7 +9,14 @@ namespace Kolmogorov
 
 open scoped ENNReal
 
-/-! ### The Hard Theorem -/
+/-!
+# Universal Lower-Semicomputable Semimeasures: Enumeration API
+
+This file exposes the public existence theorems assembled from the computable,
+sanitized enumeration of lower-semicomputable semimeasures.
+-/
+
+/-! ### Universal enumeration -/
 
 /-! #### Canonical dyadic weights
 
@@ -19,8 +26,14 @@ whose total mass is exactly `1`. These weights supply the geometric-series algeb
 (`tsum_dyadicWeight`, `dyadicWeight_pos`) used to assemble the universal mixture
 from the dovetailed enumeration `approxEnum`. -/
 
-/-- **The hard SUV enumeration/sanitization core (family only).**
-...
+/-- The sanitized enumeration contains a lower-semicomputable semimeasure family
+whose dyadically weighted mixture is lower-semicomputable and whose members
+dominate every lower-semicomputable semimeasure up to a positive constant.
+
+The family is `fun i x => lscEnum i x []`. For an arbitrary lower-semicomputable
+semimeasure `m'`, the dovetailing theorem `exists_approxEnum` supplies an index
+whose stage supremum matches an approximation to `m'`; monotone sanitization and
+truncation then turn that index into a semimeasure component dominating `m'`.
 -/
 theorem exists_lsc_semimeasure_family :
     ∃ μ : ℕ → BitString → ℝ≥0∞,
