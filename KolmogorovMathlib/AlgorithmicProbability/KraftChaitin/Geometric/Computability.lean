@@ -5,6 +5,7 @@ Authors: Alexey
 -/
 import Mathlib
 import KolmogorovMathlib.AlgorithmicProbability.KraftChaitin.Geometric.Defs
+import KolmogorovMathlib.AlgorithmicProbability.Computability.Tuple
 
 namespace Kolmogorov
 
@@ -22,13 +23,13 @@ lemma geomCross_decide_computable (approx : ℕ → BitString → BitString → 
     have hdec : Computable (fun q : ℕ × ℕ × BitString × BitString => approx q.2.1 q.2.2.1 q.2.2.2 * 2 ^ (q.1 - 1)) := by
       apply Computable.comp (Primrec.nat_mul.to_comp) (Computable.pair _ _);
       · convert hcomp.comp ( Computable.snd ) using 1;
-      · convert primrec_two_pow_aux.to_comp.comp ( Primrec.nat_sub.comp ( Primrec.fst ) ( Primrec.const 1 ) |> Primrec.to_comp ) using 1;
+      · convert primrec_two_pow.to_comp.comp ( Primrec.nat_sub.comp ( Primrec.fst ) ( Primrec.const 1 ) |> Primrec.to_comp ) using 1;
     have hdec : Primrec (fun p : ℕ × ℕ => decide (p.1 ≤ p.2)) := by
       convert Primrec.nat_le using 1;
       constructor <;> intro h <;> simp_all +decide [ PrimrecPred, PrimrecRel ];
       · exact ⟨ inferInstance, h ⟩;
       · grind;
-    convert hdec.to_comp.comp ( Computable.pair ( primrec_two_pow_aux.to_comp.comp ( Computable.fst.comp ( Computable.snd ) ) ) ‹Computable fun q : ℕ × ℕ × BitString × BitString => approx q.2.1 q.2.2.1 q.2.2.2 * 2 ^ ( q.1 - 1 ) › ) using 1;
+    convert hdec.to_comp.comp ( Computable.pair ( primrec_two_pow.to_comp.comp ( Computable.fst.comp ( Computable.snd ) ) ) ‹Computable fun q : ℕ × ℕ × BitString × BitString => approx q.2.1 q.2.2.1 q.2.2.2 * 2 ^ ( q.1 - 1 ) › ) using 1;
   have hdec : Computable (fun q : ℕ × ℕ × BitString × BitString => decide (1 ≤ q.1)) := by
     have hdec : Computable (fun q : ℕ => decide (1 ≤ q)) := by
       convert Computable.of_eq _ _;

@@ -226,7 +226,7 @@ lemma countingNum_computable (c : Nat.Partrec.Code) :
         constructor;
         · exact countingApprox_computable c;
         · convert Computable.comp ( show Computable ( fun n => 2 ^ n ) from ?_ ) ( show Computable ( fun q : ℕ × ℕ => q.1 - q.2 ) from ?_ ) using 1;
-          · exact Computable.of_eq ( Primrec.to_comp ( Kolmogorov.primrec_two_pow ) ) fun n => rfl;
+          · exact Computable.of_eq ( Primrec.to_comp ( Kolmogorov.Computability.primrec_two_pow ) ) fun n => rfl;
           · convert Primrec.to_comp ( show Primrec ( fun q : ℕ × ℕ => q.1 - q.2 ) from ?_ ) using 1;
             exact Primrec.nat_sub.comp ( Primrec.fst ) ( Primrec.snd );
       convert Computable.comp ( show Computable ( fun q : ℕ × ℕ => q.1 * q.2 ) from ?_ ) ( h_computable.1.pair h_computable.2 ) using 1;

@@ -12,49 +12,17 @@ section Truncate
 
 variable {approx : ℕ → BitString → BitString → ℕ}
 
-/-
-Computable finite sums over an initial segment whose bound is computable. A
-reusable bridge: `Computable.nat_rec` builds `∑_{t<b a} g a t` as an accumulator.
--/
 lemma computable_range_sum {α : Type*} [Primcodable α]
     (g : α → ℕ → ℕ) (hg : Computable₂ g) (b : α → ℕ) (hb : Computable b) :
-    Computable (fun a => ∑ t ∈ Finset.range (b a), g a t) := by
-  -- The sum of a finite number of computable functions is computable.
-  have h_sum_computable : ∀ (f : α → ℕ → ℕ), Computable₂ f → Computable (fun a => ∑ t ∈ Finset.range (b a), f a t) := by
-    intro f hf;
-    have h_sum_computable : ∃ F : α → ℕ × ℕ → ℕ, Computable₂ F ∧ ∀ a n, F a (n, ∑ t ∈ Finset.range n, f a t) = ∑ t ∈ Finset.range (n + 1), f a t := by
-      refine ⟨ fun a p => p.2 + f a p.1, ?_, ?_ ⟩ <;> simp_all +decide [ Computable₂ ];
-      · have h_sum_computable : Computable (fun p : α × ℕ × ℕ => p.2.2 + f p.1 p.2.1) := by
-          have h_add : Computable (fun p : ℕ × ℕ => p.1 + p.2) := by
-            -- The addition function is primitive recursive, hence computable.
-            have h_add_primrec : Primrec (fun p : ℕ × ℕ => p.1 + p.2) := by
-              exact Primrec.nat_add.comp ( Primrec.fst ) ( Primrec.snd );
-            exact h_add_primrec.to_comp
-          convert h_add.comp ( Computable.snd.comp ( Computable.snd ) |> Computable.pair <| hf.comp ( Computable.fst |> Computable.pair <| Computable.fst.comp ( Computable.snd ) ) ) using 1;
-        exact h_sum_computable;
-      · exact fun a n => by rw [ Finset.sum_range_succ ] ;
-    obtain ⟨ F, hF₁, hF₂ ⟩ := h_sum_computable;
-    convert Computable.nat_rec hb ( Computable.const 0 ) ( hF₁.comp ( Computable.fst ) ( Computable.snd ) ) using 1;
-    ext a; exact (by
-    induction b a with
-    | zero => simp_all +decide [ Finset.sum_range_succ ]
-    | succ n ih =>
-      simp_all +decide [ Finset.sum_range_succ ]
-      rw [ ← ih, hF₂ ]);
-  exact h_sum_computable g hg
+    Computable (fun a => ∑ t ∈ Finset.range (b a), g a t) :=
+  Computability.computable_range_sum g hg b hb
 
-/-- `n ↦ 2^n` is primitive recursive (local helper for computability proofs). -/
-lemma primrec_two_pow_aux : Primrec (fun n : ℕ => 2 ^ n) := by
-  have h : (fun n : ℕ => 2 ^ n) = (fun n => Nat.rec 1 (fun _ ih => 2 * ih) n) := by
-    funext n; induction n with
-    | zero => rfl
-    | succ n ih => rw [pow_succ, ih]; ring
-  rw [h]
-  exact Primrec.nat_rec' Primrec.id (Primrec.const 1)
-    (Primrec.nat_mul.comp (Primrec.const 2) (Primrec.snd.comp Primrec.snd)).to₂
+/-- Compatibility alias for the reusable power helper. -/
+lemma primrec_two_pow_aux : Primrec (fun n : ℕ => 2 ^ n) :=
+  Computability.primrec_two_pow
 
-lemma computable_two_mul : Computable (fun n : ℕ => 2 * n) := by
-  exact (Primrec.nat_mul.comp (Primrec.const 2) Primrec.id).to_comp
+lemma computable_two_mul : Computable (fun n : ℕ => 2 * n) :=
+  Computability.computable_two_mul
 
 /-
 `evOut` is computable.
@@ -151,7 +119,7 @@ lemma cumNumTerm_computable (hcomp : Computable
   have h_sub : Computable (fun q : (ℕ × ℕ × BitString) × ℕ => q.1.1 - evK q.2) :=
     Primrec.nat_sub.to_comp.comp h_q1_1 h_evK_q2
   have h_pow : Computable (fun q : (ℕ × ℕ × BitString) × ℕ => 2 ^ (q.1.1 - evK q.2)) :=
-    primrec_two_pow_aux.to_comp.comp h_sub
+    primrec_two_pow.to_comp.comp h_sub
   have h_mul : Computable
       (fun q : (ℕ × ℕ × BitString) × ℕ =>
         evNum approx q.2 q.1.2.2 * 2 ^ (q.1.1 - evK q.2)) :=
@@ -201,7 +169,7 @@ lemma truncGTerm_computable_then_pow (_approx : ℕ → BitString → BitString 
   have h_evK_q2 : Computable (fun q : (ℕ × BitString × BitString) × ℕ => evK q.2) := Computable.of_eq (evK_computable.comp h_q2) (fun q => rfl)
   have h_sub : Computable (fun q : (ℕ × BitString × BitString) × ℕ => q.1.1 - evK q.2) :=
     Primrec.nat_sub.to_comp.comp h_q1_1 h_evK_q2
-  exact Computable.of_eq (primrec_two_pow_aux.to_comp.comp h_sub) (fun q => rfl)
+  exact Computable.of_eq (primrec_two_pow.to_comp.comp h_sub) (fun q => rfl)
 
 lemma truncGTerm_computable_then (approx : ℕ → BitString → BitString → ℕ)
     (hcomp : Computable (fun p : ℕ × BitString × BitString => approx p.1 p.2.1 p.2.2)) :
@@ -231,7 +199,7 @@ lemma truncGTerm_computable_cond_B (d : ℕ) :
   have h_d : Computable (fun _ : (ℕ × BitString × BitString) × ℕ => d) := Computable.const d
   have h_add_d_q11 : Computable (fun q : (ℕ × BitString × BitString) × ℕ => d + q.1.1) :=
     Primrec.nat_add.to_comp.comp h_d h_arg1
-  exact primrec_two_pow_aux.to_comp.comp h_add_d_q11
+  exact primrec_two_pow.to_comp.comp h_add_d_q11
 
 lemma truncGTerm_computable_cond_C1 (hcomp : Computable
       (fun p : ℕ × BitString × BitString => approx p.1 p.2.1 p.2.2)) (d : ℕ) :
@@ -367,7 +335,7 @@ lemma cumNumTermUniform_pow_computable :
   have h_evK_q2 : Computable (fun q : (ℕ × ℕ × ℕ × BitString) × ℕ => evK q.2) := evK_computable.comp h_q2
   have h_sub : Computable (fun q : (ℕ × ℕ × ℕ × BitString) × ℕ => q.1.2.1 - evK q.2) :=
     Primrec.nat_sub.to_comp.comp h_q1_21 h_evK_q2
-  exact primrec_two_pow_aux.to_comp.comp h_sub
+  exact primrec_two_pow.to_comp.comp h_sub
 
 lemma cumNumTermUniform_computable (b : ℕ → ℕ → BitString → BitString → ℕ)
     (hb : Computable (fun p : ℕ × ℕ × BitString × BitString => b p.1 p.2.1 p.2.2.1 p.2.2.2)) :
@@ -409,7 +377,7 @@ lemma truncGTerm_computable_uniform_then_pow :
   have h_evK : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => evK q.2) := evK_computable.comp h_q2
   have h_sub : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => q.1.2.1 - evK q.2) :=
     Primrec.nat_sub.to_comp.comp h_q1_21 h_evK
-  exact primrec_two_pow_aux.to_comp.comp h_sub
+  exact primrec_two_pow.to_comp.comp h_sub
 
 -- The expensive uniform subproofs are named above, so this product witness stays small.
 lemma truncGTerm_computable_uniform_then (b : ℕ → ℕ → BitString → BitString → ℕ)
@@ -440,7 +408,7 @@ lemma truncGTerm_computable_uniform_cond_B (d : ℕ) :
   have h_d : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => d) := Computable.const d
   have h_add_d : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => d + q.1.2.1) :=
     Primrec.nat_add.to_comp.comp h_d h_q1_21
-  exact primrec_two_pow_aux.to_comp.comp h_add_d
+  exact primrec_two_pow.to_comp.comp h_add_d
 
 lemma truncGTerm_computable_uniform_cond_C1 (b : ℕ → ℕ → BitString → BitString → ℕ)
     (hb : Computable (fun p : ℕ × ℕ × BitString × BitString => b p.1 p.2.1 p.2.2.1 p.2.2.2)) (d : ℕ) :

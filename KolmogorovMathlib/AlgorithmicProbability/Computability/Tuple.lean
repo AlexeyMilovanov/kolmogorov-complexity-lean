@@ -117,6 +117,49 @@ lemma comp_nat_casesOn {α β} [Primcodable α] [Primcodable β]
     Computable (fun a => Nat.casesOn (motive := fun _ => β) (n a) (z a) (s a)) :=
   (Computable.nat_casesOn hn hz hs).of_eq (fun _ => rfl)
 
+/-
+Computable finite sums over an initial segment whose bound is computable. A
+reusable bridge: `Computable.nat_rec` builds `∑_{t<b a} g a t` as an accumulator.
+-/
+lemma computable_range_sum {α : Type*} [Primcodable α]
+    (g : α → ℕ → ℕ) (hg : Computable₂ g) (b : α → ℕ) (hb : Computable b) :
+    Computable (fun a => ∑ t ∈ Finset.range (b a), g a t) := by
+  have h_sum_computable : ∀ (f : α → ℕ → ℕ), Computable₂ f → Computable (fun a => ∑ t ∈ Finset.range (b a), f a t) := by
+    intro f hf;
+    have h_sum_computable : ∃ F : α → ℕ × ℕ → ℕ, Computable₂ F ∧ ∀ a n, F a (n, ∑ t ∈ Finset.range n, f a t) = ∑ t ∈ Finset.range (n + 1), f a t := by
+      refine ⟨ fun a p => p.2 + f a p.1, ?_, ?_ ⟩ <;> simp_all +decide [ Computable₂ ];
+      · have h_sum_computable : Computable (fun p : α × ℕ × ℕ => p.2.2 + f p.1 p.2.1) := by
+          have h_add : Computable (fun p : ℕ × ℕ => p.1 + p.2) := by
+            -- The addition function is primitive recursive, hence computable.
+            have h_add_primrec : Primrec (fun p : ℕ × ℕ => p.1 + p.2) := by
+              exact Primrec.nat_add.comp ( Primrec.fst ) ( Primrec.snd );
+            exact h_add_primrec.to_comp
+          convert h_add.comp ( Computable.snd.comp ( Computable.snd ) |> Computable.pair <| hf.comp ( Computable.fst |> Computable.pair <| Computable.fst.comp ( Computable.snd ) ) ) using 1;
+        exact h_sum_computable;
+      · exact fun a n => by rw [ Finset.sum_range_succ ] ;
+    obtain ⟨ F, hF₁, hF₂ ⟩ := h_sum_computable;
+    convert Computable.nat_rec hb ( Computable.const 0 ) ( hF₁.comp ( Computable.fst ) ( Computable.snd ) ) using 1;
+    ext a; exact (by
+    induction b a with
+    | zero => simp_all +decide [ Finset.sum_range_succ ]
+    | succ n ih =>
+      simp_all +decide [ Finset.sum_range_succ ]
+      rw [ ← ih, hF₂ ]);
+  exact h_sum_computable g hg
+
+/-- `n ↦ 2^n` is primitive recursive. -/
+lemma primrec_two_pow : Primrec (fun n : ℕ => 2 ^ n) := by
+  have h : (fun n : ℕ => 2 ^ n) = (fun n => Nat.rec 1 (fun _ ih => 2 * ih) n) := by
+    funext n; induction n with
+    | zero => rfl
+    | succ n ih => rw [pow_succ, ih]; ring
+  rw [h]
+  exact Primrec.nat_rec' Primrec.id (Primrec.const 1)
+    (Primrec.nat_mul.comp (Primrec.const 2) (Primrec.snd.comp Primrec.snd)).to₂
+
+lemma computable_two_mul : Computable (fun n : ℕ => 2 * n) := by
+  exact (Primrec.nat_mul.comp (Primrec.const 2) Primrec.id).to_comp
+
 lemma comp_evaln {α} [Primcodable α]
     {s : α → ℕ} {c : α → Nat.Partrec.Code} {x : α → ℕ}
     (hs : Computable s) (hc : Computable c) (hx : Computable x) :

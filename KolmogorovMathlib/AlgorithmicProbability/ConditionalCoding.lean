@@ -7,6 +7,7 @@ import KolmogorovMathlib.AlgorithmicProbability.PairMarginal
 import KolmogorovMathlib.AlgorithmicProbability.OptimalCoding
 import KolmogorovMathlib.AlgorithmicProbability.PairProjection
 import KolmogorovMathlib.AlgorithmicProbability.KraftChaitinCore
+import KolmogorovMathlib.AlgorithmicProbability.Computability.Tuple
 
 /-!
 # Conditional Coding for the Pair-Section Semimeasure
@@ -54,6 +55,7 @@ so the false unguarded `∀ k` coding bound never appears.
 namespace Kolmogorov
 
 open scoped ENNReal
+open Computability
 
 /-- **The scaled pair section as a total function of `(output y, context ctx)`.**
 

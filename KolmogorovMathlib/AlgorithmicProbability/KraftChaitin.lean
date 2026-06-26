@@ -8,6 +8,7 @@ import KolmogorovMathlib.AlgorithmicProbability.Bounds
 import KolmogorovMathlib.AlgorithmicProbability.KraftChaitinCore
 import KolmogorovMathlib.Prefix.CountableKraft
 import KolmogorovMathlib.Foundation.RecursivelyEnumerable
+import KolmogorovMathlib.AlgorithmicProbability.Computability.Tuple
 
 /-!
 # The Kraft–Chaitin Coding Theorem (hard direction)
@@ -38,6 +39,7 @@ and no equality claim; the constant `c₀` is genuine positive coding overhead.
 namespace Kolmogorov
 
 open scoped ENNReal
+open Computability
 
 /-! **Lower-semicomputability of the a priori semimeasure.** For a prefix
 decompressor `M`, the conditional a priori semimeasure `m_M(x | y)` is
@@ -177,15 +179,9 @@ lemma aprioriApprox_iSup {M : Map} (c : Nat.Partrec.Code)
     refine Finset.sum_le_sum_of_subset ?_;
     intro p hp; specialize hk p; simp_all +decide [ Kolmogorov.mem_aprioriAcc ] ;
 
-/-- `n ↦ 2 ^ n` is primitive recursive. -/
-lemma primrec_two_pow : Primrec (fun n : ℕ => 2 ^ n) := by
-  have h : (fun n : ℕ => 2 ^ n) = (fun n => Nat.rec 1 (fun _ ih => 2 * ih) n) := by
-    funext n; induction n with
-    | zero => rfl
-    | succ n ih => rw [pow_succ, ih]; ring
-  rw [h]
-  exact Primrec.nat_rec' Primrec.id (Primrec.const 1)
-    (Primrec.nat_mul.comp (Primrec.const 2) (Primrec.snd.comp Primrec.snd)).to₂
+/-- Compatibility alias for the reusable power helper. -/
+lemma primrec_two_pow : Primrec (fun n : ℕ => 2 ^ n) :=
+  Computability.primrec_two_pow
 
 /-
 The numerator function is computable in `(s, x, y)`.

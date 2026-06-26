@@ -44,19 +44,8 @@ lemma extract_request_stream {f : BitString → BitString → ℝ≥0∞}
         have := evNum_computable hmono.2.2;
         convert this.comp ( Computable.pair ( Computable.fst.comp ( Computable.unpair.comp ( Computable.snd ) ) ) ( Computable.fst ) ) using 1;
       have h_cond : Computable (fun p : ℕ × ℕ => if p.1 < p.2 then true else false) := by
-        convert Computable.of_eq _ _;
-        exact fun p => Nat.recOn ( p.2 - p.1 ) false fun _ _ => true;
-        · apply Computable.nat_casesOn;
-          · have h_cond : Computable (fun p : ℕ × ℕ => p.2 - p.1) := by
-              have h_sub : Primrec (fun p : ℕ × ℕ => p.2 - p.1) := by
-                exact Primrec.nat_sub.comp ( Primrec.snd ) ( Primrec.fst )
-              grind +suggestions;
-            exact h_cond;
-          · exact Computable.const false;
-          · exact Computable.const true;
-        · intro n; cases le_total n.1 n.2 <;> simp +decide [ *, Nat.sub_eq_zero_of_le ] ;
-          cases lt_or_eq_of_le ‹_› <;> simp +decide [ * ];
-          exact Nat.le_induction ( by tauto ) ( fun k hk ih => by tauto ) _ ( Nat.sub_pos_of_lt ‹_› );
+        obtain ⟨_, hlt⟩ := Primrec.nat_lt
+        exact hlt.to_comp.of_eq (fun p => by by_cases h : p.1 < p.2 <;> simp [h])
       convert h_cond.comp ( Computable.pair ( Computable.snd.comp ( Computable.unpair.comp ( Computable.snd ) ) ) ‹Computable fun p : BitString × ℕ => evNum approx ( Nat.unpair p.2 ).1 p.1› ) using 1;
     have h_map : Computable (fun p : BitString × ℕ => Option.map (fun o => (o, evK (Nat.unpair p.2).1)) (evOut (Nat.unpair p.2).1)) := by
       have h_map : Computable (fun p : ℕ => Option.map (fun o => (o, evK (Nat.unpair p).1)) (evOut (Nat.unpair p).1)) := by
