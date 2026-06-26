@@ -123,13 +123,15 @@ lemma comp_evaln {α} [Primcodable α]
     Computable (fun a => Nat.Partrec.Code.evaln (s a) (c a) (x a)) :=
   (Nat.Partrec.Code.primrec_evaln.to_comp.comp ((hs.pair hc).pair hx)).of_eq (fun _ => rfl)
 
+def evalnDecoded {β} [Encodable β] (s : ℕ) (c : ℕ) (x : β) : Option ℕ :=
+  Nat.Partrec.Code.evaln s
+    ((Encodable.decode (α := Nat.Partrec.Code) c).getD Nat.Partrec.Code.zero)
+    (Encodable.encode x)
+
 lemma comp_evaln_decoded {α β} [Primcodable α] [Primcodable β]
     {s : α → ℕ} {c : α → ℕ} {x : α → β}
     (hs : Computable s) (hc : Computable c) (hx : Computable x) :
-    Computable (fun a =>
-      Nat.Partrec.Code.evaln (s a)
-        ((Encodable.decode (α := Nat.Partrec.Code) (c a)).getD Nat.Partrec.Code.zero)
-        (Encodable.encode (x a))) :=
+    Computable (fun a => evalnDecoded (s a) (c a) (x a)) :=
   comp_evaln hs
     (comp_decode_getD hc (Computable.const Nat.Partrec.Code.zero))
     (Computable.encode.comp hx)

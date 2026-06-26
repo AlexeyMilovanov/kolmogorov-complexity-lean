@@ -39,14 +39,14 @@ lemma approxEnum_computable :
       approxEnum p.1 p.2.1 p.2.2.1 p.2.2.2) := by
   apply Computable.of_eq;
   rotate_right;
-  exact fun p => ( Finset.range ( p.2.1 + 1 ) ).sup fun s' => match Nat.Partrec.Code.evaln p.2.1 ( ( Encodable.decode ( α := Nat.Partrec.Code ) p.1 ).getD Nat.Partrec.Code.zero ) ( Encodable.encode ( s', p.2.2.1, p.2.2.2 ) ) with | some v => v * 2 ^ ( p.2.1 - s' ) | none => 0;
+  exact fun p => ( Finset.range ( p.2.1 + 1 ) ).sup fun s' => match Computability.evalnDecoded p.2.1 p.1 ( s', p.2.2.1, p.2.2.2 ) with | some v => v * 2 ^ ( p.2.1 - s' ) | none => 0;
   · convert computable_finset_range_sup _ _ _ _;
     · exact Computable.succ.comp ( Computable.fst.comp ( Computable.snd ) );
     · convert Computable.option_casesOn _ _ _ using 1;
       rotate_left;
       exact ℕ;
       exact inferInstance;
-      exact fun p => Nat.Partrec.Code.evaln p.1.2.1 ( ( Encodable.decode p.1.1 ).getD Nat.Partrec.Code.zero ) ( Encodable.encode ( p.2, p.1.2.2.1, p.1.2.2.2 ) );
+      exact fun p => Computability.evalnDecoded p.1.2.1 p.1.1 ( p.2, p.1.2.2.1, p.1.2.2.2 );
       exact fun p => 0;
       exact fun p v => v * 2 ^ ( p.1.2.1 - p.2 );
       · exact comp_evaln_decoded (comp_fst_snd_fst Computable.id)
@@ -77,7 +77,7 @@ lemma approxEnum_computable :
           · exact Computable.pair ( Computable.snd.comp Computable.fst ) ( Computable.pair ( Computable.fst.comp ( Computable.snd.comp ( Computable.fst.comp Computable.fst ) ) ) ( Computable.pair ( Computable.fst.comp ( Computable.snd.comp ( Computable.snd.comp ( Computable.fst.comp Computable.fst ) ) ) ) ( Computable.pair ( Computable.snd.comp ( Computable.snd.comp ( Computable.snd.comp ( Computable.fst.comp Computable.fst ) ) ) ) ( Computable.snd ) ) ) );
           · exact funext fun p => by cases p; rfl;
         · aesop;
-      · exact funext fun p => by cases Nat.Partrec.Code.evaln p.1.2.1 ( ( Encodable.decode p.1.1 ).getD Nat.Partrec.Code.zero ) ( Encodable.encode ( p.2, p.1.2.2.1, p.1.2.2.2 ) ) <;> rfl;
+      · exact funext fun p => by cases Computability.evalnDecoded p.1.2.1 p.1.1 ( p.2, p.1.2.2.1, p.1.2.2.2 ) <;> rfl;
   · intro p; cases p with | mk p_1 p_2 => cases p_2 with | mk p_2_1 p_2_2 => cases p_2_2 with | mk p_2_2_1 p_2_2_2 => unfold approxEnum; rfl
 
 lemma makeMono_computable (approx : ℕ → BitString → BitString → ℕ)

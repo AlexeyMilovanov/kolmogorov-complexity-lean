@@ -4,7 +4,7 @@ Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Alexey
 -/
 import KolmogorovMathlib.AlgorithmicProbability.UniversalSemimeasure.Defs
-
+import KolmogorovMathlib.AlgorithmicProbability.Computability.Tuple
 namespace Kolmogorov
 
 open scoped ENNReal
@@ -28,9 +28,7 @@ lemmas are used). -/
 @[irreducible] def approxEnum : ℕ → ℕ → BitString → BitString → ℕ :=
   fun i s out ctx =>
     (Finset.range (s + 1)).sup (fun s' =>
-      match Nat.Partrec.Code.evaln s
-          ((Encodable.decode (α := Nat.Partrec.Code) i).getD Nat.Partrec.Code.zero)
-          (Encodable.encode (s', out, ctx)) with
+      match Computability.evalnDecoded s i (s', out, ctx) with
       | some v => v * 2 ^ (s - s')
       | none => 0)
 
