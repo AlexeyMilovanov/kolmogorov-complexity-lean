@@ -1,3 +1,8 @@
+/-
+Copyright (c) 2024 Alexey. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Alexey
+-/
 import Mathlib.Computability.Partrec
 import Mathlib.Computability.PartrecCode
 import Mathlib.Computability.Encoding
@@ -31,7 +36,7 @@ def unaryPrefix (n : ℕ) : List Bool :=
     change ((unaryPrefix n ++ p).takeWhile id).length + 1 = n + 1
     omega
 
-@[simp] lemma drop_unaryPrefix (n : ℕ) (p : List Bool) :
+lemma drop_unaryPrefix (n : ℕ) (p : List Bool) :
     (unaryPrefix n ++ p).drop (n + 1) = p := by
   induction n with
   | zero => rfl
@@ -70,15 +75,51 @@ def parseTapeNat (n : ℕ) : ℕ × ℕ :=
       let i := (s.takeWhile id).length
       (i, Encodable.encode (s.drop (i + 1))))
 
+/-- `List.drop` is primitive recursive in its arguments (proved by recursion on the
+number of elements dropped, peeling one tail at a time). -/
+lemma primrec_list_drop : Primrec₂ (fun (l : List Bool) (n : ℕ) => l.drop n) := by
+  have h : (fun (l : List Bool) (n : ℕ) => l.drop n)
+      = fun l n => Nat.rec l (fun _ ih => ih.tail) n := by
+    funext l n
+    induction n with
+    | zero => rfl
+    | succ n ih => rw [← List.tail_drop, ih]
+  rw [h]
+  exact Primrec.nat_rec' Primrec.snd Primrec.fst
+    (Primrec.list_tail.comp (Primrec.snd.comp Primrec.snd)).to₂
+
+/-- The length of the leading run of `true`s equals the index of the first `false`,
+so the unary-prefix length is computed by `List.findIdx`. -/
+lemma takeWhile_id_length_eq_findIdx (s : List Bool) :
+    (s.takeWhile id).length = s.findIdx (fun b => !b) := by
+  induction s with
+  | nil => rfl
+  | cons a as ih =>
+    cases a with
+    | false => simp [List.findIdx_cons]
+    | true =>
+      simp only [List.takeWhile_cons, id_eq, List.findIdx_cons]; simp [ih]
+
 /-- The tape parser is primitive recursive. -/
 lemma primrecParseTapeNat : Primrec parseTapeNat := by
-  unfold parseTapeNat
-  have h_twl : Primrec (fun s : List Bool => (s.takeWhile id).length) :=
-    Primrec.list_length.comp (Primrec.list_takeWhile Primrec.id)
-  exact Primrec.option_casesOn Primrec.decode (Primrec.const (0, 0))
-    (Primrec.pair (h_twl.comp Primrec.snd)
-      (Primrec.encode.comp (Primrec₂.comp Primrec.list_drop
-        (Primrec.succ.comp (h_twl.comp Primrec.snd)) Primrec.snd)))
+  have hform : parseTapeNat = fun n =>
+      Option.casesOn (Encodable.decode n : Option BitString) (0, 0)
+        (fun s => (s.findIdx (fun b => !b),
+            Encodable.encode (s.drop (s.findIdx (fun b => !b) + 1)))) := by
+    funext n
+    simp only [parseTapeNat]
+    cases (Encodable.decode n : Option BitString) with
+    | none => rfl
+    | some s => simp [takeWhile_id_length_eq_findIdx]
+  rw [hform]
+  have hidx : Primrec (fun p : ℕ × BitString => p.2.findIdx (fun b => !b)) :=
+    Primrec.list_findIdx Primrec.snd (Primrec.not.comp Primrec.snd).to₂
+  have hdrop : Primrec (fun p : ℕ × BitString => p.2.drop (p.2.findIdx (fun b => !b) + 1)) :=
+    primrec_list_drop.comp Primrec.snd (Primrec.succ.comp hidx)
+  have hsome : Primrec₂ (fun (n : ℕ) (s : BitString) =>
+      (s.findIdx (fun b => !b), Encodable.encode (s.drop (s.findIdx (fun b => !b) + 1)))) :=
+    (hidx.pair (Primrec.encode.comp hdrop)).to₂
+  exact Primrec.option_casesOn Primrec.decode (Primrec.const (0, 0)) hsome
 
 /-- The core numerical universal decompressor. -/
 def univNat (p : ℕ × ℕ) : Part ℕ :=
@@ -113,17 +154,24 @@ private lemma primrecDecodeGetD :
 
 /-- `universalDecompressor` is a computable partial function. -/
 lemma isDecompressorUniversalDecompressor : isDecompressor universalDecompressor := by
-  have h_eq : universalDecompressor = fun p =>
+  have heq : universalDecompressor = fun p : BitString × BitString =>
       (univNat (Encodable.encode p.1, Encodable.encode p.2)).map
         (fun r => (Encodable.decode r : Option BitString).getD []) := by
-    funext ⟨s, y⟩
-    unfold universalDecompressor univNat parseTapeNat
-    simp only [Encodable.encodek]
-    cases (Encodable.decode (List.takeWhile id s).length : Option Nat.Partrec.Code) <;> simp
-  rw [h_eq]
-  exact Partrec.map
-    (Partrec.comp partrecUnivNat (Primrec.to_comp
-      (Primrec.pair (Primrec.encode.comp Primrec.fst) (Primrec.encode.comp Primrec.snd))))
-    (primrecDecodeGetD.to_comp.comp Computable.snd)
+    funext p
+    obtain ⟨s, y⟩ := p
+    simp only [universalDecompressor, univNat, parseTapeNat, Encodable.encodek]
+    cases (Encodable.decode ((s.takeWhile id).length) : Option Nat.Partrec.Code) with
+    | none => simp
+    | some code =>
+      simp only [Part.ofOption, Part.bind_some]
+      rw [Encodable.encode_prod_val]
+  rw [heq]
+  have hpre : Computable (fun p : BitString × BitString =>
+      (Encodable.encode p.1, Encodable.encode p.2)) :=
+    (Primrec.encode.comp Primrec.fst).to_comp.pair (Primrec.encode.comp Primrec.snd).to_comp
+  have hcomp : Partrec (fun p : BitString × BitString =>
+      univNat (Encodable.encode p.1, Encodable.encode p.2)) :=
+    partrecUnivNat.comp hpre
+  exact Partrec.map hcomp (primrecDecodeGetD.comp Primrec.snd).to_comp.to₂
 
 end Kolmogorov

@@ -1,3 +1,8 @@
+/-
+Copyright (c) 2024 Alexey. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Alexey
+-/
 import Mathlib.Computability.Partrec
 import Mathlib.Data.List.Basic
 import Mathlib.Data.ENat.Lattice
@@ -134,7 +139,7 @@ lemma condKLeIff (D : Map) (x y : BitString) (N : ℕ) :
   constructor
   · intro h_le
     by_contra h_not
-    push_neg at h_not
+    push Not at h_not
     have h_bound : ∀ n ∈ candidateLengths D x y, ((N + 1 : ℕ) : ENat) ≤ n := by
       rintro _ ⟨p, hp_prod, rfl⟩
       have h_gt : N + 1 ≤ programLength p := by
@@ -154,7 +159,7 @@ lemma condKGtIff (D : Map) (x y : BitString) (N : ℕ) :
     (N : ENat) < condK D x y ↔ ∀ p, programLength p ≤ N → ¬ produces D p y x := by
   rw [← not_le]
   rw [condKLeIff]
-  push_neg
+  push Not
   rfl
 
 /-! ### Auxiliary structures for Dovetailing / Bounded Search -/

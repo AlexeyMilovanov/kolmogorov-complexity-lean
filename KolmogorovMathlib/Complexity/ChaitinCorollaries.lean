@@ -1,3 +1,8 @@
+/-
+Copyright (c) 2024 Alexey. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Alexey
+-/
 import Mathlib.Computability.Partrec
 import KolmogorovMathlib.Core.Basic
 import KolmogorovMathlib.Complexity.Properties
@@ -21,9 +26,12 @@ namespace Kolmogorov
 /-- A generalized formal system that provides an enumerable set of theorems
     but does not yet specify a strict parser for complexity bounds. -/
 structure GeneralSystem where
+  /-- The formula type. -/
   Formula : Type
   enc : Primcodable Formula
+  /-- The provability predicate. -/
   provable : Formula → Prop
+  /-- Computable enumerator for theorems. -/
   enumThm : ℕ → Option Formula
   hEnumComp : Computable enumThm
   hEnumExact : ∀ φ, provable φ ↔ ∃ i, enumThm i = some φ
@@ -33,7 +41,9 @@ attribute [instance] GeneralSystem.enc
 /-- An interface asserting that a `GeneralSystem` can successfully express,
     parse, and soundly prove a specific mathematical relation `R`. -/
 structure Expresses (sys : GeneralSystem) (R : ℕ × ℕ → Prop) where
+  /-- Formula constructor for the relation. -/
   expr : ℕ → ℕ → sys.Formula
+  /-- Parser for relation formulas. -/
   parse : sys.Formula → Option (ℕ × ℕ)
   hParseComp : Computable parse
   hParseForward : ∀ x L, parse (expr x L) = some (x, L)

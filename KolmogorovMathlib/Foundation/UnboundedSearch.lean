@@ -1,6 +1,12 @@
+/-
+Copyright (c) 2024 Alexey. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Alexey
+-/
 import Mathlib.Computability.Partrec
 import Mathlib.Computability.PartrecCode
 import Mathlib.Computability.Primrec.List
+import Mathlib.Computability.Halting
 import Mathlib.Data.Nat.Basic
 import Mathlib.Data.List.Basic
 
@@ -28,35 +34,31 @@ lemma Computable.pow2 : Computable (fun k : ℕ => 2 ^ k) := by
   rw [← h_eq]
   exact Nat.Primrec.pow.comp (Nat.Primrec.pair (Nat.Primrec.const 2) Nat.Primrec.id)
 
-/-! ### Master Lemma (Unbounded Search) -/
+/-! ### General Unbounded Search -/
 
-/-- If a predicate `P` is decidable and its decision function is computable,
-and if for every `k` there exists an `n` such that `P k n` holds,
-then the search function `k ↦ Nat.find (h_unbounded k)` is computable. -/
-lemma Computable.unboundedSearch {P : ℕ → ℕ → Prop} [∀ k n, Decidable (P k n)]
-    (hP_comp : Computable (fun p : ℕ × ℕ => decide (P p.1 p.2)))
-    (h_unbounded : ∀ k, ∃ n, P k n) :
-    Computable (fun k => Nat.find (h_unbounded k)) := by
-  have h_alg : Partrec (fun k => Nat.rfind (fun n => Part.some (decide (P k n)))) := by
-    apply Partrec.rfind
-    exact Computable.partrec hP_comp
-  have h_eq : (fun k => Nat.rfind (fun n => Part.some (decide (P k n)))) =
-              (fun k => Part.some (Nat.find (h_unbounded k))) := by
-    funext k
-    apply Part.eq_some_iff.mpr
-    apply Nat.mem_rfind.mpr
-    constructor
-    · have h1 : decide (P k (Nat.find (h_unbounded k))) = true :=
-        decide_eq_true (Nat.find_spec (h_unbounded k))
-      rw [h1]
-      exact ⟨trivial, rfl⟩
-    · intro m hm
-      have h2 : decide (P k m) = false :=
-        decide_eq_false (Nat.find_min (h_unbounded k) hm)
-      rw [h2]
-      exact ⟨trivial, rfl⟩
-  rw [h_eq] at h_alg
-  exact h_alg
+/-- **General unbounded search.** If a predicate `P a n` is decidable and the
+uncurried decision procedure is computable, and if for every `a` there exists an
+`n` with `P a n`, then the minimal-witness function `a ↦ Nat.find (h a)` is total
+computable. This is the key bridge `Nat.find = Nat.rfind` for total decidable
+computable predicates. -/
+lemma Computable.natFind {α : Type*} [Primcodable α] {P : α → ℕ → Prop}
+    [∀ a n, Decidable (P a n)]
+    (hP : Computable (fun p : α × ℕ => decide (P p.1 p.2)))
+    (h : ∀ a, ∃ n, P a n) :
+    Computable (fun a => Nat.find (h a)) := by
+  have hp2 : Partrec₂ (fun (a : α) (n : ℕ) => (Part.some (decide (P a n)) : Part Bool)) := by
+    have : Computable₂ (fun (a : α) (n : ℕ) => decide (P a n)) := hP
+    exact this.partrec₂
+  have hr := Partrec.rfind hp2
+  refine hr.of_eq (fun a => ?_)
+  change (Nat.rfind fun n => Part.some (decide (P a n))) = Part.some (Nat.find (h a))
+  rw [Part.eq_some_iff, Nat.mem_rfind]
+  refine ⟨?_, ?_⟩
+  · simp only [Part.mem_some_iff]
+    exact (decide_eq_true (Nat.find_spec (h a))).symm
+  · intro m hm
+    simp only [Part.mem_some_iff]
+    exact (decide_eq_false (Nat.find_min (h a) hm)).symm
 
 /-! ### Corollaries -/
 
@@ -65,9 +67,12 @@ its inverse search function is computable. -/
 lemma Computable.inverse (f : ℕ → ℕ) (hf_comp : Computable f)
     (h_surj : ∀ y, ∃ x, f x = y) :
     Computable (fun y => Nat.find (h_surj y)) := by
-  refine Computable.unboundedSearch ?_ h_surj
-  exact (Primrec.to_comp Primrec.beq).comp
-    (Computable.pair (hf_comp.comp Computable.snd) Computable.fst)
+  apply Computable.natFind (P := fun y x => f x = y)
+  have h_pair : Computable (fun p : ℕ × ℕ => (f p.2, p.1)) :=
+    (hf_comp.comp Computable.snd).pair Computable.fst
+  obtain ⟨_, h_eq⟩ := Primrec.eq (α := ℕ)
+  refine Computable.of_eq ((Primrec.to_comp h_eq).comp h_pair) (fun p => ?_)
+  exact congrArg (fun inst => @decide _ inst) (Subsingleton.elim _ _)
 
 /-- Isolates the strict inequality comparison operator on natural numbers. -/
 lemma Computable.natLt : Computable (fun p : ℕ × ℕ => decide (p.1 < p.2)) := by
@@ -76,24 +81,37 @@ lemma Computable.natLt : Computable (fun p : ℕ × ℕ => decide (p.1 < p.2)) :
 
 /-- Proves the computability of a predicate `P` defined by a strict inequality
 between two computable functions. -/
-lemma Computable.testP {P : ℕ → ℕ → Prop} [∀ k n, Decidable (P k n)]
+lemma Computable.testP {P : ℕ → ℕ → Prop}
     {f g : ℕ → ℕ} (hf : Computable f) (hg : Computable g)
     (h_equiv : ∀ k n, P k n ↔ f n > g k) :
-    Computable (fun p : ℕ × ℕ => decide (P p.1 p.2)) := by
+    ComputablePred (fun p : ℕ × ℕ => P p.1 p.2) := by
+  letI : DecidableRel P := fun k n => decidable_of_iff _ (h_equiv k n).symm
   let h_pair := (hg.comp Computable.fst).pair (hf.comp Computable.snd)
   let h_alg := Computable.natLt.comp h_pair
-  convert h_alg using 1
-  funext p
-  simp only [h_equiv]
+  have h_comp : Computable (fun p : ℕ × ℕ => decide (P p.1 p.2)) :=
+    Computable.of_eq h_alg (fun p => by
+      have h : P p.1 p.2 ↔ g p.1 < f p.2 := h_equiv p.1 p.2
+      cases h_dec : decide (g p.1 < f p.2)
+      · have h_not : ¬ (g p.1 < f p.2) := of_decide_eq_false h_dec
+        exact (decide_eq_false (mt h.mp h_not)).symm
+      · have h_yes : g p.1 < f p.2 := of_decide_eq_true h_dec
+        exact (decide_eq_true (h.mpr h_yes)).symm)
+  exact Computable.computablePred h_comp
 
 /-- Inequality Search: A modular search function over a predicate defined
 by a strict inequality between two computable functions. -/
-lemma Computable.searchCore {P : ℕ → ℕ → Prop} [∀ k n, Decidable (P k n)]
+lemma Computable.searchCore {P : ℕ → ℕ → Prop} [DecidableRel P]
     (f : ℕ → ℕ) (hf_comp : Computable f)
     (g : ℕ → ℕ) (hg_comp : Computable g)
     (h_equiv : ∀ k n, P k n ↔ f n > g k)
     (h_unbounded : ∀ k, ∃ n, P k n) :
-    Computable (fun k => Nat.find (h_unbounded k)) :=
-  Computable.unboundedSearch (Computable.testP hf_comp hg_comp h_equiv) h_unbounded
+    Computable (fun k => Nat.find (h_unbounded k)) := by
+  have hcomp : Computable (fun p : ℕ × ℕ => decide (P p.1 p.2)) := by
+    have h_pair := (hg_comp.comp Computable.fst).pair (hf_comp.comp Computable.snd)
+    have h_alg := Computable.natLt.comp h_pair
+    refine Computable.of_eq h_alg (fun p => ?_)
+    have h : P p.1 p.2 ↔ g p.1 < f p.2 := by rw [h_equiv]
+    exact decide_eq_decide.mpr h.symm
+  exact Computable.natFind hcomp h_unbounded
 
 end Kolmogorov

@@ -1,3 +1,8 @@
+/-
+Copyright (c) 2024 Alexey. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Alexey
+-/
 import Mathlib.Computability.PartrecCode
 import Mathlib.Computability.Partrec
 import Mathlib.Data.List.Basic
@@ -52,7 +57,6 @@ theorem natBitsInjective : Function.Injective Nat.bits := by
 
 /-! ### Length Bounds -/
 
-@[simp]
 lemma natBits_zero : Nat.bits 0 = [] := by
   simp [Nat.bits]
 
@@ -122,6 +126,7 @@ lemma decodeBitsComputable : Computable decodeBits :=
 /-! ### Nat.bits Computability -/
 
 /-- Helper function for the strong recursion of `Nat.bits`. -/
+@[nolint unusedArguments]
 def bitsG (_ : Unit) (l : List (List Bool)) : Option (List Bool) :=
   let n := l.length
   bif n == 0 then some []

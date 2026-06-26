@@ -1,4 +1,4 @@
-name = "logic"
+name = "kolmogorov_complexity"
 version = "0.1.0"
 keywords = ["math"]
 defaultTargets = ["KolmogorovMathlib"]
@@ -8,11 +8,16 @@ pp.unicode.fun = true # pretty-prints `fun a ↦ b`
 relaxedAutoImplicit = false
 weak.linter.mathlibStandardSet = true
 maxSynthPendingDepth = 3
+linter.flexible = false
+linter.style.longLine = false
+linter.style.multiGoal = false
+linter.style.openClassical = false
 
 [[require]]
 name = "mathlib"
 scope = "leanprover-community"
-rev = "master"
+git = "https://github.com/leanprover-community/mathlib4.git"
+rev = "v4.31.0"
 
 
 [[lean_lib]]

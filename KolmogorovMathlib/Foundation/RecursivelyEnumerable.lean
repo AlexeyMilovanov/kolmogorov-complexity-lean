@@ -1,3 +1,8 @@
+/-
+Copyright (c) 2024 Alexey. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Alexey
+-/
 import Mathlib.Computability.Partrec
 import Mathlib.Computability.PartrecCode
 import Mathlib.Computability.Primrec.List
@@ -231,6 +236,29 @@ private lemma mem_exactLengthPrograms_self (p : List Bool) :
     refine ⟨tail, ih, ?_⟩
     cases b <;> simp
 
+/-- Members of `exactLengthPrograms n` all have length `n` (public restatement of the
+private helper). -/
+lemma exactLengthPrograms_length_eq (n : ℕ) (p : List Bool)
+    (hp : p ∈ exactLengthPrograms n) : p.length = n :=
+  exactLengthPrograms_length n p hp
+
+/-
+`exactLengthPrograms n` has no duplicates.
+-/
+lemma exactLengthPrograms_nodup (n : ℕ) : (exactLengthPrograms n).Nodup := by
+  refine Nat.recOn n ?_ ?_ <;> simp +decide [ exactLengthPrograms ];
+  grind
+
+/-
+`boundedPrograms N` has no duplicates.
+-/
+lemma boundedPrograms_nodup (N : ℕ) : (boundedPrograms N).Nodup := by
+  refine List.nodup_flatMap.mpr ?_;
+  refine ⟨ fun x hx => exactLengthPrograms_nodup x, ?_ ⟩;
+  refine List.pairwise_iff_get.mpr ?_;
+  intros i j hij; rw [ Function.onFun, List.disjoint_left ] ; intros x hx hy; have := exactLengthPrograms_length_eq _ _ hx; have := exactLengthPrograms_length_eq _ _ hy; simp_all +decide;
+  exact hij.ne ( Fin.ext ‹_› ▸ rfl )
+
 /-- A bitstring is in `boundedPrograms N` if and only if its length is at most `N`. -/
 lemma mem_boundedPrograms_iff (p : List Bool) (N : ℕ) :
     p ∈ boundedPrograms N ↔ p.length ≤ N := by
@@ -246,32 +274,38 @@ lemma mem_boundedPrograms_iff (p : List Bool) (N : ℕ) :
     simp only [List.mem_flatMap, List.mem_range]
     refine ⟨p.length, by omega, mem_exactLengthPrograms_self p⟩
 
-/-- The generator function itself is computable. -/
-lemma Computable.boundedPrograms : Computable boundedPrograms := by
-  have hExact : Primrec exactLengthPrograms := by
-    have hrec : exactLengthPrograms = fun n =>
-        Nat.rec ([[]] : List (List Bool))
-          (fun _ ih => List.flatMap (fun s => [false :: s, true :: s]) ih) n := by
-      funext n; induction n with
-      | zero => rfl
-      | succ n ih => simp [exactLengthPrograms, ih]
-    rw [hrec]
-    have hStep : Primrec₂ (fun (_ : Unit) (p : ℕ × List (List Bool)) =>
-        List.flatMap (fun s => [false :: s, true :: s]) p.2) := by
-      change Primrec (fun (q : Unit × (ℕ × List (List Bool))) =>
-        List.flatMap (fun s => [false :: s, true :: s]) q.2.2)
-      exact Primrec.list_flatMap (Primrec.snd.comp Primrec.snd)
-        (show Primrec₂ (fun (_ : Unit × (ℕ × List (List Bool))) (s : List Bool) =>
-            [false :: s, true :: s]) from
-          Primrec.list_cons.comp
-            (Primrec.list_cons.comp (Primrec.const false) Primrec.snd)
-            (Primrec.list_cons.comp
-              (Primrec.list_cons.comp (Primrec.const true) Primrec.snd)
-              (Primrec.const [])))
-    exact (Primrec.nat_rec (Primrec.const [[]]) hStep).comp (Primrec.const ()) Primrec.id
-  change Computable (fun N => List.flatMap exactLengthPrograms (List.range (N + 1)))
-  exact Primrec.to_comp (Primrec.list_flatMap
+/-- The exact-length generator is primitive recursive. -/
+lemma primrec_exactLengthPrograms : Primrec exactLengthPrograms := by
+  have hrec : exactLengthPrograms = fun n =>
+      Nat.rec ([[]] : List (List Bool))
+        (fun _ ih => List.flatMap (fun s => [false :: s, true :: s]) ih) n := by
+    funext n; induction n with
+    | zero => rfl
+    | succ n ih => simp [exactLengthPrograms, ih]
+  rw [hrec]
+  have hStep : Primrec₂ (fun (_ : Unit) (p : ℕ × List (List Bool)) =>
+      List.flatMap (fun s => [false :: s, true :: s]) p.2) := by
+    change Primrec (fun (q : Unit × (ℕ × List (List Bool))) =>
+      List.flatMap (fun s => [false :: s, true :: s]) q.2.2)
+    exact Primrec.list_flatMap (Primrec.snd.comp Primrec.snd)
+      (show Primrec₂ (fun (_ : Unit × (ℕ × List (List Bool))) (s : List Bool) =>
+          [false :: s, true :: s]) from
+        Primrec.list_cons.comp
+          (Primrec.list_cons.comp (Primrec.const false) Primrec.snd)
+          (Primrec.list_cons.comp
+            (Primrec.list_cons.comp (Primrec.const true) Primrec.snd)
+            (Primrec.const [])))
+  exact (Primrec.nat_rec (Primrec.const [[]]) hStep).comp (Primrec.const ()) Primrec.id
+
+/-- The bounded-program generator is primitive recursive. -/
+lemma primrec_boundedPrograms : Primrec boundedPrograms := by
+  change Primrec (fun N => List.flatMap exactLengthPrograms (List.range (N + 1)))
+  exact Primrec.list_flatMap
     (Primrec.list_range.comp Primrec.succ)
-    (hExact.comp Primrec.snd))
+    (primrec_exactLengthPrograms.comp Primrec.snd)
+
+/-- The generator function itself is computable. -/
+lemma Computable.boundedPrograms : Computable boundedPrograms :=
+  primrec_boundedPrograms.to_comp
 
 end Kolmogorov

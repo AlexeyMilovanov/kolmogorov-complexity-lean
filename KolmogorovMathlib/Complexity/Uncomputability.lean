@@ -1,3 +1,8 @@
+/-
+Copyright (c) 2024 Alexey. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Alexey
+-/
 import Mathlib.Computability.PartrecCode
 import Mathlib.Computability.Partrec
 import KolmogorovMathlib.Core.Basic
@@ -54,14 +59,8 @@ lemma growthLemma (c : ℕ) :
 lemma Computable.findComplex (f : ℕ → ℕ) (h_f_comp : Computable f)
     (h_unb : ∀ M, ∃ n, f n > M) :
     Computable (fun k => Nat.find (h_unb (2^k))) := by
-  let P := fun (k n : ℕ) => 2^k < f n
-  have hP_comp : Computable (fun p : ℕ × ℕ => decide (P p.1 p.2)) := by
-    have h_pow : Computable (fun p : ℕ × ℕ => 2^p.1) :=
-      Computable.pow2.comp Computable.fst
-    have h_f : Computable (fun p : ℕ × ℕ => f p.2) :=
-      h_f_comp.comp Computable.snd
-    exact Computable.natLt.comp (h_pow.pair h_f)
-  exact Computable.unboundedSearch hP_comp (fun k => h_unb (2^k))
+  -- Используем наш новый модульный searchCore!
+  exact Computable.searchCore f h_f_comp (fun k => 2^k) Computable.pow2 (fun _ _ => Iff.rfl) (fun k => h_unb (2^k))
 
 /-- Computable functions on natural numbers do not increase complexity by more than a constant. -/
 lemma plainKNatCompLe (U : Map) (hU : isOptimalConditional U)

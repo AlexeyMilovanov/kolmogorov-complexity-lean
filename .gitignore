@@ -4,3 +4,4 @@ mathematics_in_lean/
 mathlib4/
 nng4/
 test_download/
+scripts/prefix_semimeasure_auto_loop.py

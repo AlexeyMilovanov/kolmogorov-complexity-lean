@@ -1,3 +1,8 @@
+/-
+Copyright (c) 2024 Alexey. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Alexey
+-/
 import Mathlib.Data.List.Basic
 import Mathlib.Data.Finset.Basic
 import Mathlib.Data.Finset.Card
@@ -179,32 +184,32 @@ lemma memStringsOfLength (n : ℕ) (s : BitString) :
 /-- For any map and length n, there exists at least one incompressible string. -/
 theorem existsIncompressibleString (D : Map) (y : BitString) (n : ℕ) :
     ∃ s : BitString, s.length = n ∧ (n : ENat) ≤ condK D s y := by
-  by_contra h_none
-  push_neg at h_none
+  classical
   cases n with
-  | zero =>
-    have h_lt := h_none [] rfl
-    have h_contra := lt_of_le_of_lt (zero_le (condK D [] y)) h_lt
-    exact lt_irrefl 0 h_contra
-  | succ n' =>
-    have h_subset : stringsOfLength (n' + 1) ⊆ compressibleWords D y n' := by
+  | zero => exact ⟨[], rfl, by simp⟩
+  | succ m =>
+    by_contra h_contra
+    push Not at h_contra
+    have h_sub : stringsOfLength (m + 1) ⊆ compressibleWords D y m := by
       intro s hs
       rw [memStringsOfLength] at hs
+      have h_lt : condK D s y < ((m + 1 : ℕ) : ENat) := h_contra s hs
       rw [compressibleWords, Finset.mem_filter]
-      have h_K_lt := h_none s hs
-      obtain ⟨len_enat, h_mem, h_val_lt⟩ := (sInf_lt_iff).mp h_K_lt
-      obtain ⟨p, hp_prod, rfl⟩ := h_mem
-      have h_len_le : programLength p ≤ n' := by
-        have : (programLength p : ENat) < (n' + 1 : ENat) := h_val_lt
-        exact ENat.coe_lt_coe.mp this |> Nat.lt_succ_iff.mp
-      constructor
+      obtain ⟨len_enat, h_mem_len, h_val_lt⟩ := (sInf_lt_iff).mp h_lt
+      obtain ⟨p, hp_prod, rfl⟩ := h_mem_len
+      have h_len_le : programLength p ≤ m := by
+        have : (programLength p : ENat) < ((m + 1 : ℕ) : ENat) := h_val_lt
+        exact Nat.lt_succ_iff.mp (ENat.coe_lt_coe.mp this)
+      refine ⟨?_, ?_⟩
       · rw [generatedWords, List.mem_toFinset, List.mem_filterMap]
-        refine ⟨p, mem_programsLe _ p h_len_le, progToOut_eq_some.mpr hp_prod⟩
-      · exact le_trans (sInf_le ⟨p, hp_prod, rfl⟩) (ENat.coe_le_coe.mpr h_len_le)
-    have h_card_le := Finset.card_le_card h_subset
-    rw [cardStringsOfLength (n' + 1)] at h_card_le
-    have h_card_limit := cardCompressibleWordsLt D y n'
-    exact absurd h_card_le (not_le_of_gt h_card_limit)
+        exact ⟨p, mem_programsLe m p h_len_le, progToOut_eq_some.mpr hp_prod⟩
+      · have hmem : (programLength p : ENat) ∈ candidateLengths D s y := ⟨p, hp_prod, rfl⟩
+        calc condK D s y ≤ (programLength p : ENat) := sInf_le hmem
+          _ ≤ (m : ENat) := by exact_mod_cast h_len_le
+    have h_card := Finset.card_le_card h_sub
+    rw [cardStringsOfLength] at h_card
+    have h_lt := cardCompressibleWordsLt D y m
+    omega
 
 open Classical in
 /-- The Fundamental Theorem: For any complexity threshold L,
@@ -223,7 +228,7 @@ open Classical in
 theorem existsComplexInjective {f : ℕ → BitString} (hf : Function.Injective f) (U : Map) (L : ℕ) :
     ∃ n : ℕ, plainK U (f n) > (L : ENat) := by
   by_contra h_contra
-  push_neg at h_contra
+  push Not at h_contra
   let S := compressibleWords U [] L
   have h_mem : ∀ n, f n ∈ S := by
     intro n

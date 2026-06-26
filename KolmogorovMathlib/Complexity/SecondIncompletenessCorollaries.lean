@@ -1,3 +1,8 @@
+/-
+Copyright (c) 2024 Alexey. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Alexey
+-/
 import KolmogorovMathlib.Complexity.SecondIncompleteness
 
 /-!
@@ -7,7 +12,7 @@ This module provides a generalized interface for applying the Kritchman-Raz proo
 of Gödel's Second Incompleteness Theorem. It demonstrates how standard
 properties of formal logic—specifically Hilbert-Bernays-Löb (HBL) derivability
 conditions, Σ₁-completeness, and logical soundness—naturally fulfill the
-abstract axioms of our `KRFormalSystem`.
+abstract assumptions of our `KRFormalSystem`.
 -/
 
 namespace Kolmogorov
@@ -20,18 +25,25 @@ namespace Kolmogorov
     upper bound directly from Lean's mathematical truth. -/
 structure PeanoLikeSystem (U : Map) extends FormalSystem U where
   -- 1. Basic Propositional Logic
+  /-- Implication formula constructor. -/
   impl : Formula → Formula → Formula
+  /-- Negation formula constructor. -/
   not : Formula → Formula
   mp : ∀ A B, provable (impl A B) → provable A → provable B
   mt : ∀ A B, provable (impl A B) → provable (not B) → provable (not A)
 
   -- 2. Vocabulary
+  /-- Formula representing consistency of the system. -/
   exprCon : Formula
+  /-- Formula representing `M_L > i`. -/
   exprMGt : ℕ → ℕ → Formula
+  /-- Formula representing `M_L = i`. -/
   exprMEq : ℕ → ℕ → Formula
+  /-- Formula representing `∃ x, provable (K(x) > L)`. -/
   exprExistsProvKGt : ℕ → Formula
 
   -- 3. Semantics & Soundness (The Semantic Bridge)
+  /-- Evaluation to standard truth. -/
   eval : Formula → Prop
   soundness : ∀ φ, provable φ → eval φ
 
