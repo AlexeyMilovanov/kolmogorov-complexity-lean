@@ -1,8 +1,3 @@
-/-
-Copyright (c) 2024 Alexey. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey
--/
 import KolmogorovMathlib.AlgorithmicProbability.PairProjection
 import KolmogorovMathlib.Prefix.Symmetry
 import KolmogorovMathlib.Prefix.Optimal
@@ -61,7 +56,7 @@ theorem two_pow_mul_inv_pow_le_cast_pow_sub (n d : ℕ) :
       _ = (2 * (2 : ℝ≥0∞)⁻¹) ^ d := by rw [← mul_pow]
       _ = 1 ^ d := by rw [ENNReal.mul_inv_cancel two_ne_zero ENNReal.ofNat_ne_top]
       _ = 1 := one_pow d
-  · push Not at h
+  · push_neg at h
     have h_le : d ≤ n := h.le
     rw [← ENNReal.toReal_le_toReal (ENNReal.mul_ne_top (by norm_num) (by norm_num)) (by norm_num)]
     simp only [ENNReal.toReal_mul, ENNReal.toReal_pow, ENNReal.toReal_ofNat, ENNReal.toReal_inv, Nat.cast_pow, Nat.cast_ofNat]
@@ -156,13 +151,13 @@ theorem lengthMarginal_le_aprioriMeasure_lenMap (U : Map) (n : ℕ) :
     have hproj : produces (lenMap U) p [] (Nat.bits n) :=
       (produces_lenMap_iff U p [] (Nat.bits n)).mpr ⟨x₀, hx₀, by rw [hx₀len]⟩
     rw [if_pos hproj]
-  · push Not at hp
+  · push_neg at hp
     have hzero : (∑ x ∈ stringsOfLength n, if produces U p [] x then progWeight p else 0) = 0 := by
       apply Finset.sum_eq_zero
       intro x hxmem
       rw [if_neg (hp x hxmem)]
     rw [hzero]
-    exact zero_le
+    exact zero_le _
 
 /-! ### The crux: the length-marginal coding bound -/
 

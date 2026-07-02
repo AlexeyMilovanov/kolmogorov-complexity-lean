@@ -1,8 +1,3 @@
-/-
-Copyright (c) 2024 Alexey. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey
--/
 import KolmogorovMathlib.Prefix.Optimal
 import KolmogorovMathlib.Prefix.Encoding
 import KolmogorovMathlib.Prefix.TwoStage
@@ -234,55 +229,6 @@ theorem KPPair_chain_lower_of_conditional_coding (U : Map)
     -- Read the multiplicative bound back as the additive lower bound.
     exact le_add_nat_of_complexityWeight_le hP key
 
-/-- The lower, counting direction of prefix symmetry of information.
-
-Mathematically this is
-`K(x) + K(y | x, K(x)) <= K(x,y) + O(1)`.
-This is the hard Levin-Gacs direction and is expected to need substantially more
-counting and enumeration infrastructure. -/
-theorem KPPair_chain_lower (U : Map) (hU : IsOptimalPrefixConditional U) :
-    Exists fun c : Nat => forall x y : BitString, forall kx : Nat,
-      HasPrefixComplexityValue U x kx ->
-        KPPlain U x + KP U y (prefixComplexityContext x kx) <= KPPair U x y + (c : ENat) := by
-  -- By `KPPair_chain_lower_of_conditional_coding`, the entire counting content of
-  -- the Levin–Gács direction has been isolated into the single conditional coding
-  -- bound `hcode` below, now correctly *guarded* at `k = K(x)` (the unguarded
-  -- `∀ k` form is false; see the reduction lemma's docstring). What remains
-  -- genuinely hard is exactly this bound: it is the conditional coding theorem
-  -- (SUV §4.5, Kraft–Chaitin) applied to the section semimeasure
-  -- `y ↦ m_U(⟨x,y⟩) · 2^{k}`, whose validity rests on
-  --   * lower-semicomputability of `m_U`, and
-  --   * the marginal coding bound `∑_y m_U(⟨x,y⟩) ≤ 2^{-K(x)}` at `k = K(x)`.
-  -- Both are isolated, named Chapter-4 facts; the surrounding arithmetic is fully
-  -- discharged by the reduction theorem above. The conditional coding bound at
-  -- `k = K(x)` is assembled in `ConditionalCoding.section_coding_bound` from two
-  -- precise, guarded obligations (`pairMarginal_coding_bound`,
-  -- `conditional_coding_section_realization`); the guard `(k : ENat) = KP U x []`
-  -- is definitionally `HasPrefixComplexityValue`, and `pairCode x (natCode k)` is
-  -- definitionally `prefixComplexityContext x k`.
-  apply KPPair_chain_lower_of_conditional_coding U hU
-  exact section_coding_bound U hU
-
-/-- Staged prefix symmetry of information.
-
-This packages the faithful prefix-complexity shape
-`K(x,y) = K(x) + K(y | x, K(x)) + O(1)` as the two additive inequalities above,
-with possibly different constants. -/
-theorem KPPair_symmetryOfInformation_staged (U : Map) (hU : IsOptimalPrefixConditional U) :
-    Exists fun cUpper : Nat => Exists fun cLower : Nat =>
-      forall x y : BitString, forall kx : Nat,
-        HasPrefixComplexityValue U x kx ->
-          KPPair U x y
-              <= KPPlain U x + KP U y (prefixComplexityContext x kx) + (cUpper : ENat) /\
-          KPPlain U x + KP U y (prefixComplexityContext x kx)
-              <= KPPair U x y + (cLower : ENat) := by
-  cases KPPair_chain_upper U hU with
-  | intro cUpper hUpper =>
-    cases KPPair_chain_lower U hU with
-    | intro cLower hLower =>
-      exact Exists.intro cUpper
-        (Exists.intro cLower
-          (fun x y kx hkx => And.intro (hUpper x y kx hkx) (hLower x y kx hkx)))
 
 /-- Weak upper bound with only `x` as condition.
 

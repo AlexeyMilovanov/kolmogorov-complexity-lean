@@ -1,8 +1,3 @@
-/-
-Copyright (c) 2024 Alexey. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey
--/
 import KolmogorovMathlib.AlgorithmicProbability.Domination
 
 /-!
@@ -63,13 +58,13 @@ theorem aprioriMeasure_dominates_of_simulation
     (x y : BitString) :
     (2 : ℝ≥0∞)⁻¹ ^ c * aprioriMeasure N x y ≤ aprioriMeasure M x y := by
   rw [aprioriMeasure, aprioriMeasure, ← ENNReal.tsum_mul_left]
-  refine ENNReal.summable.tsum_le_tsum_of_inj t ht (fun _ _ => zero_le) (fun p => ?_)
+  refine ENNReal.summable.tsum_le_tsum_of_inj t ht (fun _ _ => zero_le _) (fun p => ?_)
     ENNReal.summable
   by_cases hp : produces N p y x
   · rw [if_pos hp, if_pos (hsim p y x hp)]
     exact progWeight_translate_ge (hlen p)
   · rw [if_neg hp, mul_zero]
-    exact zero_le
+    exact zero_le _
 
 /-- **Semimeasure domination from simulation**, packaged in the `Dominates`
 vocabulary of `Domination`. The dominating constant is `2^{-c}`, where `c` is the

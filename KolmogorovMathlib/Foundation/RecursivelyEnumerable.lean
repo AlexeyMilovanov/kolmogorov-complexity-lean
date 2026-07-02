@@ -1,8 +1,3 @@
-/-
-Copyright (c) 2024 Alexey. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey
--/
 import Mathlib.Computability.Partrec
 import Mathlib.Computability.PartrecCode
 import Mathlib.Computability.Primrec.List
@@ -191,7 +186,7 @@ lemma IsRE.existsInList {α β : Type*} [Primcodable α] [Primcodable β]
     have hdom : (g (a, b)).Dom := (hg_dom (a, b)).mpr hR_ab
     obtain ⟨k, hk⟩ := (code_dom (a, b)).mp hdom
     refine ⟨Nat.pair i k, ?_⟩
-    show check a (Nat.pair i k) = true
+    change check a (Nat.pair i k) = true
     simp only [check, Nat.unpair_pair, hi]
     obtain ⟨x, hx⟩ := Option.isSome_iff_exists.mp hk
     exact Option.isSome_iff_exists.mpr

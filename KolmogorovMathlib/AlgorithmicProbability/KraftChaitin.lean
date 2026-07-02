@@ -1,14 +1,8 @@
-/-
-Copyright (c) 2024 Alexey. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey
--/
 import KolmogorovMathlib.AlgorithmicProbability.OptimalCoding
 import KolmogorovMathlib.AlgorithmicProbability.Bounds
 import KolmogorovMathlib.AlgorithmicProbability.KraftChaitinCore
 import KolmogorovMathlib.Prefix.CountableKraft
 import KolmogorovMathlib.Foundation.RecursivelyEnumerable
-import KolmogorovMathlib.AlgorithmicProbability.Computability.Tuple
 
 /-!
 # The Kraft–Chaitin Coding Theorem (hard direction)
@@ -39,9 +33,8 @@ and no equality claim; the constant `c₀` is genuine positive coding overhead.
 namespace Kolmogorov
 
 open scoped ENNReal
-open Computability
 
-/-! **Lower-semicomputability of the a priori semimeasure.** For a prefix
+/- **Lower-semicomputability of the a priori semimeasure.** For a prefix
 decompressor `M`, the conditional a priori semimeasure `m_M(x | y)` is
 lower-semicomputable (`IsLSC`): the stage-`s` numerator sums `2^{s - |p|}` over the
 finitely many programs `p` (of length `≤ s`) that produce `x` from `y` within `s`
@@ -78,7 +71,9 @@ lemma aprioriAcceptedList_nodup (c : Nat.Partrec.Code) (s : ℕ) (x y : BitStrin
     (aprioriAcceptedList c s x y).Nodup :=
   (boundedPrograms_nodup s).filter _
 
-/-- Membership in the accepted finset. -/
+/-
+Membership in the accepted finset.
+-/
 lemma mem_aprioriAcc {c : Nat.Partrec.Code} {s : ℕ} {x y p : BitString} :
     p ∈ aprioriAcc c s x y ↔
       p.length ≤ s ∧
@@ -86,7 +81,8 @@ lemma mem_aprioriAcc {c : Nat.Partrec.Code} {s : ℕ} {x y p : BitString} :
   unfold aprioriAcc;
   simp +decide [ aprioriAcceptedList, mem_boundedPrograms_iff ]
 
-/-- Producing `x` from `p` in context `y` is equivalent to some fuel making the staged
+/-
+Producing `x` from `p` in context `y` is equivalent to some fuel making the staged
 evaluation under the code `c` of `M` output `Encodable.encode x`.
 -/
 lemma produces_iff_evaln {M : Map} (c : Nat.Partrec.Code)
@@ -179,9 +175,15 @@ lemma aprioriApprox_iSup {M : Map} (c : Nat.Partrec.Code)
     refine Finset.sum_le_sum_of_subset ?_;
     intro p hp; specialize hk p; simp_all +decide [ Kolmogorov.mem_aprioriAcc ] ;
 
-/-- Compatibility alias for the reusable power helper. -/
-lemma primrec_two_pow : Primrec (fun n : ℕ => 2 ^ n) :=
-  Computability.primrec_two_pow
+/-- `n ↦ 2 ^ n` is primitive recursive. -/
+lemma primrec_two_pow : Primrec (fun n : ℕ => 2 ^ n) := by
+  have h : (fun n : ℕ => 2 ^ n) = (fun n => Nat.rec 1 (fun _ ih => 2 * ih) n) := by
+    funext n; induction n with
+    | zero => rfl
+    | succ n ih => rw [pow_succ, ih]; ring
+  rw [h]
+  exact Primrec.nat_rec' Primrec.id (Primrec.const 1)
+    (Primrec.nat_mul.comp (Primrec.const 2) (Primrec.snd.comp Primrec.snd)).to₂
 
 /-
 The numerator function is computable in `(s, x, y)`.
@@ -198,20 +200,17 @@ lemma aprioriApprox_computable (c : Nat.Partrec.Code) :
         Primrec.list_foldr Primrec.id (Primrec.const 0)
           (Primrec.nat_add.comp (Primrec.fst.comp Primrec.snd)
             (Primrec.snd.comp Primrec.snd)).to₂
-      simpa [List.sum] using h_sum
+      convert h_sum using 1;
     · refine Primrec.list_map ?_ ?_;
       · exact Primrec.comp primrec_boundedPrograms ( Primrec.fst );
       · refine Primrec.ite ?_ ?_ ?_;
         · refine ⟨ ?_, ?_ ⟩;
           infer_instance;
           have h_evaln : Primrec (fun p : ℕ × BitString × BitString => Nat.Partrec.Code.evaln p.1 c (Encodable.encode (p.2.1, p.2.2))) := by
-            exact Nat.Partrec.Code.primrec_evaln.comp
-              (Primrec.pair
-                (Primrec.pair Primrec.fst (Primrec.const c))
-                (Primrec.encode.comp
-                  (Primrec.pair
-                    (Primrec.fst.comp Primrec.snd)
-                    (Primrec.snd.comp Primrec.snd))))
+            convert Nat.Partrec.Code.primrec_evaln.comp ( Primrec.id ) using 1;
+            constructor <;> intro h;
+            · convert Nat.Partrec.Code.primrec_evaln.comp ( Primrec.id ) using 1;
+            · convert h.comp ( Primrec.pair ( Primrec.fst ) ( Primrec.const c ) |> Primrec.pair <| Primrec.encode.comp <| Primrec.pair ( Primrec.fst.comp <| Primrec.snd ) ( Primrec.snd.comp <| Primrec.snd ) ) using 1;
           convert Primrec.eq.comp ( h_evaln.comp ( show Primrec ( fun p : ( ℕ × BitString × BitString ) × BitString => ( p.1.1, p.2, p.1.2.2 ) ) from ?_ ) ) ( show Primrec ( fun p : ( ℕ × BitString × BitString ) × BitString => some ( Encodable.encode p.1.2.1 ) ) from ?_ ) using 1;
           · exact Iff.symm primrecPred_iff_primrec_decide
           · exact Primrec.pair ( Primrec.fst.comp ( Primrec.fst ) ) ( Primrec.pair ( Primrec.snd ) ( Primrec.snd.comp ( Primrec.snd.comp ( Primrec.fst ) ) ) );

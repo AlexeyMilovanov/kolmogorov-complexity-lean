@@ -1,8 +1,3 @@
-/-
-Copyright (c) 2024 Alexey. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey
--/
 import KolmogorovMathlib.Prefix.Optimal
 import KolmogorovMathlib.Prefix.Encoding
 import KolmogorovMathlib.Foundation.RecursivelyEnumerable
@@ -253,24 +248,13 @@ theorem twoStageS1_computable (c : Code) :
     Computable (fun p : BitString × ℕ => twoStageS1 c p.1 p.2) := by
   -- The function ` Code.evaln` is computable because it is a primitive recursive function.
   have h_evaln_computable : Computable₂ (fun (n : ℕ) (m : ℕ) => Code.evaln n c m) := by
-    exact (evaln_fixed_computable c).to₂
+    convert evaln_fixed_computable c using 1;
   have h_take_computable : Computable₂ (fun (w : BitString) (n : ℕ) => w.take n) := by
     convert primrec_list_take.to_comp using 1;
-  have h_eval : Computable (fun p : BitString × ℕ =>
-      Code.evaln p.2.unpair.2 c (Encodable.encode (p.1.take p.2.unpair.1, ([] : BitString)))) :=
-    h_evaln_computable.comp
-      (Computable.snd.comp (Computable.unpair.comp Computable.snd))
-      (Computable.encode.comp
-        (Computable.pair
-          (h_take_computable.comp Computable.fst
-            (Computable.fst.comp (Computable.unpair.comp Computable.snd)))
-          (Computable.const [])))
-  have h_decode : Computable₂ (fun (_ : BitString × ℕ) (e : ℕ) =>
-      (Encodable.decode e : Option BitString)) :=
-    (Computable.decode.comp Computable.snd).to₂
-  exact (Computable.option_bind h_eval h_decode).of_eq (fun p => by
-    unfold twoStageS1
-    rfl)
+  convert Computable.option_bind _ _ using 1;
+  exact inferInstance;
+  · convert h_evaln_computable.comp ( Computable.snd.comp ( Computable.unpair.comp Computable.snd ) ) ( Computable.encode.comp ( h_take_computable.comp Computable.fst ( Computable.fst.comp ( Computable.unpair.comp Computable.snd ) ) |> Computable.pair <| Computable.const [] ) ) using 1;
+  · exact Computable.decode.comp Computable.snd
 
 /-
 `twoStageS2` as a function of the pair `(w, n)` is computable, provided the
@@ -279,35 +263,17 @@ context map is computable.
 theorem twoStageS2_computable (c : Code) (ctx : BitString → Nat → BitString)
     (hctx : Computable (fun p : BitString × ℕ => ctx p.1 p.2)) :
     Computable (fun p : BitString × ℕ => twoStageS2 c ctx p.1 p.2) := by
-  have h_evaln_computable : Computable₂ (fun (n : ℕ) (m : ℕ) => Code.evaln n c m) :=
-    (evaln_fixed_computable c).to₂
   have h_comp : Computable (fun p : BitString × ℕ => twoStageS1 c p.1 p.2) ∧ Computable (fun p : BitString × ℕ => p.1.drop p.2.unpair.1) ∧ Computable (fun p : BitString × ℕ => p.2.unpair.1 : BitString × ℕ → ℕ) ∧ Computable (fun p : BitString × ℕ => p.2.unpair.2 : BitString × ℕ → ℕ) := by
     refine ⟨ twoStageS1_computable c, ?_, ?_, ?_ ⟩;
     · convert Primrec.to_comp ( primrec_list_drop.comp ( Primrec.fst ) ( Primrec.fst.comp ( Primrec.unpair.comp ( Primrec.snd ) ) ) ) using 1;
     · exact Computable.fst.comp ( Computable.unpair.comp ( Computable.snd ) );
     · exact Computable.snd.comp ( Computable.unpair.comp ( Computable.snd ) );
-  have h_eval : Computable₂ (fun (p : BitString × ℕ) (x : BitString) =>
-      Code.evaln p.2.unpair.2 c
-        (Encodable.encode (p.1.drop p.2.unpair.1, ctx x p.2.unpair.1))) := by
-    exact (h_evaln_computable.comp
-      (h_comp.2.2.2.comp Computable.fst)
-      (Computable.encode.comp
-        (Computable.pair
-          (h_comp.2.1.comp Computable.fst)
-          (hctx.comp
-            (Computable.pair Computable.snd
-              (h_comp.2.2.1.comp Computable.fst)))))).to₂
-  have h_decode : Computable₂ (fun (_ : (BitString × ℕ) × BitString) (e : ℕ) =>
-      (Encodable.decode e : Option BitString)) :=
-    (Computable.decode.comp Computable.snd).to₂
-  have h_branch : Computable₂ (fun (p : BitString × ℕ) (x : BitString) =>
-      (Code.evaln p.2.unpair.2 c
-        (Encodable.encode (p.1.drop p.2.unpair.1, ctx x p.2.unpair.1))).bind
-          (fun e => (Encodable.decode e : Option BitString))) :=
-    (Computable.option_bind h_eval h_decode).to₂
-  exact (Computable.option_bind h_comp.1 h_branch).of_eq (fun p => by
-    unfold twoStageS2
-    rfl)
+  have h_comp : Computable (fun p : BitString × ℕ => (twoStageS1 c p.1 p.2).bind (fun x => (Code.evaln p.2.unpair.2 c (Encodable.encode (p.1.drop p.2.unpair.1, ctx x p.2.unpair.1))).bind (fun e => (Encodable.decode e : Option BitString)))) := by
+    apply Computable.option_bind h_comp.1;
+    apply Computable.option_bind;
+    · convert evaln_fixed_computable c |> Computable.comp <| Computable.pair ( h_comp.2.2.2.comp <| Computable.fst ) ( Computable.encode.comp <| Computable.pair ( h_comp.2.1.comp <| Computable.fst ) <| hctx.comp <| Computable.pair ( Computable.snd ) <| h_comp.2.2.1.comp <| Computable.fst ) using 1;
+    · exact Computable.decode.comp ( Computable.snd );
+  convert h_comp using 1
 
 /-
 `twoStagePairOut` is computable, provided the context map is computable.
@@ -319,6 +285,7 @@ theorem twoStagePairOut_computable (c : Code) (ctx : BitString → Nat → BitSt
     twoStageS2_computable c ctx hctx
   have h_twoStageS1_computable : Computable (fun p : BitString × ℕ => twoStageS1 c p.1 p.2) :=
     twoStageS1_computable c
+  convert Computable.option_bind h_twoStageS1_computable _ using 1;
   have h_pairCode_computable : Computable₂ (fun (x y : BitString) => pairCode x y) := by
     have h_natCode_computable : Computable (fun (n : ℕ) => natCode n) := by
       have h_natCode_computable : Computable (fun n => List.replicate n true ++ [false]) := by
@@ -335,18 +302,10 @@ theorem twoStagePairOut_computable (c : Code) (ctx : BitString → Nat → BitSt
         exact Computable.comp ( Computable.list_append ) ( h_replicate.pair ( Computable.const [ false ] ) );
       exact h_natCode_computable
     apply Computable.comp (Computable.list_append.comp (Computable.list_append.comp (h_natCode_computable.comp (Computable.list_length.comp Computable.fst)) Computable.fst) Computable.snd) (Computable.pair (Computable.fst) (Computable.snd));
-  have h_branch : Computable₂ (fun (p : BitString × ℕ) (x : BitString) =>
-      (twoStageS2 c ctx p.1 p.2).map (fun y => pairCode x y)) := by
-    have h_s2 : Computable (fun d : (BitString × ℕ) × BitString =>
-        twoStageS2 c ctx d.1.1 d.1.2) :=
-      h_twoStageS2_computable.comp Computable.fst
-    have h_pair : Computable₂ (fun (d : (BitString × ℕ) × BitString) (y : BitString) =>
-        pairCode d.2 y) :=
-      (h_pairCode_computable.comp (Computable.snd.comp Computable.fst) Computable.snd).to₂
-    exact (Computable.option_map h_s2 h_pair).to₂
-  exact (Computable.option_bind h_twoStageS1_computable h_branch).of_eq (fun p => by
-    unfold twoStagePairOut
-    rfl)
+  convert Computable.option_map _ _ using 1;
+  exact inferInstance;
+  · exact h_twoStageS2_computable.comp ( Computable.fst );
+  · exact h_pairCode_computable.comp ( Computable.snd.comp Computable.fst ) Computable.snd
 
 /-
 `twoStageCheck` is computable, provided the context map is computable.
@@ -374,13 +333,10 @@ theorem twoStageMap_partrec (c : Code) (ctx : BitString → Nat → BitString)
     Partrec (twoStageMap c ctx) := by
   -- The function that takes a pair (w, r) and returns the result of the two-stage map is partial recursive.
   have h_twoStageMap : Partrec (fun p : BitString => (Nat.rfind (fun n => Part.some (twoStageCheck c ctx p n))).bind (fun n => (↑(twoStagePairOut c ctx p n) : Part BitString))) := by
-    apply Partrec.bind
-    · apply Partrec.rfind
-      exact (twoStageCheck_computable c ctx hctx).to₂.partrec₂
-    · exact (Computable.ofOption (twoStagePairOut_computable c ctx hctx)).to₂
-  exact (h_twoStageMap.comp Computable.fst).of_eq (fun p => by
-    unfold twoStageMap
-    rfl)
+    apply_rules [ Partrec.bind, Partrec.rfind ];
+    · convert Computable.to₂ ( twoStageCheck_computable c ctx hctx ) using 1;
+    · convert Computable.ofOption ( twoStagePairOut_computable c ctx hctx ) |> Partrec.comp <| Computable.fst.pair Computable.snd using 1;
+  convert h_twoStageMap.comp ( Computable.fst ) using 1
 
 /-
 Soundness: any value produced by the explicit decompressor satisfies the

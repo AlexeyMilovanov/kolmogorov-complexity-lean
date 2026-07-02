@@ -1,8 +1,3 @@
-/-
-Copyright (c) 2024 Alexey. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey
--/
 import KolmogorovMathlib.AlgorithmicProbability.Semimeasure
 
 /-!
@@ -157,7 +152,7 @@ The strict companion of `pow_le_pow_right_of_le_one'`. -/
 theorem inv_two_pow_exponent_le {a b : ℕ}
     (h : (2 : ℝ≥0∞)⁻¹ ^ a ≤ (2 : ℝ≥0∞)⁻¹ ^ b) : b ≤ a := by
   by_contra hlt
-  push Not at hlt
+  push_neg at hlt
   exact absurd h (not_le.mpr (inv_two_pow_strictAnti hlt))
 
 /-- **Multiplicative-to-additive bridge.** A coding bound

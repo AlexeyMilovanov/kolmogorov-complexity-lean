@@ -1,8 +1,3 @@
-/-
-Copyright (c) 2024 Alexey. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey
--/
 import Mathlib.Data.List.Basic
 import Mathlib.Data.Finset.Basic
 import Mathlib.Data.Finset.Card
@@ -189,7 +184,7 @@ theorem existsIncompressibleString (D : Map) (y : BitString) (n : ℕ) :
   | zero => exact ⟨[], rfl, by simp⟩
   | succ m =>
     by_contra h_contra
-    push Not at h_contra
+    push_neg at h_contra
     have h_sub : stringsOfLength (m + 1) ⊆ compressibleWords D y m := by
       intro s hs
       rw [memStringsOfLength] at hs
@@ -228,7 +223,7 @@ open Classical in
 theorem existsComplexInjective {f : ℕ → BitString} (hf : Function.Injective f) (U : Map) (L : ℕ) :
     ∃ n : ℕ, plainK U (f n) > (L : ENat) := by
   by_contra h_contra
-  push Not at h_contra
+  push_neg at h_contra
   let S := compressibleWords U [] L
   have h_mem : ∀ n, f n ∈ S := by
     intro n

@@ -1,8 +1,3 @@
-/-
-Copyright (c) 2024 Alexey. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey
--/
 import Mathlib
 import KolmogorovMathlib.Prefix.Basic
 
@@ -27,54 +22,15 @@ def natToCode (L a : ℕ) : BitString :=
 theorem natToCode_length (L a : ℕ) : (natToCode L a).length = L := by
   simp [natToCode]
 
-theorem natToCode_injective_of_lt (L a b : ℕ) (ha : a < 2 ^ L) (hb : b < 2 ^ L)
-    (h_eq : natToCode L a = natToCode L b) : a = b := by
-  refine Nat.eq_of_testBit_eq fun i => ?_
-  by_cases hi : i < L
-  · unfold natToCode at h_eq
-    simp_all +decide
-  · rw [Nat.testBit_eq_false_of_lt, Nat.testBit_eq_false_of_lt]
-    · exact hb.trans_le (Nat.pow_le_pow_right (by decide) (le_of_not_gt hi))
-    · exact ha.trans_le (Nat.pow_le_pow_right (by decide) (le_of_not_gt hi))
-
-theorem exists_sorted_indices (L : List ℕ) :
-    ∃ σ : Fin L.length → Fin L.length,
-      Function.Injective σ ∧ ∀ i j, i < j → L.get (σ i) ≤ L.get (σ j) := by
-  have h_exists_min : ∀ (s : Finset (Fin L.length)), s.Nonempty →
-      ∃ m ∈ s, ∀ n ∈ s, L.get n ≥ L.get m := by
-    exact fun s hs => Finset.exists_min_image _ _ hs
-  -- We can construct such a permutation by repeatedly selecting the minimum element
-  -- from the remaining elements.
-  have h_perm : ∀ (k : ℕ) (hk : k ≤ L.length), ∀ (s : Finset (Fin L.length)),
-      s.card = k →
-      ∃ σ : Fin k → Fin L.length,
-        Function.Injective σ ∧ (∀ i, σ i ∈ s) ∧
-          ∀ i j, i < j → L.get (σ i) ≤ L.get (σ j) := by
-    intro k hk s hs_card
-    induction k generalizing s with
-    | zero => simp +decide [Function.Injective]
-    | succ k ih =>
-      obtain ⟨m, hm₁, hm₂⟩ := h_exists_min s (Finset.card_pos.mp (by linarith))
-      obtain ⟨σ, hσ₁, hσ₂, hσ₃⟩ :=
-        ih (Nat.le_of_succ_le hk) (s.erase m) (by
-          rw [Finset.card_erase_of_mem hm₁, hs_card]
-          simp +decide)
-      use Fin.cons m σ
-      simp_all +decide [Fin.forall_fin_succ, Function.Injective]
-      exact ⟨fun i hi => False.elim <| hσ₂ i |>.1 <| hi.symm,
-        fun i j hij => hσ₁ hij⟩
-  exact Exists.elim (h_perm L.length le_rfl Finset.univ (by simp +decide)) fun σ hσ =>
-    ⟨σ, hσ.1, hσ.2.2⟩
-
 /-
 **Kraft's theorem, existence direction.** For any finite list of requested
 lengths whose Kraft sum `∑_i 2^{-Lᵢ}` is `≤ 1`, there is an injective family of
 codewords of exactly those lengths whose range is prefix-free.
 -/
-
--- The proof sorts the requested lengths, builds explicit codewords from partial
--- Kraft sums, and verifies prefix-freeness by integer arithmetic; elaborating
--- that combination needs a local heartbeat increase.
+set_option maxHeartbeats 1000000 in
+-- The construction sorts the requested lengths, builds explicit binary
+-- codewords from partial Kraft sums, and verifies prefix-freeness by an
+-- integer-arithmetic argument; this combination needs a raised heartbeat limit.
 theorem exists_prefixFree_code_of_kraft_le_one (L : List ℕ)
     (hK : (L.map (fun l => (1 / 2 : ℝ) ^ l)).sum ≤ 1) :
     ∃ f : Fin L.length → BitString,
@@ -82,7 +38,23 @@ theorem exists_prefixFree_code_of_kraft_le_one (L : List ℕ)
       Function.Injective f ∧
       IsPrefixFree (Set.range f) := by
   -- Let's sort the list of lengths in non-decreasing order.
-  obtain ⟨σ, hσ⟩ := exists_sorted_indices L
+  obtain ⟨σ, hσ⟩ : ∃ σ : Fin L.length → Fin L.length, Function.Injective σ ∧ ∀ i j, i < j → L.get (σ i) ≤ L.get (σ j) := by
+    have h_sort : ∃ σ : Fin L.length → Fin L.length, Function.Injective σ ∧ ∀ i j, i < j → L.get (σ i) ≤ L.get (σ j) := by
+      have h_exists_min : ∀ (s : Finset (Fin L.length)), s.Nonempty → ∃ m ∈ s, ∀ n ∈ s, L.get n ≥ L.get m := by
+        exact fun s hs => Finset.exists_min_image _ _ hs
+      -- We can construct such a permutation by repeatedly selecting the minimum element from the remaining elements.
+      have h_perm : ∀ (k : ℕ) (hk : k ≤ L.length), ∀ (s : Finset (Fin L.length)), s.card = k → ∃ σ : Fin k → Fin L.length, Function.Injective σ ∧ (∀ i, σ i ∈ s) ∧ ∀ i j, i < j → L.get (σ i) ≤ L.get (σ j) := by
+        intro k hk s hs_card
+        induction k generalizing s with
+        | zero => simp +decide [ Function.Injective ]
+        | succ k ih =>
+          obtain ⟨ m, hm₁, hm₂ ⟩ := h_exists_min s ( Finset.card_pos.mp ( by linarith ) );
+          obtain ⟨ σ, hσ₁, hσ₂, hσ₃ ⟩ := ih ( Nat.le_of_succ_le hk ) ( s.erase m ) ( by rw [ Finset.card_erase_of_mem hm₁, hs_card ] ; simp +decide );
+          use Fin.cons m σ;
+          simp_all +decide [ Fin.forall_fin_succ, Function.Injective ];
+          exact ⟨ fun i hi => False.elim <| hσ₂ i |>.1 <| hi.symm, fun i j hij => hσ₁ hij ⟩;
+      exact Exists.elim ( h_perm L.length le_rfl Finset.univ ( by simp +decide ) ) fun σ hσ => ⟨ σ, hσ.1, hσ.2.2 ⟩;
+    exact h_sort;
   -- Define the codeword for each index using the sorted sequence.
   obtain ⟨f, hf⟩ : ∃ f : Fin L.length → BitString, (∀ i, (f i).length = L.get (σ i)) ∧ (∀ i j, i < j → ¬ IsStrictPrefix (f i) (f j)) ∧ (∀ i j, i ≠ j → f i ≠ f j) := by
     -- Define the codeword for each index using the sorted sequence and the Kraft inequality.
@@ -150,45 +122,25 @@ theorem exists_prefixFree_code_of_kraft_le_one (L : List ℕ)
       have h_len_eq : L.get (σ i) = L.get (σ j) := by
         replace hij := congr_arg List.length hij ; simp_all +decide [ natToCode_length ];
       have h_eq : a i = a j := by
-        have hi_lt : a i < 2 ^ L.get (σ j) := by
-          exact h_len_eq ▸ ha.1 i
-        have h_code_eq :
-            natToCode (L.get (σ j)) (a i) = natToCode (L.get (σ j)) (a j) := by
-          convert hij using 1
-          · exact congrArg (fun n => natToCode n (a i)) h_len_eq.symm
-          · rfl
-        exact natToCode_injective_of_lt _ _ _ hi_lt (ha.1 j) h_code_eq
+        have h_eq : ∀ (L : ℕ) (a b : ℕ), a < 2 ^ L → b < 2 ^ L → natToCode L a = natToCode L b → a = b := by
+          intros L a b ha hb h_eq; exact (by
+          have h_eq : ∀ (L : ℕ) (a b : ℕ), a < 2 ^ L → b < 2 ^ L → (List.map (fun i => a.testBit i) (List.range L).reverse) = (List.map (fun i => b.testBit i) (List.range L).reverse) → a = b := by
+            intros L a b ha hb h_eq; exact (by
+            refine Nat.eq_of_testBit_eq fun i => ?_;
+            by_cases hi : i < L <;> simp_all +decide ;
+            rw [ Nat.testBit_eq_false_of_lt, Nat.testBit_eq_false_of_lt ] <;> linarith [ Nat.pow_le_pow_right two_pos hi ]);
+          exact h_eq L a b ha hb ‹_›);
+        grind;
       exact le_antisymm ( le_of_not_gt fun hi => by have := ha.2 _ _ hi; aesop ) ( le_of_not_gt fun hj => by have := ha.2 _ _ hj; aesop );
-  let e : Fin L.length ≃ Fin L.length :=
-    Equiv.ofBijective σ ⟨hσ.1, Finite.injective_iff_surjective.mp hσ.1⟩
-  refine ⟨fun j => f (e.symm j), ?_, ?_, ?_⟩
-  · intro j
-    have hσj : σ (e.symm j) = j := by
-      change e (e.symm j) = j
-      exact e.apply_symm_apply j
-    rw [hf.1 (e.symm j), hσj]
+  refine ⟨ fun j => f ( Equiv.symm ( Equiv.ofBijective σ ⟨ hσ.1, Finite.injective_iff_surjective.mp hσ.1 ⟩ ) j ), ?_, ?_, ?_ ⟩ <;> simp_all +decide [ Function.Injective, IsPrefixFree ];
+  · grind +suggestions;
+  · exact fun i j h => by have := hf.2.2 ( Equiv.symm ( Equiv.ofBijective σ ⟨ hσ.1, Finite.injective_iff_surjective.mp hσ.1 ⟩ ) i ) ( Equiv.symm ( Equiv.ofBijective σ ⟨ hσ.1, Finite.injective_iff_surjective.mp hσ.1 ⟩ ) j ) ; aesop;
   · intro i j hij
-    have hidx : e.symm i = e.symm j := by
-      by_contra hne
-      exact hf.2.2 (e.symm i) (e.symm j) hne hij
-    exact Equiv.injective e.symm hidx
-  · intro p hp q hq hpref_pq
-    rcases hp with ⟨i, rfl⟩
-    rcases hq with ⟨j, rfl⟩
-    let a : Fin L.length := e.symm i
-    let b : Fin L.length := e.symm j
-    change f a = f b
-    have hpref : f a <+: f b := by
-      simpa [a, b, e] using hpref_pq
-    rcases lt_trichotomy a b with hab | hab | hba
-    · by_contra hne
-      exact hf.2.1 a b hab ⟨hpref, hne⟩
-    · exact congrArg f hab
-    · have hlen : (f a).length = (f b).length := by
-        apply le_antisymm
-        · exact List.IsPrefix.length_le hpref
-        · rw [hf.1 b, hf.1 a]
-          exact hσ.2 b a hba
-      exact List.IsPrefix.eq_of_length hpref hlen
+    cases lt_trichotomy
+        ( Equiv.symm ( Equiv.ofBijective σ ⟨ hσ.1, Finite.injective_iff_surjective.mp hσ.1 ⟩ ) i )
+        ( Equiv.symm ( Equiv.ofBijective σ ⟨ hσ.1, Finite.injective_iff_surjective.mp hσ.1 ⟩ ) j ) <;>
+      simp_all +decide [ IsStrictPrefix ]
+    · exact hf.2.1 _ _ ‹_› hij
+    · grind +suggestions
 
 end Kolmogorov

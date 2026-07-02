@@ -1,8 +1,3 @@
-/-
-Copyright (c) 2024 Alexey. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey
--/
 import Mathlib.Computability.Partrec
 import Mathlib.Computability.PartrecCode
 import Mathlib.Computability.Encoding
@@ -36,7 +31,7 @@ def unaryPrefix (n : ℕ) : List Bool :=
     change ((unaryPrefix n ++ p).takeWhile id).length + 1 = n + 1
     omega
 
-lemma drop_unaryPrefix (n : ℕ) (p : List Bool) :
+@[simp] lemma drop_unaryPrefix (n : ℕ) (p : List Bool) :
     (unaryPrefix n ++ p).drop (n + 1) = p := by
   induction n with
   | zero => rfl
