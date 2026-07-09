@@ -6,7 +6,7 @@ The development is based on Mathlib's computability infrastructure. Decompressor
 
 ## What Is Formalized
 
-The core library formalizes plain conditional Kolmogorov complexity for bitstrings, universal decompressors, invariance up to an additive constant, basic complexity inequalities, incompressibility, uncomputability results for natural-number complexity, and Chaitin-style incompleteness interfaces. The second-incompleteness files use abstract formal-system interfaces in a Kritchman-Raz style rather than formalizing a concrete arithmetic system.
+The core library formalizes plain conditional Kolmogorov complexity for bitstrings, universal decompressors, invariance up to an additive constant, basic complexity inequalities, incompressibility, uncomputability results for natural-number complexity, and Chaitin-style [incompleteness interfaces](https://arxiv.org/abs/1011.4974). The [second-incompleteness files](https://arxiv.org/abs/1011.4974) use abstract formal-system interfaces in a Kritchman-Raz style rather than formalizing a concrete arithmetic system.
 
 The prefix-complexity part develops prefix-free codes and machines, optimal prefix decompressors, conditional prefix complexity, Kraft inequalities and converse constructions, two-stage and pair-coding infrastructure, and symmetry-of-information lemmas including conditional variants.
 
@@ -42,25 +42,6 @@ KolmogorovMathlib/
 ├── AlgorithmicProbability/      # Semimeasures, mixtures, domination, universal semimeasures, coding tools
 └── AlgorithmicStatistics/       # Stochasticity, deficiencies, models, non-stochasticity, two-part profiles
     └── TwoPart/                 # Descriptions, gap counting, profiles, curve realization, paper-facing theorems
-```
-
-Key `TwoPart` modules include:
-
-```text
-TwoPart/
-├── Basic.lean
-├── Deficiencies.lean
-├── DescriptionShift.lean
-├── DescriptionSnapshot.lean
-├── GapCounting.lean
-├── GreedyWindow.lean
-├── ImprovingDescriptions.lean
-├── ModelsToSets2.lean
-├── OptimalityDeficiency.lean
-├── PaperTheorems.lean
-├── Profile.lean
-├── ProfileRealization.lean
-└── SlackArith.lean
 ```
 
 The top-level module `KolmogorovMathlib.lean` imports the library development.
