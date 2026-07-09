@@ -2159,9 +2159,9 @@ statement `A -> C`: many `(i,j)` descriptions imply an `(i-k,j)` description, up
 to visible logarithmic slack.  The size-improvement statement should be derived
 from this one rather than proved by an independent size selector.
 
-The intended construction is the online half-rich covering stream described in
-`docs/section3-online-half-rich-cover.md`: enumerate chunks as they are created
-and address a chunk by its ordinal, not by a final snapshot/halt-count.
+The intended construction is the online half-rich covering stream: enumerate
+chunks as they are created and address a chunk by its ordinal, not by a final
+snapshot/halt-count.
 
 The complexity-improvement analogue of `richSizePortion_selector_correct`, with
 batches of size `≤ 2 ^ j` addressed by `h < 2 ^ (i - k + 4)`.  This is proved
