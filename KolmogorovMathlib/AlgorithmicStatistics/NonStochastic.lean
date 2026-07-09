@@ -1,10 +1,13 @@
-import KolmogorovMathlib.AlgorithmicStatistics.Stochasticity
-import KolmogorovMathlib.AlgorithmicStatistics.FiniteSetModel
+/-
+Copyright (c) 2024 Alexey Milovanov. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Alexey Milovanov
+-/
+
 import KolmogorovMathlib.AlgorithmicProbability.PairProjection
+import KolmogorovMathlib.AlgorithmicStatistics.FiniteSetModel
+import KolmogorovMathlib.AlgorithmicStatistics.Stochasticity
 import KolmogorovMathlib.Foundation.RecursivelyEnumerable
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Fintype.Card
-import Mathlib
 
 /-!
 # Non-Stochastic Skeleton
@@ -33,8 +36,7 @@ theorem length_boundedPrograms_le (n : Nat) : (boundedPrograms n).length ≤ 2 ^
   induction n with
   | zero => simp [boundedPrograms, length_exactLengthPrograms]
   | succ n ih =>
-      rw [boundedPrograms_succ]
-      simp [length_exactLengthPrograms]
+      rw [boundedPrograms_succ, List.length_append, length_exactLengthPrograms]
       calc
         (boundedPrograms n).length + 2 ^ (n + 1)
             ≤ 2 ^ (n + 1) + 2 ^ (n + 1) := Nat.add_le_add_right ih _
@@ -122,7 +124,7 @@ theorem exists_uncovered_nbit_string (U : Map) (n alpha max_k : ℕ)
         P.complexity U ≤ (alpha : ENat) →
         ∀ k ≤ max_k, x ∉ levelSet P k := by
   -- By definition of `stringsOfLength`, there exists an `x` in `stringsOfLength n`.
-  obtain ⟨x, hx⟩ : ∃ x : BitString, x ∈ stringsOfLength n ∧ x ∉ (modelsWithComplexityLe U alpha).biUnion (fun c => (Finset.range (max_k + 1)).biUnion (fun k => levelSet (probModelOfCode c) k)) := by
+  obtain ⟨x, hx⟩ : ∃ x : BitString, x ∈ stringsOfLength n ∧ x ∉ (modelsWithComplexityLe U alpha).biUnion (fun c ↦ (Finset.range (max_k + 1)).biUnion (fun k ↦ levelSet (probModelOfCode c) k)) := by
     contrapose! h;
     apply le_trans (b := (stringsOfLength n).card)
     · rw [ Kolmogorov.cardStringsOfLength ]
@@ -138,34 +140,41 @@ theorem exists_uncovered_nbit_string (U : Map) (n alpha max_k : ℕ)
         exact_mod_cast this.trans ( pow_le_pow_right₀ ( by norm_num ) ( Finset.mem_range_succ_iff.mp hy ) )
       · norm_num [ mul_assoc ]
         convert card_modelsWithComplexityLe U alpha using 1
-  refine ⟨ x, ?_, ?_ ⟩ <;> simp_all +decide [ levelSet ]
-  · grind +suggestions;
-  · intro P hP hcomp k hk hxP; specialize hx; have := hx.2 P.code ( code_mem_modelsWithComplexityLe U P alpha hcomp ) k hk; simp_all +decide [ probModelOfCode_eq ] ;
+  refine ⟨ x, ?_, ?_ ⟩
+  · simp_all +decide only [levelSet, Finset.mem_biUnion, Finset.mem_range, Order.lt_add_one_iff,
+      Finset.mem_filter, not_exists, not_and, not_le]
+    grind +suggestions
+  · simp_all +decide only [levelSet, Finset.mem_biUnion, Finset.mem_range, Order.lt_add_one_iff,
+      Finset.mem_filter, not_exists, not_and, not_le]
+    intro P hP hcomp k hk hxP
+    specialize hx
+    have hcover := hx.2 P.code (code_mem_modelsWithComplexityLe U P alpha hcomp) k hk
+    simp_all +decide [probModelOfCode_eq]
 
 /-- **Partial-recursive coding bound.** If `w` is produced from `x` by a partial
 recursive function `f`, then the plain prefix complexity of `w` is no more than
 that of `x` plus a constant. This is the partial-function analogue of
-`KPPlain_map_le`; the auxiliary decompressor `fun pr => (U pr).bind f` has a
+`KPPlain_map_le`; the auxiliary decompressor `fun pr ↦ (U pr).bind f` has a
 domain contained in that of `U`, hence is prefix-free. -/
 theorem KPPlain_partrec_map_le (U : Map) (hU : IsOptimalPrefixConditional U)
     (f : BitString →. BitString) (hf : Partrec f) :
     ∃ c : ℕ, ∀ x w : BitString, w ∈ f x → KPPlain U w ≤ KPPlain U x + (c : ENat) := by
   classical
   -- The auxiliary decompressor: run `U`, then apply `f` to the output.
-  set D : Map := fun pr => (U pr).bind (fun z => f z) with hDdef
+  set D : Map := fun pr ↦ (U pr).bind (fun z ↦ f z) with hDdef
   have hD_decomp : isDecompressor D := by
-    have : Partrec (fun pr : BitString × BitString => (U pr).bind (fun z => f z)) :=
+    have : Partrec (fun pr : BitString × BitString ↦ (U pr).bind (fun z ↦ f z)) :=
       Partrec.bind hU.isDecompressor (hf.comp Computable.snd)
     exact this
   have hD_sub : ∀ y, domainAt D y ⊆ domainAt U y := by
     intro y p hp
     simp only [domainAt, Set.mem_setOf_eq, hDdef] at hp ⊢
     exact hp.fst
-  have hD_prefix : IsPrefixMachine D := fun y =>
+  have hD_prefix : IsPrefixMachine D := fun y ↦
     (hU.isPrefixMachine y).mono (hD_sub y)
   have hD_pd : IsPrefixDecompressor D := ⟨hD_decomp, hD_prefix⟩
   obtain ⟨c, hc⟩ := hU.invariance hD_pd
-  refine ⟨c, fun x w hw => ?_⟩
+  refine ⟨c, fun x w hw ↦ ?_⟩
   by_cases hx : KPPlain U x = ⊤
   · rw [hx, top_add]; exact le_top
   · obtain ⟨p, hp_prod, hp_len⟩ := exists_program_of_KP_ne_top (by rwa [KPPlain_eq_KP] at hx)
@@ -207,6 +216,7 @@ the cost of `h`, encoded in `Nat.bits h` of length `≤ alpha + O(1)`, and the
 def pack4 (a b c d : BitString) : BitString :=
   pairCode a (pairCode b (pairCode c d))
 
+/-- Encodes the selector input parameters `(n, alpha, max_k, h)` into a single bitstring. -/
 def selectorInput (n alpha max_k h : ℕ) : BitString :=
   pack4 (Nat.bits n) (Nat.bits alpha) (Nat.bits max_k) (Nat.bits h)
 
@@ -251,9 +261,8 @@ theorem KPPlain_selectorInput_le (U : Map) (hU : IsOptimalPrefixConditional U) (
       KPPlain U (selectorInput n alpha max_k h) + (c_partrec : ENat)
         ≤ (alpha : ENat) + (c : ENat) * (Nat.bits n).length :=
   by
-    by_contra h_contra;
-    obtain ⟨c₀, hc₀⟩ := KPPlain_le_length_add_log U hU;
-    refine h_contra ⟨ 18 + c₀ + c_partrec, fun n alpha max_k h hh h_cov => ?_ ⟩;
+    obtain ⟨c₀, hc₀⟩ := KPPlain_le_length_add_log U hU
+    refine ⟨18 + c₀ + c_partrec, fun n alpha max_k h hh h_cov ↦ ?_⟩
     -- Let `a := (Nat.bits n).length`. Obtain `c0` from `KPPlain_le_length_add_log U hU`. Use `c := 18 + c0 + c_partrec`.
     set a := (Nat.bits n).length with ha
     have h_alpha : alpha < n := by
@@ -275,17 +284,24 @@ theorem KPPlain_selectorInput_le (U : Map) (hU : IsOptimalPrefixConditional U) (
     -- Using `hslen` and the bound from Step 3, in ℕ:
     have h_bound : (selectorInput n alpha max_k h).length + 2 * (Nat.bits (selectorInput n alpha max_k h).length).length + c₀ + c_partrec ≤ alpha + (18 + c₀ + c_partrec) * a := by
       have h_bound : (selectorInput n alpha max_k h).length ≤ 6 * a + alpha + 4 := by
-        unfold selectorInput; simp +arith +decide [ pack4, pairCode ] ;
-        linarith;
+        unfold selectorInput
+        simp +arith +decide [pack4, pairCode]
+        linarith
       have h_bound : (Nat.bits (selectorInput n alpha max_k h).length).length ≤ a + 3 := by
         apply length_natBits_lt_pow;
         have h_bound : 6 * a + alpha + 4 < 2 ^ (a + 3) := by
           have h_exp : 2 ^ a ≥ a + 1 := by
-            exact Nat.recOn a ( by norm_num ) fun n ihn => by rw [ pow_succ' ] ; linarith;
-          rw [ pow_add ] ; nlinarith only [ h_exp, h_alpha, h_n ];
-        linarith;
-      nlinarith only [ h_bound, ‹List.length ( selectorInput n alpha max_k h ) ≤ 6 * a + alpha + 4›, h_a_ge_1 ];
-    exact add_le_add ( hc₀ _ ) le_rfl |> le_trans <| by norm_cast;
+            exact Nat.recOn a (by norm_num) fun n ihn ↦ by
+              rw [pow_succ']
+              linarith
+          rw [pow_add]
+          nlinarith only [h_exp, h_alpha, h_n]
+        linarith
+      nlinarith only [
+        h_bound,
+        ‹List.length (selectorInput n alpha max_k h) ≤ 6 * a + alpha + 4›,
+        h_a_ge_1]
+    exact add_le_add (hc₀ _) le_rfl |> le_trans <| by norm_cast
 
 /-
 The distribution-to-finite-set bridge used by the contradiction.
@@ -306,26 +322,33 @@ theorem stochastic_mem_levelSet_of_KPPlain_bound
       ∃ P : CodedFiniteDistribution, P.IsProbability ∧
         P.complexity U ≤ (alpha : ENat) ∧
         ∃ k ≤ max_k, x ∈ levelSet P k := by
-  obtain ⟨ c, hc ⟩ := KP_le_KPPlain U _hU; use c
+  obtain ⟨ c, hc ⟩ := KP_le_KPPlain U _hU
+  use c
   intros x alpha beta kxBound max_k hstoch hKPx hthr
   obtain ⟨ P, hprob, hcomp, hdef ⟩ := hstoch
   refine ⟨P, hprob, hcomp, ?_⟩
-  simp_all +decide [ levelSet ]
+  simp_all +decide only [KPPlain_eq_KP, levelSet, Finset.mem_filter]
   refine ⟨ KP U x P.code |> ENat.toNat |> (· + beta), ?_, ?_, ?_ ⟩;
   · have hKP_le : KP U x P.code ≤ (kxBound + c : ENat) := by
       exact le_trans ( hc _ _ ) ( by gcongr );
     cases h : KP U x P.code <;> simp_all +arith +decide;
     · norm_cast at hKP_le;
-    · norm_cast at * ; linarith;
-  · contrapose! hdef; simp_all +decide [ DeficiencyLe ] ;
-    simp_all +decide [ CodedFiniteDistribution.DeficiencyLe, CodedFiniteDistribution.mass_eq_zero_of_not_mem_support ];
-    cases h : KP U x P.code <;> simp_all +decide [ complexityWeight ];
-    exact absurd h ( ne_of_lt ( lt_of_le_of_lt ( hc _ _ ) ( WithTop.add_lt_top.mpr ⟨ lt_top_iff_ne_top.mpr ( by aesop ), WithTop.coe_lt_top _ ⟩ ) ) );
+    · norm_cast at *; linarith;
+  · contrapose! hdef; simp_all +decide only [DeficiencyLe];
+    simp_all +decide only [CodedFiniteDistribution.DeficiencyLe, not_false_eq_true,
+      CodedFiniteDistribution.mass_eq_zero_of_not_mem_support, mul_zero, nonpos_iff_eq_zero];
+    cases h : KP U x P.code <;>
+      simp_all +decide only [complexityWeight, pow_eq_zero_iff', ENNReal.inv_eq_zero, ne_eq,
+        false_and, not_false_eq_true];
+    have h_not_top : KP U x [] ≠ ⊤ := by intro h_top; rw [h_top] at hKPx; cases hKPx
+    exact absurd h (ne_of_lt (lt_of_le_of_lt (hc _ _) (WithTop.add_lt_top.mpr ⟨lt_top_iff_ne_top.mpr h_not_top, WithTop.coe_lt_top _⟩)));
   · have h_bound : complexityWeight (KP U x P.code) ≤ (2 : ENNReal) ^ beta * P.mass x := by
       exact hdef;
-    cases h : KP U x P.code <;> simp_all +decide [ pow_add ];
-    · have := hc x P.code; simp_all +decide ;
-      cases h : KP U x [] <;> simp_all +decide ;
+    cases h : KP U x P.code <;>
+      simp_all +decide only [complexityWeight_top, complexityWeight_coe, zero_le, ENat.toNat_top,
+        ENat.toNat_coe, zero_add, pow_add, ge_iff_le];
+    · have := hc x P.code; simp_all +decide;
+      cases h : KP U x [] <;> simp_all +decide;
       cases this;
     · calc
         _ ≤ ((2 : ENNReal) ^ beta * P.mass x) * (2 : ENNReal)⁻¹ ^ beta := by gcongr
@@ -347,17 +370,33 @@ theorem nonstochastic_arithmetic_bridge (n alpha beta c_1 c_2 c : ℕ)
         have h_max_k : max_k + 1 ≤ n := by
           by_cases h_bits : n.bits.length = 0;
           · cases n <;> simp_all +arith +decide [ Nat.bits ];
-            rw [ Nat.binaryRec ] at h_bits ; aesop;
+            rw [ Nat.binaryRec ] at h_bits; aesop;
           · norm_num +zetaDelta at *;
             nlinarith [ Nat.pos_of_ne_zero ( show n.bits.length ≠ 0 from by aesop ) ];
         refine lt_of_le_of_lt h_max_k ?_;
-        convert Nat.lt_size_self n;
-        grind +suggestions;
+        have hnsize : n < 2 ^ n.bits.length := by
+          have h1 := Nat.lt_size_self n
+          rwa [← Nat.size_eq_bits_len] at h1
+        exact hnsize
       -- From hc, c ≥ c_1 + c_2 + 4, so c*L ≥ (c_1+c_2+4)*L = c_1*L + c_2*L + 4*L. Since L ≥ 1, c_2*L ≥ c_2. Hence c*L ≥ c_1*L + c_2 + 4*L.
       have h_cL : c * n.bits.length ≥ c_1 * n.bits.length + c_2 + 4 * n.bits.length := by
-        nlinarith [ show n.bits.length > 0 from Nat.pos_of_ne_zero ( by aesop_cat ) ];
-      convert Nat.mul_lt_mul_of_pos_right h_max_k ( pow_pos ( by decide : 0 < ( 2 : ℕ ) ) ( 2 * alpha + beta + c_1 * n.bits.length + c_2 + 1 ) ) |> lt_of_lt_of_le <| ?_ using 1;
-      · ring;
-      · rw [ ← pow_add ] ; exact pow_le_pow_right₀ ( by decide ) ( by linarith ) ;
+        nlinarith [ show n.bits.length > 0 from Nat.pos_of_ne_zero ( by aesop ) ];
+      have h1 : 2 ^ (alpha + 1) * (max_k + 1) * 2 ^ max_k = (max_k + 1) * 2 ^ (2 * alpha + beta + c_1 * n.bits.length + c_2 + 1) := by
+        calc 2 ^ (alpha + 1) * (max_k + 1) * 2 ^ max_k
+          _ = (max_k + 1) * (2 ^ (alpha + 1) * 2 ^ max_k) := by ring
+          _ = (max_k + 1) * 2 ^ (alpha + 1 + max_k) := by rw [← pow_add]
+          _ = (max_k + 1) * 2 ^ (2 * alpha + beta + c_1 * n.bits.length + c_2 + 1) := by
+            congr 2
+            omega
+      have h2 : (max_k + 1) * 2 ^ (2 * alpha + beta + c_1 * n.bits.length + c_2 + 1) < 2 ^ n.bits.length * 2 ^ (2 * alpha + beta + c_1 * n.bits.length + c_2 + 1) := by
+        apply Nat.mul_lt_mul_of_pos_right h_max_k
+        exact pow_pos (by decide) _
+      have h3 : 2 ^ n.bits.length * 2 ^ (2 * alpha + beta + c_1 * n.bits.length + c_2 + 1) ≤ 2 ^ n := by
+        rw [← pow_add]
+        apply Nat.pow_le_pow_right (by decide)
+        omega
+      change 2 ^ (alpha + 1) * (max_k + 1) * 2 ^ max_k < 2 ^ n
+      rw [h1]
+      exact h2.trans_le h3
 
 end Kolmogorov

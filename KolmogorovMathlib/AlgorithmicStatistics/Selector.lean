@@ -1,6 +1,5 @@
 import KolmogorovMathlib.AlgorithmicStatistics.NonStochastic
 import KolmogorovMathlib.AlgorithmicStatistics.NormalizedCodedFiniteDistribution
-import Mathlib
 
 /-!
 # Constructive selector for non-stochastic strings (SUV Theorem 248 core)

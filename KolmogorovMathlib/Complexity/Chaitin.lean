@@ -107,17 +107,40 @@ lemma enumBoundsSound (i x L : ℕ) (h : F.enumBounds i = some (x, L)) :
     rw [h_eq] at h_prov
     exact F.hSound x L h_prov
 
+lemma Computable.decide_eq_true {α : Type*} [Primcodable α] {f : α → Bool} (hf : Computable f) :
+  Computable (fun a => decide (f a = true)) :=
+  hf.of_eq (fun a => (Bool.decide_coe (f a)).symm)
+
+-- The decidable predicate used in the Chaitin diagonal search is computable.
+lemma isBoundGtSearchPredicateComputable :
+    Computable (fun p : ℕ × ℕ => F.isBoundGt (2 ^ p.1) p.2) := by
+  have hpair : Computable (fun p : ℕ × ℕ => (2 ^ p.1, p.2)) :=
+    (Computable.pow2.comp Computable.fst).pair Computable.snd
+  apply Computable.comp
+    (f := fun p : ℕ × ℕ => F.isBoundGt p.1 p.2)
+    (g := fun p : ℕ × ℕ => (2 ^ p.1, p.2))
+  · exact F.isBoundGtComputable
+  · exact hpair
+
+lemma isBoundGtSearchComputable
+    (h_exists : ∀ M : ℕ, ∃ i, F.isBoundGt M i = true) :
+    Computable (fun k : ℕ => Nat.find (h_exists (2 ^ k))) := by
+  exact Computable.natFind
+    (Computable.decide_eq_true (isBoundGtSearchPredicateComputable F))
+    (fun k => h_exists (2 ^ k))
+
 /-! ### Chaitin's Bound -/
 
-set_option maxHeartbeats 800000 in
 -- The large unbounded-search / diagonalization argument elaborates many composed
--- computability facts in one proof, exceeding the default heartbeat budget.
+-- computability facts; the heaviest search/extractor parts are factored into
+-- named lemmas above so the main diagonalization proof remains predictable.
 /-- Every sound formal system has a constant `c` such that it cannot prove
     any statement of the form `K(x) > L` for `L > c`. -/
 theorem chaitinBound (hU : isOptimalConditional U) :
     ∃ c : ℕ, ∀ i x L, F.enumBounds i = some (x, L) → L ≤ c := by
   by_contra h_unb_inf
-  push Not at h_unb_inf -- Использована новая тактика из Lean 4.30!
+  -- Push the negation inward: `¬ ∀ ..., L ≤ c` becomes `∃ ..., c < L`.
+  push Not at h_unb_inf
   have h_exists (M : ℕ) : ∃ i, F.isBoundGt M i = true := by
     obtain ⟨i, x, L, h_eq, h_gt⟩ := h_unb_inf M
     refine ⟨i, ?_⟩
@@ -130,14 +153,8 @@ theorem chaitinBound (hU : isOptimalConditional U) :
     | some (x, _) => x
     | none => 0
   -- 1. Computability of the search function
-  have h_search_comp : Computable search := by
-    have hpair : Computable (fun p : ℕ × ℕ => (2 ^ p.1, p.2)) :=
-      (Computable.pow2.comp Computable.fst).pair Computable.snd
-    have hb : Computable (fun p : ℕ × ℕ => F.isBoundGt (2 ^ p.1) p.2) :=
-      F.isBoundGtComputable.comp hpair
-    have hP : Computable (fun p : ℕ × ℕ => decide (F.isBoundGt (2 ^ p.1) p.2 = true)) := by
-      simpa using hb
-    exact Computable.natFind hP (fun k => h_exists (2 ^ k))
+  have h_search_comp : Computable search :=
+    F.isBoundGtSearchComputable h_exists
   -- 2. Computability of the final extractor function
   have hg_comp : Computable g := by
     have h_eq : g = fun k => Option.casesOn (F.enumBounds (search k)) 0 (fun xL => xL.1) := by

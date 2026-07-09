@@ -1,5 +1,7 @@
-import Mathlib
 import KolmogorovMathlib.Prefix.Basic
+import Mathlib.Algebra.BigOperators.Fin
+import Mathlib.Analysis.Normed.Ring.Basic
+import Mathlib.Data.Nat.Bitwise
 
 /-!
 # Kraft's theorem, existence direction (combinatorial)
@@ -27,10 +29,6 @@ theorem natToCode_length (L a : ℕ) : (natToCode L a).length = L := by
 lengths whose Kraft sum `∑_i 2^{-Lᵢ}` is `≤ 1`, there is an injective family of
 codewords of exactly those lengths whose range is prefix-free.
 -/
-set_option maxHeartbeats 1000000 in
--- The construction sorts the requested lengths, builds explicit binary
--- codewords from partial Kraft sums, and verifies prefix-freeness by an
--- integer-arithmetic argument; this combination needs a raised heartbeat limit.
 theorem exists_prefixFree_code_of_kraft_le_one (L : List ℕ)
     (hK : (L.map (fun l => (1 / 2 : ℝ) ^ l)).sum ≤ 1) :
     ∃ f : Fin L.length → BitString,
@@ -132,15 +130,33 @@ theorem exists_prefixFree_code_of_kraft_le_one (L : List ℕ)
           exact h_eq L a b ha hb ‹_›);
         grind;
       exact le_antisymm ( le_of_not_gt fun hi => by have := ha.2 _ _ hi; aesop ) ( le_of_not_gt fun hj => by have := ha.2 _ _ hj; aesop );
-  refine ⟨ fun j => f ( Equiv.symm ( Equiv.ofBijective σ ⟨ hσ.1, Finite.injective_iff_surjective.mp hσ.1 ⟩ ) j ), ?_, ?_, ?_ ⟩ <;> simp_all +decide [ Function.Injective, IsPrefixFree ];
-  · grind +suggestions;
-  · exact fun i j h => by have := hf.2.2 ( Equiv.symm ( Equiv.ofBijective σ ⟨ hσ.1, Finite.injective_iff_surjective.mp hσ.1 ⟩ ) i ) ( Equiv.symm ( Equiv.ofBijective σ ⟨ hσ.1, Finite.injective_iff_surjective.mp hσ.1 ⟩ ) j ) ; aesop;
-  · intro i j hij
-    cases lt_trichotomy
-        ( Equiv.symm ( Equiv.ofBijective σ ⟨ hσ.1, Finite.injective_iff_surjective.mp hσ.1 ⟩ ) i )
-        ( Equiv.symm ( Equiv.ofBijective σ ⟨ hσ.1, Finite.injective_iff_surjective.mp hσ.1 ⟩ ) j ) <;>
-      simp_all +decide [ IsStrictPrefix ]
-    · exact hf.2.1 _ _ ‹_› hij
-    · grind +suggestions
+  let σ_equiv := Equiv.ofBijective σ ⟨ hσ.1, Finite.injective_iff_surjective.mp hσ.1 ⟩
+  refine ⟨ fun j => f ( σ_equiv.symm j ), ?_, ?_, ?_ ⟩
+  · intro j
+    have h1 : (f (σ_equiv.symm j)).length = L.get (σ (σ_equiv.symm j)) := hf.1 (σ_equiv.symm j)
+    rw [h1]
+    have h2 : σ (σ_equiv.symm j) = j := σ_equiv.apply_symm_apply j
+    rw [h2]
+  · intro i j h
+    by_contra h_neq
+    have h_neq2 : σ_equiv.symm i ≠ σ_equiv.symm j := fun heq => h_neq (by
+      have h_eq : σ_equiv (σ_equiv.symm i) = σ_equiv (σ_equiv.symm j) := congr_arg σ_equiv heq
+      rw [σ_equiv.apply_symm_apply, σ_equiv.apply_symm_apply] at h_eq
+      exact h_eq)
+    exact hf.2.2 _ _ h_neq2 h
+  · rintro _ ⟨i, rfl⟩ _ ⟨j, rfl⟩ hij
+    rcases lt_trichotomy (σ_equiv.symm i) (σ_equiv.symm j) with h | h | h
+    · have h_neq : f (σ_equiv.symm i) ≠ f (σ_equiv.symm j) := fun heq => hf.2.2 _ _ (ne_of_lt h) heq
+      exact (hf.2.1 _ _ h ⟨hij, h_neq⟩).elim
+    · have h_eq : i = j := by
+        have h2 : σ_equiv (σ_equiv.symm i) = σ_equiv (σ_equiv.symm j) := congr_arg σ_equiv h
+        rw [σ_equiv.apply_symm_apply, σ_equiv.apply_symm_apply] at h2
+        exact h2
+      rw [h_eq]
+    · have h_len_eq : (f (σ_equiv.symm i)).length ≤ (f (σ_equiv.symm j)).length := List.IsPrefix.length_le hij
+      have h_len_ge : (f (σ_equiv.symm j)).length ≤ (f (σ_equiv.symm i)).length := by
+        rw [hf.1, hf.1]
+        exact hσ.2 _ _ h
+      exact List.IsPrefix.eq_of_length hij (le_antisymm h_len_eq h_len_ge)
 
 end Kolmogorov

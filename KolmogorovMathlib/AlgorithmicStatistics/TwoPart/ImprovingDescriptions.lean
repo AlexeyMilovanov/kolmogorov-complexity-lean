@@ -62,6 +62,47 @@ theorem mem_descriptionsWithComplexityLe_of_complexity {U : Map} {i : ℕ} {S : 
     exact codedUniformOn_code_congr hS hS_ne' h_supp.symm
 
 /-
+Gate E2 helper: Any set in the description universe of complexity bound `i`
+actually has canonical uniform-code complexity `≤ i + O(1)`.
+
+Proof idea: membership in `descriptionsWithComplexityLe U i` gives a coded model
+whose support is exactly `S` and whose code has complexity `≤ i`; convert that code
+to the canonical uniform code of `S` by a computable support-normalization map,
+paying only the optimal-machine invariance constant.
+-/
+theorem setComplexity_le_of_mem_descriptionsWithComplexityLe (U : Map) :
+    ∃ c : ℕ, ∀ (i : ℕ) (S : Finset BitString) (hS : S.Nonempty),
+      S ∈ descriptionsWithComplexityLe U i →
+      setComplexity U S hS ≤ (i + c : ENat) := by
+  use 0; intros i S hS h_mem; exact (by
+  have h_code : ∃ c : BitString, c ∈ modelsWithComplexityLe U i ∧ isCanonicalUniformCode c ∧ S = (probModelOfCode c).support := by
+    unfold descriptionsWithComplexityLe at h_mem; aesop;
+  obtain ⟨c, hc_mem, hc_canonical, hc_support⟩ := h_code
+  have hc_eq : c = (codedUniformOn S hS).code := by
+    convert hc_canonical.choose_spec using 1;
+    exact hc_support ▸ rfl
+  have h_complexity : KPPlain U c ≤ i := by
+    have h_code : ∃ p : BitString, p ∈ boundedPrograms i ∧ modelCodeOfProgram U p = c := by
+      exact List.mem_toFinset.mp ( Finset.mem_image.mp hc_mem |> Classical.choose_spec |> And.left ) |> fun h => ⟨ _, h, Finset.mem_image.mp hc_mem |> Classical.choose_spec |> And.right ⟩;
+    obtain ⟨ p, hp_mem, hp_eq ⟩ := h_code
+    have h_produces : produces U p [] c := by
+      unfold modelCodeOfProgram at hp_eq;
+      split_ifs at hp_eq;
+      · exact ⟨ by assumption, hp_eq ⟩;
+      · subst hp_eq; simp +decide [ codedUniformOn ] at hc_eq;
+        cases h : canonicalFinsetList S <;> simp_all +decide;
+        cases hc_eq
+    have h_complexity : KPPlain U c ≤ (programLength p : ENat) := by
+      exact KPPlain_eq_KP U c ▸ KP_le_programLength_of_produces h_produces
+    have h_bound : (programLength p : ENat) ≤ i := by
+      exact_mod_cast mem_boundedPrograms_iff p i |>.1 hp_mem
+    exact le_trans h_complexity h_bound
+  have h_setComplexity : setComplexity U S hS = KPPlain U c := by
+    exact hc_eq ▸ rfl
+  rw [h_setComplexity]
+  exact h_complexity.trans (by norm_num))
+
+/-
 The number of descriptions in the universe of complexity `≤ i` is bounded.
 -/
 theorem card_descriptionsWithComplexityLe (U : Map) (i : ℕ) :

@@ -109,16 +109,55 @@ lemma decodeNat_pairCode (x : BitString) (k : ℕ) :
 /-
 The second-index decoder is computable.
 -/
+lemma findIdx_go_add (p : Bool → Bool) (z : BitString) (n : ℕ) :
+    List.findIdx.go p z n = List.findIdx.go p z 0 + n := by
+  induction z generalizing n with
+  | nil =>
+    unfold List.findIdx.go
+    exact (Nat.zero_add n).symm
+  | cons head tail ih =>
+    unfold List.findIdx.go
+    cases h : p head
+    · simp only [cond_false]
+      rw [ih (n + 1), ih 1]
+      omega
+    · simp only [cond_true]
+      exact (Nat.zero_add n).symm
+
+lemma len_takeWhile_eq_findIdx (z : BitString) :
+    (z.takeWhile id).length = List.findIdx (fun b ↦ !b) z := by
+  induction z with
+  | nil => rfl
+  | cons head tail ih =>
+    cases head
+    · rfl
+    · change (tail.takeWhile id).length + 1 = List.findIdx.go (fun b ↦ !b) tail 1
+      rw [findIdx_go_add (fun b ↦ !b) tail 1]
+      change (tail.takeWhile id).length + 1 = List.findIdx (fun b ↦ !b) tail + 1
+      rw [ih]
+
 lemma decodeNat_computable : Computable decodeNat := by
-  convert Primrec.to_comp _;
-  have h_len : Primrec (fun (z : BitString) => (z.takeWhile id).length) := by
-    have h_takeWhile_id_length : Primrec (fun z : BitString => (List.findIdx (fun b => !b) z)) := by
-      convert Primrec.list_findIdx ( Primrec.id ) ( Primrec.not.comp ( Primrec.snd ) |> Primrec.to₂ ) using 1;
-    grind +suggestions;
-  convert h_len.comp ( show Primrec ( fun ctx : BitString => List.drop ( 2 * ( List.takeWhile id ctx ).length + 1 ) ctx ) from ?_ ) using 1;
-  have := primrec_list_drop;
-  convert this.comp ( Primrec.id ) ( show Primrec ( fun ctx : BitString => 2 * ( List.takeWhile id ctx ).length + 1 ) from ?_ ) using 1;
-  exact Primrec.nat_add.comp ( Primrec.nat_mul.comp ( Primrec.const 2 ) h_len ) ( Primrec.const 1 )
+  apply Primrec.to_comp
+  have h_len : Primrec (fun (z : BitString) ↦ (z.takeWhile id).length) := by
+    have h_takeWhile_id_length : Primrec (fun z : BitString ↦ (List.findIdx (fun b ↦ !b) z)) := by
+      exact @Primrec.list_findIdx BitString Bool (@Primcodable.list Bool Primcodable.bool) Primcodable.bool
+        (@id BitString) (fun a b ↦ !(a, b).snd)
+        (@Primrec.id BitString (@Primcodable.list Bool Primcodable.bool))
+        (@Primrec.to₂ BitString Bool Bool (@Primcodable.list Bool Primcodable.bool) Primcodable.bool Primcodable.bool
+          (fun a ↦ !a.snd)
+          (@Primrec.comp (BitString × Bool) Bool Bool (@Primcodable.prod BitString Bool (@Primcodable.list Bool Primcodable.bool) Primcodable.bool) Primcodable.bool Primcodable.bool
+            Bool.not (@Prod.snd BitString Bool) Primrec.not
+            (@Primrec.snd BitString Bool (@Primcodable.list Bool Primcodable.bool) Primcodable.bool)))
+    have eq : (fun z : BitString ↦ (z.takeWhile id).length) = (fun z : BitString ↦ (List.findIdx (fun b ↦ !b) z)) := by
+      funext z; exact len_takeWhile_eq_findIdx z
+    rw [eq]
+    exact h_takeWhile_id_length
+  have h1 := primrec_list_drop
+  have h2 : Primrec (fun ctx : BitString ↦ 2 * (List.takeWhile id ctx).length + 1) := by
+    exact Primrec.nat_add.comp (Primrec.nat_mul.comp (Primrec.const 2) h_len) (Primrec.const 1)
+  have h3 : Primrec (fun ctx : BitString ↦ List.drop (2 * (List.takeWhile id ctx).length + 1) ctx) := by
+    exact h1.comp Primrec.id h2
+  exact h_len.comp h3
 
 /-
 A context decodes back to itself under `(decodeFirst, decodeNat)` exactly when
@@ -189,8 +228,6 @@ lemma scaledApprox_iSup {U : Map} (c : Nat.Partrec.Code)
     rw [h_sec]
     simp [dyadicValue]
 
-set_option maxHeartbeats 10000000 in
--- computability proofs require a raised heartbeat limit
 /-- The decode-then-reencode candidate context is computable. -/
 lemma reencode_computable :
     Computable (fun ctx : BitString =>

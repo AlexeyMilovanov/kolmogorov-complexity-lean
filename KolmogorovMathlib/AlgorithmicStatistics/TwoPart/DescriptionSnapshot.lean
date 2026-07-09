@@ -231,6 +231,10 @@ numeric parameters.  Pure `Primrec` plumbing over the already-established
 `snapshotDescriptionsAndSizeLe_primrec`, `list_filter_primrec`,
 `list_countP_primrec`, and `Primrec.list_flatten`.
 -/
+theorem snapshotDescList_primrec (c : Code) :
+    Primrec (fun p : (ℕ × ℕ) × ℕ => snapshotDescList c p.1.1 p.2 p.1.2) := by
+  convert snapshotDescriptionsAndSizeLe_primrec c using 1
+
 theorem snapshotRichElementsList_primrec (c : Code) :
     Primrec (fun p : (ℕ × ℕ) × (ℕ × ℕ) =>
       snapshotRichElementsList c p.1.1 p.1.2 p.2.1 p.2.2) := by
@@ -583,51 +587,7 @@ theorem mem_listChunk_of_mem {α : Type*} (L : List α) (a b : ℕ)
     refine ⟨⟨k % b, ?_⟩, ?_⟩ <;> simp +decide [Nat.div_add_mod']
     exact ⟨Nat.mod_lt _ hb, lt_tsub_iff_left.mpr (by linarith [Nat.mod_add_div k b, k.2])⟩
 
-/- LEGACY SIZE SELECTOR — removed in iter 17.  The size-improvement
-form `ImprovingDescriptionsSizeLogSlack` is now obtained as a *corollary* of the
-complexity form via `improvingDescriptionsSize_of_complexity` (description-shift /
-`inDescriptionProfile_portion`), exactly as the standard Section 3 organisation
-prescribes.  This independent — and provably unsoundness-prone (see the doc
-below) — size selector is therefore no longer needed.  It is kept commented for
-provenance only.
 
-/-- **Size-portion selector obligation (legacy target; not primary).**
-
-Architectural note: this should not be a first-class target of the current
-formalization.  The standard route is to prove the stronger many-descriptions
-statement `(i-k, j) + O(log n)` and derive the `(i, j-k) + O(log n)` size version
-as a corollary using `inDescriptionProfile_portion` / description-shift.  This
-legacy selector interface remains only because the current file hierarchy still
-threads the size-half separately.
-
-A single partial-recursive selector `f` that, on the address input
-`richInput i j k h` with `h < 2 ^ (i + 1)`, returns the canonical-uniform code of
-a size-`≤ 2 ^ (j - k)` portion `S` containing `x`.  This is the foundational
-legacy placeholder of the size-improvement chain
-(`setComplexity_richSizePortion_le` → … → `ImprovingDescriptionsSizeLogSlack`).
-
-It was left as a controlled placeholder because the previous in-tree witness
-(`richSizeChunkSelectorFn`, removed this iteration) was **unsound**: it recovered
-the snapshot/stabilisation time by `Nat.rfind (countHalts c i · = selH ·)`, i.e.
-it reused the chunk address `h` (`selH`) as the halt-count target.  The chunk
-address and the snapshot-recovery count are independent — both range up to
-`2 ^ (i + 1)` — so a single address `h < 2 ^ (i + 1)` cannot carry both, and for
-a free chunk index the `rfind` finds the wrong (or no) time, making the per-chunk
-evaluation equality `richSizeChunkSelectorFn_eq` false.  A sound
-`Partrec`-returns-a-code selector needs a two-part address (snapshot count +
-chunk index); fitting both into the visible `i + logSlack (n + i + j)` complexity
-budget is the genuine content of this gate.  See the iteration report for the
-full analysis. -/
-theorem richSizePortion_selector_correct (U : Map) (hU : IsOptimalPrefixConditional U) :
-    ∃ f : BitString →. BitString, Partrec f ∧
-      ∀ x n i j k, x.length = n → ManyIJDescriptions U x i j k → k ≤ j →
-        ∃ h < 2 ^ (i + 1),
-          ∃ (S : Finset BitString) (hS : S.Nonempty),
-            x ∈ S ∧
-            S.card ≤ 2 ^ (j - k) ∧
-            f (richInput i j k h) = Part.some ((codedUniformOn S hS).code) := by
-  -- deleted legacy placeholder
--/
 
 /-- `emittedHalfRichChunks_fold_step` processes a single new rich element `x`.
 If `x` is already placed, it does nothing. Otherwise, it extracts the currently
@@ -647,10 +607,8 @@ def emittedHalfRichChunks_fold_step (j : ℕ) (half_rich : List BitString)
 theorem emittedHalfRichChunks_fold_step_primrec :
     Primrec₂ (fun (p : ℕ × List BitString × List (List BitString)) (x : BitString) =>
       emittedHalfRichChunks_fold_step p.1 p.2.1 p.2.2 x) := by
-  -- Controlled Section 3 obligation: this is primitive-recursive plumbing for
-  -- the online half-rich stream.  The previous proof elaborated too slowly in
-  -- the full build, so it is left as an explicit target for Aristotle.
-  -- The step function is a composition of primitive recursive functions.
+  -- Primitive-recursive plumbing for the online half-rich stream: the step
+  -- function is a composition of primitive recursive functions.
   have h_step_primrec : Primrec (fun p : ℕ × (List BitString × (List (List BitString) × BitString)) => emittedHalfRichChunks_fold_step p.1 p.2.1 p.2.2.1 p.2.2.2) := by
     convert Primrec.cond _ _ _ using 1;
     · convert Primrec.of_eq _ _;
@@ -724,8 +682,8 @@ def emittedHalfRichChunks_step (c : Code) (i j k : ℕ) (t : ℕ) (chunks : List
 theorem emittedHalfRichChunks_step_primrec (c : Code) :
     Primrec (fun p : ((ℕ × ℕ) × ℕ) × ℕ × List (List BitString) =>
       emittedHalfRichChunks_step c p.1.1.1 p.1.1.2 p.1.2 p.2.1 p.2.2) := by
-  -- Controlled Section 3 obligation: compose the primitive-recursive rich and
-  -- half-rich snapshot lists with the fold step.
+  -- Compose the primitive-recursive rich and half-rich snapshot lists with the
+  -- fold step.
   apply list_foldl_primrec;
   · have h_eraseDups_primrec : Primrec (fun (l : List BitString) => l.eraseDups) :=
       eraseDups_bitstring_primrec
@@ -757,8 +715,7 @@ def emittedHalfRichChunksList (c : Code) (i j k : ℕ) : ℕ → List (List BitS
 
 theorem emittedHalfRichChunksList_primrec (c : Code) :
     Primrec (fun p : ((ℕ × ℕ) × ℕ) × ℕ => emittedHalfRichChunksList c p.1.1.1 p.1.1.2 p.1.2 p.2) := by
-  -- Controlled Section 3 obligation: primitive recursion over time for the
-  -- emitted online chunk stream.
+  -- Primitive recursion over time for the emitted online chunk stream.
   -- Apply the hypothesis `h_eraseDups_primrec` to conclude the proof.
   apply Primrec.of_eq;
   rotate_right;
@@ -1616,9 +1573,9 @@ Emission times of consecutive nonfull chunks are strictly increasing.
 theorem nonfullChunkEmissionTime_strict_mono (c : Code) (i j k t m : ℕ)
     (h_lt : m + 1 < ((emittedHalfRichChunks c i j k t).filter (fun S => S.card < 2 ^ j)).length) :
     nonfullChunkEmissionTime c i j k t m < nonfullChunkEmissionTime c i j k t (m + 1) := by
-  -- Controlled Section 3 obligation: the final nonfull-chunk list preserves the
-  -- chronological order of first emission times, and distinct nonempty chunks
-  -- cannot first appear at the same time.
+  -- The final nonfull-chunk list preserves the chronological order of first
+  -- emission times, and distinct nonempty chunks cannot first appear at the
+  -- same time.
   obtain ⟨l_m, hl_m⟩ : ∃ l_m, (List.drop m (List.filter (fun l => l.length < 2 ^ j) (emittedHalfRichChunksList c i j k t))).head? = some l_m := by
     simp +zetaDelta at *;
     rw [ emittedHalfRich_nonfull_len_eq ] at h_lt;
@@ -1672,16 +1629,37 @@ The trigger of the `m+1`-th nonfull chunk was not half-rich at the emission time
 theorem nonfullChunkTrigger_not_halfrich_prev (c : Code) (i j k t m : ℕ)
     (h_lt : m + 1 < ((emittedHalfRichChunks c i j k t).filter (fun S => S.card < 2 ^ j)).length) :
     nonfullChunkTrigger c i j k t (m + 1) ∉ snapshotRichElementsList c i j (k - 1) (nonfullChunkEmissionTime c i j k t m) := by
-  -- Controlled Section 3 obligation: a nonfull emission exhausts all currently
-  -- unplaced half-rich elements, so the later trigger was not half-rich at the
-  -- previous nonfull emission time.
+  -- A nonfull emission exhausts all currently unplaced half-rich elements, so
+  -- the later trigger was not half-rich at the previous nonfull emission time.
   have h_nonfullChunkEmissionTime : nonfullChunkEmissionTime c i j k t m < nonfullChunkEmissionTime c i j k t (m + 1) := by
     apply nonfullChunkEmissionTime_strict_mono c i j k t m h_lt;
   have h_nonfullChunkTrigger : ∃ l_m, (List.drop m (List.filter (fun l => l.length < 2 ^ j) (emittedHalfRichChunksList c i j k t))).head? = some l_m ∧ l_m.length < 2 ^ j ∧ l_m ≠ [] ∧ l_m ∈ emittedHalfRichChunksList c i j k t := by
-    grind +suggestions;
+    let L := List.filter (fun l => l.length < 2 ^ j) (emittedHalfRichChunksList c i j k t)
+    have hm_lt : m < L.length := by
+      rw [show L.length = ((emittedHalfRichChunks c i j k t).filter (fun S => S.card < 2 ^ j)).length by
+        exact (emittedHalfRich_nonfull_len_eq c i j k t).symm]
+      omega
+    refine ⟨L[m], ?_, ?_, ?_, ?_⟩
+    · rw [List.head?_drop]
+      exact List.getElem?_eq_getElem hm_lt
+    · exact of_decide_eq_true (List.mem_filter.mp (List.getElem_mem hm_lt)).2
+    · exact emittedHalfRichChunksList_mem_ne_nil c i j k t L[m]
+        (List.mem_filter.mp (List.getElem_mem hm_lt)).1
+    · exact (List.mem_filter.mp (List.getElem_mem hm_lt)).1
   obtain ⟨l_m, hl_m⟩ := h_nonfullChunkTrigger
   obtain ⟨l₁, hl₁⟩ : ∃ l₁, (List.drop (m + 1) (List.filter (fun l => l.length < 2 ^ j) (emittedHalfRichChunksList c i j k t))).head? = some l₁ ∧ l₁.length < 2 ^ j ∧ l₁ ≠ [] ∧ l₁ ∈ emittedHalfRichChunksList c i j k t := by
-    grind +suggestions;
+    let L := List.filter (fun l => l.length < 2 ^ j) (emittedHalfRichChunksList c i j k t)
+    have hm1_lt : m + 1 < L.length := by
+      rw [show L.length = ((emittedHalfRichChunks c i j k t).filter (fun S => S.card < 2 ^ j)).length by
+        exact (emittedHalfRich_nonfull_len_eq c i j k t).symm]
+      exact h_lt
+    refine ⟨L[m + 1], ?_, ?_, ?_, ?_⟩
+    · rw [List.head?_drop]
+      exact List.getElem?_eq_getElem hm1_lt
+    · exact of_decide_eq_true (List.mem_filter.mp (List.getElem_mem hm1_lt)).2
+    · exact emittedHalfRichChunksList_mem_ne_nil c i j k t L[m + 1]
+        (List.mem_filter.mp (List.getElem_mem hm1_lt)).1
+    · exact (List.mem_filter.mp (List.getElem_mem hm1_lt)).1
   have h_nonfullChunkTrigger_not_in_chunk : ∀ y ∈ l₁, y ∉ (emittedHalfRichChunksList c i j k (nonfullChunkEmissionTime c i j k t m)).flatten := by
     intros y hy₁ hy₂
     have h_l₁_not_in_chunk : l₁ ∉ emittedHalfRichChunksList c i j k (nonfullChunkEmissionTime c i j k t m) := by
@@ -1721,8 +1699,8 @@ The trigger of a nonfull chunk is rich at its emission time.
 theorem nonfullChunkTrigger_rich_curr (c : Code) (i j k t m : ℕ)
     (h_lt : m < ((emittedHalfRichChunks c i j k t).filter (fun S => S.card < 2 ^ j)).length) :
     nonfullChunkTrigger c i j k t m ∈ snapshotRichElementsList c i j k (nonfullChunkEmissionTime c i j k t m) := by
-  -- Controlled Section 3 obligation: the head of an emitted chunk is exactly
-  -- the rich trigger element that caused that chunk to be opened.
+  -- The head of an emitted chunk is exactly the rich trigger element that
+  -- caused that chunk to be opened.
   unfold nonfullChunkTrigger nonfullChunkEmissionTime;
   obtain ⟨l, hl⟩ : ∃ l, l ∈ List.drop m (List.filter (fun l => l.length < 2 ^ j) (emittedHalfRichChunksList c i j k t)) ∧ l ≠ [] ∧ (List.drop m (List.filter (fun l => l.length < 2 ^ j) (emittedHalfRichChunksList c i j k t))).head? = some l := by
     obtain ⟨l, hl⟩ : ∃ l, l ∈ List.drop m (List.filter (fun l => l.length < 2 ^ j) (emittedHalfRichChunksList c i j k t)) ∧ (List.drop m (List.filter (fun l => l.length < 2 ^ j) (emittedHalfRichChunksList c i j k t))).head? = some l := by
@@ -1989,8 +1967,7 @@ theorem onlineHalfRichChunkBody_primrec (c : Code) :
   · exact funext fun p => by cases List.drop ( selH p.1 ) ( emittedHalfRichChunksList c ( selNat p.1 ) ( selAlpha p.1 ) ( selMaxK p.1 ) p.2 ) <;> rfl;
 
 theorem partrec_onlineHalfRichChunkSelectorFn (c : Code) : Partrec (onlineHalfRichChunkSelectorFn c) := by
-  -- Controlled Section 3 obligation: ordinal selector computability for the
-  -- emitted half-rich chunk stream.
+  -- Ordinal selector computability for the emitted half-rich chunk stream.
   refine Partrec.bind ?_ ?_;
   · convert Partrec.rfind _;
     convert Primrec.to_comp _;
@@ -2023,8 +2000,8 @@ theorem onlineHalfRichChunkSelectorFn_eq (c : Code) (i j k h t : ℕ)
     (hne : ((emittedHalfRichChunksList c i j k t).get ⟨h, h_lt⟩).toFinset.Nonempty) :
     onlineHalfRichChunkSelectorFn c (richInput i j k h)
       = Part.some ((codedUniformOn ((emittedHalfRichChunksList c i j k t).get ⟨h, h_lt⟩).toFinset hne).code) := by
-  -- Controlled Section 3 obligation: evaluation of the ordinal selector at the
-  -- first time the requested chunk exists.
+  -- Evaluation of the ordinal selector at the first time the requested chunk
+  -- exists.
   convert Part.eq_some_iff.mpr _ using 1;
   unfold onlineHalfRichChunkSelectorFn; simp +decide;
   refine ⟨ t, ?_, ?_ ⟩;
@@ -2088,10 +2065,10 @@ theorem halfRichComplexityPortion_selector_correct (U : Map) (hU : IsOptimalPref
             x ∈ S ∧
             S.card ≤ 2 ^ j ∧
             f (richInput i j k h) = Part.some ((codedUniformOn S hS).code) := by
-  -- Controlled Section 3 obligation.  This must be proved from the effective
-  -- `emittedHalfRichChunks` stream above: coverage of rich elements, the
-  -- full/non-full online counting bounds, and a partial-recursive ordinal
-  -- selector that runs until the requested chunk is emitted.
+  -- Proved from the effective `emittedHalfRichChunks` stream above: coverage of
+  -- rich elements, the full/non-full online counting bounds, and a
+  -- partial-recursive ordinal selector that runs until the requested chunk is
+  -- emitted.
   obtain ⟨c, hc⟩ : ∃ c : Code, IsCodeFor c U := by
     convert Nat.Partrec.Code.exists_code.mp hU.isDecompressor using 1;
   refine ⟨ _, partrec_onlineHalfRichChunkSelectorFn c, ?_ ⟩;
@@ -2108,64 +2085,7 @@ theorem halfRichComplexityPortion_selector_correct (U : Map) (hU : IsOptimalPref
     grind;
     grind
 
-/- LEGACY SIZE ASSEMBLY CHAIN — removed in iter 17 (depended on the deleted
-`richSizePortion_selector_correct`).  Superseded by
-`improvingDescriptionsSize_of_complexity`; kept commented for provenance.
 
-/-- 4. `setComplexity` bound and size portion assembly.
-
-This is the coding wrapper around `richSizePortion_selector_correct`: the
-selector produces a partial-recursive code for a size-`≤ 2^{j-k}` portion at a
-batch address `h < 2 ^ (i + 1)`, and the standard coding bounds
-(`KPPlain_partrec_map_le`, `richInput_KPPlain_le`) plus the slack-absorption
-lemma `logSlack_one_add_le_two_mul` convert that address into the visible
-visible-parameter complexity bound `i + logSlack c (n + i + j)`. -/
-theorem setComplexity_richSizePortion_le (U : Map) (hU : IsOptimalPrefixConditional U) :
-    ∃ c : ℕ, ∀ x n i j k, x.length = n → ManyIJDescriptions U x i j k → k ≤ j →
-      ∃ (S : Finset BitString) (hS : S.Nonempty), x ∈ S ∧
-        setComplexity U S hS ≤ (i + logSlack c (n + i + j) : ENat) ∧
-        S.card ≤ 2 ^ (j - k) := by
-  obtain ⟨f, hf, hf_spec⟩ := richSizePortion_selector_correct U hU
-  obtain ⟨c₃, hc₃⟩ := KPPlain_partrec_map_le U hU f hf
-  obtain ⟨c₄, hc₄⟩ := richInput_KPPlain_le U hU c₃
-  refine ⟨2 * c₄ + 1, fun x n i j k hn hmany hk => ?_⟩
-  obtain ⟨h, hh, S, hS, hxS, hcard, hfeq⟩ := hf_spec x n i j k hn hmany hk
-  refine ⟨S, hS, hxS, ?_, hcard⟩
-  have hmem : (codedUniformOn S hS).code ∈ f (richInput i j k h) := by
-    rw [hfeq]; exact Part.mem_some _
-  have hbound : setComplexity U S hS ≤ (i + 1 : ENat) + logSlack c₄ (i + j + k) :=
-    le_trans (hc₃ _ _ hmem) (hc₄ i j k h hh)
-  refine le_trans hbound ?_
-  have habs : 1 + logSlack c₄ (i + j + k) ≤ logSlack (2 * c₄ + 1) (n + i + j) :=
-    logSlack_one_add_le_two_mul c₄ _ _ (by omega)
-  calc (i + 1 : ENat) + logSlack c₄ (i + j + k)
-      = (i : ENat) + (1 + logSlack c₄ (i + j + k)) := by ring
-    _ ≤ (i : ENat) + logSlack (2 * c₄ + 1) (n + i + j) := by
-        gcongr
-        exact_mod_cast habs
-
-/-- The assembled size-portion selector interface: a thin projection. -/
-theorem exists_richSizePortion_logSlack (U : Map) (hU : IsOptimalPrefixConditional U) :
-    ∃ c : ℕ, ∀ x n i j k,
-      x.length = n → ManyIJDescriptions U x i j k → k ≤ j →
-      ∃ (S : Finset BitString) (hS : S.Nonempty), x ∈ S ∧
-        setComplexity U S hS ≤ (i + logSlack c (n + i + j) : ENat) ∧
-        S.card ≤ 2 ^ (j - k + logSlack c (n + i + j)) := by
-  obtain ⟨c, hc⟩ := setComplexity_richSizePortion_le U hU
-  refine ⟨c, fun x n i j k hn hmany hk => ?_⟩
-  obtain ⟨S, hS, hx, hcomp, hcard⟩ := hc x n i j k hn hmany hk
-  refine ⟨S, hS, hx, hcomp, ?_⟩
-  exact hcard.trans (Nat.pow_le_pow_right (by decide) (by omega))
-
-/-- Selector/coding gate for the size-improvement half. -/
-theorem exists_halfRichSizeRefinedSet_logSlack (U : Map) (hU : IsOptimalPrefixConditional U) :
-    ∃ c : ℕ, ∀ x n i j k,
-      x.length = n → ManyIJDescriptions U x i j k → k ≤ j →
-      ∃ (S : Finset BitString) (hS : S.Nonempty), x ∈ S ∧
-        setComplexity U S hS ≤ (i + logSlack c (n + i + j) : ENat) ∧
-        S.card ≤ 2 ^ (j - k + logSlack c (n + i + j)) := by
-  exact exists_richSizePortion_logSlack U hU
--/
 
 /-- Half-rich dump bound: the objects with many descriptions are few.  This is
 the proved whole-rich cardinality estimate; the genuine complexity-half work is
@@ -2211,7 +2131,7 @@ theorem setComplexity_halfRichComplexityPortion_le (U : Map) (hU : IsOptimalPref
   gcongr
   exact_mod_cast habs
 
-/-- Selector/coding gate for the complexity-improvement half. -/
+/-- Selector/coding interface for the complexity-improvement half. -/
 theorem exists_halfRichComplexityRefinedSet_logSlack (U : Map) (hU : IsOptimalPrefixConditional U) :
     ∃ c : ℕ, ∀ x n i j k,
       x.length = n → ManyIJDescriptions U x i j k → k ≤ i →
@@ -2288,5 +2208,38 @@ theorem exists_description_smaller_size_of_many_logSlack
     ImprovingDescriptionsSizeLogSlack U :=
   improvingDescriptionsSize_of_complexity U hU
     (exists_description_smaller_complexity_of_many_logSlack U hU)
+
+
+theorem snapshotCodes_toFinset_eq_of_max {c : Code} {U : Map} (hc : IsCodeFor c U) (alpha t t₀ : ℕ)
+    (h_ge : t₀ ≤ t)
+    (hmax : ∀ t', countHalts c alpha t' ≤ countHalts c alpha t₀) :
+    (snapshotCodes c alpha t).toFinset = (snapshotCodes c alpha t₀).toFinset := by
+  ext w
+  simp only [List.mem_toFinset]
+  constructor
+  · intro hw
+    unfold snapshotCodes at hw
+    rw [List.mem_filterMap] at hw
+    obtain ⟨p, hp, hw_run⟩ := hw
+    have h_prod := runOut_sound hc hw_run
+    exact code_mem_snapshot_of_max hc alpha t₀ hmax hp h_prod
+  · intro hw
+    exact snapshotCodes_mem_of_le h_ge hw
+
+theorem snapshotDescList_eq_of_max {c : Code} {U : Map} (hc : IsCodeFor c U) (i j t t₀ : ℕ)
+    (h_ge : t₀ ≤ t)
+    (hmax : ∀ t', countHalts c i t' ≤ countHalts c i t₀) :
+    snapshotDescList c i j t = snapshotDescList c i j t₀ := by
+  unfold snapshotDescList
+  have h_eq : ((snapshotCodes c i t).filter isCanonicalUniformCodeBool).toFinset =
+              ((snapshotCodes c i t₀).filter isCanonicalUniformCodeBool).toFinset := by
+    ext w
+    simp only [List.mem_toFinset, List.mem_filter]
+    have h_set := snapshotCodes_toFinset_eq_of_max hc i t t₀ h_ge hmax
+    rw [Finset.ext_iff] at h_set
+    specialize h_set w
+    simp only [List.mem_toFinset] at h_set
+    rw [h_set]
+  rw [h_eq]
 
 end Kolmogorov

@@ -208,10 +208,53 @@ theorem two_pow_half_ennreal_bracket_le {j j' c : ℕ}
   have := (Nat.pow_le_pow_iff_right (by norm_num : 1 < 2)).mp hpow
   omega
 
-set_option maxHeartbeats 2000000 in
--- This proof combines several prefix-chain inequalities with visible `logSlack`
--- arithmetic; the larger heartbeat budget is for the final `omega`/`ENat`
--- normalization steps.
+lemma KP_le_prefixComplexityContext_add_logSlack_h7
+    (kx i c_log c_plain c_cond c_upper c_map c_total : ℕ)
+    (hct : c_total = c_upper + c_map + c_plain + c_log + c_cond + 2) :
+    kx + (2 * (Nat.bits i).length + c_log + c_plain + c_cond + c_upper + c_map) ≤ kx + logSlack c_total (i + 1) := by
+  have hmono : (Nat.bits i).length ≤ (Nat.bits (i + 1)).length :=
+    length_natBits_mono (Nat.le_succ i)
+  have hmul : 2 * (Nat.bits i).length ≤ c_total * (Nat.bits (i + 1)).length :=
+    Nat.mul_le_mul (by rw [hct]; omega) hmono
+  simp only [logSlack]
+  have h_rest : c_log + c_plain + c_cond + c_upper + c_map ≤ c_total := by rw [hct]; omega
+  have h_add : 2 * (Nat.bits i).length + (c_log + c_plain + c_cond + c_upper + c_map) ≤ c_total * (Nat.bits (i + 1)).length + c_total :=
+    Nat.add_le_add hmul h_rest
+  have h_assoc : 2 * (Nat.bits i).length + c_log + c_plain + c_cond + c_upper + c_map = 2 * (Nat.bits i).length + (c_log + c_plain + c_cond + c_upper + c_map) := by omega
+  rw [h_assoc]
+  exact Nat.add_le_add_left h_add kx
+
+lemma KP_le_prefixComplexityContext_add_logSlack_h5
+    (U : Map) (x code : BitString) (i c_map c_log c_plain c_cond c_upper k_ni kx : ℕ)
+    (h1 : KP U x code ≤ KP U (pairCode (natCode i) x) code + (c_map : ENat))
+    (h2 : KP U (pairCode (natCode i) x) code
+        ≤ (k_ni : ENat) + KP U x (prefixCondComplexityContext code (natCode i) k_ni)
+          + (c_upper : ENat))
+    (h3 : KP U x (prefixCondComplexityContext code (natCode i) k_ni)
+        ≤ (kx : ENat) + (c_cond : ENat))
+    (hk_ni_bound : (k_ni : ENat)
+        ≤ ((2 * (Nat.bits i).length + c_log + c_plain : ℕ) : ENat)) :
+    KP U x code
+      ≤ ((kx + (2 * (Nat.bits i).length + c_log + c_plain + c_cond + c_upper + c_map) : ℕ) : ENat) := by
+  have hstep : KP U x code
+      ≤ (k_ni : ENat) + (kx : ENat) + (c_cond : ENat) + (c_upper : ENat) + (c_map : ENat) := by
+    calc KP U x code
+        ≤ KP U (pairCode (natCode i) x) code + (c_map : ENat) := h1
+      _ ≤ ((k_ni : ENat) + KP U x (prefixCondComplexityContext code (natCode i) k_ni)
+            + (c_upper : ENat)) + (c_map : ENat) := by gcongr
+      _ ≤ ((k_ni : ENat) + ((kx : ENat) + (c_cond : ENat)) + (c_upper : ENat)) + (c_map : ENat) := by
+            gcongr
+      _ = (k_ni : ENat) + (kx : ENat) + (c_cond : ENat) + (c_upper : ENat) + (c_map : ENat) := by
+            ac_rfl
+  refine hstep.trans ?_
+  calc (k_ni : ENat) + (kx : ENat) + (c_cond : ENat) + (c_upper : ENat) + (c_map : ENat)
+      ≤ ((2 * (Nat.bits i).length + c_log + c_plain : ℕ) : ENat) + (kx : ENat)
+          + (c_cond : ENat) + (c_upper : ENat) + (c_map : ENat) := by gcongr
+    _ = ((kx + (2 * (Nat.bits i).length + c_log + c_plain + c_cond + c_upper + c_map) : ℕ) : ENat) := by
+          push_cast; ring
+
+-- This proof combines several prefix-chain inequalities with visible `logSlack`.
+-- Keeping the computability and cast steps explicit makes elaboration predictable.
 /-- **Conditional chain rule, index-drop form (log slack).**
 
 Removing an extra numeric index `i` from the right-hand condition costs at most the
@@ -230,8 +273,14 @@ theorem KP_le_prefixComplexityContext_add_logSlack
   obtain ⟨c_plain, hc_plain⟩ := KP_le_KPPlain U hU
   obtain ⟨c_log, hc_log⟩ := KPPlain_natCode_le_log U hU
   let f : BitString → BitString := fun y => pairCode (decodeFirst y) (decodeFirst (decodeSecond y))
-  have h_cond_map : Computable f :=
-    Computable.comp pairCode_computable (Computable.pair decodeFirst_computable (Computable.comp decodeFirst_computable decodeSecond_computable))
+  have h_cond_map : Computable f := by
+    apply Computable.comp (f := fun p : BitString × BitString => pairCode p.1 p.2) (g := fun y : BitString => (decodeFirst y, decodeFirst (decodeSecond y)))
+    · exact pairCode_computable
+    · apply Computable.pair
+      · exact decodeFirst_computable
+      · apply Computable.comp (f := decodeFirst) (g := decodeSecond)
+        · exact decodeFirst_computable
+        · exact decodeSecond_computable
   obtain ⟨c_cond, hc_cond⟩ := KP_cond_map_le U hU f h_cond_map
   let c_total := c_upper + c_map + c_plain + c_log + c_cond + 2
   use c_total
@@ -248,7 +297,7 @@ theorem KP_le_prefixComplexityContext_add_logSlack
       _ ≤ (2 * (Nat.bits i).length + (c_log : ENat)) + (c_plain : ENat) := by
             gcongr; exact hc_log i
       _ = ((2 * (Nat.bits i).length + c_log + c_plain : ℕ) : ENat) := by
-            push_cast; ring
+            push_cast; rfl
   by_cases htop : KP U (natCode i) code = ⊤
   · rw [htop] at h_ni_bound
     exact (ENat.coe_ne_top _ (top_le_iff.mp h_ni_bound)).elim
@@ -273,37 +322,16 @@ theorem KP_le_prefixComplexityContext_add_logSlack
   -- `K(i | code) = k_ni` is bounded by the same logarithmic quantity.
   have hk_ni_bound : (k_ni : ENat) ≤ ((2 * (Nat.bits i).length + c_log + c_plain : ℕ) : ENat) := by
     rw [hk_ni_raw]; exact h_ni_bound
-  have h5 : KP U x code ≤ ((kx + (2 * (Nat.bits i).length + c_log + c_plain + c_cond + c_upper + c_map) : ℕ) : ENat) := by
-    have hstep : KP U x code
-        ≤ (k_ni : ENat) + (kx : ENat) + (c_cond : ENat) + (c_upper : ENat) + (c_map : ENat) := by
-      calc KP U x code
-          ≤ KP U (pairCode (natCode i) x) code + (c_map : ENat) := h1
-        _ ≤ ((k_ni : ENat) + KP U x (prefixCondComplexityContext code (natCode i) k_ni)
-              + (c_upper : ENat)) + (c_map : ENat) := by gcongr
-        _ ≤ ((k_ni : ENat) + ((kx : ENat) + (c_cond : ENat)) + (c_upper : ENat)) + (c_map : ENat) := by
-              gcongr
-        _ = (k_ni : ENat) + (kx : ENat) + (c_cond : ENat) + (c_upper : ENat) + (c_map : ENat) := by
-              ac_rfl
-    refine hstep.trans ?_
-    calc (k_ni : ENat) + (kx : ENat) + (c_cond : ENat) + (c_upper : ENat) + (c_map : ENat)
-        ≤ ((2 * (Nat.bits i).length + c_log + c_plain : ℕ) : ENat) + (kx : ENat)
-            + (c_cond : ENat) + (c_upper : ENat) + (c_map : ENat) := by gcongr
-      _ = ((kx + (2 * (Nat.bits i).length + c_log + c_plain + c_cond + c_upper + c_map) : ℕ) : ENat) := by
-            push_cast; ring
-  have h7 : (kx + (2 * (Nat.bits i).length + c_log + c_plain + c_cond + c_upper + c_map) : ℕ) ≤ kx + logSlack c_total (i + 1) := by
-    have hct : c_total = c_upper + c_map + c_plain + c_log + c_cond + 2 := rfl
-    have hmono : (Nat.bits i).length ≤ (Nat.bits (i + 1)).length :=
-      length_natBits_mono (Nat.le_succ i)
-    have hmul : 2 * (Nat.bits i).length ≤ c_total * (Nat.bits (i + 1)).length :=
-      Nat.mul_le_mul (by rw [hct]; omega) hmono
-    simp only [logSlack]
-    omega
+  have h5 : KP U x code ≤ ((kx + (2 * (Nat.bits i).length + c_log + c_plain + c_cond + c_upper + c_map) : ℕ) : ENat) :=
+    KP_le_prefixComplexityContext_add_logSlack_h5 U x code i c_map c_log c_plain c_cond c_upper k_ni kx
+      h1 h2 h3 hk_ni_bound
+  have h7 : (kx + (2 * (Nat.bits i).length + c_log + c_plain + c_cond + c_upper + c_map) : ℕ) ≤ kx + logSlack c_total (i + 1) :=
+    KP_le_prefixComplexityContext_add_logSlack_h7 kx i c_log c_plain c_cond c_upper c_map c_total rfl
   have h8 : KP U x code ≤ KP U x (prefixComplexityContext code i) + (logSlack c_total (i + 1) : ENat) := by
     calc KP U x code ≤ ((kx + (2 * (Nat.bits i).length + c_log + c_plain + c_cond + c_upper + c_map) : ℕ) : ENat) := h5
-         _ ≤ ((kx + logSlack c_total (i + 1) : ℕ) : ENat) := by exact_mod_cast h7
+         _ ≤ ((kx + logSlack c_total (i + 1) : ℕ) : ENat) := Nat.cast_le.mpr h7
          _ = KP U x (prefixComplexityContext code i) + (logSlack c_total (i + 1) : ENat) := by
-              push_cast
-              rw [← hkx]
+              rw [Nat.cast_add, ← hkx]
   exact h8
 
 /-- **Conditional set-complexity lower bound (S1, tight gap).**
@@ -316,11 +344,11 @@ This uses the tight/realized optimality deficiency `delta = i + j - kx` directly
 -/
 theorem gap_lowerBound_conditional_setComplexity_tight (U : Map) (hU : IsOptimalPrefixConditional U) :
     ∃ c : ℕ, ∀ (A : Finset BitString) (hA : A.Nonempty) (x : BitString)
-        (n delta d i j kx : ℕ),
+        (n delta d i j kx c_soi : ℕ),
       x.length = n →
       RealizedSetOptimalityGap U A hA x delta i j kx →
       CodedFiniteDistribution.DeficiencyLe U (codedUniformOn A hA) x d →
-      d ≤ delta →
+      d ≤ delta + c_soi →
       (delta - d : ENat) ≤ KP U (codedUniformOn A hA).code (prefixComplexityContext x kx) + logSlack c (n + delta + d) := by
   obtain ⟨c_lower, hc_lower⟩ := KPPair_chain_lower U hU
   obtain ⟨c_upper, hc_upper⟩ := KPPair_chain_upper U hU
@@ -330,7 +358,7 @@ theorem gap_lowerBound_conditional_setComplexity_tight (U : Map) (hU : IsOptimal
   obtain ⟨c1, hc1⟩ := KP_le_prefixComplexityContext_add_logSlack U hU
   obtain ⟨C1, hC1⟩ := logSlack_linear_bound c1 3 (c_len + 1)
   use C1 + c_lower + c_upper + c_symm + 1
-  intros A hA x n delta d i j kx hn h_gap h_def hd
+  intros A hA x n delta d i j kx c_soi hn h_gap h_def hd
   have hxA := h_gap.1
   have hi := h_gap.2.1
   have hj2 := h_gap.2.2.2.1
@@ -1022,17 +1050,17 @@ up to the log-slack already in the theorem.
 -/
 theorem manyIJDescriptions_of_realizedSetOptimalityGap (U : Map) (hU : IsOptimalPrefixConditional U) :
     ∃ c : ℕ, ∀ (A : Finset BitString) (hA : A.Nonempty) (x : BitString)
-        (n delta d i j kx : ℕ),
+        (n delta d i j kx c_soi : ℕ),
       x.length = n →
       RealizedSetOptimalityGap U A hA x delta i j kx →
       CodedFiniteDistribution.DeficiencyLe U (codedUniformOn A hA) x d →
-      d ≤ delta →
+      d ≤ delta + c_soi →
       ∃ slack : ℕ, slack ≤ logSlack c (n + delta + d) ∧
         ManyIJDescriptions U x i j (delta - d - slack) := by
   rcases gap_lowerBound_conditional_setComplexity_tight U hU with ⟨c1, hc1⟩
   rcases description_count_of_conditional_complexity_gap U hU with ⟨c2, hc2⟩
   rcases gapCounting_slack_arithmetic U hU c1 c2 with ⟨c3, hc3⟩
-  refine ⟨c3, fun A hA x n delta d i j kx hn h_realized hdef_cond hd => ?_⟩
+  refine ⟨c3, fun A hA x n delta d i j kx c_soi hn h_realized hdef_cond hd => ?_⟩
   have hxA := h_realized.1
   have hi := h_realized.2.1
   have hj := h_realized.2.2.1
@@ -1045,7 +1073,7 @@ theorem manyIJDescriptions_of_realizedSetOptimalityGap (U : Map) (hU : IsOptimal
     norm_cast
     omega
   rcases card_le_of_deficiency hxA hdef_cond with ⟨j_opt, hj_opt, hj_bound⟩
-  have h_gap := hc1 A hA x n delta d i j kx hn ⟨hxA, hi, hj, hj_lower, hkx, hdelta_eq⟩ hdef_cond hd
+  have h_gap := hc1 A hA x n delta d i j kx c_soi hn ⟨hxA, hi, hj, hj_lower, hkx, hdelta_eq⟩ hdef_cond hd
   have hj_min : A.card ≤ 2 ^ min j j_opt := by
     by_cases hle : j ≤ j_opt
     · rw [Nat.min_eq_left hle]

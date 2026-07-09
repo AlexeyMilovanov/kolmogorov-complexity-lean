@@ -1,9 +1,14 @@
-import Mathlib
-import KolmogorovMathlib.Prefix.Optimal
-import KolmogorovMathlib.Prefix.Symmetry
-import KolmogorovMathlib.Prefix.Properties
-import KolmogorovMathlib.Foundation.RecursivelyEnumerable
+/-
+Copyright (c) 2024 Alexey Milovanov. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Alexey Milovanov
+-/
+
 import KolmogorovMathlib.AlgorithmicProbability.OptimalCoding
+import KolmogorovMathlib.Foundation.RecursivelyEnumerable
+import KolmogorovMathlib.Prefix.Optimal
+import KolmogorovMathlib.Prefix.Properties
+import KolmogorovMathlib.Prefix.Symmetry
 
 /-!
 # Total Counting Bound for Prefix Complexity (SUV Theorem 64)
@@ -37,7 +42,7 @@ theorem card_KPPlain_le_boundedPrograms_length (U : Map) (n : ℕ)
     have hxK : condK U x [] ≤ (n : ENat) := by
       simpa [KPPlain, KP, KP_eq_condK] using hA x hx
     exact (condKLeIff U x [] n).mp hxK
-  let pOf : BitString → BitString := fun x =>
+  let pOf : BitString → BitString := fun x ↦
     if hx : x ∈ A then Classical.choose (h_exists x hx) else []
   have hpOf_mem :
       Set.MapsTo pOf (A : Set BitString) ((boundedPrograms n).toFinset : Set BitString) := by
@@ -90,7 +95,7 @@ theorem KPPlain_natBits_sub_self_le (U : Map) (hU : IsOptimalPrefixConditional U
       KPPlain U (Nat.bits (n - kn)) ≤ KPPlain U (prefixComplexityContext (Nat.bits n) kn) + c1 := by
     obtain ⟨c1, hc1⟩ : ∃ c1 : ℕ, ∀ w : BitString,
         KPPlain U (Nat.bits ((decodeBits (decodeFirst w)) - ((decodeSecond w).length - 1))) ≤ KPPlain U w + c1 := by
-      have hf_computable : Computable (fun w : BitString => Nat.bits ((decodeBits (decodeFirst w)) - ((decodeSecond w).length - 1))) := by
+      have hf_computable : Computable (fun w : BitString ↦ Nat.bits ((decodeBits (decodeFirst w)) - ((decodeSecond w).length - 1))) := by
         refine Computable.comp natBitsComputable ?_
         apply Computable.comp Primrec.nat_sub.to_comp (Computable.pair (decodeBitsComputable.comp decodeFirst_computable) (Computable.comp Primrec.nat_sub.to_comp (Computable.pair (Computable.list_length.comp decodeSecond_computable) (Computable.const 1))))
       convert KPPlain_map_le U hU _ hf_computable using 1
@@ -101,8 +106,8 @@ theorem KPPlain_natBits_sub_self_le (U : Map) (hU : IsOptimalPrefixConditional U
   obtain ⟨c61, hc61⟩ : ∃ c61 : ℕ, ∀ n kn : ℕ, HasPrefixComplexityValue U (Nat.bits n) kn →
       KPPlain U (prefixComplexityContext (Nat.bits n) kn) ≤ kn + c61 := by
     obtain ⟨c61, hc61⟩ := KPPair_self_complexity_le U hU
-    exact ⟨c61, fun n kn h => by simpa only [KPPair_eq_KP_pairCode, prefixComplexityContext_eq_pairCode] using hc61 _ _ h⟩
-  exact ⟨c1 + c61, fun n kn h => le_trans (hc1 n kn h) (by
+    exact ⟨c61, fun n kn h ↦ hc61 _ _ h⟩
+  exact ⟨c1 + c61, fun n kn h ↦ le_trans (hc1 n kn h) (by
     rw [add_comm]
     refine le_trans (add_le_add_right (hc61 n kn h) _) ?_
     norm_cast
@@ -177,7 +182,7 @@ context) halts within fuel `s`.  Written as a `map`-`sum` (one `1` per halting
 program) so the computability proof mirrors `aprioriApprox_computable`. -/
 def countingApprox (c : Nat.Partrec.Code) (s n : ℕ) : ℕ :=
   ((boundedPrograms n).map
-    (fun p => if (Nat.Partrec.Code.evaln s c (Encodable.encode (p, ([] : BitString)))).isSome
+    (fun p ↦ if (Nat.Partrec.Code.evaln s c (Encodable.encode (p, ([] : BitString)))).isSome
       then 1 else 0)).sum
 
 /-- The staged dyadic numerator for the counting function: on a canonical output
@@ -267,56 +272,56 @@ lemma countingNum_dyadic_mono (c : Nat.Partrec.Code) (s : ℕ) (out ctx : BitStr
 `countingApprox` is computable in `(s, n)`.  Mirrors `aprioriApprox_computable`.
 -/
 lemma countingApprox_computable (c : Nat.Partrec.Code) :
-    Computable (fun q : ℕ × ℕ => countingApprox c q.1 q.2) := by
+    Computable (fun q : ℕ × ℕ ↦ countingApprox c q.1 q.2) := by
   convert Primrec.to_comp _;
   unfold countingApprox;
-  have h_countingApprox_primrec : Primrec (fun (q : ℕ × ℕ) => List.map (fun p => if (Nat.Partrec.Code.evaln q.1 c (Encodable.encode (p, ([] : BitString)))).isSome then 1 else 0) (boundedPrograms q.2)) := by
+  have h_countingApprox_primrec : Primrec (fun (q : ℕ × ℕ) ↦ List.map (fun p ↦ if (Nat.Partrec.Code.evaln q.1 c (Encodable.encode (p, ([] : BitString)))).isSome then 1 else 0) (boundedPrograms q.2)) := by
     refine Primrec.list_map ?_ ?_;
     · exact Primrec.comp ( primrec_boundedPrograms ) ( Primrec.snd );
-    · have h_evaln_computable : Primrec (fun q : ℕ × BitString => (Nat.Partrec.Code.evaln q.1 c (Encodable.encode (q.2, ([] : BitString)))).isSome) := by
-        have h_evaln_computable : Primrec (fun q : ℕ × BitString => Nat.Partrec.Code.evaln q.1 c (Encodable.encode (q.2, ([] : BitString)))) := by
+    · have h_evaln_computable : Primrec (fun q : ℕ × BitString ↦ (Nat.Partrec.Code.evaln q.1 c (Encodable.encode (q.2, ([] : BitString)))).isSome) := by
+        have h_evaln_computable : Primrec (fun q : ℕ × BitString ↦ Nat.Partrec.Code.evaln q.1 c (Encodable.encode (q.2, ([] : BitString)))) := by
           have := Nat.Partrec.Code.primrec_evaln;
-          convert this.comp ( Primrec.pair ( Primrec.fst ) ( Primrec.const c ) |> Primrec.pair <| Primrec.comp ( show Primrec ( fun q : BitString => Encodable.encode ( q, [] ) ) from ?_ ) Primrec.snd ) using 1;
+          convert this.comp ( Primrec.pair ( Primrec.fst ) ( Primrec.const c ) |> Primrec.pair <| Primrec.comp ( show Primrec ( fun q : BitString ↦ Encodable.encode ( q, [] ) ) from ?_ ) Primrec.snd ) using 1;
           exact Primrec.encode.comp ( Primrec.pair ( Primrec.id ) ( Primrec.const [] ) );
         exact Primrec.option_isSome.comp h_evaln_computable;
-      have h_if_computable : Primrec (fun q : Bool => if q then 1 else 0) := by
+      have h_if_computable : Primrec (fun q : Bool ↦ if q then 1 else 0) := by
         convert Primrec.cond _ _ _;
         rotate_left;
-        exact fun x => x;
+        exact fun x ↦ x;
         · exact Primrec.id;
         · exact Primrec.const 1;
         · exact Primrec.const 0;
         · cases ‹_› <;> rfl;
       exact h_if_computable.comp ( h_evaln_computable.comp ( Primrec.fst.comp ( Primrec.fst ) |> Primrec.pair <| Primrec.snd ) );
-  convert Primrec.comp ( show Primrec ( fun l : List ℕ => List.sum l ) from ?_ ) h_countingApprox_primrec using 1;
+  convert Primrec.comp ( show Primrec ( fun l : List ℕ ↦ List.sum l ) from ?_ ) h_countingApprox_primrec using 1;
   convert Primrec.list_foldr _ _ _ using 1;
   rotate_left;
   exact ℕ;
   exact inferInstance;
-  exact fun l => l;
-  exact fun _ => 0;
-  exact fun l p => p.1 + p.2;
+  exact fun l ↦ l;
+  exact fun _ ↦ 0;
+  exact fun l p ↦ p.1 + p.2;
   · exact Primrec.id;
   · exact Primrec.const 0;
   · exact Primrec.nat_add.comp ( Primrec.fst.comp ( Primrec.snd ) ) ( Primrec.snd.comp ( Primrec.snd ) );
-  · exact funext fun l => by induction l <;> simp +decide [ * ] ;
+  · exact funext fun l ↦ by induction l <;> simp +decide [ * ];
 
 /-
 The guard predicate of `countingNum` is a computable predicate.
 -/
 lemma countingNum_guard_computable :
-    Computable (fun q : ℕ × BitString × BitString =>
+    Computable (fun q : ℕ × BitString × BitString ↦
       decide (q.2.2 = [] ∧ Nat.bits (decodeBits q.2.1) = q.2.1 ∧ decodeBits q.2.1 ≤ q.1)) := by
-  have h_computable : Computable (fun q : ℕ × BitString × BitString => decide (q.1 ≥ decodeBits q.2.1)) ∧ Computable (fun q : ℕ × BitString × BitString => decide (q.2.1 = Nat.bits (decodeBits q.2.1))) ∧ Computable (fun q : ℕ × BitString × BitString => decide (q.2.2 = [])) := by
+  have h_computable : Computable (fun q : ℕ × BitString × BitString ↦ decide (q.1 ≥ decodeBits q.2.1)) ∧ Computable (fun q : ℕ × BitString × BitString ↦ decide (q.2.1 = Nat.bits (decodeBits q.2.1))) ∧ Computable (fun q : ℕ × BitString × BitString ↦ decide (q.2.2 = [])) := by
     constructor;
-    · have h_computable : Computable (fun q : ℕ × BitString => decide (q.1 ≥ decodeBits q.2)) := by
-        have h_decode : Computable (fun q : BitString => decodeBits q) := by
+    · have h_computable : Computable (fun q : ℕ × BitString ↦ decide (q.1 ≥ decodeBits q.2)) := by
+        have h_decode : Computable (fun q : BitString ↦ decodeBits q) := by
           convert decodeBitsComputable using 1
-        have h_computable : Computable (fun q : ℕ × ℕ => decide (q.1 ≥ q.2)) := by
-          have h_computable : Computable (fun q : ℕ × ℕ => decide (q.1 ≤ q.2)) := by
-            have h_computable : Primrec (fun q : ℕ × ℕ => decide (q.1 ≤ q.2)) := by
+        have h_computable : Computable (fun q : ℕ × ℕ ↦ decide (q.1 ≥ q.2)) := by
+          have h_computable : Computable (fun q : ℕ × ℕ ↦ decide (q.1 ≤ q.2)) := by
+            have h_computable : Primrec (fun q : ℕ × ℕ ↦ decide (q.1 ≤ q.2)) := by
               convert Primrec.nat_le using 1;
-              constructor <;> intro h <;> simp_all +decide [ PrimrecRel ];
+              constructor <;> intro h <;> simp_all +decide only [PrimrecRel];
               · convert h using 1;
                 constructor <;> intro h <;> rw [ PrimrecPred ] at * <;> aesop;
               · grind +suggestions
@@ -325,26 +330,20 @@ lemma countingNum_guard_computable :
         convert h_computable.comp ( Computable.pair ( Computable.fst ) ( h_decode.comp ( Computable.snd ) ) ) using 1;
       convert h_computable.comp ( Computable.fst.pair ( Computable.fst.comp Computable.snd ) ) using 1;
     · constructor;
-      · have h_eq : Computable (fun q : BitString × BitString => decide (q.1 = q.2)) := by
-          have h_eq : Primrec (fun q : BitString × BitString => decide (q.1 = q.2)) := by
-            convert Primrec.eq using 1;
-            any_goals exact BitString;
-            constructor <;> intro h <;> simp_all +decide [ PrimrecRel ];
-            all_goals try infer_instance;
-            · convert Primrec.eq using 1;
-            · convert h using 1;
-              constructor <;> intro h <;> simp_all +decide [ PrimrecPred ];
-              grind;
+      · have h_eq : Computable (fun q : BitString × BitString ↦ decide (q.1 = q.2)) := by
+          have h_eq : Primrec (fun q : BitString × BitString ↦ decide (q.1 = q.2)) := by
+            obtain ⟨_, h_eq⟩ := @Primrec.eq BitString _
+            convert h_eq
           convert h_eq.to_comp using 1;
         convert h_eq.comp ( Computable.pair ( Computable.fst.comp ( Computable.snd ) ) ( natBitsComputable.comp ( decodeBitsComputable.comp ( Computable.fst.comp ( Computable.snd ) ) ) ) ) using 1;
-      · have h_decide_empty : Computable (fun q : BitString => decide (q = [])) := by
+      · have h_decide_empty : Computable (fun q : BitString ↦ decide (q = [])) := by
           convert Computable.of_eq _ _;
-          exact fun n => n.isEmpty;
+          exact fun n ↦ n.isEmpty;
           · convert Computable.nat_casesOn _ _ _ using 1;
             rotate_left;
-            exact fun n => n.length;
-            exact fun _ => Bool.true;
-            exact fun _ _ => Bool.false;
+            exact fun n ↦ n.length;
+            exact fun _ ↦ Bool.true;
+            exact fun _ _ ↦ Bool.false;
             · exact Computable.list_length;
             · exact Computable.const Bool.true;
             · exact Computable.const Bool.false;
@@ -358,22 +357,22 @@ lemma countingNum_guard_computable :
 The staged numerator is computable in `(s, out, ctx)`.
 -/
 lemma countingNum_computable (c : Nat.Partrec.Code) :
-    Computable (fun q : ℕ × BitString × BitString => countingNum c q.1 q.2.1 q.2.2) := by
+    Computable (fun q : ℕ × BitString × BitString ↦ countingNum c q.1 q.2.1 q.2.2) := by
   unfold countingNum;
   convert Computable.cond _ _ _;
   rotate_left;
-  exact fun q => q.2.2 = [] ∧ Nat.bits ( decodeBits q.2.1 ) = q.2.1 ∧ decodeBits q.2.1 ≤ q.1;
+  exact fun q ↦ q.2.2 = [] ∧ Nat.bits ( decodeBits q.2.1 ) = q.2.1 ∧ decodeBits q.2.1 ≤ q.1;
   · convert countingNum_guard_computable using 1;
-  · convert Computable.comp ( show Computable ( fun q : ℕ × ℕ => countingApprox c q.1 q.2 * 2 ^ ( q.1 - q.2 ) ) from ?_ ) ( show Computable ( fun q : ℕ × BitString × BitString => ( q.1, decodeBits q.2.1 ) ) from ?_ ) using 1;
-    · have h_computable : Computable (fun q : ℕ × ℕ => countingApprox c q.1 q.2) ∧ Computable (fun q : ℕ × ℕ => 2 ^ (q.1 - q.2)) := by
+  · convert Computable.comp ( show Computable ( fun q : ℕ × ℕ ↦ countingApprox c q.1 q.2 * 2 ^ ( q.1 - q.2 ) ) from ?_ ) ( show Computable ( fun q : ℕ × BitString × BitString ↦ ( q.1, decodeBits q.2.1 ) ) from ?_ ) using 1;
+    · have h_computable : Computable (fun q : ℕ × ℕ ↦ countingApprox c q.1 q.2) ∧ Computable (fun q : ℕ × ℕ ↦ 2 ^ (q.1 - q.2)) := by
         constructor;
         · exact countingApprox_computable c;
-        · convert Computable.comp ( show Computable ( fun n => 2 ^ n ) from ?_ ) ( show Computable ( fun q : ℕ × ℕ => q.1 - q.2 ) from ?_ ) using 1;
-          · exact Computable.of_eq ( Primrec.to_comp ( Kolmogorov.primrec_two_pow ) ) fun n => rfl;
-          · convert Primrec.to_comp ( show Primrec ( fun q : ℕ × ℕ => q.1 - q.2 ) from ?_ ) using 1;
+        · convert Computable.comp ( show Computable ( fun n ↦ 2 ^ n ) from ?_ ) ( show Computable ( fun q : ℕ × ℕ ↦ q.1 - q.2 ) from ?_ ) using 1;
+          · exact Computable.of_eq ( Primrec.to_comp ( Kolmogorov.primrec_two_pow ) ) fun n ↦ rfl;
+          · convert Primrec.to_comp ( show Primrec ( fun q : ℕ × ℕ ↦ q.1 - q.2 ) from ?_ ) using 1;
             exact Primrec.nat_sub.comp ( Primrec.fst ) ( Primrec.snd );
-      convert Computable.comp ( show Computable ( fun q : ℕ × ℕ => q.1 * q.2 ) from ?_ ) ( h_computable.1.pair h_computable.2 ) using 1;
-      convert Primrec.to_comp ( show Primrec ( fun q : ℕ × ℕ => q.1 * q.2 ) from ?_ ) using 1;
+      convert Computable.comp ( show Computable ( fun q : ℕ × ℕ ↦ q.1 * q.2 ) from ?_ ) ( h_computable.1.pair h_computable.2 ) using 1;
+      convert Primrec.to_comp ( show Primrec ( fun q : ℕ × ℕ ↦ q.1 * q.2 ) from ?_ ) using 1;
       exact Primrec.nat_mul.comp ( Primrec.fst ) ( Primrec.snd );
     · exact Computable.pair ( Computable.fst ) ( decodeBitsComputable.comp ( Computable.fst.comp ( Computable.snd ) ) );
   · exact Computable.const 0;
@@ -381,7 +380,7 @@ lemma countingNum_computable (c : Nat.Partrec.Code) :
 
 /-- The counting function is lower-semicomputable. -/
 lemma countingF_isLSC (c : Nat.Partrec.Code) : IsLSC (countingF c) :=
-  ⟨countingNum c, countingNum_dyadic_mono c, fun _ _ => rfl, countingNum_computable c⟩
+  ⟨countingNum c, countingNum_dyadic_mono c, fun _ _ ↦ rfl, countingNum_computable c⟩
 
 /-
 **Counting injection.**  For a finite set `A` of strings all of complexity
@@ -390,33 +389,33 @@ each `x ∈ A` has a distinct halting program of length `≤ n`, and all of them
 within a common fuel bound.
 -/
 lemma countingApprox_ge_card (U : Map) (c : Nat.Partrec.Code)
-    (hc : c.eval = fun n =>
+    (hc : c.eval = fun n ↦
       (Part.ofOption (Encodable.decode (α := BitString × BitString) n)).bind
-        (fun a => Part.map Encodable.encode (U a)))
+        (fun a ↦ Part.map Encodable.encode (U a)))
     (n : ℕ) (A : Finset BitString) (hA : ∀ x ∈ A, KPPlain U x ≤ (n : ENat)) :
     ∃ s, n ≤ s ∧ A.card ≤ countingApprox c s n := by
   obtain ⟨s, hs⟩ : ∃ s : ℕ, n ≤ s ∧ ∀ x ∈ A, ∃ p : BitString, p.length ≤ n ∧ produces U p [] x ∧ (Nat.Partrec.Code.evaln s c (Encodable.encode (p, ([] : BitString))) = some (Encodable.encode x)) := by
     have h_exists_p : ∀ x ∈ A, ∃ p : BitString, p.length ≤ n ∧ produces U p [] x := by
-      exact fun x hx => (condKLeIff U x [] n).mp (hA x hx);
+      exact fun x hx ↦ (condKLeIff U x [] n).mp (hA x hx);
     choose! p hp₁ hp₂ using h_exists_p;
     obtain ⟨s, hs⟩ : ∃ s : ℕ, ∀ x ∈ A, ∃ k : ℕ, k ≤ s ∧ (Nat.Partrec.Code.evaln k c (Encodable.encode (p x, ([] : BitString))) = some (Encodable.encode x)) := by
       have h_exists_k : ∀ x ∈ A, ∃ k : ℕ, (Nat.Partrec.Code.evaln k c (Encodable.encode (p x, ([] : BitString))) = some (Encodable.encode x)) := by
         intro x hx; specialize hp₂ x hx; rw [ produces_iff_evaln c hc ] at hp₂; aesop;
       choose! k hk using h_exists_k;
-      exact ⟨ Finset.sup A k, fun x hx => ⟨ k x, Finset.le_sup ( f := k ) hx, hk x hx ⟩ ⟩;
-    exact ⟨ s + n, by linarith, fun x hx => by obtain ⟨ k, hk₁, hk₂ ⟩ := hs x hx; exact ⟨ p x, hp₁ x hx, hp₂ x hx, by simpa [ hk₂ ] using Nat.Partrec.Code.evaln_mono ( by linarith : k ≤ s + n ) hk₂ ⟩ ⟩;
+      exact ⟨ Finset.sup A k, fun x hx ↦ ⟨ k x, Finset.le_sup ( f := k ) hx, hk x hx ⟩ ⟩;
+    exact ⟨ s + n, by linarith, fun x hx ↦ by obtain ⟨ k, hk₁, hk₂ ⟩ := hs x hx; exact ⟨ p x, hp₁ x hx, hp₂ x hx, by simpa [ hk₂ ] using Nat.Partrec.Code.evaln_mono ( by linarith : k ≤ s + n ) hk₂ ⟩ ⟩;
   obtain ⟨pOf, hpOf⟩ : ∃ pOf : BitString → BitString, (∀ x ∈ A, pOf x ∈ boundedPrograms n ∧ produces U (pOf x) [] x ∧ (Nat.Partrec.Code.evaln s c (Encodable.encode (pOf x, ([] : BitString))) = some (Encodable.encode x))) ∧ (∀ x y : BitString, x ∈ A → y ∈ A → pOf x = pOf y → x = y) := by
     choose! p hp using hs.2;
-    refine ⟨ p, ?_, ?_ ⟩ <;> simp_all +decide [ mem_boundedPrograms_iff ];
-    intro x y hx hy hxy; have := hp x hx; have := hp y hy; simp_all +decide [ produces ] ;
+    refine ⟨ p, ?_, ?_ ⟩ <;> simp_all +decide only [Encodable.decode_prod_val, KPPlain_eq_KP, Encodable.encode_prod_val, Encodable.encode_list_nil, mem_boundedPrograms_iff, and_self, implies_true];
+    intro x y hx hy hxy; have := hp x hx; have := hp y hy; simp_all +decide [ produces ];
   refine ⟨ s, hs.1, ?_ ⟩;
-  have h_card : (Finset.image pOf A).card ≤ ((boundedPrograms n).filter (fun p => (Nat.Partrec.Code.evaln s c (Encodable.encode (p, ([] : BitString)))).isSome)).length := by
-    have h_card : (Finset.image pOf A).card ≤ (List.toFinset (List.filter (fun p => (Nat.Partrec.Code.evaln s c (Encodable.encode (p, ([] : BitString)))).isSome) (boundedPrograms n))).card := by
+  have h_card : (Finset.image pOf A).card ≤ ((boundedPrograms n).filter (fun p ↦ (Nat.Partrec.Code.evaln s c (Encodable.encode (p, ([] : BitString)))).isSome)).length := by
+    have h_card : (Finset.image pOf A).card ≤ (List.toFinset (List.filter (fun p ↦ (Nat.Partrec.Code.evaln s c (Encodable.encode (p, ([] : BitString)))).isSome) (boundedPrograms n))).card := by
       refine Finset.card_le_card ?_;
       simp_all +decide [ Finset.subset_iff ];
     exact h_card.trans ( List.toFinset_card_le _ );
   convert h_card using 1;
-  · rw [ Finset.card_image_of_injOn fun x hx y hy hxy => hpOf.2 x y hx hy hxy ];
+  · rw [ Finset.card_image_of_injOn fun x hx y hy hxy ↦ hpOf.2 x y hx hy hxy ];
   · unfold countingApprox; simp +decide;
     induction ( boundedPrograms n ) <;> simp +decide [ * ];
     grind
@@ -425,9 +424,9 @@ lemma countingApprox_ge_card (U : Map) (c : Nat.Partrec.Code)
 all of complexity `≤ n`, the counting function at `Nat.bits n` dominates
 `|A| · 2^{-n}`. -/
 lemma countingF_ge_card (U : Map) (c : Nat.Partrec.Code)
-    (hc : c.eval = fun n =>
+    (hc : c.eval = fun n ↦
       (Part.ofOption (Encodable.decode (α := BitString × BitString) n)).bind
-        (fun a => Part.map Encodable.encode (U a)))
+        (fun a ↦ Part.map Encodable.encode (U a)))
     (n : ℕ) (A : Finset BitString) (hA : ∀ x ∈ A, KPPlain U x ≤ (n : ENat)) :
     (A.card : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ n ≤ countingF c (Nat.bits n) [] := by
   obtain ⟨s, hns, hcard⟩ := countingApprox_ge_card U c hc n A hA
@@ -438,7 +437,7 @@ lemma countingF_ge_card (U : Map) (c : Nat.Partrec.Code)
     _ = dyadicValue (countingNum c s (Nat.bits n) []) s := (dyadicValue_countingNum_bits c hns).symm
     _ ≤ countingF c (Nat.bits n) [] := by
           unfold countingF
-          exact le_iSup (fun s => dyadicValue (countingNum c s (Nat.bits n) []) s) s
+          exact le_iSup (fun s ↦ dyadicValue (countingNum c s (Nat.bits n) []) s) s
 
 /-- Total `2^{-(decodeBits out)}`-mass of programs of length `≤ decodeBits out` that
 halt under `U`, attached to a canonical output `out = Nat.bits (decodeBits out)`. -/
@@ -455,27 +454,27 @@ The counting function is pointwise dominated by `haltMass` (in the empty
 context): at each stage at most the halting programs of length `≤ n` are counted.
 -/
 lemma countingF_le_haltMass (U : Map) (c : Nat.Partrec.Code)
-    (hc : c.eval = fun n =>
+    (hc : c.eval = fun n ↦
       (Part.ofOption (Encodable.decode (α := BitString × BitString) n)).bind
-        (fun a => Part.map Encodable.encode (U a)))
+        (fun a ↦ Part.map Encodable.encode (U a)))
     (out : BitString) :
     countingF c out [] ≤ haltMass U out := by
   classical
-  refine iSup_le fun s => ?_;
-  by_cases hcanon : Nat.bits (decodeBits out) = out <;> by_cases hle : decodeBits out ≤ s <;> simp +decide [ dyadicValue_countingNum, hcanon, hle, haltMass ];
-  have h_card : (countingApprox c s (decodeBits out) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ (decodeBits out) = ∑ p ∈ (boundedPrograms (decodeBits out)).toFinset.filter (fun p => (Nat.Partrec.Code.evaln s c (Encodable.encode (p, ([] : BitString)))).isSome), (2 : ℝ≥0∞)⁻¹ ^ (decodeBits out) := by
-    simp +decide [countingApprox];
+  refine iSup_le fun s ↦ ?_;
+  by_cases hcanon : Nat.bits (decodeBits out) = out <;> by_cases hle : decodeBits out ≤ s <;> simp +decide only [dyadicValue_countingNum, hcanon, hle, and_self, and_false, and_true, ↓reduceIte, haltMass, zero_le, Std.le_refl];
+  have h_card : (countingApprox c s (decodeBits out) : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ (decodeBits out) = ∑ p ∈ (boundedPrograms (decodeBits out)).toFinset.filter (fun p ↦ (Nat.Partrec.Code.evaln s c (Encodable.encode (p, ([] : BitString)))).isSome), (2 : ℝ≥0∞)⁻¹ ^ (decodeBits out) := by
+    simp +decide only [countingApprox, Encodable.encode_prod_val, Encodable.encode_list_nil, Nat.cast_list_sum, List.map_map, Finset.sum_const, nsmul_eq_mul];
     rw [ Finset.card_filter ];
-    rw [ List.sum_toFinset ] ; aesop;
+    rw [ List.sum_toFinset ]; aesop;
     exact boundedPrograms_nodup _;
   refine h_card ▸ le_trans ?_
     ( ENNReal.sum_le_tsum
-        (f := fun p => if p.length ≤ decodeBits out ∧ (U (p, ([] : BitString))).Dom
+        (f := fun p ↦ if p.length ≤ decodeBits out ∧ (U (p, ([] : BitString))).Dom
           then (2 : ℝ≥0∞)⁻¹ ^ (decodeBits out) else 0)
         ((boundedPrograms (decodeBits out)).toFinset.filter
-          (fun p => (Nat.Partrec.Code.evaln s c (Encodable.encode (p, ([] : BitString)))).isSome)) );
+          (fun p ↦ (Nat.Partrec.Code.evaln s c (Encodable.encode (p, ([] : BitString)))).isSome)) );
   refine Finset.sum_le_sum ?_;
-  intro p hp; split_ifs <;> simp_all +decide [ Part.dom_iff_mem ] ;
+  intro p hp; split_ifs <;> simp_all +decide [ Part.dom_iff_mem ];
   obtain ⟨ x, hx ⟩ := Option.isSome_iff_exists.mp hp.2;
   have := Nat.Partrec.Code.evaln_sound hx; simp_all +decide;
   obtain ⟨ a, ha₁, ha₂ ⟩ := this; specialize ‹p.length ≤ decodeBits out → ∀ x : BitString, x ∉ U ( p, [] ) › ( by simpa using mem_boundedPrograms_iff p ( decodeBits out ) |>.1 hp ) a; aesop;
@@ -486,19 +485,33 @@ sum of program weights over the halting domain (empty context) is `≤ 1`. -/
 lemma tsum_domain_progWeight_le_one (U : Map) (hU : IsPrefixDecompressor U) :
     (∑' p : BitString, if (U (p, ([] : BitString))).Dom then progWeight p else 0) ≤ 1 := by
   have h_sum : (∑' x, aprioriMeasure U x []) ≤ 1 := by
-    convert tsum_aprioriMeasure_le_one U [] hU.isPrefixMachine using 1;
-  convert h_sum using 1
+    exact tsum_aprioriMeasure_le_one U [] hU.isPrefixMachine
   have h_sum_eq : (∑' x, aprioriMeasure U x []) = (∑' p, ∑' x, if produces U p [] x then progWeight p else 0) := by
-    convert ENNReal.tsum_comm using 1
-  generalize_proofs at *;
-  convert h_sum_eq.symm using 3;
-  split_ifs <;> simp_all +decide [ produces ];
-  · rename_i p hp;
-    rw [ tsum_eq_single ( U ( p, [] ) |> Part.get <| hp ) ] <;> simp +contextual;
-    · exact fun h => False.elim <| h <| Part.get_mem _;
-    · exact fun x hx₁ hx₂ => False.elim <| hx₁ <| Part.mem_unique hx₂ <| Part.get_mem _;
-  · convert tsum_zero.symm;
-    exact if_neg fun h => ‹¬ ( U ( _, _ ) ).Dom› <| Part.dom_iff_mem.mpr <| by tauto;
+    exact ENNReal.tsum_comm
+  rw [h_sum_eq] at h_sum
+  refine le_trans (le_of_eq ?_) h_sum
+  refine tsum_congr (fun p ↦ ?_)
+  by_cases hp : (U (p, [])).Dom
+  · rw [if_pos hp]
+    have ⟨x, hx⟩ := Part.dom_iff_mem.mp hp
+    have h_prod : produces U p [] x := hx
+    have h_eq : (∑' x', if produces U p [] x' then progWeight p else 0) = progWeight p := by
+      rw [tsum_eq_single x]
+      · rw [if_pos h_prod]
+      · intro x' hneq
+        rw [if_neg]
+        intro h_prod'
+        exact hneq (Part.mem_unique h_prod' h_prod)
+    exact h_eq.symm
+  · rw [if_neg hp]
+    have h_eq : (∑' x', if produces U p [] x' then progWeight p else 0) = 0 := by
+      have h_zero : (fun x' ↦ if produces U p [] x' then (progWeight p : ENNReal) else 0) = fun _ ↦ 0 := by
+        ext x'
+        rw [if_neg]
+        intro h_prod
+        exact hp (Part.dom_iff_mem.mpr ⟨x', h_prod⟩)
+      rw [h_zero, tsum_zero]
+    exact h_eq.symm
 
 open Classical in
 /-- The value of `haltMass` at a canonical output `Nat.bits n`. -/
@@ -517,7 +530,7 @@ The total `haltMass` is supported on canonical outputs, so it reindexes along
 lemma tsum_haltMass_eq_tsum_nat (U : Map) :
     (∑' out : BitString, haltMass U out) = ∑' n : ℕ, haltMass U (Nat.bits n) := by
   convert ( Function.Injective.tsum_eq ( show Function.Injective Nat.bits from ?_ ) ?_ ) |> Eq.symm using 1;
-  · exact Function.LeftInverse.injective ( show Function.LeftInverse decodeBits Nat.bits from fun n => decodeBits_natBits n );
+  · exact Function.LeftInverse.injective ( show Function.LeftInverse decodeBits Nat.bits from fun n ↦ decodeBits_natBits n );
   · intro x hx; contrapose! hx; unfold haltMass; aesop;
 
 /-
@@ -528,9 +541,9 @@ lemma tsum_ge_pow (m : ℕ) :
   -- We can factor out $2^{-m}$ from the sum.
   have h_factor : (∑' n, if m ≤ n then (2 : ℝ≥0∞)⁻¹ ^ n else 0) = (∑' n, (2 : ℝ≥0∞)⁻¹ ^ (n + m)) := by
     rw [ ← tsum_eq_tsum_of_ne_zero_bij ];
-    use fun x => x.val - m;
+    use fun x ↦ x.val - m;
     · intro a₁ a₂ h; rw [ tsub_left_inj ] at h <;> aesop;
-    · intro x hx; use ⟨ x + m, by aesop ⟩ ; aesop;
+    · intro x hx; use ⟨ x + m, by aesop ⟩; aesop;
     · aesop;
   simp_all +decide [ pow_add, ENNReal.tsum_mul_right ]
 
@@ -561,9 +574,9 @@ lemma tsum_haltMass_le (U : Map) (hU : IsPrefixDecompressor U) :
 counting function has mass `≤ 2` in every context: in a nonempty context it
 vanishes, and in the empty context the mass is dominated by `tsum_haltMass_le`. -/
 lemma countingF_tsum_le (U : Map) (hU : IsPrefixDecompressor U) (c : Nat.Partrec.Code)
-    (hc : c.eval = fun n =>
+    (hc : c.eval = fun n ↦
       (Part.ofOption (Encodable.decode (α := BitString × BitString) n)).bind
-        (fun a => Part.map Encodable.encode (U a)))
+        (fun a ↦ Part.map Encodable.encode (U a)))
     (ctx : BitString) :
     (∑' out : BitString, countingF c out ctx) ≤ 2 := by
   by_cases hctx : ctx = []
@@ -571,7 +584,7 @@ lemma countingF_tsum_le (U : Map) (hU : IsPrefixDecompressor U) (c : Nat.Partrec
     calc
       (∑' out : BitString, countingF c out [])
           ≤ ∑' out : BitString, haltMass U out :=
-            ENNReal.tsum_le_tsum (fun out => countingF_le_haltMass U c hc out)
+            ENNReal.tsum_le_tsum (fun out ↦ countingF_le_haltMass U c hc out)
       _ ≤ 2 := tsum_haltMass_le U hU
   · have hzero : ∀ out : BitString, countingF c out ctx = 0 := by
       intro out
@@ -616,7 +629,7 @@ theorem exists_counting_prefix_machine (U : Map) (hU : IsPrefixDecompressor U) :
     rw [pow_one]
     exact countingF_tsum_le U hU c hc ctx
   obtain ⟨M, hM, c₀, hreal⟩ := kraftChaitin_realization_bound hlsc 1 hsum
-  refine ⟨M, hM, c₀, fun n A hA => ?_⟩
+  refine ⟨M, hM, c₀, fun n A hA ↦ ?_⟩
   calc
     (2 : ℝ≥0∞)⁻¹ ^ c₀ * ((A.card : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ n)
         ≤ (2 : ℝ≥0∞)⁻¹ ^ c₀ * countingF c (Nat.bits n) [] := by
@@ -631,7 +644,7 @@ theorem card_KPPlain_le_complexityWeight_bound (U : Map) (hU : IsOptimalPrefixCo
     (A.card : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ n ≤ (2 : ℝ≥0∞) ^ c * complexityWeight (KPPlain U (Nat.bits n)) := by
   obtain ⟨M, hM, c₀, hM_bound⟩ := exists_counting_prefix_machine U hU.isPrefixDecompressor
   obtain ⟨c, hc⟩ := optimalPrefix_complexityWeight_bound hU hM
-  refine ⟨c + c₀, fun n A hA => ?_⟩
+  refine ⟨c + c₀, fun n A hA ↦ ?_⟩
   have key := hM_bound n A hA
   have hopt := hc (Nat.bits n) []
   have h1 : (A.card : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ n

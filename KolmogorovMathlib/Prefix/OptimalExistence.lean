@@ -1,9 +1,16 @@
-import KolmogorovMathlib.Prefix.Optimal
-import KolmogorovMathlib.Prefix.Combinators
+/-
+Copyright (c) 2024 Alexey Milovanov. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Alexey Milovanov
+-/
+
 import KolmogorovMathlib.AlgorithmicProbability.SimulationComplexity
 import KolmogorovMathlib.AlgorithmicProbability.TaggedUnionUniversal
 import KolmogorovMathlib.Core.Invariance
-import Mathlib
+import KolmogorovMathlib.Prefix.Combinators
+import KolmogorovMathlib.Prefix.Optimal
+import Mathlib.Computability.Halting
+import Mathlib.Computability.PartrecCode
 
 namespace Kolmogorov
 
@@ -367,9 +374,6 @@ theorem goodAt_eq (c : Code) (y p : BitString) (n : ℕ) :
   | none => simp [goodAt, h]
   | some q => simp [goodAt, h, goodBool_eq]
 
-set_option maxHeartbeats 1000000 in
--- The deep product type `Code × BitString × BitString × ℕ` makes instance
--- resolution costly; a larger heartbeat budget is needed.
 /-- `goodAt` is uniformly primitive recursive. -/
 theorem goodAt_uniform_primrec :
     Primrec (fun t : Code × BitString × BitString × ℕ =>
@@ -390,8 +394,6 @@ theorem goodAt_uniform_primrec :
   have hcase := Primrec.option_casesOn happ (Primrec.const true) hg
   exact hcase.of_eq (fun t => (goodAt_eq t.1 t.2.1 t.2.2.1 t.2.2.2).symm)
 
-set_option maxHeartbeats 1000000 in
--- Same deep-product instance-resolution cost as `goodAt_uniform_primrec`.
 /-- `acceptBefore` is uniformly primitive recursive. -/
 theorem acceptBefore_uniform_primrec :
     Primrec (fun t : Code × BitString × BitString × ℕ =>
@@ -414,9 +416,6 @@ theorem acceptBefore_uniform_primrec :
     (Primrec.and.comp hgoodc (Primrec.snd.comp Primrec.snd)).of_eq (fun s => rfl)
   exact Primrec.list_foldr hf hgc hh
 
-set_option maxHeartbeats 2000000 in
--- The construction combines `rfind`, `Code.eval`, and several deep-product
--- projections; a larger heartbeat budget is needed.
 /-- The filter is uniformly partial recursive in the code and input. -/
 theorem prefixFiltered_uniform_partrec :
     Partrec (fun t : Code × BitString × BitString => prefixFiltered t.1 t.2) := by
@@ -523,9 +522,6 @@ theorem enumeratedPrefixMachine_uniform_partrec :
 
 /-! ### The universal prefix machine -/
 
-set_option maxHeartbeats 1000000 in
--- The tagged-union parser combines several list operations with the uniform
--- family; a larger heartbeat budget is needed.
 /-- A tagged union of a uniformly partial-recursive family is partial recursive. -/
 theorem taggedUnion_isDecompressor_of_uniform {M : ℕ → Map}
     (hM : Partrec (fun t : ℕ × BitString × BitString => M t.1 t.2)) :

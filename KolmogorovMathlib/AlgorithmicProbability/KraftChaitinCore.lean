@@ -1,7 +1,11 @@
-import Mathlib
 import KolmogorovMathlib.AlgorithmicProbability.Coding
-import KolmogorovMathlib.Prefix.Optimal
 import KolmogorovMathlib.AlgorithmicProbability.KraftChaitinAllocator
+import KolmogorovMathlib.Prefix.Optimal
+import Mathlib.Algebra.Field.GeomSum
+import Mathlib.Analysis.SpecificLimits.Basic
+import Mathlib.Data.ENNReal.Basic
+import Mathlib.Tactic.IntervalCases
+import Mathlib.Tactic.Linarith
 
 /-!
 # The abstract Kraft–Chaitin realization engine

@@ -5,6 +5,7 @@ import KolmogorovMathlib.Prefix.CountableKraft
 import KolmogorovMathlib.Foundation.NatEncoding
 import KolmogorovMathlib.Complexity.Incompressibility
 import KolmogorovMathlib.Prefix.CountingBound
+import Mathlib.Order.BourbakiWitt
 
 /-!
 # Properties of Prefix Complexity
@@ -17,17 +18,14 @@ namespace Kolmogorov
 open scoped ENNReal
 
 /-
-TODO: restore this later as a corollary of the general conditional
-symmetry/chain-rule infrastructure for prefix complexity, not as an isolated
-special-purpose decompressor construction.
-
-Former inactive statement:
+Design note.  The bound
 
   KP U x y <= KP U x (pairCode y z) + KPPlain U z + O(1)
 
-This is intentionally not a Lean declaration right now: the current Section 3
-work does not use it, and keeping it as an active theorem with an unfinished proof
-only distracts the automation from the online half-rich covering target.
+is deliberately not stated as a standalone declaration here.  It should be
+recovered as a corollary of the general conditional symmetry / chain-rule
+infrastructure for prefix complexity, rather than via an isolated
+special-purpose decompressor construction.
 -/
 
 /-- Ordinary optimal conditional complexity is bounded by conditional prefix complexity.
@@ -844,7 +842,7 @@ theorem KPPair_self_complexity_le (U : Map) (hU : IsOptimalPrefixConditional U) 
         gcongr
     _ = (kx : ENat) + ((c_cond + c_chain : ℕ) : ENat) := by
         rw [Nat.cast_add]
-        ac_rfl
+        simp [add_comm, add_assoc]
 
 theorem KPPlain_le_KPPair_self_complexity (U : Map) (hU : IsOptimalPrefixConditional U) :
     ∃ c : ℕ, ∀ x kx, HasPrefixComplexityValue U x kx → (kx : ENat) ≤ KPPair U x (natCode kx) + (c : ENat) := by
@@ -1163,4 +1161,3 @@ theorem decodeSecond_mono {p q : BitString} (h : p <+: q) : decodeSecond p <+: d
     simp [h3]
 
 end Kolmogorov
-

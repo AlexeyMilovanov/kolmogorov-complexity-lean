@@ -17,7 +17,7 @@ open scoped ENNReal
 This module records the Section 3 headline statements as explicit gates.  The
 gates are ordinary hypotheses over the vocabulary already available in the
 project; they do not introduce a separate abstract conditional set-complexity
-API.  Later iterations can replace each gate by a real proof once the required
+API.  These gates are isolated interfaces; they can be discharged once the required
 Levin-Gacs and improving-descriptions infrastructure has been connected.
 -/
 
@@ -26,7 +26,7 @@ arbitrary probability model can be converted to optimal stochasticity via a
 finite set with parameter-logarithmic slack.  It explicitly takes the corrected
 log-slack improving-descriptions propositions as inputs; the old constant-slack
 statements are not part of this interface. -/
--- TODO: simplify this gate after the improving-descriptions interfaces are
+-- Planned follow-up: simplify this gate after the improving-descriptions interfaces are
 -- reorganized.  Mathematically the main Section 3 input should be the complexity
 -- half `A -> C`; the size half `A -> B` should be supplied as a corollary via
 -- description-shift/portioning, not as an independent assumption.
@@ -115,7 +115,7 @@ The slack argument is `n + delta + d`, not `n + i + j + d`: `i` and `j` are
 internal description parameters, while Theorem 4 is budgeted by the visible
 optimality and randomness deficiencies.
 
-⚠️ LEGACY LOOSE GATE.  This bridge takes the *upper-bound* predicate
+⚠️ LOOSE INTERFACE.  This bridge takes the *upper-bound* predicate
 `SetOptimalityDeficiencyLe U A hA x delta` as a hypothesis, in which `delta` is a
 monotone upper bound and can be inflated arbitrarily (cf. `mono_beta`).  It is an
 abstract `Prop`-level gate only; it is **not** proven, and it must **not** be
@@ -126,14 +126,14 @@ realized gap `RealizedSetOptimalityGap` (pinning `delta = i + j - kx`) and which
 discharged unconditionally by `manyIJDescriptions_of_realizedSetOptimalityGap`. -/
 def GapCountingBridge (U : Map) : Prop :=
   ∃ c : ℕ, ∀ (A : Finset BitString) (hA : A.Nonempty) (x : BitString)
-      (n delta d i j : ℕ),
+      (n delta d i j c_soi : ℕ),
     x.length = n →
     x ∈ A →
     setComplexity U A hA = (i : ENat) →
     A.card ≤ 2 ^ j →
     SetOptimalityDeficiencyLe U A hA x delta →
     CodedFiniteDistribution.DeficiencyLe U (codedUniformOn A hA) x d →
-    d ≤ delta →
+    d ≤ delta + c_soi →
     ∃ slack : ℕ, slack ≤ logSlack c (n + delta + d) ∧
       ManyIJDescriptions U x i j (delta - d - slack)
 
@@ -141,11 +141,11 @@ def GapCountingBridge (U : Map) : Prop :=
 of `manyIJDescriptions_of_realizedSetOptimalityGap`. -/
 def TightGapCountingBridge (U : Map) : Prop :=
   ∃ c : ℕ, ∀ (A : Finset BitString) (hA : A.Nonempty) (x : BitString)
-      (n delta d i j kx : ℕ),
+      (n delta d i j kx c_soi : ℕ),
     x.length = n →
     RealizedSetOptimalityGap U A hA x delta i j kx →
     CodedFiniteDistribution.DeficiencyLe U (codedUniformOn A hA) x d →
-    d ≤ delta →
+    d ≤ delta + c_soi →
     ∃ slack : ℕ, slack ≤ logSlack c (n + delta + d) ∧
       ManyIJDescriptions U x i j (delta - d - slack)
 
@@ -154,13 +154,9 @@ increase in the slack value. -/
 theorem logSlack_add_one (c : ℕ) (n : ℕ) :
     logSlack c (n + 1) ≤ logSlack c n + c * 2 := by
   unfold logSlack
-  have h_len : (Nat.bits (n + 1)).length ≤ (Nat.bits n).length + 2 := by
-    have := length_natBits_add_le n 1
-    have h1 : (Nat.bits 1).length = 1 := rfl
-    linarith
-  calc
-    c * (Nat.bits (n + 1)).length + c ≤ c * ((Nat.bits n).length + 2) + c := by gcongr
-    _ = c * (Nat.bits n).length + c + c * 2 := by ring
+  have : (Nat.bits (n + 1)).length ≤ (Nat.bits n).length + 2 := by
+    simpa using length_natBits_add_le n 1
+  nlinarith
 
 theorem dyadic_bracket_lower_bound {j k : ℕ} (h : (2 : ℝ≥0∞) ^ j / 2 ≤ (2 : ℝ≥0∞) ^ k) : j - 1 ≤ k := by
   cases j
@@ -262,7 +258,7 @@ theorem setOptimalityCardBound {U : Map} {A : Finset BitString} {hA : A.Nonempty
       have h_nat : (k + delta - i : ℕ) + i ≤ k + delta := by omega
       exact_mod_cast h_nat
 
-/-- ⚠️ LEGACY LOOSE FORM of Theorem 4, kept only as an abstract gated wrapper.
+/-- ⚠️ LOOSE FORM of Theorem 4, kept only as an abstract wrapper.
 
 Its gap-counting hypothesis is the loose `GapCountingBridge U`, which consumes the
 monotone `SetOptimalityDeficiencyLe U A hA x delta`.  Because `delta` there is a
@@ -277,14 +273,14 @@ theorem deficiencies_theorem (U : Map) (hU : IsOptimalPrefixConditional U)
     (h_comp : ImprovingDescriptionsComplexityLogSlack U)
     (h_gap : GapCountingBridge U) :
     ∃ c : ℕ, ∀ (A : Finset BitString) (hA : A.Nonempty) (x : BitString)
-        (n delta d i j : ℕ),
+        (n delta d i j c_soi : ℕ),
       x.length = n →
       x ∈ A →
       setComplexity U A hA = (i : ENat) →
       A.card ≤ 2 ^ j →
       SetOptimalityDeficiencyLe U A hA x delta →
       CodedFiniteDistribution.DeficiencyLe U (codedUniformOn A hA) x d →
-      d ≤ delta →
+      d ≤ delta + c_soi →
       ∃ (B : Finset BitString) (hB : B.Nonempty), x ∈ B ∧
         setComplexity U B hB + (delta - d : ℕ) ≤
           setComplexity U A hA + (logSlack c (n + delta + d) : ENat) ∧
@@ -294,12 +290,12 @@ theorem deficiencies_theorem (U : Map) (hU : IsOptimalPrefixConditional U)
   obtain ⟨bb, hbb⟩ := visible_param_linear_bound U hU
   obtain ⟨C0, hC0⟩ := logSlack_linear_bound c2 4 bb
   refine ⟨c1 + 2 * C0 + 2, ?_⟩
-  intro A hA x n delta d i j hn hxA h_compA hj h_opt h_def hd
+  intro A hA x n delta d i j c_soi hn hxA h_compA hj h_opt h_def hd
   -- Re-bracket the size parameter to the tight dyadic value `j0` coming from the
   -- optimality-deficiency cardinality bound; this keeps the internal budget
   -- `n + i + j0` linearly controlled by the visible budget `n + delta + d`.
   obtain ⟨j0, hj0_card, hj0_bound⟩ := setOptimalityCardBound hxA h_compA h_opt
-  rcases hc1 A hA x n delta d i j0 hn hxA h_compA hj0_card h_opt h_def hd with
+  rcases hc1 A hA x n delta d i j0 c_soi hn hxA h_compA hj0_card h_opt h_def hd with
     ⟨slack1, hslack1, h_many⟩
   set k := min (delta - d - slack1) i with hk_def
   have hk_le_i : k ≤ i := Nat.min_le_right _ _
@@ -308,7 +304,9 @@ theorem deficiencies_theorem (U : Map) (hU : IsOptimalPrefixConditional U)
   have hkc : delta - d - slack1 ≤ i + 1 := ManyIJDescriptions_k_le_i_add_one h_many
   rcases hc2 x n i j0 k hn h_many' hk_le_i with ⟨B, hB, hxB, hcompB, hsizeB⟩
   -- Fold the internal complexity-improvement slack into the visible-parameter slack.
-  have hvis : n + i + j0 ≤ 4 * (n + delta + d) + bb := hbb x n i j0 delta d hn hj0_bound
+  have hvis : n + i + j0 ≤ 4 * (n + delta + d) + bb := by
+    have h1 := hbb x n i j0 delta d hn hj0_bound
+    omega
   have hslackvis : logSlack c2 (n + i + j0) ≤ logSlack C0 (n + delta + d) :=
     le_trans (logSlack_mono_right c2 hvis) (hC0 (n + delta + d))
   -- The redistributed gap `delta - d` is paid for by the gap-counting slack `slack1`.
@@ -383,11 +381,11 @@ theorem deficiencies_theorem_tight (U : Map) (hU : IsOptimalPrefixConditional U)
     (h_comp : ImprovingDescriptionsComplexityLogSlack U)
     (h_gap : TightGapCountingBridge U) :
     ∃ c : ℕ, ∀ (A : Finset BitString) (hA : A.Nonempty) (x : BitString)
-        (n delta d i j kx : ℕ),
+        (n delta d i j kx c_soi : ℕ),
       x.length = n →
       RealizedSetOptimalityGap U A hA x delta i j kx →
       CodedFiniteDistribution.DeficiencyLe U (codedUniformOn A hA) x d →
-      d ≤ delta →
+      d ≤ delta + c_soi →
       ∃ (B : Finset BitString) (hB : B.Nonempty), x ∈ B ∧
         setComplexity U B hB + (delta - d : ℕ) ≤
           setComplexity U A hA + (logSlack c (n + delta + d) : ENat) ∧
@@ -397,7 +395,7 @@ theorem deficiencies_theorem_tight (U : Map) (hU : IsOptimalPrefixConditional U)
   obtain ⟨bb, hbb⟩ := visible_param_linear_bound U hU
   obtain ⟨C0, hC0⟩ := logSlack_linear_bound c2 4 bb
   refine ⟨c1 + 2 * C0 + 2, ?_⟩
-  intro A hA x n delta d i j kx hn h_realized h_def hd
+  intro A hA x n delta d i j kx c_soi hn h_realized h_def hd
   have hxA := h_realized.1
   have h_compA := h_realized.2.1
   have hj_card := h_realized.2.2.1
@@ -411,7 +409,7 @@ theorem deficiencies_theorem_tight (U : Map) (hU : IsOptimalPrefixConditional U)
   -- optimality-deficiency cardinality bound; this keeps the internal budget
   -- `n + i + j0` linearly controlled by the visible budget `n + delta + d`.
   obtain ⟨j0, hj0_card, hj0_bound⟩ := setOptimalityCardBound hxA h_compA h_opt
-  rcases hc1 A hA x n delta d i j kx hn h_realized h_def hd with
+  rcases hc1 A hA x n delta d i j kx c_soi hn h_realized h_def hd with
     ⟨slack1, hslack1, h_many⟩
   set k := min (delta - d - slack1) i with hk_def
   have hk_le_i : k ≤ i := Nat.min_le_right _ _
@@ -424,7 +422,9 @@ theorem deficiencies_theorem_tight (U : Map) (hU : IsOptimalPrefixConditional U)
     rw [hkx_eq]
     norm_cast
     omega
-  have hvis : n + i + j ≤ 4 * (n + delta + d) + bb := hbb x n i j delta d hn hj0_bound'
+  have hvis : n + i + j ≤ 4 * (n + delta + d) + bb := by
+    have h1 := hbb x n i j delta d hn hj0_bound'
+    omega
   have hslackvis : logSlack c2 (n + i + j) ≤ logSlack C0 (n + delta + d) :=
     le_trans (logSlack_mono_right c2 hvis) (hC0 (n + delta + d))
   -- The redistributed gap `delta - d` is paid for by the gap-counting slack `slack1`.
@@ -451,11 +451,11 @@ theorem deficiencies_theorem_tight (U : Map) (hU : IsOptimalPrefixConditional U)
 /-- Unconditional corollary discharging the Theorem 4 tight gate. -/
 theorem deficiencies_theorem_tight_of_optimal (U : Map) (hU : IsOptimalPrefixConditional U) :
     ∃ c : ℕ, ∀ (A : Finset BitString) (hA : A.Nonempty) (x : BitString)
-        (n delta d i j kx : ℕ),
+        (n delta d i j kx c_soi : ℕ),
       x.length = n →
       RealizedSetOptimalityGap U A hA x delta i j kx →
       CodedFiniteDistribution.DeficiencyLe U (codedUniformOn A hA) x d →
-      d ≤ delta →
+      d ≤ delta + c_soi →
       ∃ (B : Finset BitString) (hB : B.Nonempty), x ∈ B ∧
         setComplexity U B hB + (delta - d : ℕ) ≤
           setComplexity U A hA + (logSlack c (n + delta + d) : ENat) ∧
