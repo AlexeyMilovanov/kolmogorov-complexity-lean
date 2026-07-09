@@ -1,8 +1,9 @@
 /-
-Copyright (c) 2024 Alexey. All rights reserved.
+Copyright (c) 2024 Alexey Milovanov. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey
+Authors: Alexey Milovanov
 -/
+
 import KolmogorovMathlib.Complexity.SecondIncompleteness
 
 /-!
@@ -12,7 +13,7 @@ This module provides a generalized interface for applying the Kritchman-Raz proo
 of Gödel's Second Incompleteness Theorem. It demonstrates how standard
 properties of formal logic—specifically Hilbert-Bernays-Löb (HBL) derivability
 conditions, Σ₁-completeness, and logical soundness—naturally fulfill the
-abstract assumptions of our `KRFormalSystem`.
+abstract axioms of our `KRFormalSystem`.
 -/
 
 namespace Kolmogorov
@@ -25,25 +26,25 @@ namespace Kolmogorov
     upper bound directly from Lean's mathematical truth. -/
 structure PeanoLikeSystem (U : Map) extends FormalSystem U where
   -- 1. Basic Propositional Logic
-  /-- Implication formula constructor. -/
+  /-- Logical implication between formulas. -/
   impl : Formula → Formula → Formula
-  /-- Negation formula constructor. -/
+  /-- Logical negation of a formula. -/
   not : Formula → Formula
   mp : ∀ A B, provable (impl A B) → provable A → provable B
   mt : ∀ A B, provable (impl A B) → provable (not B) → provable (not A)
 
   -- 2. Vocabulary
-  /-- Formula representing consistency of the system. -/
+  /-- Formula asserting the consistency of the system. -/
   exprCon : Formula
-  /-- Formula representing `M_L > i`. -/
+  /-- Formula asserting that there are at least `i` strings of length `<= L+1` with complexity `> L`. -/
   exprMGt : ℕ → ℕ → Formula
-  /-- Formula representing `M_L = i`. -/
+  /-- Formula asserting that there are exactly `i` strings of length `<= L+1` with complexity `> L`. -/
   exprMEq : ℕ → ℕ → Formula
-  /-- Formula representing `∃ x, provable (K(x) > L)`. -/
+  /-- Formula asserting that the system proves `K(x) > L` for some `x`. -/
   exprExistsProvKGt : ℕ → Formula
 
   -- 3. Semantics & Soundness (The Semantic Bridge)
-  /-- Evaluation to standard truth. -/
+  /-- The standard semantic interpretation of a formula. -/
   eval : Formula → Prop
   soundness : ∀ φ, provable φ → eval φ
 
@@ -87,7 +88,7 @@ def PeanoLikeSystem.toKRFormalSystem {U : Map} (sys : PeanoLikeSystem U) : KRFor
   krStep4 := sys.sigma1Eq2
   krMSplit := sys.arithSplit
   -- WE DERIVE THE KR_BOUND AUTOMATICALLY HERE:
-  krBound := fun L hProv => by
+  krBound := fun L hProv ↦ by
     -- 1. If the system proved it, it must be true in reality (soundness)
     have hEval := sys.soundness _ hProv
     -- 2. The mathematical meaning implies the count cannot exceed the range

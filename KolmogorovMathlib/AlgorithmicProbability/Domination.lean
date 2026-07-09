@@ -1,10 +1,11 @@
 /-
-Copyright (c) 2024 Alexey. All rights reserved.
+Copyright (c) 2024 Alexey Milovanov. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey
+Authors: Alexey Milovanov
 -/
-import KolmogorovMathlib.AlgorithmicProbability.Mixture
+
 import KolmogorovMathlib.AlgorithmicProbability.Coding
+import KolmogorovMathlib.AlgorithmicProbability.Mixture
 
 /-!
 # Multiplicative Domination and Universality
@@ -48,20 +49,20 @@ def Dominates (μ ν : BitString → BitString → ℝ≥0∞) (c : ℝ≥0∞) 
 
 /-- **Reflexivity.** Every function dominates itself with constant `1`. -/
 theorem Dominates.refl (μ : BitString → BitString → ℝ≥0∞) :
-    Dominates μ μ 1 := fun x y => by rw [one_mul]
+    Dominates μ μ 1 := fun x y ↦ by rw [one_mul]
 
 /-- **Constant weakening.** A domination by `c` weakens to any smaller constant
 `d ≤ c`. -/
 theorem Dominates.mono_const {μ ν : BitString → BitString → ℝ≥0∞}
     {c d : ℝ≥0∞} (hcd : d ≤ c) (h : Dominates μ ν c) :
-    Dominates μ ν d := fun x y =>
+    Dominates μ ν d := fun x y ↦
   le_trans (by gcongr) (h x y)
 
 /-- **Transitivity.** Dominations compose, multiplying their constants:
 `μ ≽_c ν` and `ν ≽_d ρ` give `μ ≽_{c·d} ρ`. -/
 theorem Dominates.trans {μ ν ρ : BitString → BitString → ℝ≥0∞}
     {c d : ℝ≥0∞} (hμν : Dominates μ ν c) (hνρ : Dominates ν ρ d) :
-    Dominates μ ρ (c * d) := fun x y =>
+    Dominates μ ρ (c * d) := fun x y ↦
   calc
     (c * d) * ρ x y = c * (d * ρ x y) := by rw [mul_assoc]
     _ ≤ c * ν x y := by gcongr; exact hνρ x y
@@ -73,7 +74,7 @@ files never touch the raw `tsum` index again. -/
 theorem mixture_dominates_component (w : ℕ → ℝ≥0∞)
     (μ : ℕ → BitString → BitString → ℝ≥0∞) (i : ℕ) :
     Dominates (mixture w μ) (μ i) (w i) :=
-  fun x y => weight_mul_le_mixture w μ i x y
+  fun x y ↦ weight_mul_le_mixture w μ i x y
 
 /-- **Universality of `ν` for a countable family `μ`.** `ν` is a conditional
 semimeasure and dominates every member of the family by a strictly positive
@@ -93,7 +94,7 @@ theorem mixture_isUniversalFor (w : ℕ → ℝ≥0∞)
     (hμ : ∀ i, IsConditionalSemimeasure (μ i)) :
     IsUniversalFor (mixture w μ) μ :=
   ⟨mixture_isConditionalSemimeasure w μ hw_sum hμ,
-   fun i => ⟨w i, hw_pos i, mixture_dominates_component w μ i⟩⟩
+   fun i ↦ ⟨w i, hw_pos i, mixture_dominates_component w μ i⟩⟩
 
 /-- **Multiplicative coding payoff.** A mixture of prefix-machine a priori
 semimeasures dominates each component machine's complexity weight `2^{-KP}`,
@@ -106,12 +107,12 @@ theorem: an inequality, with no logarithm and no equality claim. -/
 theorem mixture_aprioriMeasure_dominates_complexityWeight
     (w : ℕ → ℝ≥0∞) (M : ℕ → Map) (i : ℕ) (x y : BitString) :
     w i * complexityWeight (KP (M i) x y)
-      ≤ mixture w (fun j => aprioriMeasure (M j)) x y :=
+      ≤ mixture w (fun j ↦ aprioriMeasure (M j)) x y :=
   calc
     w i * complexityWeight (KP (M i) x y)
         ≤ w i * aprioriMeasure (M i) x y := by
           gcongr; exact complexityWeight_KP_le_aprioriMeasure (M i) x y
-    _ ≤ mixture w (fun j => aprioriMeasure (M j)) x y :=
-        weight_mul_le_mixture w (fun j => aprioriMeasure (M j)) i x y
+    _ ≤ mixture w (fun j ↦ aprioriMeasure (M j)) x y :=
+        weight_mul_le_mixture w (fun j ↦ aprioriMeasure (M j)) i x y
 
 end Kolmogorov

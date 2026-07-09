@@ -1,12 +1,10 @@
 /-
-Copyright (c) 2024 Alexey. All rights reserved.
+Copyright (c) 2024 Alexey Milovanov. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey
+Authors: Alexey Milovanov
 -/
-import Mathlib
-import KolmogorovMathlib.AlgorithmicProbability.Coding
+
 import KolmogorovMathlib.AlgorithmicProbability.KraftChaitinCore
-import KolmogorovMathlib.Prefix.Optimal
 
 /-!
 # Online Kraft-Chaitin Allocator
@@ -41,11 +39,11 @@ theorem exists_online_prefixFree_of_kraft_le_one (req : ℕ → Option ℕ)
       (∀ n, req n = none → alloc n = none) ∧
       (∀ n m cn cm, alloc n = some cn → alloc m = some cm → n ≠ m → ¬ List.IsPrefix cn cm) := by
   let famReq : BitString → ℕ → Option (BitString × ℕ) :=
-    fun _ n => (req n).map (fun l => ([], l))
-  have hfamComp : Computable (fun p : BitString × ℕ => famReq p.1 p.2) := by
-    have hmap : Computable (fun n : ℕ => (req n).map (fun l => ([], l))) := by
-      have hpair : Computable (fun l : ℕ => (([] : BitString), l)) :=
-        (Computable.const []).pair Computable.id
+    fun _ n ↦ (req n).map (fun l ↦ ([], l))
+  have hfamComp : Computable (fun p : BitString × ℕ ↦ famReq p.1 p.2) := by
+    have hmap : Computable (fun n : ℕ ↦ (req n).map (fun l ↦ (([] : BitString), l))) := by
+      have hpair : Computable₂ (fun (n : ℕ) (l : ℕ) ↦ (([] : BitString), l)) :=
+        (Computable.const []).pair Computable.snd
       exact Computable.option_map hcomp hpair
     exact hmap.comp Computable.snd
   have hfamWeight :
@@ -54,20 +52,25 @@ theorem exists_online_prefixFree_of_kraft_le_one (req : ℕ → Option ℕ)
           | some (_, l) => (2 : ℝ≥0∞)⁻¹ ^ l
           | none => 0) ≤ 1 := by
     intro ctx
-    simpa [requestKraftWeight, famReq] using hweight
+    convert hweight using 1
+    congr 1
+    ext n
+    simp [famReq]
+    cases req n <;> rfl
   obtain ⟨famAlloc, hfamAllocComp, hfamAllocLen, hfamPrefix⟩ :=
     exists_online_prefixFree_family famReq hfamComp hfamWeight
-  let alloc : ℕ → Option BitString := fun n =>
+  let alloc : ℕ → Option BitString := fun n ↦
     match req n with
     | some _ => famAlloc [] n
     | none => none
   have hallocComp : Computable alloc := by
-    have hbranchSome : Computable (fun n : ℕ => famAlloc [] n) :=
-      hfamAllocComp.comp ((Computable.const []).pair Computable.id)
-    have hbranchNone : Computable (fun _ : ℕ => (none : Option BitString)) :=
+    have hbranchSome : Computable₂ (fun (n : ℕ) (val : ℕ) ↦ famAlloc [] n) :=
+      hfamAllocComp.comp ((Computable.const []).pair Computable.fst)
+    have hbranchNone : Computable (fun _ : ℕ ↦ (none : Option BitString)) :=
       Computable.const none
-    exact (Computable.option_casesOn hcomp hbranchNone (fun _ => hbranchSome)).of_eq
-      (fun n => by
+    exact (Computable.option_casesOn hcomp hbranchNone hbranchSome).of_eq
+      (fun n ↦ by
+        dsimp [alloc]
         cases req n <;> rfl)
   refine ⟨alloc, hallocComp, ?_, ?_, ?_⟩
   · intro n l hreq

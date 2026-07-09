@@ -1,13 +1,14 @@
 /-
-Copyright (c) 2024 Alexey. All rights reserved.
+Copyright (c) 2024 Alexey Milovanov. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey
+Authors: Alexey Milovanov
 -/
+
 import KolmogorovMathlib.AlgorithmicProbability.PairProjection
-import KolmogorovMathlib.Prefix.Symmetry
-import KolmogorovMathlib.Prefix.Optimal
 import KolmogorovMathlib.Complexity.Incompressibility
 import KolmogorovMathlib.Foundation.NatEncoding
+import KolmogorovMathlib.Prefix.Optimal
+import KolmogorovMathlib.Prefix.Symmetry
 
 /-!
 # The Counting Bound for Prefix Complexity (SUV Theorem 63(b))
@@ -79,14 +80,14 @@ theorem two_pow_mul_inv_pow_le_cast_pow_sub (n d : ℕ) :
 /-- The **length-projection machine**: run `U` on the program (empty context) and
 return the binary code `Nat.bits` of the length of its output. -/
 def lenMap (U : Map) : Map :=
-  fun pr => (U (pr.1, [])).map (fun z => Nat.bits z.length)
+  fun pr ↦ (U (pr.1, [])).map (fun z ↦ Nat.bits z.length)
 
 /-- Membership characterization of the length-projection machine: it produces the
 code `w` from a program `p` exactly when `U` produces, in the empty context, some
 output `z` whose length code is `w`. The output context `y` is ignored. -/
 theorem produces_lenMap_iff (U : Map) (p y w : BitString) :
     produces (lenMap U) p y w ↔ ∃ z, produces U p [] z ∧ Nat.bits z.length = w := by
-  change w ∈ Part.map (fun z => Nat.bits z.length) (U (p, [])) ↔
+  change w ∈ Part.map (fun z ↦ Nat.bits z.length) (U (p, [])) ↔
     ∃ z, produces U p [] z ∧ Nat.bits z.length = w
   rw [Part.mem_map_iff]
 
@@ -99,12 +100,12 @@ theorem domainAt_lenMap (U : Map) (y : BitString) :
 theorem lenMap_isPrefixDecompressor (U : Map) (hU : IsPrefixDecompressor U) :
     IsPrefixDecompressor (lenMap U) := by
   refine ⟨?_, ?_⟩
-  · have hf : Partrec (fun pr : BitString × BitString => U (pr.1, [])) :=
+  · have hf : Partrec (fun pr : BitString × BitString ↦ U (pr.1, [])) :=
       hU.isDecompressor.comp (Computable.fst.pair (Computable.const []))
     have hg : Computable₂
-        (fun (_ : BitString × BitString) (z : BitString) => Nat.bits z.length) :=
+        (fun (_ : BitString × BitString) (z : BitString) ↦ Nat.bits z.length) :=
       (natBitsComputable.comp (Computable.list_length.comp Computable.snd)).to₂
-    exact (hf.map hg).of_eq (fun pr => rfl)
+    exact (hf.map hg).of_eq (fun pr ↦ rfl)
   · intro y
     rw [domainAt_lenMap]
     exact hU.isPrefixMachine []
@@ -139,7 +140,7 @@ theorem lengthMarginal_le_aprioriMeasure_lenMap (U : Map) (n : ℕ) :
   rw [lengthMarginal]
   simp only [aprioriMeasure]
   rw [tsum_finset_sum_comm]
-  refine ENNReal.tsum_le_tsum (fun p => ?_)
+  refine ENNReal.tsum_le_tsum (fun p ↦ ?_)
   by_cases hp : ∃ x ∈ stringsOfLength n, produces U p [] x
   · obtain ⟨x₀, hx₀mem, hx₀⟩ := hp
     have hx₀len : x₀.length = n := (memStringsOfLength n x₀).mp hx₀mem
@@ -178,11 +179,11 @@ theorem sum_complexityWeight_stringsOfLength_le (U : Map)
   obtain ⟨c, hc⟩ :=
     aprioriMeasure_le_complexityWeight_optimal hU
       (lenMap_isPrefixDecompressor U hU.isPrefixDecompressor)
-  refine ⟨c, fun n kn hkn => ?_⟩
+  refine ⟨c, fun n kn hkn ↦ ?_⟩
   -- The length marginal dominates the sum of complexity weights.
   have hsum_le : (∑ x ∈ stringsOfLength n, complexityWeight (KPPlain U x))
       ≤ aprioriMeasure (lenMap U) (Nat.bits n) [] := by
-    refine le_trans (Finset.sum_le_sum (fun x _ => ?_))
+    refine le_trans (Finset.sum_le_sum (fun x _ ↦ ?_))
       (lengthMarginal_le_aprioriMeasure_lenMap U n)
     exact complexityWeight_KP_le_aprioriMeasure U x []
   -- The coding theorem at the code `Nat.bits n` gives `2^{-c}·marginal ≤ 2^{-kn}`.

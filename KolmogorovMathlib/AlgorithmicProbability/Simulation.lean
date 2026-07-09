@@ -1,8 +1,9 @@
 /-
-Copyright (c) 2024 Alexey. All rights reserved.
+Copyright (c) 2024 Alexey Milovanov. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey
+Authors: Alexey Milovanov
 -/
+
 import KolmogorovMathlib.AlgorithmicProbability.Domination
 
 /-!
@@ -63,7 +64,7 @@ theorem aprioriMeasure_dominates_of_simulation
     (x y : BitString) :
     (2 : ℝ≥0∞)⁻¹ ^ c * aprioriMeasure N x y ≤ aprioriMeasure M x y := by
   rw [aprioriMeasure, aprioriMeasure, ← ENNReal.tsum_mul_left]
-  refine ENNReal.summable.tsum_le_tsum_of_inj t ht (fun _ _ => zero_le) (fun p => ?_)
+  refine ENNReal.summable.tsum_le_tsum_of_inj t ht (fun _ _ ↦ zero_le) (fun p ↦ ?_)
     ENNReal.summable
   by_cases hp : produces N p y x
   · rw [if_pos hp, if_pos (hsim p y x hp)]
@@ -79,7 +80,7 @@ theorem aprioriMeasure_dominates_of_simulation'
     (hlen : ∀ p, programLength (t p) ≤ programLength p + c)
     (hsim : ∀ p y x, produces N p y x → produces M (t p) y x) :
     Dominates (aprioriMeasure M) (aprioriMeasure N) ((2 : ℝ≥0∞)⁻¹ ^ c) :=
-  fun x y => aprioriMeasure_dominates_of_simulation t ht c hlen hsim x y
+  fun x y ↦ aprioriMeasure_dominates_of_simulation t ht c hlen hsim x y
 
 /-- **Non-vacuity.** The simulation hypotheses are satisfiable: a map simulates
 itself via the identity translation with zero overhead, recovering the reflexive
@@ -87,7 +88,7 @@ domination `Dominates (aprioriMeasure N) (aprioriMeasure N) 1`. -/
 theorem aprioriMeasure_dominates_self (N : Map) :
     Dominates (aprioriMeasure N) (aprioriMeasure N) 1 := by
   have h := aprioriMeasure_dominates_of_simulation' (M := N) (N := N) id
-    Function.injective_id 0 (fun p => by simp) (fun _ _ _ hp => hp)
+    Function.injective_id 0 (fun p ↦ by simp) (fun _ _ _ hp ↦ hp)
   simpa using h
 
 /-! ### Packaged program simulations
@@ -136,8 +137,8 @@ translation with zero overhead, witnessing that `ProgramSimulation` is inhabited
 def ProgramSimulation.refl (M : Map) : ProgramSimulation M M 0 where
   translate := id
   injective := Function.injective_id
-  length_le := fun p => by simp
-  simulates := fun _ _ _ hp => hp
+  length_le := fun p ↦ by simp
+  simulates := fun _ _ _ hp ↦ hp
 
 /-- Self-domination recovered through the packaged simulation, matching
 `aprioriMeasure_dominates_self`. -/

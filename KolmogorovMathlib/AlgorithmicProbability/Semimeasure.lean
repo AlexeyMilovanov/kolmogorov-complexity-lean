@@ -1,8 +1,9 @@
 /-
-Copyright (c) 2024 Alexey. All rights reserved.
+Copyright (c) 2024 Alexey Milovanov. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey
+Authors: Alexey Milovanov
 -/
+
 import KolmogorovMathlib.Prefix.Machine
 import Mathlib.Topology.Algebra.InfiniteSum.ENNReal
 
@@ -100,7 +101,7 @@ theorem aprioriMeasure_eq_zero_of_forall_not_produces {M : Map} {x y : BitString
     (h : ∀ p, ¬ produces M p y x) : aprioriMeasure M x y = 0 := by
   classical
   rw [aprioriMeasure]
-  refine (tsum_congr (fun p => ?_)).trans tsum_zero
+  refine (tsum_congr (fun p ↦ ?_)).trans tsum_zero
   rw [if_neg (h p)]
 
 /-- Support hook for the (future) Kraft / normalization direction: every program

@@ -1,10 +1,11 @@
 /-
-Copyright (c) 2024 Alexey. All rights reserved.
+Copyright (c) 2024 Alexey Milovanov. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey
+Authors: Alexey Milovanov
 -/
-import KolmogorovMathlib.AlgorithmicProbability.PairMarginal
+
 import KolmogorovMathlib.AlgorithmicProbability.KraftChaitin
+import KolmogorovMathlib.AlgorithmicProbability.PairMarginal
 import KolmogorovMathlib.Prefix.Combinators
 
 /-!
@@ -38,7 +39,6 @@ manipulation; the only deep input is the Kraft–Chaitin realization isolated in
 namespace Kolmogorov
 
 open scoped ENNReal
-open Classical
 
 /-- **First-component decoder.** Strips the self-delimiting unary length prefix of
 a `pairCode` and returns the first component: it reads the leading run of `true`s
@@ -70,41 +70,41 @@ list-slicing computability lemmas `primrec_list_drop` / `primrec_list_take`
 (`Prefix.TwoStage`, `Core.UniversalDecompressor`) and the `takeWhile`-length
 identity `takeWhile_id_length_eq_findIdx`. -/
 theorem decodeFirst_computable : Computable decodeFirst := by
-  have hlen : Primrec (fun z : BitString => (z.takeWhile id).length) :=
+  have hlen : Primrec (fun z : BitString ↦ (z.takeWhile id).length) :=
     (Primrec.list_findIdx Primrec.id (Primrec.not.comp Primrec.snd).to₂).of_eq
-      (fun z => (takeWhile_id_length_eq_findIdx z).symm)
-  have hdrop : Primrec (fun z : BitString => z.drop ((z.takeWhile id).length + 1)) :=
+      (fun z ↦ (takeWhile_id_length_eq_findIdx z).symm)
+  have hdrop : Primrec (fun z : BitString ↦ z.drop ((z.takeWhile id).length + 1)) :=
     primrec_list_drop.comp Primrec.id (Primrec.succ.comp hlen)
-  exact ((primrec_list_take.comp hdrop hlen).of_eq (fun _ => rfl)).to_comp
+  exact ((primrec_list_take.comp hdrop hlen).of_eq (fun _ ↦ rfl)).to_comp
 
 /-- The second-component decoder is computable. -/
 theorem decodeSecond_computable : Computable decodeSecond := by
-  have hlen : Primrec (fun z : BitString => (z.takeWhile id).length) :=
+  have hlen : Primrec (fun z : BitString ↦ (z.takeWhile id).length) :=
     (Primrec.list_findIdx Primrec.id (Primrec.not.comp Primrec.snd).to₂).of_eq
-      (fun z => (takeWhile_id_length_eq_findIdx z).symm)
+      (fun z ↦ (takeWhile_id_length_eq_findIdx z).symm)
   have hdrop : Primrec
-      (fun z : BitString => z.drop (((z.takeWhile id).length + 1) + (z.takeWhile id).length)) :=
+      (fun z : BitString ↦ z.drop (((z.takeWhile id).length + 1) + (z.takeWhile id).length)) :=
     primrec_list_drop.comp Primrec.id (Primrec.nat_add.comp (Primrec.succ.comp hlen) hlen)
   exact hdrop.to_comp
 
 /-- The **projection machine**: run `U` on the program (empty context) and decode
 the first component of its output. -/
 def projMap (U : Map) : Map :=
-  fun pr => (U (pr.1, [])).map decodeFirst
+  fun pr ↦ (U pr).map decodeFirst
 
 /-- Membership characterization of the projection machine: it produces `x` from a
 program `p` exactly when `U` produces, in the empty context, some `z` whose first
 component decodes to `x`. The output context `y` is ignored. -/
 theorem produces_projMap_iff (U : Map) (p y x : BitString) :
-    produces (projMap U) p y x ↔ ∃ z, produces U p [] z ∧ decodeFirst z = x := by
-  change x ∈ Part.map decodeFirst (U (p, [])) ↔ ∃ z, produces U p [] z ∧ decodeFirst z = x
+    produces (projMap U) p y x ↔ ∃ z, produces U p y z ∧ decodeFirst z = x := by
+  change x ∈ Part.map decodeFirst (U (p, y)) ↔ ∃ z, produces U p y z ∧ decodeFirst z = x
   rw [Part.mem_map_iff]
 
 /-- The halting domain of the projection machine in any context is the halting
 domain of `U` in the empty context (post-composition by a total function does not
 change the domain). -/
 theorem domainAt_projMap (U : Map) (y : BitString) :
-    domainAt (projMap U) y = domainAt U [] := rfl
+    domainAt (projMap U) y = domainAt U y := rfl
 
 /-- **The projection machine is a prefix decompressor** whenever `U` is: it is
 partial recursive (a `Part.map` of a partial-recursive function by the computable
@@ -114,44 +114,45 @@ theorem projMap_isPrefixDecompressor (U : Map) (hU : IsPrefixDecompressor U) :
     IsPrefixDecompressor (projMap U) := by
   refine ⟨?_, ?_⟩
   · -- Partial recursive: a `Part.map` of a partial-recursive function.
-    have hf : Partrec (fun pr : BitString × BitString => U (pr.1, [])) :=
-      hU.isDecompressor.comp (Computable.fst.pair (Computable.const []))
-    have hg : Computable₂ (fun (_ : BitString × BitString) (z : BitString) => decodeFirst z) :=
+    have hf : Partrec (fun pr : BitString × BitString ↦ U pr) :=
+      hU.isDecompressor
+    have hg : Computable₂ (fun (_ : BitString × BitString) (z : BitString) ↦ decodeFirst z) :=
       (decodeFirst_computable.comp Computable.snd).to₂
-    exact (hf.map hg).of_eq (fun pr => rfl)
-  · -- Prefix machine: the domain coincides with `U`'s domain in the empty context.
+    exact (hf.map hg).of_eq (fun pr ↦ rfl)
+  · -- Prefix machine: the domain coincides with `U`'s domain in the context.
     intro y
     rw [domainAt_projMap]
-    exact hU.isPrefixMachine []
+    exact hU.isPrefixMachine y
 
 /-- **The pair marginal is bounded by the projection machine's a priori
 semimeasure.** Every pair `⟨x, y⟩` that `U` outputs decodes (via `decodeFirst`) to
 first component `x`; since `U` is deterministic, distinct `y` arise from distinct
 programs, so the pair-marginal double sum over `(y, p)` injects into the
 projection-machine sum over `p`. -/
-theorem pairMarginal_le_aprioriMeasure_projMap (U : Map) (x : BitString) :
-    pairMarginal U x ≤ aprioriMeasure (projMap U) x [] := by
+theorem pairMarginal_le_aprioriMeasure_projMap (U : Map) (x z : BitString) :
+    pairMarginal U x z ≤ aprioriMeasure (projMap U) x z := by
+  classical
   rw [pairMarginal_def]
   simp only [aprioriMeasure]
   rw [ENNReal.tsum_comm]
-  refine ENNReal.tsum_le_tsum (fun p => ?_)
-  by_cases hp : ∃ y, produces U p [] (pairCode x y)
+  refine ENNReal.tsum_le_tsum (fun p ↦ ?_)
+  by_cases hp : ∃ y, produces U p z (pairCode x y)
   · -- Determinism of `U` pins a unique second component `y₀`.
     obtain ⟨y₀, hy₀⟩ := hp
-    have huniq : ∀ y, produces U p [] (pairCode x y) → y = y₀ := by
+    have huniq : ∀ y, produces U p z (pairCode x y) → y = y₀ := by
       intro y hy
       have hmem : pairCode x y = pairCode x y₀ := Part.mem_unique hy hy₀
       exact (Prod.ext_iff.mp (@pairCode_injective (x, y) (x, y₀) hmem)).2
-    have hsum : (∑' y, if produces U p [] (pairCode x y) then progWeight p else 0)
+    have hsum : (∑' y, if produces U p z (pairCode x y) then progWeight p else 0)
         = progWeight p := by
-      rw [tsum_eq_single y₀ (fun y hy => by rw [if_neg (fun h => hy (huniq y h))])]
+      rw [tsum_eq_single y₀ (fun y hy ↦ by rw [if_neg (fun h ↦ hy (huniq y h))])]
       rw [if_pos hy₀]
-    have hproj : produces (projMap U) p [] x :=
-      (produces_projMap_iff U p [] x).mpr ⟨pairCode x y₀, hy₀, decodeFirst_pairCode x y₀⟩
+    have hproj : produces (projMap U) p z x :=
+      (produces_projMap_iff U p z x).mpr ⟨pairCode x y₀, hy₀, decodeFirst_pairCode x y₀⟩
     rw [hsum, if_pos hproj]
   · -- No second component is produced: the inner sum is zero.
     push Not at hp
-    rw [ENNReal.tsum_eq_zero.mpr (fun y => if_neg (hp y))]
+    rw [ENNReal.tsum_eq_zero.mpr (fun y ↦ if_neg (hp y))]
     exact zero_le
 
 /-- **Marginal coding bound at `k = K(x)`.** The scaled pair-output marginal is
@@ -163,24 +164,24 @@ This is the Kraft–Chaitin coding theorem
 (`pairMarginal_le_aprioriMeasure_projMap`). At `k = K(x)` the optimal complexity
 weight is `2^{-k}`, giving `pairMarginal U x ≤ 2^{c₂} · 2^{-k}`. -/
 theorem pairMarginal_coding_bound (U : Map) (hU : IsOptimalPrefixConditional U) :
-    ∃ c₂ : ℕ, ∀ (x : BitString) (k : ℕ), (k : ENat) = KP U x [] →
-      pairMarginal U x * (2 : ℝ≥0∞) ^ k ≤ (2 : ℝ≥0∞) ^ c₂ := by
+    ∃ c₂ : ℕ, ∀ (x z : BitString) (k : ℕ), (k : ENat) = KP U x z →
+      pairMarginal U x z * (2 : ℝ≥0∞) ^ k ≤ (2 : ℝ≥0∞) ^ c₂ := by
   obtain ⟨c, hc⟩ :=
     aprioriMeasure_le_complexityWeight_optimal hU
       (projMap_isPrefixDecompressor U hU.isPrefixDecompressor)
-  refine ⟨c, fun x k hk => ?_⟩
-  have h1 : (2 : ℝ≥0∞)⁻¹ ^ c * aprioriMeasure (projMap U) x [] ≤ (2 : ℝ≥0∞)⁻¹ ^ k := by
-    have := hc x []
+  refine ⟨c, fun x z k hk ↦ ?_⟩
+  have h1 : (2 : ℝ≥0∞)⁻¹ ^ c * aprioriMeasure (projMap U) x z ≤ (2 : ℝ≥0∞)⁻¹ ^ k := by
+    have := hc x z
     rwa [← hk, complexityWeight_coe] at this
-  have h2 : (2 : ℝ≥0∞)⁻¹ ^ c * pairMarginal U x ≤ (2 : ℝ≥0∞)⁻¹ ^ k :=
-    le_trans (by gcongr; exact pairMarginal_le_aprioriMeasure_projMap U x) h1
+  have h2 : (2 : ℝ≥0∞)⁻¹ ^ c * pairMarginal U x z ≤ (2 : ℝ≥0∞)⁻¹ ^ k :=
+    le_trans (by gcongr; exact pairMarginal_le_aprioriMeasure_projMap U x z) h1
   -- From `2⁻¹^c * a ≤ 2⁻¹^k` conclude `a * 2^k ≤ 2^c`.
   have hcc : (2 : ℝ≥0∞) ^ c * (2 : ℝ≥0∞)⁻¹ ^ c = 1 := by
     rw [← mul_pow, ENNReal.mul_inv_cancel two_ne_zero ENNReal.ofNat_ne_top, one_pow]
   have hkk : (2 : ℝ≥0∞)⁻¹ ^ k * (2 : ℝ≥0∞) ^ k = 1 := by
     rw [← mul_pow, ENNReal.inv_mul_cancel two_ne_zero ENNReal.ofNat_ne_top, one_pow]
-  calc pairMarginal U x * (2 : ℝ≥0∞) ^ k
-      = ((2 : ℝ≥0∞) ^ c * ((2 : ℝ≥0∞)⁻¹ ^ c * pairMarginal U x)) * (2 : ℝ≥0∞) ^ k := by
+  calc pairMarginal U x z * (2 : ℝ≥0∞) ^ k
+      = ((2 : ℝ≥0∞) ^ c * ((2 : ℝ≥0∞)⁻¹ ^ c * pairMarginal U x z)) * (2 : ℝ≥0∞) ^ k := by
         rw [← mul_assoc, hcc, one_mul]
     _ ≤ ((2 : ℝ≥0∞) ^ c * (2 : ℝ≥0∞)⁻¹ ^ k) * (2 : ℝ≥0∞) ^ k := by gcongr
     _ = (2 : ℝ≥0∞) ^ c * ((2 : ℝ≥0∞)⁻¹ ^ k * (2 : ℝ≥0∞) ^ k) := by ring

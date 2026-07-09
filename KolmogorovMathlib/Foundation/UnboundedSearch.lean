@@ -1,14 +1,15 @@
 /-
-Copyright (c) 2024 Alexey. All rights reserved.
+Copyright (c) 2024 Alexey Milovanov. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey
+Authors: Alexey Milovanov
 -/
+
+import Mathlib.Computability.Halting
 import Mathlib.Computability.Partrec
 import Mathlib.Computability.PartrecCode
 import Mathlib.Computability.Primrec.List
-import Mathlib.Computability.Halting
-import Mathlib.Data.Nat.Basic
 import Mathlib.Data.List.Basic
+import Mathlib.Data.Nat.Basic
 
 /-!
 # Unbounded Search Computability (The Mu-Operator)
@@ -24,11 +25,11 @@ namespace Kolmogorov
 /-! ### Basic Math Computability -/
 
 /-- Auxiliary lemma: Exponentiation `2^k` is a computable function. -/
-lemma Computable.pow2 : Computable (fun k : ℕ => 2 ^ k) := by
+lemma Computable.pow2 : Computable (fun k : ℕ ↦ 2 ^ k) := by
   apply Primrec.to_comp
   rw [Primrec.nat_iff]
-  have h_eq : (fun k => (Nat.pair 2 k).unpair.1 ^ (Nat.pair 2 k).unpair.2) =
-              (fun k => 2 ^ k) := by
+  have h_eq : (fun k ↦ (Nat.pair 2 k).unpair.1 ^ (Nat.pair 2 k).unpair.2) =
+              (fun k ↦ 2 ^ k) := by
     funext k
     simp only [Nat.unpair_pair]
   rw [← h_eq]
@@ -43,15 +44,15 @@ computable. This is the key bridge `Nat.find = Nat.rfind` for total decidable
 computable predicates. -/
 lemma Computable.natFind {α : Type*} [Primcodable α] {P : α → ℕ → Prop}
     [∀ a n, Decidable (P a n)]
-    (hP : Computable (fun p : α × ℕ => decide (P p.1 p.2)))
+    (hP : Computable (fun p : α × ℕ ↦ decide (P p.1 p.2)))
     (h : ∀ a, ∃ n, P a n) :
-    Computable (fun a => Nat.find (h a)) := by
-  have hp2 : Partrec₂ (fun (a : α) (n : ℕ) => (Part.some (decide (P a n)) : Part Bool)) := by
-    have : Computable₂ (fun (a : α) (n : ℕ) => decide (P a n)) := hP
+    Computable (fun a ↦ Nat.find (h a)) := by
+  have hp2 : Partrec₂ (fun (a : α) (n : ℕ) ↦ (Part.some (decide (P a n)) : Part Bool)) := by
+    have : Computable₂ (fun (a : α) (n : ℕ) ↦ decide (P a n)) := hP
     exact this.partrec₂
   have hr := Partrec.rfind hp2
-  refine hr.of_eq (fun a => ?_)
-  change (Nat.rfind fun n => Part.some (decide (P a n))) = Part.some (Nat.find (h a))
+  refine hr.of_eq (fun a ↦ ?_)
+  change (Nat.rfind fun n ↦ Part.some (decide (P a n))) = Part.some (Nat.find (h a))
   rw [Part.eq_some_iff, Nat.mem_rfind]
   refine ⟨?_, ?_⟩
   · simp only [Part.mem_some_iff]
@@ -66,16 +67,16 @@ lemma Computable.natFind {α : Type*} [Primcodable α] {P : α → ℕ → Prop}
 its inverse search function is computable. -/
 lemma Computable.inverse (f : ℕ → ℕ) (hf_comp : Computable f)
     (h_surj : ∀ y, ∃ x, f x = y) :
-    Computable (fun y => Nat.find (h_surj y)) := by
-  apply Computable.natFind (P := fun y x => f x = y)
-  have h_pair : Computable (fun p : ℕ × ℕ => (f p.2, p.1)) :=
+    Computable (fun y ↦ Nat.find (h_surj y)) := by
+  apply Computable.natFind (P := fun y x ↦ f x = y)
+  have h_pair : Computable (fun p : ℕ × ℕ ↦ (f p.2, p.1)) :=
     (hf_comp.comp Computable.snd).pair Computable.fst
   obtain ⟨_, h_eq⟩ := Primrec.eq (α := ℕ)
-  refine Computable.of_eq ((Primrec.to_comp h_eq).comp h_pair) (fun p => ?_)
-  exact congrArg (fun inst => @decide _ inst) (Subsingleton.elim _ _)
+  refine Computable.of_eq ((Primrec.to_comp h_eq).comp h_pair) (fun p ↦ ?_)
+  exact congrArg (fun inst ↦ @decide _ inst) (Subsingleton.elim _ _)
 
 /-- Isolates the strict inequality comparison operator on natural numbers. -/
-lemma Computable.natLt : Computable (fun p : ℕ × ℕ => decide (p.1 < p.2)) := by
+lemma Computable.natLt : Computable (fun p : ℕ × ℕ ↦ decide (p.1 < p.2)) := by
   obtain ⟨_, h_prim⟩ := Primrec.nat_lt
   convert Primrec.to_comp h_prim
 
@@ -84,12 +85,12 @@ between two computable functions. -/
 lemma Computable.testP {P : ℕ → ℕ → Prop}
     {f g : ℕ → ℕ} (hf : Computable f) (hg : Computable g)
     (h_equiv : ∀ k n, P k n ↔ f n > g k) :
-    ComputablePred (fun p : ℕ × ℕ => P p.1 p.2) := by
-  letI : DecidableRel P := fun k n => decidable_of_iff _ (h_equiv k n).symm
+    ComputablePred (fun p : ℕ × ℕ ↦ P p.1 p.2) := by
+  letI : DecidableRel P := fun k n ↦ decidable_of_iff _ (h_equiv k n).symm
   let h_pair := (hg.comp Computable.fst).pair (hf.comp Computable.snd)
   let h_alg := Computable.natLt.comp h_pair
-  have h_comp : Computable (fun p : ℕ × ℕ => decide (P p.1 p.2)) :=
-    Computable.of_eq h_alg (fun p => by
+  have h_comp : Computable (fun p : ℕ × ℕ ↦ decide (P p.1 p.2)) :=
+    Computable.of_eq h_alg (fun p ↦ by
       have h : P p.1 p.2 ↔ g p.1 < f p.2 := h_equiv p.1 p.2
       cases h_dec : decide (g p.1 < f p.2)
       · have h_not : ¬ (g p.1 < f p.2) := of_decide_eq_false h_dec
@@ -105,11 +106,11 @@ lemma Computable.searchCore {P : ℕ → ℕ → Prop} [DecidableRel P]
     (g : ℕ → ℕ) (hg_comp : Computable g)
     (h_equiv : ∀ k n, P k n ↔ f n > g k)
     (h_unbounded : ∀ k, ∃ n, P k n) :
-    Computable (fun k => Nat.find (h_unbounded k)) := by
-  have hcomp : Computable (fun p : ℕ × ℕ => decide (P p.1 p.2)) := by
+    Computable (fun k ↦ Nat.find (h_unbounded k)) := by
+  have hcomp : Computable (fun p : ℕ × ℕ ↦ decide (P p.1 p.2)) := by
     have h_pair := (hg_comp.comp Computable.fst).pair (hf_comp.comp Computable.snd)
     have h_alg := Computable.natLt.comp h_pair
-    refine Computable.of_eq h_alg (fun p => ?_)
+    refine Computable.of_eq h_alg (fun p ↦ ?_)
     have h : P p.1 p.2 ↔ g p.1 < f p.2 := by rw [h_equiv]
     exact decide_eq_decide.mpr h.symm
   exact Computable.natFind hcomp h_unbounded

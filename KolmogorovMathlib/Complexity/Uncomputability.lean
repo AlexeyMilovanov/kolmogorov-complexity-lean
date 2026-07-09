@@ -1,15 +1,16 @@
 /-
-Copyright (c) 2024 Alexey. All rights reserved.
+Copyright (c) 2024 Alexey Milovanov. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey
+Authors: Alexey Milovanov
 -/
-import Mathlib.Computability.PartrecCode
-import Mathlib.Computability.Partrec
-import KolmogorovMathlib.Core.Basic
-import KolmogorovMathlib.Complexity.Properties
+
 import KolmogorovMathlib.Complexity.NatComplexity
+import KolmogorovMathlib.Complexity.Properties
+import KolmogorovMathlib.Core.Basic
 import KolmogorovMathlib.Foundation.NatEncoding
 import KolmogorovMathlib.Foundation.UnboundedSearch
+import Mathlib.Computability.Partrec
+import Mathlib.Computability.PartrecCode
 import Mathlib.Order.Lattice
 
 /-!
@@ -58,15 +59,14 @@ lemma growthLemma (c : ℕ) :
     because we are searching over a computable lower bound `f`. -/
 lemma Computable.findComplex (f : ℕ → ℕ) (h_f_comp : Computable f)
     (h_unb : ∀ M, ∃ n, f n > M) :
-    Computable (fun k => Nat.find (h_unb (2^k))) := by
-  -- Используем наш новый модульный searchCore!
-  exact Computable.searchCore f h_f_comp (fun k => 2^k) Computable.pow2 (fun _ _ => Iff.rfl) (fun k => h_unb (2^k))
+    Computable (fun k ↦ Nat.find (h_unb (2^k))) := by
+  exact Computable.searchCore f h_f_comp (fun k ↦ 2^k) Computable.pow2 (fun _ _ ↦ Iff.rfl) (fun k ↦ h_unb (2^k))
 
 /-- Computable functions on natural numbers do not increase complexity by more than a constant. -/
 lemma plainKNatCompLe (U : Map) (hU : isOptimalConditional U)
     (g : ℕ → ℕ) (hg : Computable g) :
     ∃ c_g : ℕ, ∀ k, plainKNat U (g k) ≤ plainKNat U k + (c_g : ENat) := by
-  let f_str : BitString → BitString := fun s => Nat.bits (g (decodeBits s))
+  let f_str : BitString → BitString := fun s ↦ Nat.bits (g (decodeBits s))
   have hf_comp : Computable f_str :=
     natBitsComputable.comp (hg.comp decodeBitsComputable)
   obtain ⟨c_g, hc⟩ := plainKMapLe U hU f_str hf_comp
@@ -82,7 +82,7 @@ lemma plainKNatFindComplexLe (U : Map) (hU : isOptimalConditional U)
     (f : ℕ → ℕ) (h_f_comp : Computable f) (h_unb : ∀ M, ∃ n, f n > M) :
     ∃ c : ℕ, ∀ k, plainKNat U (Nat.find (h_unb (2^k))) ≤
       (programLength (Nat.bits k) : ENat) + (c : ENat) := by
-  let g := fun k => Nat.find (h_unb (2^k))
+  let g := fun k ↦ Nat.find (h_unb (2^k))
   have hg_comp : Computable g := Computable.findComplex f h_f_comp h_unb
   obtain ⟨c_g, h_bound_g⟩ := plainKNatCompLe U hU g hg_comp
   obtain ⟨c_len, h_bound_len⟩ := plainKNatLeLength U hU
@@ -122,7 +122,7 @@ theorem notComputablePlainKNat (U : Map) (hU : isOptimalConditional U) :
     ¬ ∃ f : ℕ → ℕ, Computable f ∧ ∀ n, plainKNat U n = (f n : ENat) := by
   rintro ⟨f, h_f_comp, h_f_eq⟩
   apply noComputableUnboundedLowerBound U hU
-  refine ⟨f, h_f_comp, fun n => le_of_eq (h_f_eq n).symm, fun M => ?_⟩
+  refine ⟨f, h_f_comp, fun n ↦ le_of_eq (h_f_eq n).symm, fun M ↦ ?_⟩
   obtain ⟨n, hn⟩ := existsPlainKNatGt U M
   refine ⟨n, ?_⟩
   rw [h_f_eq n] at hn

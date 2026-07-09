@@ -1,13 +1,14 @@
 /-
-Copyright (c) 2024 Alexey. All rights reserved.
+Copyright (c) 2024 Alexey Milovanov. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey
+Authors: Alexey Milovanov
 -/
-import KolmogorovMathlib.Prefix.Optimal
-import KolmogorovMathlib.Prefix.Encoding
-import KolmogorovMathlib.Prefix.TwoStage
+
 import KolmogorovMathlib.AlgorithmicProbability.Coding
 import KolmogorovMathlib.AlgorithmicProbability.ConditionalCoding
+import KolmogorovMathlib.Prefix.Encoding
+import KolmogorovMathlib.Prefix.Optimal
+import KolmogorovMathlib.Prefix.TwoStage
 
 /-!
 # Prefix Complexity of Pairs and Symmetry of Information
@@ -65,10 +66,10 @@ def HasPrefixComplexityValue (U : Map) (x : BitString) (kx : Nat) : Prop :=
 
 /-- The `(x, K(x))` context map is computable. -/
 theorem prefixComplexityContext_computable :
-    Computable (fun p : BitString × ℕ => prefixComplexityContext p.1 p.2) := by
-  have h : (fun p : BitString × ℕ => prefixComplexityContext p.1 p.2)
-      = (fun p : BitString × BitString => pairCode p.1 p.2) ∘
-          (fun p : BitString × ℕ => (p.1, natCode p.2)) := by
+    Computable (fun p : BitString × ℕ ↦ prefixComplexityContext p.1 p.2) := by
+  have h : (fun p : BitString × ℕ ↦ prefixComplexityContext p.1 p.2)
+      = (fun p : BitString × BitString ↦ pairCode p.1 p.2) ∘
+          (fun p : BitString × ℕ ↦ (p.1, natCode p.2)) := by
     funext p; rfl
   rw [h]
   exact pairCode_computable.comp (Computable.fst.pair (natCode_computable.comp Computable.snd))
@@ -83,7 +84,7 @@ theorem KPPair_chain_upper_of_prefix_decompressor (U M : Map)
       HasPrefixComplexityValue U x kx →
         KP M (pairCode x y) [] ≤
           KPPlain U x + KP U y (prefixComplexityContext x kx) + (c0 : ENat)) :
-    Exists fun c : Nat => forall x y : BitString, forall kx : Nat,
+    Exists fun c : Nat ↦ forall x y : BitString, forall kx : Nat,
       HasPrefixComplexityValue U x kx ->
         KPPair U x y <= KPPlain U x + KP U y (prefixComplexityContext x kx) + (c : ENat) := by
   obtain ⟨c1, h1⟩ := hU.invariance hM
@@ -104,7 +105,7 @@ theorem KPPair_chain_upper_weak_of_prefix_decompressor (U M : Map)
     (hU : IsOptimalPrefixConditional U) (hM : IsPrefixDecompressor M) (c0 : Nat)
     (hbound : ∀ x y : BitString,
         KP M (pairCode x y) [] ≤ KPPlain U x + KP U y x + (c0 : ENat)) :
-    Exists fun c : Nat => forall x y : BitString,
+    Exists fun c : Nat ↦ forall x y : BitString,
       KPPair U x y <= KPPlain U x + KP U y x + (c : ENat) := by
   obtain ⟨c1, h1⟩ := hU.invariance hM
   refine ⟨c0 + c1, ?_⟩
@@ -125,7 +126,7 @@ The proof instantiates the staged interface with the explicit, dovetailing
 two-stage prefix decompressor `twoStagePairBuilder` (whose computability is
 proved in `KolmogorovMathlib.Prefix.TwoStage`). -/
 theorem KPPair_chain_upper (U : Map) (hU : IsOptimalPrefixConditional U) :
-    Exists fun c : Nat => forall x y : BitString, forall kx : Nat,
+    Exists fun c : Nat ↦ forall x y : BitString, forall kx : Nat,
       HasPrefixComplexityValue U x kx ->
         KPPair U x y <= KPPlain U x + KP U y (prefixComplexityContext x kx) + (c : ENat) := by
   have hM : IsPrefixDecompressor (twoStagePairBuilder U prefixComplexityContext) :=
@@ -196,7 +197,7 @@ theorem KPPair_chain_lower_of_conditional_coding (U : Map)
         HasPrefixComplexityValue U x k →
         (2 : ℝ≥0∞)⁻¹ ^ c₁ * (aprioriMeasure U (pairCode x y) [] * (2 : ℝ≥0∞) ^ k)
           ≤ complexityWeight (KP U y (prefixComplexityContext x k))) :
-    Exists fun c : Nat => forall x y : BitString, forall kx : Nat,
+    Exists fun c : Nat ↦ forall x y : BitString, forall kx : Nat,
       HasPrefixComplexityValue U x kx ->
         KPPlain U x + KP U y (prefixComplexityContext x kx) <= KPPair U x y + (c : ENat) := by
   obtain ⟨c₁, hc₁⟩ := hcode
@@ -234,55 +235,6 @@ theorem KPPair_chain_lower_of_conditional_coding (U : Map)
     -- Read the multiplicative bound back as the additive lower bound.
     exact le_add_nat_of_complexityWeight_le hP key
 
-/-- The lower, counting direction of prefix symmetry of information.
-
-Mathematically this is
-`K(x) + K(y | x, K(x)) <= K(x,y) + O(1)`.
-This is the hard Levin-Gacs direction and is expected to need substantially more
-counting and enumeration infrastructure. -/
-theorem KPPair_chain_lower (U : Map) (hU : IsOptimalPrefixConditional U) :
-    Exists fun c : Nat => forall x y : BitString, forall kx : Nat,
-      HasPrefixComplexityValue U x kx ->
-        KPPlain U x + KP U y (prefixComplexityContext x kx) <= KPPair U x y + (c : ENat) := by
-  -- By `KPPair_chain_lower_of_conditional_coding`, the entire counting content of
-  -- the Levin–Gács direction has been isolated into the single conditional coding
-  -- bound `hcode` below, now correctly *guarded* at `k = K(x)` (the unguarded
-  -- `∀ k` form is false; see the reduction lemma's docstring). What remains
-  -- genuinely hard is exactly this bound: it is the conditional coding theorem
-  -- (SUV §4.5, Kraft–Chaitin) applied to the section semimeasure
-  -- `y ↦ m_U(⟨x,y⟩) · 2^{k}`, whose validity rests on
-  --   * lower-semicomputability of `m_U`, and
-  --   * the marginal coding bound `∑_y m_U(⟨x,y⟩) ≤ 2^{-K(x)}` at `k = K(x)`.
-  -- Both are isolated, named Chapter-4 facts; the surrounding arithmetic is fully
-  -- discharged by the reduction theorem above. The conditional coding bound at
-  -- `k = K(x)` is assembled in `ConditionalCoding.section_coding_bound` from two
-  -- precise, guarded obligations (`pairMarginal_coding_bound`,
-  -- `conditional_coding_section_realization`); the guard `(k : ENat) = KP U x []`
-  -- is definitionally `HasPrefixComplexityValue`, and `pairCode x (natCode k)` is
-  -- definitionally `prefixComplexityContext x k`.
-  apply KPPair_chain_lower_of_conditional_coding U hU
-  exact section_coding_bound U hU
-
-/-- Staged prefix symmetry of information.
-
-This packages the faithful prefix-complexity shape
-`K(x,y) = K(x) + K(y | x, K(x)) + O(1)` as the two additive inequalities above,
-with possibly different constants. -/
-theorem KPPair_symmetryOfInformation_staged (U : Map) (hU : IsOptimalPrefixConditional U) :
-    Exists fun cUpper : Nat => Exists fun cLower : Nat =>
-      forall x y : BitString, forall kx : Nat,
-        HasPrefixComplexityValue U x kx ->
-          KPPair U x y
-              <= KPPlain U x + KP U y (prefixComplexityContext x kx) + (cUpper : ENat) /\
-          KPPlain U x + KP U y (prefixComplexityContext x kx)
-              <= KPPair U x y + (cLower : ENat) := by
-  cases KPPair_chain_upper U hU with
-  | intro cUpper hUpper =>
-    cases KPPair_chain_lower U hU with
-    | intro cLower hLower =>
-      exact Exists.intro cUpper
-        (Exists.intro cLower
-          (fun x y kx hkx => And.intro (hUpper x y kx hkx) (hLower x y kx hkx)))
 
 /-- Weak upper bound with only `x` as condition.
 
@@ -290,14 +242,14 @@ This is deliberately only an upper bound. The corresponding lower bound with
 condition `x` alone is not the standard prefix symmetry theorem; the faithful
 statement above conditions on both `x` and `K(x)`. -/
 theorem KPPair_chain_upper_weak (U : Map) (hU : IsOptimalPrefixConditional U) :
-    Exists fun c : Nat => forall x y : BitString,
+    Exists fun c : Nat ↦ forall x y : BitString,
       KPPair U x y <= KPPlain U x + KP U y x + (c : ENat) := by
-  have hctx : Computable (fun p : BitString × ℕ => (fun (x : BitString) (_ : Nat) => x) p.1 p.2) :=
+  have hctx : Computable (fun p : BitString × ℕ ↦ (fun (x : BitString) (_ : Nat) ↦ x) p.1 p.2) :=
     Computable.fst
-  have hM : IsPrefixDecompressor (twoStagePairBuilder U (fun x _ => x)) :=
+  have hM : IsPrefixDecompressor (twoStagePairBuilder U (fun x _ ↦ x)) :=
     twoStagePairBuilder_isPrefixDecompressor hU.isDecompressor hU.isPrefixMachine hctx
   refine KPPair_chain_upper_weak_of_prefix_decompressor U
-    (twoStagePairBuilder U (fun x _ => x)) hU hM 0 ?_
+    (twoStagePairBuilder U (fun x _ ↦ x)) hU hM 0 ?_
   intro x y
   by_cases hKx : KPPlain U x = ⊤
   · rw [hKx]; simp
@@ -305,11 +257,11 @@ theorem KPPair_chain_upper_weak (U : Map) (hU : IsOptimalPrefixConditional U) :
     by_cases hKy : KP U y x = ⊤
     · rw [hKy]; simp
     · obtain ⟨q, hq, hqlen⟩ := exists_program_of_KP_ne_top (M := U) (x := y) (y := x) hKy
-      have hq' : produces U q ((fun (x : BitString) (_ : Nat) => x) x p.length) y := hq
+      have hq' : produces U q ((fun (x : BitString) (_ : Nat) ↦ x) x p.length) y := hq
       have hbound := KP_twoStagePairBuilder_le_of_produces
-        (U := U) (ctx := fun x _ => x) hU.isPrefixMachine hp hq'
+        (U := U) (ctx := fun x _ ↦ x) hU.isPrefixMachine hp hq'
       calc
-        KP (twoStagePairBuilder U (fun x _ => x)) (pairCode x y) []
+        KP (twoStagePairBuilder U (fun x _ ↦ x)) (pairCode x y) []
             ≤ ((p.length + q.length : Nat) : ENat) := hbound
         _ = KPPlain U x + KP U y x := by rw [Nat.cast_add, hplen, hqlen]; rfl
         _ = KPPlain U x + KP U y x + (0 : ENat) := by rw [add_zero]

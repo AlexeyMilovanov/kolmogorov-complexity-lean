@@ -1,10 +1,11 @@
 /-
-Copyright (c) 2024 Alexey. All rights reserved.
+Copyright (c) 2024 Alexey Milovanov. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey
+Authors: Alexey Milovanov
 -/
-import KolmogorovMathlib.Prefix.Kraft
+
 import KolmogorovMathlib.AlgorithmicProbability.Normalization
+import KolmogorovMathlib.Prefix.Kraft
 
 /-!
 # Countable Kraft Inequality and A Priori Semimeasure Normalization
@@ -53,16 +54,16 @@ theorem domainWeight_finset_sum_le_one (M : Map) (y : BitString)
   -- Drop the indicator: only the halting programs in `s` contribute.
   have hsum :
       ∑ p ∈ s, (if p ∈ domainAt M y then progWeight p else 0)
-        = ∑ p ∈ s.filter (fun p => p ∈ domainAt M y), progWeight p := by
+        = ∑ p ∈ s.filter (fun p ↦ p ∈ domainAt M y), progWeight p := by
     rw [Finset.sum_filter]
   rw [hsum]
   -- The filtered finset is a finite subset of the prefix-free halting domain.
-  have hsub : (↑(s.filter (fun p => p ∈ domainAt M y)) : Set BitString)
+  have hsub : (↑(s.filter (fun p ↦ p ∈ domainAt M y)) : Set BitString)
       ⊆ domainAt M y := by
     intro p hp
     rw [Finset.coe_filter, Set.mem_setOf_eq] at hp
     exact hp.2
-  have hPF : IsPrefixFree (↑(s.filter (fun p => p ∈ domainAt M y)) : Set BitString) :=
+  have hPF : IsPrefixFree (↑(s.filter (fun p ↦ p ∈ domainAt M y)) : Set BitString) :=
     (hM y).mono hsub
   exact finset_kraft_progWeight_le_one _ hPF
 
@@ -74,7 +75,7 @@ by `1` via `domainWeight_finset_sum_le_one`. -/
 theorem domainWeight_le_one (M : Map) (y : BitString) (hM : IsPrefixMachine M) :
     domainWeight M y ≤ 1 := by
   rw [domainWeight, ENNReal.tsum_eq_iSup_sum]
-  exact iSup_le fun s => domainWeight_finset_sum_le_one M y hM s
+  exact iSup_le fun s ↦ domainWeight_finset_sum_le_one M y hM s
 
 /-- **A priori semimeasure normalization.** For a prefix machine `M`, the conditional
 a priori semimeasure is normalized: the total mass over all outputs `x` is at most

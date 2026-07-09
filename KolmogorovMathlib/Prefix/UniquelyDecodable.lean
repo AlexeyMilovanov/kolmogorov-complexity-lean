@@ -1,9 +1,11 @@
 /-
-Copyright (c) 2024 Alexey. All rights reserved.
+Copyright (c) 2024 Alexey Milovanov. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey
+Authors: Alexey Milovanov
 -/
+
 import KolmogorovMathlib.Prefix.Basic
+import Mathlib.InformationTheory.Coding.UniquelyDecodable
 
 /-!
 # Prefix-Free Codes Are Uniquely Decodable
@@ -28,19 +30,6 @@ This file is pure `List Bool` combinatorics: no machines, measures, or real numb
 
 namespace Kolmogorov
 
-namespace InformationTheory
-
-/-- Lean 4.28 compatibility copy of the unique-decodability predicate used by the
-newer Mathlib coding API. -/
-def UniquelyDecodable {α : Type*} (S : Set (List α)) : Prop :=
-  ∀ L₁ L₂ : List (List α),
-    (∀ w, w ∈ L₁ → w ∈ S) →
-    (∀ w, w ∈ L₂ → w ∈ S) →
-    L₁.flatten = L₂.flatten →
-    L₁ = L₂
-
-end InformationTheory
-
 open InformationTheory
 
 /-- A prefix-free set containing the empty string is exactly the singleton `{[]}`.
@@ -49,7 +38,7 @@ prefix-free set forbids. -/
 theorem IsPrefixFree.eq_singleton_nil_of_mem {S : Set BitString} (hS : IsPrefixFree S)
     (hnil : [] ∈ S) : S = {[]} := by
   apply Set.eq_singleton_iff_unique_mem.mpr
-  refine ⟨hnil, fun q hq => ?_⟩
+  refine ⟨hnil, fun q hq ↦ ?_⟩
   exact (hS hnil hq (List.nil_prefix)).symm
 
 /-- **The bridge.** A prefix-free set of bitstrings that does *not* contain the empty
@@ -93,8 +82,8 @@ theorem IsPrefixFree.uniquelyDecodable {S : Set BitString} (hS : IsPrefixFree S)
       subst hab
       have hrest : as.flatten = bs.flatten := List.append_cancel_left hflat
       have htail : as = bs :=
-        ih bs (fun w hw => h₁ w (List.mem_cons_of_mem _ hw))
-           (fun w hw => h₂ w (List.mem_cons_of_mem _ hw)) hrest
+        ih bs (fun w hw ↦ h₁ w (List.mem_cons_of_mem _ hw))
+           (fun w hw ↦ h₂ w (List.mem_cons_of_mem _ hw)) hrest
       rw [htail]
 
 end Kolmogorov

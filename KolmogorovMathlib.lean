@@ -1,3 +1,9 @@
+/-
+Copyright (c) 2024 Alexey Milovanov. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Alexey Milovanov
+-/
+
 import KolmogorovMathlib.Foundation.UnboundedSearch
 import KolmogorovMathlib.Foundation.NatEncoding
 import KolmogorovMathlib.Foundation.RecursivelyEnumerable
@@ -45,3 +51,27 @@ import KolmogorovMathlib.Prefix.CountingBound
 import KolmogorovMathlib.Prefix.Properties
 import KolmogorovMathlib.Prefix.TotalCountingBound
 import KolmogorovMathlib.AlgorithmicProbability.ConditionalUniversalSemimeasure
+
+import KolmogorovMathlib.AlgorithmicStatistics.Basic
+import KolmogorovMathlib.AlgorithmicStatistics.Deficiency
+import KolmogorovMathlib.AlgorithmicStatistics.Stochasticity
+import KolmogorovMathlib.AlgorithmicStatistics.CodedFiniteDistribution
+import KolmogorovMathlib.AlgorithmicStatistics.NormalizedCodedFiniteDistribution
+import KolmogorovMathlib.AlgorithmicStatistics.FiniteSetModel
+import KolmogorovMathlib.AlgorithmicStatistics.Conservation
+import KolmogorovMathlib.AlgorithmicStatistics.DeficiencyTest
+import KolmogorovMathlib.AlgorithmicStatistics.NonStochastic
+import KolmogorovMathlib.AlgorithmicStatistics.Selector
+import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.Basic
+import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.ModelsToSets2
+import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.DescriptionShift
+import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.OptimalityDeficiency
+import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.ImprovingDescriptions
+import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.DescriptionSnapshot
+import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.SlackArith
+import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.Deficiencies
+import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.GreedyWindow
+import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.Profile
+import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.CurveRealization
+import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.ProfileRealization
+import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.PaperTheorems

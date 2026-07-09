@@ -1,10 +1,11 @@
 /-
-Copyright (c) 2024 Alexey. All rights reserved.
+Copyright (c) 2024 Alexey Milovanov. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey
+Authors: Alexey Milovanov
 -/
-import KolmogorovMathlib.Prefix.Optimal
+
 import KolmogorovMathlib.AlgorithmicProbability.Domination
+import KolmogorovMathlib.Prefix.Optimal
 
 /-!
 # Optimal Prefix Invariance as Complexity-Weight Domination
@@ -67,7 +68,7 @@ theorem complexityWeight_dominates_of_prefix_realization
     (hreal : ∀ y z, ((2 : ℝ≥0∞)⁻¹ ^ c₀) * μ y z ≤ complexityWeight (KP M y z)) :
     ∃ c : ℕ, ∀ y z, ((2 : ℝ≥0∞)⁻¹ ^ c) * μ y z ≤ complexityWeight (KP U y z) := by
   obtain ⟨c₁, hc₁⟩ := optimalPrefix_complexityWeight_bound hU hM
-  refine ⟨c₀ + c₁, fun y z => ?_⟩
+  refine ⟨c₀ + c₁, fun y z ↦ ?_⟩
   calc
     ((2 : ℝ≥0∞)⁻¹ ^ (c₀ + c₁)) * μ y z
         = ((2 : ℝ≥0∞)⁻¹ ^ c₁) * (((2 : ℝ≥0∞)⁻¹ ^ c₀) * μ y z) := by
@@ -86,8 +87,8 @@ theorem optimalPrefix_complexityWeight_dominates
     (hM : IsPrefixDecompressor M) :
     ∃ c : ℕ,
       Dominates
-        (fun x y => complexityWeight (KP U x y))
-        (fun x y => complexityWeight (KP M x y))
+        (fun x y ↦ complexityWeight (KP U x y))
+        (fun x y ↦ complexityWeight (KP M x y))
         ((2 : ℝ≥0∞)⁻¹ ^ c) := by
   obtain ⟨c, hc⟩ := optimalPrefix_complexityWeight_bound hU hM
   exact ⟨c, hc⟩

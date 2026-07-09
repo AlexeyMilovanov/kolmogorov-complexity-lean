@@ -1,10 +1,11 @@
 /-
-Copyright (c) 2024 Alexey. All rights reserved.
+Copyright (c) 2024 Alexey Milovanov. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey
+Authors: Alexey Milovanov
 -/
-import Mathlib.Computability.PartrecCode
+
 import Mathlib.Computability.Partrec
+import Mathlib.Computability.PartrecCode
 import Mathlib.Data.List.Basic
 
 /-!
@@ -113,11 +114,11 @@ lemma primrecDecodeStep : Primrec₂ decodeStep := by
 
 /-- The bit decoder function is primitive recursive. -/
 lemma primrecDecodeBits : Primrec decodeBits := by
-  have h_fold : Primrec (fun bs : List Bool => bs.foldr decodeStep 0) := by
-    have h_step : Primrec₂ (fun (_ : List Bool) (p : Bool × ℕ) => decodeStep p.1 p.2) :=
+  have h_fold : Primrec (fun bs : List Bool ↦ bs.foldr decodeStep 0) := by
+    have h_step : Primrec₂ (fun (_ : List Bool) (p : Bool × ℕ) ↦ decodeStep p.1 p.2) :=
       primrecDecodeStep.comp (Primrec.fst.comp Primrec.snd) (Primrec.snd.comp Primrec.snd)
     exact Primrec.list_foldr Primrec.id (Primrec.const 0) h_step
-  exact Primrec.of_eq h_fold (fun bs => (decodeBits_eq_foldr bs).symm)
+  exact Primrec.of_eq h_fold (fun bs ↦ (decodeBits_eq_foldr bs).symm)
 
 /-- The bit decoder is computable. -/
 lemma decodeBitsComputable : Computable decodeBits :=
@@ -126,7 +127,6 @@ lemma decodeBitsComputable : Computable decodeBits :=
 /-! ### Nat.bits Computability -/
 
 /-- Helper function for the strong recursion of `Nat.bits`. -/
-@[nolint unusedArguments]
 def bitsG (_ : Unit) (l : List (List Bool)) : Option (List Bool) :=
   let n := l.length
   bif n == 0 then some []
@@ -159,7 +159,7 @@ lemma primrecBitsG : Primrec₂ bitsG := by
 
 /-- `bitsG` correctly constructs the next bitstring based on the previously generated ones. -/
 lemma bitsGValid (u : Unit) (n : ℕ) :
-    bitsG u (List.map (fun x => Nat.bits x) (List.range n)) = some (Nat.bits n) := by
+    bitsG u (List.map (fun x ↦ Nat.bits x) (List.range n)) = some (Nat.bits n) := by
   unfold bitsG
   simp only [List.length_map, List.length_range]
   by_cases hn : n = 0
@@ -195,8 +195,8 @@ lemma bitsGValid (u : Unit) (n : ℕ) :
 
 /-- The standard `Nat.bits` representation is primitive recursive. -/
 lemma primrecNatBits : Primrec Nat.bits := by
-  have h_strong : Primrec₂ (fun (u : Unit) (n : ℕ) => Nat.bits n) :=
-    Primrec.nat_strong_rec (fun _ n => Nat.bits n) primrecBitsG bitsGValid
+  have h_strong : Primrec₂ (fun (u : Unit) (n : ℕ) ↦ Nat.bits n) :=
+    Primrec.nat_strong_rec (fun _ n ↦ Nat.bits n) primrecBitsG bitsGValid
   exact h_strong.comp (Primrec.const ()) Primrec.id
 
 /-- The standard `Nat.bits` representation is computable. -/

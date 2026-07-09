@@ -1,8 +1,9 @@
 /-
-Copyright (c) 2024 Alexey. All rights reserved.
+Copyright (c) 2024 Alexey Milovanov. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey
+Authors: Alexey Milovanov
 -/
+
 import KolmogorovMathlib.Core.Basic
 import Mathlib.Data.List.Infix
 
@@ -50,7 +51,7 @@ theorem IsStrictPrefix.length_lt {p q : BitString} (h : IsStrictPrefix p q) :
 
 /-- No bitstring is a strict prefix of itself. -/
 theorem not_isStrictPrefix_self (p : BitString) : ¬ IsStrictPrefix p p :=
-  fun h => h.2 rfl
+  fun h ↦ h.2 rfl
 
 /-! ### Basic facts about prefix-free sets -/
 
@@ -69,13 +70,13 @@ theorem isPrefixFree_singleton (p : BitString) : IsPrefixFree {p} := by
 pervasively: any sub-collection of a prefix code is again a prefix code. -/
 theorem IsPrefixFree.mono {S T : Set BitString} (hS : IsPrefixFree S)
     (hTS : T ⊆ S) : IsPrefixFree T :=
-  fun _ hp _ hq hpre => hS (hTS hp) (hTS hq) hpre
+  fun _ hp _ hq hpre ↦ hS (hTS hp) (hTS hq) hpre
 
 /-- A prefix-free set contains no strict-prefix pair: if `p` and `q` are both in
 `S`, then `p` is not a strict prefix of `q`. -/
 theorem IsPrefixFree.not_isStrictPrefix {S : Set BitString} (hS : IsPrefixFree S)
     {p q : BitString} (hp : p ∈ S) (hq : q ∈ S) : ¬ IsStrictPrefix p q :=
-  fun h => h.2 (hS hp hq h.1)
+  fun h ↦ h.2 (hS hp hq h.1)
 
 /-- Characterisation of prefix-freeness via strict prefixes: `S` is prefix-free
 iff no element of `S` is a strict prefix of another element of `S`. -/

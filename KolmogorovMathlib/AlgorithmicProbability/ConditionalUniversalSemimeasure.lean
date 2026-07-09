@@ -1,10 +1,10 @@
 /-
-Copyright (c) 2024 Alexey. All rights reserved.
+Copyright (c) 2024 Alexey Milovanov. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey
+Authors: Alexey Milovanov
 -/
+
 import KolmogorovMathlib.AlgorithmicProbability.UniversalSemimeasure
-import KolmogorovMathlib.AlgorithmicProbability.OptimalCoding
 
 /-!
 # Conditional Universal Lower-Semicomputable Semimeasures
@@ -44,7 +44,7 @@ theorem conditional_coding_equivalence (U : Map) (hU : IsOptimalPrefixConditiona
     have hU_lsc : IsLSC (aprioriMeasure U) :=
       aprioriMeasure_isLSC U hU.isPrefixDecompressor
     obtain ⟨c, hc_pos, hc_dom⟩ := hm.2.2 (aprioriMeasure U) hU_semi hU_lsc
-    refine ⟨c, hc_pos, fun x z => ?_⟩
+    refine ⟨c, hc_pos, fun x z ↦ ?_⟩
     calc
       c * conditionalPrefixComplexityWeight U x z
           ≤ c * aprioriMeasure U x z := by
@@ -53,7 +53,7 @@ theorem conditional_coding_equivalence (U : Map) (hU : IsOptimalPrefixConditiona
       _ ≤ m x z := hc_dom x z
   · -- complexityWeight dominates m
     obtain ⟨M, hM, c₀, hM_bound⟩ :=
-      kraftChaitin_realization_bound hm.2.1 0 (fun z => by simpa using hm.1 z)
+      kraftChaitin_realization_bound hm.2.1 0 (fun z ↦ by simpa using hm.1 z)
     obtain ⟨c, hc⟩ := complexityWeight_dominates_of_prefix_realization hU hM hM_bound
     exact ⟨c, hc⟩
 

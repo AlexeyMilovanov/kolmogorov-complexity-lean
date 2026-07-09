@@ -1,8 +1,9 @@
 /-
-Copyright (c) 2024 Alexey. All rights reserved.
+Copyright (c) 2024 Alexey Milovanov. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey
+Authors: Alexey Milovanov
 -/
+
 import KolmogorovMathlib.AlgorithmicProbability.Semimeasure
 
 /-!
@@ -59,7 +60,7 @@ theorem domainWeight_eq_zero_of_forall_not_mem_domainAt {M : Map} {y : BitString
     (h : ∀ p, p ∉ domainAt M y) : domainWeight M y = 0 := by
   classical
   rw [domainWeight]
-  refine (tsum_congr (fun p => ?_)).trans tsum_zero
+  refine (tsum_congr (fun p ↦ ?_)).trans tsum_zero
   rw [if_neg (h p)]
 
 open Classical in
@@ -80,9 +81,9 @@ theorem tsum_produces_eq (M : Map) (p y : BitString) :
           = if x = x₀ then progWeight p else 0 := by
       intro x
       have hiff : produces M p y x ↔ x = x₀ :=
-        ⟨fun hx => Part.mem_unique hx hx₀, fun hx => hx ▸ hx₀⟩
+        ⟨fun hx ↦ Part.mem_unique hx hx₀, fun hx ↦ hx ▸ hx₀⟩
       simp only [hiff]
-    rw [tsum_congr hcongr, tsum_eq_single x₀ (fun b hb => if_neg hb), if_pos rfl]
+    rw [tsum_congr hcongr, tsum_eq_single x₀ (fun b hb ↦ if_neg hb), if_pos rfl]
   · rw [if_neg hp]
     have hzero : ∀ x : BitString,
         (if produces M p y x then progWeight p else 0) = 0 := by
@@ -102,7 +103,7 @@ theorem tsum_aprioriMeasure_eq_domainWeight (M : Map) (y : BitString) :
   simp only [aprioriMeasure]
   rw [ENNReal.tsum_comm]
   simp only [domainWeight]
-  exact tsum_congr (fun p => tsum_produces_eq M p y)
+  exact tsum_congr (fun p ↦ tsum_produces_eq M p y)
 
 /-- **Conditional normalization.** If the domain weight in context `y` is at most
 `1` — which is exactly the Kraft inequality for a prefix machine's halting domain —

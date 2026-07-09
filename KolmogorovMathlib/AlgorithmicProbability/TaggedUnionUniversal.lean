@@ -1,11 +1,12 @@
 /-
-Copyright (c) 2024 Alexey. All rights reserved.
+Copyright (c) 2024 Alexey Milovanov. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey
+Authors: Alexey Milovanov
 -/
-import KolmogorovMathlib.Prefix.Combinators
+
 import KolmogorovMathlib.AlgorithmicProbability.SimulationComplexity
 import KolmogorovMathlib.AlgorithmicProbability.UniversalMixture
+import KolmogorovMathlib.Prefix.Combinators
 
 /-!
 # A Machine-Realized Universal A Priori Semimeasure
@@ -51,11 +52,11 @@ produced output. This bundles the combinatorial facts of `Prefix.Combinators`
 the `ProgramSimulation` structure consumed by the semimeasure layer. -/
 def taggedUnionSimulation (M : ℕ → Map) (i : ℕ) :
     ProgramSimulation (taggedUnion M) (M i) (i + 1) where
-  translate := fun p => natCode i ++ p
-  injective := fun _ _ h => List.append_cancel_left h
-  length_le := fun p => by
+  translate := fun p ↦ natCode i ++ p
+  injective := fun _ _ h ↦ List.append_cancel_left h
+  length_le := fun p ↦ by
     simp only [programLength, List.length_append, length_natCode]; omega
-  simulates := fun _ _ _ hp => taggedUnion_produces_natCode hp
+  simulates := fun _ _ _ hp ↦ taggedUnion_produces_natCode hp
 
 /-- **Component-wise domination.** The a priori semimeasure of `taggedUnion M`
 dominates that of each component `M i` with the dyadic constant
@@ -77,10 +78,10 @@ machine, not by an abstract weighted mixture as in
 theorem aprioriMeasure_taggedUnion_isUniversalFor (M : ℕ → Map)
     (hM : ∀ i, IsPrefixMachine (M i)) :
     IsUniversalFor (aprioriMeasure (taggedUnion M))
-      (fun i => aprioriMeasure (M i)) :=
+      (fun i ↦ aprioriMeasure (M i)) :=
   ⟨aprioriMeasure_isConditionalSemimeasure (taggedUnion M)
       (taggedUnion_isPrefixMachine hM),
-   fun i => ⟨dyadicWeight i, dyadicWeight_pos i,
+   fun i ↦ ⟨dyadicWeight i, dyadicWeight_pos i,
      aprioriMeasure_taggedUnion_dominates M i⟩⟩
 
 /-- **Additive `KP` companion.** On the conditional prefix complexity side, the

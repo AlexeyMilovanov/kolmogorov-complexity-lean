@@ -1,11 +1,12 @@
 /-
-Copyright (c) 2024 Alexey. All rights reserved.
+Copyright (c) 2024 Alexey Milovanov. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey
+Authors: Alexey Milovanov
 -/
+
 import Mathlib.Computability.Partrec
-import Mathlib.Data.List.Basic
 import Mathlib.Data.ENat.Lattice
+import Mathlib.Data.List.Basic
 
 /-!
 # Core Definitions of Algorithmic Information Theory
@@ -23,8 +24,6 @@ namespace Kolmogorov
 
 /-- A bit string is simply a list of booleans. -/
 abbrev BitString := List Bool
-
-instance prim_BitString : Primcodable BitString := @Primcodable.list Bool Primcodable.bool
 
 /-- A Map in our context is a partial function taking a pair of
     (program, context) and potentially returning a computed BitString.

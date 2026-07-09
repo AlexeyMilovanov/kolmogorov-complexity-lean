@@ -1,10 +1,11 @@
 /-
-Copyright (c) 2024 Alexey. All rights reserved.
+Copyright (c) 2024 Alexey Milovanov. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey
+Authors: Alexey Milovanov
 -/
-import KolmogorovMathlib.Prefix.Machine
+
 import KolmogorovMathlib.Prefix.Encoding
+import KolmogorovMathlib.Prefix.Machine
 import Mathlib.Data.List.TakeWhile
 
 /-!
@@ -66,7 +67,7 @@ theorem drop_natCode_append (n : ℕ) (p : BitString) :
 tag is actually terminated by a `false`: an all-`true` program (`replicate n true`,
 which is `natCode n` without its trailing `0`) never halts. That guard is what
 keeps the construction prefix-free. -/
-def taggedUnion (M : ℕ → Map) : Map := fun pr =>
+def taggedUnion (M : ℕ → Map) : Map := fun pr ↦
   if (pr.1.takeWhile id).length < pr.1.length then
     M ((pr.1.takeWhile id).length) (pr.1.drop ((pr.1.takeWhile id).length + 1), pr.2)
   else Part.none

@@ -1,22 +1,24 @@
 /-
-Copyright (c) 2024 Alexey. All rights reserved.
+Copyright (c) 2024 Alexey Milovanov. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey
+Authors: Alexey Milovanov
 -/
-import KolmogorovMathlib.Prefix.UniquelyDecodable
+
 import KolmogorovMathlib.AlgorithmicProbability.Semimeasure
 import KolmogorovMathlib.Complexity.Incompressibility
+import KolmogorovMathlib.Prefix.UniquelyDecodable
 import Mathlib.Data.ENNReal.Basic
 
 /-!
 # Finite Kraft Inequality for Prefix-Free Bitstring Codes
 
-This module specializes Mathlib's `InformationTheory.kraft_mcmillan_inequality` —
-stated for finite, uniquely decodable codes over ℝ — to *prefix-free* finite sets of
-bitstrings. The bridge `IsPrefixFree.uniquelyDecodable` (from
-`KolmogorovMathlib.Prefix.UniquelyDecodable`) discharges the unique-decodability
-hypothesis; the alphabet is `Bool`, so `Fintype.card Bool = 2` gives the familiar
-base `1/2`.
+This module proves the finite Kraft inequality for *prefix-free* finite sets of
+bitstrings directly, via the classical leaf-counting argument (see below), rather than
+specializing Mathlib's `InformationTheory.kraft_mcmillan_inequality`. Keeping the proof
+self-contained avoids threading the unique-decodability hypothesis (available as the
+bridge `IsPrefixFree.uniquelyDecodable` in `KolmogorovMathlib.Prefix.UniquelyDecodable`)
+and the empty-string corner case through Mathlib's coding API. The alphabet is `Bool`,
+so `Fintype.card Bool = 2` gives the familiar base `1/2`.
 
 Two forms are provided:
 
@@ -39,15 +41,14 @@ open InformationTheory
 
 /-! ### Leaf-counting toolkit for the Kraft inequality
 
-Since this Mathlib version does not provide `kraft_mcmillan_inequality`, we prove the
-finite Kraft bound directly by the classical leaf-counting argument: a codeword `w`
-of length `≤ L` is the prefix of exactly `2^(L - |w|)` strings of length `L`, and
-prefix-freeness makes these "leaf sets" pairwise disjoint subsets of the `2^L`
-strings of length `L`. -/
+We prove the finite Kraft bound directly by the classical leaf-counting argument: a
+codeword `w` of length `≤ L` is the prefix of exactly `2^(L - |w|)` strings of length
+`L`, and prefix-freeness makes these "leaf sets" pairwise disjoint subsets of the
+`2^L` strings of length `L`. -/
 
 /-- The length-`L` strings having `w` as a prefix (the "leaves below `w`"). -/
 noncomputable def kraftLeaves (w : BitString) (L : ℕ) : Finset BitString :=
-  (stringsOfLength L).filter (fun u => w <+: u)
+  (stringsOfLength L).filter (fun u ↦ w <+: u)
 
 lemma mem_kraftLeaves {w u : BitString} {L : ℕ} :
     u ∈ kraftLeaves w L ↔ u.length = L ∧ w <+: u := by
@@ -59,7 +60,7 @@ lemma kraftLeaves_subset (w : BitString) (L : ℕ) :
 
 lemma kraftLeaves_card {w : BitString} {L : ℕ} (h : w.length ≤ L) :
     (kraftLeaves w L).card = 2 ^ (L - w.length) := by
-  have hset : kraftLeaves w L = (stringsOfLength (L - w.length)).image (fun s => w ++ s) := by
+  have hset : kraftLeaves w L = (stringsOfLength (L - w.length)).image (fun s ↦ w ++ s) := by
     ext u
     rw [mem_kraftLeaves, Finset.mem_image]
     constructor
@@ -71,7 +72,7 @@ lemma kraftLeaves_card {w : BitString} {L : ℕ} (h : w.length ≤ L) :
       rw [memStringsOfLength] at hs
       refine ⟨?_, List.prefix_append w s⟩
       rw [List.length_append, hs]; omega
-  rw [hset, Finset.card_image_of_injective _ (fun a b hab => List.append_cancel_left hab),
+  rw [hset, Finset.card_image_of_injective _ (fun a b hab ↦ List.append_cancel_left hab),
       cardStringsOfLength]
 
 lemma kraftLeaves_disjoint {S : Set BitString} (hS : IsPrefixFree S) {L : ℕ}
@@ -95,24 +96,24 @@ theorem finset_kraft_real_le_one (F : Finset BitString)
     ∑ w ∈ F, ((1 : ℝ) / 2) ^ w.length ≤ 1 := by
   rcases F.eq_empty_or_nonempty with rfl | hFne
   · simp
-  · set L := F.sup (fun w => w.length) with hL
-    have hwL : ∀ w ∈ F, w.length ≤ L := fun w hw => Finset.le_sup hw
+  · set L := F.sup (fun w ↦ w.length) with hL
+    have hwL : ∀ w ∈ F, w.length ≤ L := fun w hw ↦ Finset.le_sup hw
     -- The leaf sets are pairwise disjoint and live inside the `2^L` strings of length `L`.
-    have hcard_bu : (F.biUnion (fun w => kraftLeaves w L)).card
+    have hcard_bu : (F.biUnion (fun w ↦ kraftLeaves w L)).card
         = ∑ w ∈ F, (kraftLeaves w L).card := by
       apply Finset.card_biUnion
       intro w1 h1 w2 h2 hne12
       exact kraftLeaves_disjoint hF (Finset.mem_coe.mpr h1) (Finset.mem_coe.mpr h2) hne12
-    have hbu_sub : (F.biUnion (fun w => kraftLeaves w L)) ⊆ stringsOfLength L := by
+    have hbu_sub : (F.biUnion (fun w ↦ kraftLeaves w L)) ⊆ stringsOfLength L := by
       intro u hu
       rw [Finset.mem_biUnion] at hu
       obtain ⟨w, _, hw⟩ := hu
       exact kraftLeaves_subset w L hw
     have hsum_card : ∑ w ∈ F, (kraftLeaves w L).card = ∑ w ∈ F, 2 ^ (L - w.length) :=
-      Finset.sum_congr rfl (fun w hw => kraftLeaves_card (hwL w hw))
+      Finset.sum_congr rfl (fun w hw ↦ kraftLeaves_card (hwL w hw))
     have hnat : ∑ w ∈ F, 2 ^ (L - w.length) ≤ 2 ^ L := by
       rw [← hsum_card, ← hcard_bu]
-      calc (F.biUnion (fun w => kraftLeaves w L)).card
+      calc (F.biUnion (fun w ↦ kraftLeaves w L)).card
             ≤ (stringsOfLength L).card := Finset.card_le_card hbu_sub
         _ = 2 ^ L := cardStringsOfLength L
     -- Transport the natural-number bound to the real Kraft sum, scaled by `2^L`.
@@ -151,13 +152,13 @@ theorem finset_kraft_progWeight_le_one (F : Finset BitString)
     (hF : IsPrefixFree (F : Set BitString)) :
     ∑ w ∈ F, progWeight w ≤ 1 := by
   have hsum_nonneg : (0 : ℝ) ≤ ∑ w ∈ F, ((1 : ℝ) / 2) ^ w.length :=
-    Finset.sum_nonneg fun w _ => by positivity
+    Finset.sum_nonneg fun w _ ↦ by positivity
   calc
     ∑ w ∈ F, progWeight w
         = ∑ w ∈ F, ENNReal.ofReal (((1 : ℝ) / 2) ^ w.length) := by
-          exact Finset.sum_congr rfl fun w _ => progWeight_eq_ofReal w
+          exact Finset.sum_congr rfl fun w _ ↦ progWeight_eq_ofReal w
     _ = ENNReal.ofReal (∑ w ∈ F, ((1 : ℝ) / 2) ^ w.length) :=
-          (ENNReal.ofReal_sum_of_nonneg fun w _ => by positivity).symm
+          (ENNReal.ofReal_sum_of_nonneg fun w _ ↦ by positivity).symm
     _ ≤ ENNReal.ofReal 1 :=
           ENNReal.ofReal_le_ofReal (finset_kraft_real_le_one F hF)
     _ = 1 := ENNReal.ofReal_one
