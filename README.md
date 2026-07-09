@@ -31,6 +31,10 @@ lake build
 
 The project is currently pinned to Lean `v4.31.0` and the matching Mathlib ecosystem.
 
+## Branches
+
+The `main` branch contains the current Lean `v4.31.0` version. A Lean `v4.28` version is preserved on the [`lean-4.28-aristotle`](https://github.com/AlexeyMilovanov/kolmogorov-complexity-lean/tree/lean-4.28-aristotle) branch as a stable reference point for the earlier Mathlib ecosystem and for comparison with the Lean 4.31 migration.
+
 ## Project Layout
 
 ```text
