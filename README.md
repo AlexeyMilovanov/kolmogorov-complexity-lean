@@ -49,7 +49,3 @@ The top-level module `KolmogorovMathlib.lean` imports the library development.
 ## Lake Metadata
 
 The Lake package is named `kolmogorov_complexity`; the Lean library target is `KolmogorovMathlib`. The Mathlib dependency is pinned in `lakefile.toml` and `lake-manifest.json` to the Lean `v4.31.0` ecosystem.
-
-## Development Notes
-
-Prefer targeted module builds while editing large proof files, then run `lake build KolmogorovMathlib` before accepting a change. In the algorithmic-statistics files, many statements intentionally expose explicit slack constants and computability witnesses; these proof-engineering layers are part of the formal interface used by later profile-realization theorems.
