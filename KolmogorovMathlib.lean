@@ -69,4 +69,6 @@ import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.CurveRealization
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.GreedyWindow
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.ProfileRealization
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.PaperTheorems
+import KolmogorovMathlib.Encoding.Tuples
+import KolmogorovMathlib.Encoding.TuplesComplexity
 import KolmogorovMathlib.Interface.StandardMachine

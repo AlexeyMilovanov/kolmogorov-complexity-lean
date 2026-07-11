@@ -208,131 +208,48 @@ theorem two_pow_half_ennreal_bracket_le {j j' c : ℕ}
   have := (Nat.pow_le_pow_iff_right (by norm_num : 1 < 2)).mp hpow
   omega
 
-lemma KP_le_prefixComplexityContext_add_logSlack_h7
-    (kx i c_log c_plain c_cond c_upper c_map c_total : ℕ)
-    (hct : c_total = c_upper + c_map + c_plain + c_log + c_cond + 2) :
-    kx + (2 * (Nat.bits i).length + c_log + c_plain + c_cond + c_upper + c_map) ≤ kx + logSlack c_total (i + 1) := by
-  have hmono : (Nat.bits i).length ≤ (Nat.bits (i + 1)).length :=
-    length_natBits_mono (Nat.le_succ i)
-  have hmul : 2 * (Nat.bits i).length ≤ c_total * (Nat.bits (i + 1)).length :=
-    Nat.mul_le_mul (by rw [hct]; omega) hmono
-  simp only [logSlack]
-  have h_rest : c_log + c_plain + c_cond + c_upper + c_map ≤ c_total := by rw [hct]; omega
-  have h_add : 2 * (Nat.bits i).length + (c_log + c_plain + c_cond + c_upper + c_map) ≤ c_total * (Nat.bits (i + 1)).length + c_total :=
-    Nat.add_le_add hmul h_rest
-  have h_assoc : 2 * (Nat.bits i).length + c_log + c_plain + c_cond + c_upper + c_map = 2 * (Nat.bits i).length + (c_log + c_plain + c_cond + c_upper + c_map) := by omega
-  rw [h_assoc]
-  exact Nat.add_le_add_left h_add kx
-
-lemma KP_le_prefixComplexityContext_add_logSlack_h5
-    (U : Map) (x code : BitString) (i c_map c_log c_plain c_cond c_upper k_ni kx : ℕ)
-    (h1 : KP U x code ≤ KP U (pairCode (natCode i) x) code + (c_map : ENat))
-    (h2 : KP U (pairCode (natCode i) x) code
-        ≤ (k_ni : ENat) + KP U x (prefixCondComplexityContext code (natCode i) k_ni)
-          + (c_upper : ENat))
-    (h3 : KP U x (prefixCondComplexityContext code (natCode i) k_ni)
-        ≤ (kx : ENat) + (c_cond : ENat))
-    (hk_ni_bound : (k_ni : ENat)
-        ≤ ((2 * (Nat.bits i).length + c_log + c_plain : ℕ) : ENat)) :
-    KP U x code
-      ≤ ((kx + (2 * (Nat.bits i).length + c_log + c_plain + c_cond + c_upper + c_map) : ℕ) : ENat) := by
-  have hstep : KP U x code
-      ≤ (k_ni : ENat) + (kx : ENat) + (c_cond : ENat) + (c_upper : ENat) + (c_map : ENat) := by
-    calc KP U x code
-        ≤ KP U (pairCode (natCode i) x) code + (c_map : ENat) := h1
-      _ ≤ ((k_ni : ENat) + KP U x (prefixCondComplexityContext code (natCode i) k_ni)
-            + (c_upper : ENat)) + (c_map : ENat) := by gcongr
-      _ ≤ ((k_ni : ENat) + ((kx : ENat) + (c_cond : ENat)) + (c_upper : ENat)) + (c_map : ENat) := by
-            gcongr
-      _ = (k_ni : ENat) + (kx : ENat) + (c_cond : ENat) + (c_upper : ENat) + (c_map : ENat) := by
-            ac_rfl
-  refine hstep.trans ?_
-  calc (k_ni : ENat) + (kx : ENat) + (c_cond : ENat) + (c_upper : ENat) + (c_map : ENat)
-      ≤ ((2 * (Nat.bits i).length + c_log + c_plain : ℕ) : ENat) + (kx : ENat)
-          + (c_cond : ENat) + (c_upper : ENat) + (c_map : ENat) := by gcongr
-    _ = ((kx + (2 * (Nat.bits i).length + c_log + c_plain + c_cond + c_upper + c_map) : ℕ) : ENat) := by
-          push_cast; ring
-
--- This proof combines several prefix-chain inequalities with visible `logSlack`.
--- Keeping the computability and cast steps explicit makes elaboration predictable.
 /-- **Conditional chain rule, index-drop form (log slack).**
 
-Removing an extra numeric index `i` from the right-hand condition costs at most the
-complexity of `i`, hence only logarithmic visible slack:
+Removing an extra numeric index `i` from the right-hand condition costs at most
+the complexity of `i`, hence only logarithmic visible slack:
 `KP U x code ≤ KP U x (prefixComplexityContext code i) + logSlack c (i+1)`.
 
-This is a specialization of the conditional staged symmetry-of-information
-infrastructure in `Prefix.ConditionalSymmetry`, plus the logarithmic plain
-complexity bound for `natCode i`. -/
+Direct corollary of `KP_cond_remove_short_info` (the conditional
+symmetry-of-information machinery in `Prefix.ConditionalSymmetry`) at
+`z := natCode i`, plus the logarithmic plain-complexity bound for `natCode`. -/
 theorem KP_le_prefixComplexityContext_add_logSlack
     (U : Map) (hU : IsOptimalPrefixConditional U) :
     ∃ c : ℕ, ∀ (x code : BitString) (i : ℕ),
       KP U x code ≤ KP U x (prefixComplexityContext code i) + (logSlack c (i + 1) : ENat) := by
-  obtain ⟨c_upper, hc_upper⟩ := KPCondPair_chain_upper U hU
-  obtain ⟨c_map, hc_map⟩ := KP_map_le U hU decodeSecond decodeSecond_computable
-  obtain ⟨c_plain, hc_plain⟩ := KP_le_KPPlain U hU
+  obtain ⟨c_rem, hc_rem⟩ := KP_cond_remove_short_info U hU
   obtain ⟨c_log, hc_log⟩ := KPPlain_natCode_le_log U hU
-  let f : BitString → BitString := fun y => pairCode (decodeFirst y) (decodeFirst (decodeSecond y))
-  have h_cond_map : Computable f := by
-    apply Computable.comp (f := fun p : BitString × BitString => pairCode p.1 p.2) (g := fun y : BitString => (decodeFirst y, decodeFirst (decodeSecond y)))
-    · exact pairCode_computable
-    · apply Computable.pair
-      · exact decodeFirst_computable
-      · apply Computable.comp (f := decodeFirst) (g := decodeSecond)
-        · exact decodeFirst_computable
-        · exact decodeSecond_computable
-  obtain ⟨c_cond, hc_cond⟩ := KP_cond_map_le U hU f h_cond_map
-  let c_total := c_upper + c_map + c_plain + c_log + c_cond + 2
-  use c_total
-  intro x code i
-  have h1 : KP U x code ≤ KP U (pairCode (natCode i) x) code + (c_map : ENat) := by
-    have h := hc_map (pairCode (natCode i) x) code
-    rwa [decodeSecond_pairCode] at h
-  -- A uniform finite upper bound on `K(i | code)` via plain complexity and the
-  -- logarithmic bound on natural-number codes.
-  have h_ni_bound : KP U (natCode i) code
-      ≤ ((2 * (Nat.bits i).length + c_log + c_plain : ℕ) : ENat) := by
-    calc KP U (natCode i) code
-        ≤ KPPlain U (natCode i) + (c_plain : ENat) := hc_plain (natCode i) code
-      _ ≤ (2 * (Nat.bits i).length + (c_log : ENat)) + (c_plain : ENat) := by
-            gcongr; exact hc_log i
-      _ = ((2 * (Nat.bits i).length + c_log + c_plain : ℕ) : ENat) := by
-            push_cast; rfl
-  by_cases htop : KP U (natCode i) code = ⊤
-  · rw [htop] at h_ni_bound
-    exact (ENat.coe_ne_top _ (top_le_iff.mp h_ni_bound)).elim
-  obtain ⟨k_ni, hk_ni_raw⟩ := ENat.ne_top_iff_exists.mp htop
-  have hk_ni : HasCondPrefixComplexityValue U (natCode i) code k_ni := hk_ni_raw
-  have h2 : KP U (pairCode (natCode i) x) code ≤ (k_ni : ENat) + KP U x (prefixCondComplexityContext code (natCode i) k_ni) + (c_upper : ENat) := by
-    have h := hc_upper (natCode i) x code k_ni hk_ni
-    have h_def : KPCondPair U (natCode i) x code = KP U (pairCode (natCode i) x) code := rfl
-    rw [h_def, hk_ni_raw.symm] at h
-    exact h
-  by_cases htop_x : KP U x (prefixComplexityContext code i) = ⊤
-  · rw [htop_x, top_add]
-    exact le_top
-  obtain ⟨kx, hkx⟩ := ENat.ne_top_iff_exists.mp htop_x
-  have h3 : KP U x (prefixCondComplexityContext code (natCode i) k_ni) ≤ (kx : ENat) + (c_cond : ENat) := by
-    have h := hc_cond x (prefixCondComplexityContext code (natCode i) k_ni)
-    have eq_f : f (prefixCondComplexityContext code (natCode i) k_ni) = prefixComplexityContext code i := by
-      dsimp [f, prefixCondComplexityContext, prefixComplexityContext]
-      rw [decodeFirst_pairCode, decodeSecond_pairCode, decodeFirst_pairCode]
-    rw [eq_f, hkx.symm] at h
-    exact h
-  -- `K(i | code) = k_ni` is bounded by the same logarithmic quantity.
-  have hk_ni_bound : (k_ni : ENat) ≤ ((2 * (Nat.bits i).length + c_log + c_plain : ℕ) : ENat) := by
-    rw [hk_ni_raw]; exact h_ni_bound
-  have h5 : KP U x code ≤ ((kx + (2 * (Nat.bits i).length + c_log + c_plain + c_cond + c_upper + c_map) : ℕ) : ENat) :=
-    KP_le_prefixComplexityContext_add_logSlack_h5 U x code i c_map c_log c_plain c_cond c_upper k_ni kx
-      h1 h2 h3 hk_ni_bound
-  have h7 : (kx + (2 * (Nat.bits i).length + c_log + c_plain + c_cond + c_upper + c_map) : ℕ) ≤ kx + logSlack c_total (i + 1) :=
-    KP_le_prefixComplexityContext_add_logSlack_h7 kx i c_log c_plain c_cond c_upper c_map c_total rfl
-  have h8 : KP U x code ≤ KP U x (prefixComplexityContext code i) + (logSlack c_total (i + 1) : ENat) := by
-    calc KP U x code ≤ ((kx + (2 * (Nat.bits i).length + c_log + c_plain + c_cond + c_upper + c_map) : ℕ) : ENat) := h5
-         _ ≤ ((kx + logSlack c_total (i + 1) : ℕ) : ENat) := Nat.cast_le.mpr h7
-         _ = KP U x (prefixComplexityContext code i) + (logSlack c_total (i + 1) : ENat) := by
-              rw [Nat.cast_add, ← hkx]
-  exact h8
+  refine ⟨c_log + c_rem + 2, fun x code i => ?_⟩
+  have hnat : 2 * (Nat.bits i).length + c_log + c_rem
+      ≤ logSlack (c_log + c_rem + 2) (i + 1) := by
+    have hmono : (Nat.bits i).length ≤ (Nat.bits (i + 1)).length :=
+      length_natBits_mono (Nat.le_succ i)
+    have hpos : 1 ≤ (Nat.bits (i + 1)).length := by
+      have h0 : 0 < Nat.size (i + 1) := Nat.size_pos.mpr (Nat.succ_pos i)
+      simpa [Nat.size_eq_bits_len] using h0
+    unfold logSlack
+    nlinarith
+  have hbound : KPPlain U (natCode i) + (c_rem : ENat)
+      ≤ (logSlack (c_log + c_rem + 2) (i + 1) : ENat) := by
+    calc KPPlain U (natCode i) + (c_rem : ENat)
+        ≤ 2 * (Nat.bits i).length + (c_log : ENat) + (c_rem : ENat) :=
+          add_le_add (hc_log i) le_rfl
+      _ = ((2 * (Nat.bits i).length + c_log + c_rem : ℕ) : ENat) := by push_cast; ring
+      _ ≤ (logSlack (c_log + c_rem + 2) (i + 1) : ENat) := by exact_mod_cast hnat
+  calc KP U x code
+      ≤ KP U x (pairCode code (natCode i)) + KPPlain U (natCode i) + (c_rem : ENat) :=
+        hc_rem x code (natCode i)
+    _ = KP U x (prefixComplexityContext code i)
+          + (KPPlain U (natCode i) + (c_rem : ENat)) := by
+        unfold prefixComplexityContext
+        rw [add_assoc]
+    _ ≤ KP U x (prefixComplexityContext code i)
+          + (logSlack (c_log + c_rem + 2) (i + 1) : ENat) :=
+        add_le_add le_rfl hbound
 
 /-- **Conditional set-complexity lower bound (S1, tight gap).**
 

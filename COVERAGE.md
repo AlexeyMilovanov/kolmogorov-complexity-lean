@@ -69,13 +69,14 @@ Status legend: ✅ formalized · 🟡 partial · ❌ not started · ➖ out of s
 | Chaitin incompleteness (abstract formal system) | `Complexity/Chaitin.lean`, `ChaitinCorollaries.lean` | `chaitinBound`, `chaitinIncompleteness` |
 | Second incompleteness, Kritchman–Raz style (KR) | `Complexity/SecondIncompleteness.lean`, `SecondIncompletenessCorollaries.lean` | `secondIncompleteness` |
 | Bundled paper-facing interface | `Interface/StandardMachine.lean` | `StandardMachine` + wrappers |
+| List/tuple encoding API | `Encoding/Tuples.lean`, `Encoding/TuplesComplexity.lean` | `listCode`, `decodeListCode_listCode`, `listCode_injective`, `listCode_primrec`, `KPPlain_listCode_le`, `KP_component_listCode_le` |
 
 ## Known gaps / debts
 
 - **Plain symmetry of information** (SUV §2.3, `C(x,y) = C(x) + C(y|x) + O(log)`): not formalized; only prefix-staged versions and one-directional plain↔prefix bridges exist.
-- **Chain-rule refactor**: parts of `GapCounting`/`DescriptionShift` predate
-  `KPCondPair_symmetryOfInformation_staged` and re-derive ad hoc conditional
-  chain rules; candidates for shortening.
+- ~~Chain-rule refactor~~ **done**: `KP_le_prefixComplexityContext_add_logSlack`
+  is now a direct corollary of `KP_cond_remove_short_info`; the rest of
+  `GapCounting`/`DescriptionShift` already sits on the pair/SOI primitives.
 - `AdmissibleCurve` in `TwoPart/Profile.lean` is intentionally kept as a
   *documented false start* (`AdmissibleCurve_unsatisfiable`); do not build on it —
   use `structureFunction_admissible` / `ProfileCurve`.

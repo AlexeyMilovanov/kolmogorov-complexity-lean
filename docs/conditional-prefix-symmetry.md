@@ -30,11 +30,12 @@ Supporting pieces, all in the same file / `Prefix/CondTwoStage.lean`:
 - `KP_cond_remove_short_info` (remove a short known string from the
   condition), already consumed by `TwoPart/PaperTheorems.lean`.
 
-## Remaining follow-up (refactor, not mathematics)
+## Follow-up refactor: done
 
-Several chain-rule and gap-counting arguments in
-`AlgorithmicStatistics/TwoPart/` (notably in `GapCounting.lean` and
-`DescriptionShift.lean`) predate this theorem and re-derive ad hoc
-conditional chain rules. They should be revisited and, where possible,
-replaced by direct corollaries of `KPCondPair_symmetryOfInformation_staged`.
-This is tracked in `COVERAGE.md` under "Known gaps / debts".
+`KP_le_prefixComplexityContext_add_logSlack` in
+`AlgorithmicStatistics/TwoPart/GapCounting.lean` (the index-drop chain rule)
+is now proved as a direct corollary of `KP_cond_remove_short_info` at
+`z := natCode i`; its two former ad hoc helper lemmas were removed. The other
+chain-shaped proofs in `GapCounting.lean`/`DescriptionShift.lean`
+(`descriptionShift_complexity`, the reconstruction bounds) already compose the
+pair/SOI primitives directly and need no changes.
