@@ -1,43 +1,29 @@
 [
   {
-    "id": "M0_enumeration_complexity",
-    "title": "M0: complexity via computable enumerations",
-    "module": "KolmogorovMathlib.Foundation.EnumerationComplexity",
-    "files": [
-      "KolmogorovMathlib/Foundation/EnumerationComplexity.lean",
-      "KolmogorovMathlib/AlgorithmicStatistics/TwoPart/GapCounting.lean",
-      "KolmogorovMathlib/Encoding/Tuples.lean"
-    ],
-    "allowed_prefixes": [
-      "KolmogorovMathlib/Foundation/EnumerationComplexity.lean"
-    ],
-    "targets": [
-      "StagedEnumeration.distinctAt_mono",
-      "StagedEnumeration.KPPlain_le_log_index_of_enumeration",
-      "StagedEnumeration.KP_le_log_index_of_cond_enumeration",
-      "StagedEnumeration.setComplexity_le_log_index_of_enumeration"
-    ],
-    "notes": "PLAN_RESTRICTED_TYPE.md milestone M0. Statements are DRAFT until the first strategic freeze: adjusting them is allowed ONLY in early iterations and must be reported as INTERFACE change. Proof route: generalize GapCounting's candidateCodes/appearanceListCodes/indexSelectorFn machinery (included read-only above); do NOT duplicate it. GapCounting and Tuples are READ-ONLY reference files here."
-  },
-  {
-    "id": "M1_description_family",
-    "title": "M1: description families and the restricted profile",
-    "module": "KolmogorovMathlib.Restricted.Family",
+    "id": "restricted_type",
+    "title": "VS40 section 6: descriptions of restricted type (whole chapter)",
+    "module": "KolmogorovMathlib.Restricted",
     "files": [
       "KolmogorovMathlib/Restricted/Family.lean",
-      "KolmogorovMathlib/AlgorithmicStatistics/TwoPart/Basic.lean",
-      "KolmogorovMathlib/AlgorithmicStatistics/TwoPart/Profile.lean"
+      "KolmogorovMathlib/Foundation/EnumerationComplexity.lean",
+      "KolmogorovMathlib/AlgorithmicStatistics/TwoPart/GapCounting.lean",
+      "KolmogorovMathlib/AlgorithmicStatistics/TwoPart/Profile.lean",
+      "KolmogorovMathlib/AlgorithmicStatistics/TwoPart/DescriptionShift.lean"
     ],
     "allowed_prefixes": [
-      "KolmogorovMathlib/Restricted/Family.lean"
+      "KolmogorovMathlib/Restricted/",
+      "KolmogorovMathlib/Foundation/EnumerationComplexity.lean",
+      "KolmogorovMathlib.lean",
+      "COVERAGE.md"
     ],
     "targets": [
-      "InDescriptionProfileIn.mono_i",
-      "InDescriptionProfileIn.mono_j",
-      "fullFamily",
-      "inDescriptionProfileIn_fullFamily_iff",
-      "DescriptionFamily.singleton_mem"
+      "M0: StagedEnumeration.KPPlain_le_log_index_of_enumeration (+cond, +setComplexity forms)",
+      "M2: restricted profile basic properties (full-cube point, singleton point, description shift)",
+      "M3: example families (cylinders, masks; Hamming balls as stretch)",
+      "M4: restricted improving descriptions (greedy cover -> selection -> assembly)",
+      "M5: restricted deficiency equivalence",
+      "M6/M7 (stretch): Hamming gap, restricted curve realization"
     ],
-    "notes": "PLAN_RESTRICTED_TYPE.md milestone M1. Statements are DRAFT until the first strategic freeze. Mandatory order: mono lemmas -> fullFamily instance (enumerate canonical uniform codes; see isCanonicalUniformCode in GapCounting) -> fullFamily sanity iff -> singleton_mem (derive from fullCube + cover at c = 1). Basic.lean and Profile.lean are READ-ONLY reference files here. Stress-test every adjusted statement on fullFamily and on a singleton-only family before freezing."
+    "notes": "GLOBAL SECTION: the whole of PLAN_RESTRICTED_TYPE.md. M1 (Restricted/Family.lean) is already fully proved - build on it, do not restate it. Work milestone by milestone; when the current milestone has no open sorries, draft the next milestone's files under KolmogorovMathlib/Restricted/ (new files need an import line in KolmogorovMathlib.lean and a COVERAGE.md row). GapCounting/Profile/DescriptionShift are READ-ONLY references (the M0 proof route generalizes GapCounting's candidateCodes/appearanceListCodes; M2's shift mirrors inDescriptionProfile_portion). Keep each new file focused on one milestone."
   }
 ]

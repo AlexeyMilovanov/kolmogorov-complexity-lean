@@ -319,7 +319,8 @@ def ordinary_prompt(
             "Try to close or strictly reconstruct one or more `sorry`s in this "
             "section. Edit Lean files in the worktree. If a target is too hard, "
             "replace it only by genuinely smaller named lemmas with precise "
-            "`sorry`s."
+            "`sorry`s. If there are no open sorries, advance to the next "
+            "milestone of the global plan (draft its files and sorries)."
         ),
         "02_codex": (
             "Review Gemini's changes. Keep correct progress, reject or revert "
@@ -340,6 +341,19 @@ Iteration: {iteration}
 
 This is an ordinary proof iteration, not the strategic planning iteration.
 You may edit files in the isolated worktree below.
+
+GLOBAL GOAL: formalize ALL of VS40 section 6 (descriptions of restricted
+type) following `PLAN_RESTRICTED_TYPE.md`. Closing the current `sorry`s is
+only the local step. If the sorry scan below is empty, or the current
+milestone is essentially closed, ADVANCE TO THE NEXT MILESTONE from the plan
+(recommended order: M0 -> M2 -> M4 -> M5; M3 examples in parallel; M6/M7 as
+stretch; skip milestones whose theorems already exist): create the next
+file(s) under `KolmogorovMathlib/Restricted/` with carefully drafted DRAFT
+statements and honest `sorry` leaves, wire them as imports into
+`KolmogorovMathlib.lean`, and update `COVERAGE.md`. Statement quality gates:
+slack constants quantified before the string; stress-test new predicates on
+`fullFamily` and on trivial families; never weaken already-proved statements;
+never invent work outside the plan.
 
 Worktree: `{work_root}`
 
@@ -444,8 +458,21 @@ Required output:
 
 STATUS: STRATEGY_READY / NEEDS_HUMAN_DECISION / INTERFACE_PROBLEM
 
+GLOBAL GOAL: formalize ALL of VS40 section 6 (descriptions of restricted
+type) following `PLAN_RESTRICTED_TYPE.md`. Closing the current `sorry`s is
+only the local step. If the sorry scan below is empty, or the current
+milestone is essentially closed, ADVANCE TO THE NEXT MILESTONE from the plan
+(recommended order: M0 -> M2 -> M4 -> M5; M3 examples in parallel; M6/M7 as
+stretch; skip milestones whose theorems already exist): create the next
+file(s) under `KolmogorovMathlib/Restricted/` with carefully drafted DRAFT
+statements and honest `sorry` leaves, wire them as imports into
+`KolmogorovMathlib.lean`, and update `COVERAGE.md`. Statement quality gates:
+slack constants quantified before the string; stress-test new predicates on
+`fullFamily` and on trivial families; never weaken already-proved statements;
+never invent work outside the plan.
+
 ## Section Diagnosis
-What is the real dependency shape of this section?
+What is the real dependency shape of this section (relative to the global plan)?
 
 ## Next {span} Iterations
 For each of the next {span} ordinary iterations, give:
@@ -955,9 +982,20 @@ def iter_candidate_files(root: Path, section: dict[str, Any]) -> list[Path]:
     return sorted(set(files))
 
 
+def iter_mergeable_files(root: Path, section: dict[str, Any]) -> list[Path]:
+    files = list(iter_candidate_files(root, section))
+    for prefix in allowed_prefixes(section):
+        path = root / prefix
+        if path.is_file() and path.suffix == ".md":
+            files.append(path)
+        elif path.is_dir():
+            files.extend(path.rglob("*.md"))
+    return sorted(set(files))
+
+
 def changed_candidate_files(work_root: Path, section: dict[str, Any]) -> list[tuple[str, Path]]:
     changed: list[tuple[str, Path]] = []
-    for path in iter_candidate_files(work_root, section):
+    for path in iter_mergeable_files(work_root, section):
         rel = path.relative_to(work_root).as_posix()
         if not is_allowed_candidate(rel, section):
             continue
@@ -1173,9 +1211,11 @@ def run_iteration(
         write_json(iter_dir / "manifest.json", manifest)
         return manifest
 
+    open_leaves = count_section_sorries_at(work_root, section)
+    manifest["open_leaves_after_stages"] = open_leaves
     aristotle_prompt = write_aristotle_packet(section, iteration, iter_dir, mode, work_root)
     manifest["aristotle_prompt"] = str(aristotle_prompt)
-    if args.submit_aristotle and not args.dry_run:
+    if args.submit_aristotle and not args.dry_run and open_leaves > 0:
         manifest["aristotle"] = submit_aristotle(iter_dir, args.aristotle_timeout_seconds)
         followup = manifest["aristotle"].get("followup", {}) if isinstance(manifest.get("aristotle"), dict) else {}
         if followup.get("reason") == "timeout_waiting_for_aristotle":
@@ -1186,10 +1226,13 @@ def run_iteration(
         if manifest["aristotle"].get("returncode") == 0:
             manifest["aristotle_integration"] = integrate_aristotle_result(iter_dir, work_root, section)
     else:
-        manifest["aristotle"] = {"submitted": False, "reason": "default_prepare_only"}
+        manifest["aristotle"] = {
+            "submitted": False,
+            "reason": "no_open_sorries_after_stages" if open_leaves == 0 else "default_prepare_only",
+        }
     if mode != "strategy" and not args.dry_run:
         integration = manifest.get("aristotle_integration", {}) if isinstance(manifest.get("aristotle_integration"), dict) else {}
-        if args.submit_aristotle and not integration.get("integrated"):
+        if args.submit_aristotle and open_leaves > 0 and not integration.get("integrated"):
             manifest["status"] = "blocked_missing_aristotle_result"
             manifest["blocked_reason"] = "Aristotle result was not downloaded/integrated; refusing LLM-only merge."
             write_json(iter_dir / "manifest.json", manifest)
