@@ -69,3 +69,4 @@ import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.CurveRealization
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.GreedyWindow
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.ProfileRealization
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.PaperTheorems
+import KolmogorovMathlib.Interface.StandardMachine

@@ -1,73 +1,40 @@
-# TODO: Conditional Prefix Symmetry of Information
+# Conditional Prefix Symmetry of Information — DONE
 
-This file records an important general theorem that is not yet formalized in the
-project.  The current prefix-complexity infrastructure proves the unconditional
-staged symmetry of information for pairs:
-
-```text
-K(x,z) = K(z) + K(x | z, K(z)) + O(1)
-```
-
-in Lean as the two-sided theorem `KPPair_symmetryOfInformation_staged`, using
-`KPPair`, `KPPlain`, `HasPrefixComplexityValue`, and
-`prefixComplexityContext`.
-
-The next general theorem should be the corresponding conditional version, with
-an external condition `y`:
-
-```text
-K(x,z | y) = K(z | y) + K(x | z, K(z | y), y) + O(1).
-```
-
-A faithful Lean shape should use a natural witness `kzy` for the finite value
-of `KP U z y`, just as the unconditional theorem uses a witness for `KPPlain U
-z`.  Schematically:
+**Status: formalized.** This file used to be the TODO for the conditional
+staged symmetry of information. The theorem is now fully proved in
+`KolmogorovMathlib/Prefix/ConditionalSymmetry.lean`:
 
 ```lean
-def conditionalPrefixComplexityContext
-    (z : BitString) (kzy : Nat) (y : BitString) : BitString :=
-  -- code the triple (z, kzy, y), for example by nested pairCode/natCode
-  pairCode z (pairCode (natCode kzy) y)
-
-def HasConditionalPrefixComplexityValue
-    (U : Map) (z y : BitString) (kzy : Nat) : Prop :=
-  (kzy : ENat) = KP U z y
-
-theorem KP_pair_cond_symmetryOfInformation_staged
-    (U : Map) (hU : IsOptimalPrefixConditional U) :
-    Exists fun cUpper : Nat => Exists fun cLower : Nat =>
-      forall x z y : BitString, forall kzy : Nat,
-        HasConditionalPrefixComplexityValue U z y kzy ->
-          KP U (pairCode x z) y
-            <= KP U z y
-               + KP U x (conditionalPrefixComplexityContext z kzy y)
-               + (cUpper : ENat) /\
-          KP U z y
-               + KP U x (conditionalPrefixComplexityContext z kzy y)
-            <= KP U (pairCode x z) y + (cLower : ENat)
+theorem KPCondPair_symmetryOfInformation_staged (U : Map) (hU : IsOptimalPrefixConditional U) :
+    ∃ cUpper : Nat, ∃ cLower : Nat,
+      ∀ x y z : BitString, ∀ kx : Nat,
+        HasCondPrefixComplexityValue U x z kx →
+          KPCondPair U x y z
+              ≤ KP U x z + KP U y (prefixCondComplexityContext z x kx) + (cUpper : ENat) ∧
+          KP U x z + KP U y (prefixCondComplexityContext z x kx)
+              ≤ KPCondPair U x y z + (cLower : ENat)
 ```
 
-The exact order of the pair `(x,z)` and the context `(z,kzy,y)` can be adjusted
-to match downstream use, but the theorem should retain the external condition
-`y` and the witness for `K(z | y)`.  A version with `K(z)` instead of `K(z|y)`
-is strictly weaker and is not the desired statement.
+i.e. `K(x,y | z) = K(x | z) + K(y | z, x, K(x|z)) + O(1)`, with the external
+condition `z` and a natural witness `kx` for `K(x|z)` — exactly the statement
+this document originally requested (up to renaming of the letters).
 
-## Expected proof route
+Supporting pieces, all in the same file / `Prefix/CondTwoStage.lean`:
 
-1. Generalize the existing two-stage pair builder so that the first-stage
-   program is run under an external condition `y` rather than under `[]`.
-2. Prove the conditional upper direction by composing:
-   a program for `z` from `y`, and then a program for `x` from the encoded
-   context `(z, K(z|y), y)`.
-3. Generalize the lower direction `KPPair_chain_lower_of_conditional_coding` to
-   sections of the conditional a priori semimeasure at fixed external condition
-   `y`.
-4. Package the two inequalities as a staged theorem, following the structure of
-   `KPPair_symmetryOfInformation_staged`.
+- upper direction: relativized two-stage builder
+  (`KPCondPair_chain_upper_of_prefix_decompressor`, `KPCondPair_chain_upper`);
+- lower direction: sections of the conditional a priori semimeasure
+  (`section_coding_bound` → `KPCondPair_chain_lower`);
+- the unconditional staged SOI is recovered at the empty condition
+  (`KPPair_chain_lower`, `KPPair_symmetryOfInformation_staged`);
+- `KP_cond_remove_short_info` (remove a short known string from the
+  condition), already consumed by `TwoPart/PaperTheorems.lean`.
 
-## Why this matters
+## Remaining follow-up (refactor, not mathematics)
 
-This conditional symmetry theorem should become a central reusable ingredient
-for algorithmic statistics. Several current ad hoc chain-rule and gap-counting
-arguments should become direct corollaries, or at least substantially shorter,
-once this theorem is available.
+Several chain-rule and gap-counting arguments in
+`AlgorithmicStatistics/TwoPart/` (notably in `GapCounting.lean` and
+`DescriptionShift.lean`) predate this theorem and re-derive ad hoc
+conditional chain rules. They should be revisited and, where possible,
+replaced by direct corollaries of `KPCondPair_symmetryOfInformation_staged`.
+This is tracked in `COVERAGE.md` under "Known gaps / debts".

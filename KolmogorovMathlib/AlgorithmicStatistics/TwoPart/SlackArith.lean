@@ -105,6 +105,22 @@ the logarithmic tightness (unlike `logSlack_le_add_const`).  Proof: `logSlack c_
 (`logSlack_le_add_const`), so `k ≤ 2*(n+alpha+beta) + b`; then `logSlack_linear_bound`
 and monotonicity of `logSlack` in its argument (`logSlack_mono_right`) fold it.
 -/
+/-- Slacks at *different* visible budgets combine at the joint budget: the
+standard move for merging bounds coming from two sub-arguments. -/
+theorem logSlack_add_logSlack_le (c c' n m : Nat) :
+    logSlack c n + logSlack c' m ≤ logSlack (c + c') (n + m) :=
+  calc logSlack c n + logSlack c' m
+      ≤ logSlack c (n + m) + logSlack c' (n + m) :=
+        Nat.add_le_add (logSlack_mono_right c (Nat.le_add_right n m))
+          (logSlack_mono_right c' (Nat.le_add_left m n))
+    _ = logSlack (c + c') (n + m) := logSlack_add_const c c' (n + m)
+
+/-- An additive `O(1)` constant folds into the slack constant. -/
+theorem logSlack_add_nat_le (c k n : Nat) :
+    logSlack c n + k ≤ logSlack (c + k) n := by
+  unfold logSlack
+  nlinarith [Nat.zero_le (k * (Nat.bits n).length)]
+
 theorem logSlack_fold_level (cc c_lb : Nat) :
     ∃ C : Nat, ∀ (n alpha beta k : Nat),
       k ≤ n + beta + logSlack c_lb n →
