@@ -73,3 +73,5 @@ import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.PaperTheorems
 import KolmogorovMathlib.Encoding.Tuples
 import KolmogorovMathlib.Encoding.TuplesComplexity
 import KolmogorovMathlib.Interface.StandardMachine
+import KolmogorovMathlib.Foundation.EnumerationComplexity
+import KolmogorovMathlib.Restricted.Family
