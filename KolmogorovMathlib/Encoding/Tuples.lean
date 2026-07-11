@@ -118,19 +118,10 @@ theorem listCode_injective : Function.Injective listCode :=
 
 /-- The unary code `natCode` is primitive recursive (exported form of the
 computation inside `natCode_computable`). -/
-theorem natCode_primrec : Primrec natCode := by
-  have hrep : Primrec (fun n : ℕ => List.replicate n true) := by
-    have h : (fun n : ℕ => List.replicate n true)
-        = fun n => Nat.rec ([] : List Bool) (fun _ ih => true :: ih) n := by
-      funext n; induction n with
-      | zero => rfl
-      | succ n ih => rw [List.replicate_succ, ih]
-    rw [h]
-    exact Primrec.nat_rec' Primrec.id (Primrec.const [])
-      (Primrec.list_cons.comp (Primrec.const true) (Primrec.snd.comp Primrec.snd)).to₂
-  have h : natCode = fun n => List.replicate n true ++ [false] := rfl
-  rw [h]
-  exact Primrec.list_append.comp hrep (Primrec.const [false])
+theorem natCode_primrec : Primrec natCode :=
+  Primrec.list_append.comp
+    (Primrec.list_replicate.comp Primrec.id (Primrec.const true))
+    (Primrec.const [false])
 
 /-- The pair code is primitive recursive in both components. -/
 theorem pairCode_primrec : Primrec₂ pairCode := by
@@ -173,23 +164,11 @@ theorem listStep_primrec : Primrec listStep := by
     rcases s with ⟨w, acc⟩
     cases w <;> rfl)
 
-/-- Iterating `listStep` is expressible by primitive recursion. -/
-private theorem iterate_listStep_eq_rec (n : ℕ) (z : BitString × List BitString) :
-    listStep^[n] z = Nat.rec z (fun _ ih => listStep ih) n := by
-  induction n with
-  | zero => rfl
-  | succ n ih => rw [Function.iterate_succ_apply', ih]
-
 /-- The list decoder is primitive recursive. -/
-theorem decodeListCode_primrec : Primrec decodeListCode := by
-  have h : Primrec (fun w : BitString =>
-      (Nat.rec ((w, ([] : List BitString)))
-        (fun _ ih => listStep ih) w.length : BitString × List BitString)) :=
-    Primrec.nat_rec' Primrec.list_length (Primrec.id.pair (Primrec.const []))
-      ((listStep_primrec.comp (Primrec.snd.comp Primrec.snd)).to₂)
-  exact (Primrec.snd.comp h).of_eq (fun w => by
-    unfold decodeListCode
-    rw [iterate_listStep_eq_rec])
+theorem decodeListCode_primrec : Primrec decodeListCode :=
+  Primrec.snd.comp
+    ((Primrec.nat_iterate' listStep_primrec).comp
+      (Primrec.id.pair (Primrec.const [])) Primrec.list_length)
 
 theorem decodeListCode_computable : Computable decodeListCode :=
   decodeListCode_primrec.to_comp

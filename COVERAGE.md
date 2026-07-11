@@ -70,6 +70,7 @@ Status legend: ✅ formalized · 🟡 partial · ❌ not started · ➖ out of s
 | Second incompleteness, Kritchman–Raz style (KR) | `Complexity/SecondIncompleteness.lean`, `SecondIncompletenessCorollaries.lean` | `secondIncompleteness` |
 | Bundled paper-facing interface | `Interface/StandardMachine.lean` | `StandardMachine` + wrappers |
 | List/tuple encoding API | `Encoding/Tuples.lean`, `Encoding/TuplesComplexity.lean` | `listCode`, `decodeListCode_listCode`, `listCode_injective`, `listCode_primrec`, `KPPlain_listCode_le`, `KP_component_listCode_le` |
+| Primrec toolkit | `Foundation/PrimrecExtras.lean` | `Primrec.list_take/drop/takeWhile/replicate`, `Primrec.nat_iterate'`, `primrec_auto` — add new general `Primrec` lemmas HERE |
 
 ## Known gaps / debts
 

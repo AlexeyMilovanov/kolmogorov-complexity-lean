@@ -378,14 +378,12 @@ recursive and converting with `Primrec.to_comp`.  Recall
 
 /-- The unary natural-number decoder `(z.takeWhile id).length` is primitive recursive. -/
 theorem decodeNatCode_primrec : Primrec decodeNatCode :=
-  (Primrec.list_findIdx Primrec.id (Primrec.not.comp Primrec.snd).to₂).of_eq
-    (fun z => (takeWhile_id_length_eq_findIdx z).symm)
+  Primrec.list_length.comp (Primrec.list_takeWhile Primrec.id)
 
 /-- The first-component decoder is primitive recursive. -/
 theorem decodeFirst_primrec : Primrec decodeFirst := by
   have hlen : Primrec (fun z : BitString => (z.takeWhile id).length) :=
-    (Primrec.list_findIdx Primrec.id (Primrec.not.comp Primrec.snd).to₂).of_eq
-      (fun z => (takeWhile_id_length_eq_findIdx z).symm)
+    Primrec.list_length.comp (Primrec.list_takeWhile Primrec.id)
   have hdrop : Primrec (fun z : BitString => z.drop ((z.takeWhile id).length + 1)) :=
     primrec_list_drop.comp Primrec.id (Primrec.succ.comp hlen)
   exact (primrec_list_take.comp hdrop hlen).of_eq (fun _ => rfl)
@@ -393,8 +391,7 @@ theorem decodeFirst_primrec : Primrec decodeFirst := by
 /-- The second-component decoder is primitive recursive. -/
 theorem decodeSecond_primrec : Primrec decodeSecond := by
   have hlen : Primrec (fun z : BitString => (z.takeWhile id).length) :=
-    (Primrec.list_findIdx Primrec.id (Primrec.not.comp Primrec.snd).to₂).of_eq
-      (fun z => (takeWhile_id_length_eq_findIdx z).symm)
+    Primrec.list_length.comp (Primrec.list_takeWhile Primrec.id)
   have hdrop : Primrec
       (fun z : BitString => z.drop (((z.takeWhile id).length + 1) + (z.takeWhile id).length)) :=
     primrec_list_drop.comp Primrec.id (Primrec.nat_add.comp (Primrec.succ.comp hlen) hlen)

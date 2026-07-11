@@ -4,6 +4,7 @@ import Mathlib.Computability.Encoding
 import Mathlib.Data.List.Basic
 import Mathlib.Data.ENat.Basic
 import KolmogorovMathlib.Core.Basic
+import KolmogorovMathlib.Foundation.PrimrecExtras
 
 /-!
 # Universal Decompressor Construction
@@ -72,16 +73,8 @@ def parseTapeNat (n : ℕ) : ℕ × ℕ :=
 
 /-- `List.drop` is primitive recursive in its arguments (proved by recursion on the
 number of elements dropped, peeling one tail at a time). -/
-lemma primrec_list_drop : Primrec₂ (fun (l : List Bool) (n : ℕ) => l.drop n) := by
-  have h : (fun (l : List Bool) (n : ℕ) => l.drop n)
-      = fun l n => Nat.rec l (fun _ ih => ih.tail) n := by
-    funext l n
-    induction n with
-    | zero => rfl
-    | succ n ih => rw [← List.tail_drop, ih]
-  rw [h]
-  exact Primrec.nat_rec' Primrec.snd Primrec.fst
-    (Primrec.list_tail.comp (Primrec.snd.comp Primrec.snd)).to₂
+lemma primrec_list_drop : Primrec₂ (fun (l : List Bool) (n : ℕ) => l.drop n) :=
+  Primrec.list_drop
 
 /-- The length of the leading run of `true`s equals the index of the first `false`,
 so the unary-prefix length is computed by `List.findIdx`. -/

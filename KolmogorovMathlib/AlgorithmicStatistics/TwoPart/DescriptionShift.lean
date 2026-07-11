@@ -183,22 +183,12 @@ theorem codedUniform_foldr (l : List BitString) (n : ℕ) (hn : 0 < n) :
   | cons a l ih => simp only [List.map_cons, codedDistributionDataCode, List.foldr_cons, ih]; rfl
 
 /-- `List.drop` on `List BitString` is primitive recursive in both arguments. -/
-theorem primrec_listBitString_drop : Primrec₂ (fun (l : List BitString) (n : ℕ) => l.drop n) := by
-  have h : (fun (l : List BitString) (n : ℕ) => l.drop n) = fun l n => Nat.rec l (fun _ ih => ih.tail) n := by
-    funext l n; induction n with | zero => rfl | succ n ih => rw [← List.tail_drop, ih]
-  rw [h]
-  exact Primrec.nat_rec' Primrec.snd Primrec.fst (Primrec.list_tail.comp (Primrec.snd.comp Primrec.snd)).to₂
+theorem primrec_listBitString_drop : Primrec₂ (fun (l : List BitString) (n : ℕ) => l.drop n) :=
+  Primrec.list_drop
 
 /-- `List.take` on `List BitString` is primitive recursive in both arguments. -/
-theorem primrec_listBitString_take : Primrec₂ (fun (l : List BitString) (n : ℕ) => l.take n) := by
-  have h_take_eq : ∀ (l : List BitString) (n : ℕ), l.take n = (l.reverse.drop (l.length - n)).reverse := by
-    grind +suggestions
-  simp only [h_take_eq]
-  apply_rules [Primrec.comp, Primrec.list_reverse, Primrec.list_length, Primrec.nat_sub]
-  any_goals exact Primrec.id
-  · exact Primrec.list_reverse
-  · convert primrec_listBitString_drop.comp (Primrec.list_reverse.comp Primrec.fst)
-      (Primrec.nat_sub.comp (Primrec.list_length.comp Primrec.fst) Primrec.snd) using 1
+theorem primrec_listBitString_take : Primrec₂ (fun (l : List BitString) (n : ℕ) => l.take n) :=
+  Primrec.list_take
 
 /-
 The remaining genuine computability content of the description-shift bound,

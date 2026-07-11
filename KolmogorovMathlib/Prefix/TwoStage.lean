@@ -185,19 +185,8 @@ We now build a genuinely computable map `twoStageMap c ctx` from a
 `l.take n = (l.reverse.drop (l.length - n)).reverse`.
 -/
 theorem primrec_list_take :
-    Primrec₂ (fun (l : BitString) (n : ℕ) => l.take n) := by
-  have h_take_eq :
-      ∀ (l : List Bool) (n : ℕ), l.take n = (l.reverse.drop (l.length - n)).reverse := by
-    grind +suggestions
-  simp only [h_take_eq]
-  apply_rules [Primrec.comp, Primrec.list_reverse, Primrec.list_length, Primrec.nat_sub]
-  any_goals exact Primrec.id
-  · exact Primrec.list_reverse
-  · convert
-      primrec_list_drop.comp
-        (Primrec.list_reverse.comp Primrec.fst)
-        (Primrec.nat_sub.comp (Primrec.list_length.comp Primrec.fst) Primrec.snd)
-      using 1
+    Primrec₂ (fun (l : BitString) (n : ℕ) => l.take n) :=
+  Primrec.list_take
 
 /-
 Evaluating a *fixed* code with given fuel and input is computable.

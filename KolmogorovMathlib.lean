@@ -1,4 +1,5 @@
 import KolmogorovMathlib.Foundation.UnboundedSearch
+import KolmogorovMathlib.Foundation.PrimrecExtras
 import KolmogorovMathlib.Foundation.NatEncoding
 import KolmogorovMathlib.Foundation.RecursivelyEnumerable
 import KolmogorovMathlib.Core.Basic
