@@ -3,15 +3,15 @@
 
 KolmogorovMathlib restricted-type (VS40 section 6) loop:
 
-    Gemini -> Codex -> Opus (Claude) -> Aristotle packet
+    Gemini -> Codex -> Opus -> Codex -> Aristotle
 
 Every Nth iteration (default: 5) is strategic and plans the next N-1 proof
 iterations. Aristotle receives a strategic packet on those iterations too.
 
-Ordinary iterations are implementation iterations: Gemini edits the isolated
-worktree to close/reconstruct `sorry`s, Codex verifies and repairs those edits
-(rolling back unsound ones) and continues, Opus verifies and finishes the
-iteration, then Aristotle receives the remaining leaf obligations.
+The same runner supports proof implementation and post-proof polishing. In
+polishing mode the theorem statements are frozen: agents reduce elaboration
+cost, remove local heartbeat overrides and warnings, and improve Mathlib style
+without introducing `sorry`s or weakening the formal API.
 """
 
 from __future__ import annotations
@@ -39,6 +39,8 @@ PROOF_LOOP_DIR = ROOT / "proof_loop"
 SECTIONS_PATH = PROOF_LOOP_DIR / "sections.json"
 DEFAULT_RUNS_DIR = ROOT / "proof_loop_runs"
 DEFAULT_STOP_FILE = PROOF_LOOP_DIR / "PAUSE"
+CODEX_MODEL = os.environ.get("KOLMOGOROV_CODEX_MODEL", "gpt-5.6-sol")
+CODEX_EFFORT = os.environ.get("KOLMOGOROV_CODEX_EFFORT", "xhigh")
 DEFAULT_STABILITY_LAB_ROOT = Path(
     os.environ.get(
         "HARPER_STABILITY_LAB_ROOT",
@@ -134,10 +136,10 @@ def count_section_sorries_at(root: Path, section: dict[str, Any]) -> int:
     return total
 
 
-def rel_file_block(paths: list[str], max_each: int = 50000) -> str:
+def rel_file_block(root: Path, paths: list[str], max_each: int = 50000) -> str:
     chunks: list[str] = []
     for rel in paths:
-        path = ROOT / rel
+        path = root / rel
         suffix = "lean" if path.suffix == ".lean" else "text"
         chunks.append(f"\n\n## FILE: {rel}\n\n```{suffix}\n")
         chunks.append(read_text(path, max_each).strip())
@@ -150,16 +152,44 @@ def latest_file(pattern_root: Path, glob: str) -> Path | None:
     return files[-1] if files else None
 
 
-def collect_context(section: dict[str, Any]) -> str:
-    plan = read_text(ROOT / "PLAN_RESTRICTED_TYPE.md", 45000)
-    coverage = read_text(ROOT / "COVERAGE.md", 20000)
-    readme = read_text(ROOT / "README.md", 8000)
+def collect_context(section: dict[str, Any], root: Path) -> str:
+    coverage = read_text(root / "COVERAGE.md", 20000)
+    readme = read_text(root / "README.md", 8000)
+    if section.get("workflow") == "polish":
+        target_files = "\n".join(f"- `{path}`" for path in section.get("files", []))
+        return f"""
+# Repository Context
+
+Current worktree root: `{root}`
+
+The project is complete and sorry-free at the baseline. Use `COVERAGE.md` to
+identify public declarations, but inspect exact proof bodies directly in the
+worktree instead of relying on copied source excerpts.
+
+## Primary polishing files
+
+{target_files}
+
+## COVERAGE.md
+
+```markdown
+{coverage.strip()}
+```
+
+## README.md
+
+```markdown
+{readme.strip()}
+```
+"""
+
+    plan = read_text(root / "PLAN_RESTRICTED_TYPE.md", 45000)
     source6 = read_text(PROOF_LOOP_DIR / "SOURCE_SECTION6.md", 70000)
     prior_aristotle = read_text(PROOF_LOOP_DIR / "PRIOR_ARISTOTLE_ARTIFACTS.md", 12000)
     return f"""
 # Repository Context
 
-Root: `{ROOT}`
+Current worktree root: `{root}`
 
 Read `COVERAGE.md` FIRST: build on the theorems named there, never re-derive
 them. Conventions: paper-facing statements against `StandardMachine`
@@ -200,7 +230,7 @@ are quantified BEFORE the string (`exists c, forall x n ...`).
 ```
 
 # Section Files
-{rel_file_block(section["files"])}
+{rel_file_block(root, section["files"])}
 """
 
 
@@ -235,6 +265,32 @@ def scan_sorries_at(root: Path) -> str:
         return cp.stdout.strip() or "(no sorries found)"
     except Exception as exc:
         return f"(sorry scan failed: {type(exc).__name__}: {exc})"
+
+
+def is_polishing(section: dict[str, Any]) -> bool:
+    return section.get("workflow") == "polish"
+
+
+def scan_polish_debt_at(root: Path) -> str:
+    """Return static proof-engineering debt that agents can attack locally."""
+    needles = (
+        "set_option maxHeartbeats",
+        "set_option maxRecDepth",
+        "set_option linter.",
+    )
+    lines: list[str] = []
+    source_root = root / "KolmogorovMathlib"
+    for path in sorted(source_root.rglob("*.lean")):
+        try:
+            text = path.read_text(encoding="utf-8", errors="replace")
+        except Exception:
+            continue
+        rel = path.relative_to(root)
+        for idx, line in enumerate(text.splitlines(), 1):
+            stripped = line.strip()
+            if any(needle in line for needle in needles) or stripped == "import Mathlib":
+                lines.append(f"{rel}:{idx}:{line}")
+    return "\n".join(lines) if lines else "(no static polishing debt found)"
 
 
 def import_pipeline_module():
@@ -275,7 +331,7 @@ def latest_strategy_outputs(section_dir: Path, before_iteration: int) -> str:
         return "(no previous strategy iteration for this section)"
     latest = sorted(strategy_dirs, key=lambda p: p.name)[-1]
     chunks = [f"# LATEST STRATEGY: {latest.name}\n"]
-    for name in ["03_claude.md", "02_codex.md", "01_gemini.md"]:
+    for name in ["04_codex.md", "03_opus.md", "02_codex.md", "01_gemini.md"]:
         path = latest / name
         if path.exists():
             chunks.append(f"\n\n## {name}\n\n")
@@ -301,7 +357,7 @@ def section_header(section: dict[str, Any]) -> str:
 """
 
 
-def ordinary_prompt(
+def polishing_ordinary_prompt(
     stage: str,
     section: dict[str, Any],
     iteration: int,
@@ -310,9 +366,130 @@ def ordinary_prompt(
     work_root: Path,
 ) -> str:
     role = {
+        "01_gemini": "Gemini, first proof-polishing implementer",
+        "02_codex": "Codex, first verifier and repairer",
+        "03_opus": "Opus, independent proof-style and performance reviewer",
+        "04_codex": "Codex, final verifier and Aristotle-packet curator",
+    }[stage]
+    stage_task = {
+        "01_gemini": (
+            "Choose a small coherent batch of current debt and improve it in the "
+            "worktree. Start with low-risk local heartbeat overrides or the three "
+            "current Lean info suggestions. Refactor the proof rather than merely "
+            "raising or relocating a limit. Run targeted builds for every touched module."
+        ),
+        "02_codex": (
+            "Adversarially review Gemini's actual diff. Revert regressions, repair "
+            "broken or slower proofs, and continue the same small batch where safe. "
+            "Confirm that theorem statements and assumptions are byte-for-byte unchanged."
+        ),
+        "03_opus": (
+            "Independently inspect the resulting proofs for elaboration cost and "
+            "Mathlib style. Simplify brittle tactic scripts, remove unnecessary local "
+            "options/imports/comments, and test the touched modules. Preserve only "
+            "measurable improvements that compile."
+        ),
+        "04_codex": (
+            "Perform the final strict review. Check the complete iteration diff, fix "
+            "remaining local issues, run targeted builds and then the full audit when "
+            "the batch is stable. Curate exact remaining expensive declarations for "
+            "Aristotle, including useful failed approaches from earlier stages."
+        ),
+    }[stage]
+    return f"""
+You are {role} in a Lean 4 post-proof polishing iteration.
+
+Iteration: {iteration}. This is an ordinary editing iteration.
+Worktree: `{work_root}`
+
+The restricted-family formalization is already complete and kernel-checked.
+This iteration must improve implementation quality without changing its
+mathematical content. Do not add new milestones or draft new theorems.
+
+{section_header(section)}
+
+# Current static polishing debt
+
+```text
+{scan_polish_debt_at(work_root)}
+```
+
+# Current `sorry` scan (must remain empty)
+
+```text
+{scan_section_sorries_at(work_root, section)}
+```
+
+# Previous outputs in this iteration
+
+```markdown
+{previous}
+```
+
+# Latest strategic polishing plan
+
+```markdown
+{latest_strategy_outputs(work_root.parent, iteration)}
+```
+
+# Task
+
+{stage_task}
+
+Priorities, in order:
+1. Remove local `set_option maxHeartbeats` by making the enclosed proof cheaper.
+2. Remove Lean warnings/info suggestions and unnecessary linter suppressions.
+3. Narrow broad imports, remove dead helpers and stale implementation commentary.
+4. Prefer shorter, robust Mathlib-style proofs when compile time does not regress.
+
+Use targeted `lake env lean <file>` or module builds while editing. Do not launch
+repeated blind full builds; the final Codex should run `bash scripts/audit.sh`
+once the batch is stable.
+
+Required output:
+
+STATUS: IMPROVED / NO_SAFE_IMPROVEMENT / BUILD_BROKEN / INTERFACE_PROBLEM
+
+## Changes Made
+List exact files/declarations and the debt removed.
+
+## Verification
+Report targeted builds, full audit if run, and remaining heartbeat count.
+
+## Aristotle Optimization Packet
+Give 1-3 exact expensive declarations or style leaves for Aristotle. Include
+the existing proof and any tested partial replacement; never create a `sorry`.
+
+## Risks
+Report compile-time regressions, statement drift, or reverted attempts.
+
+Hard constraints:
+- Zero `sorry`/`sorryAx` before and after every stage.
+- No `axiom`, `admit`, `unsafe`, `implemented_by`, or `native_decide`.
+- Do not change theorem statements, assumptions, definitions' semantics, or public names.
+- Never replace a heartbeat override by a larger/global override or by disabling limits.
+- If an attempted cleanup does not compile, revert that attempt before finishing.
+- Do not commit, push, or edit files outside the allowed section prefixes.
+
+{context}
+"""
+
+
+def ordinary_prompt(
+    stage: str,
+    section: dict[str, Any],
+    iteration: int,
+    context: str,
+    previous: str,
+    work_root: Path,
+) -> str:
+    if is_polishing(section):
+        return polishing_ordinary_prompt(stage, section, iteration, context, previous, work_root)
+    role = {
         "01_gemini": "Gemini, first implementation agent",
-        "02_codex": "Codex, verifier and implementation repairer",
-        "03_claude": "Opus (Claude), final verifier and finisher",
+        "02_codex": "Codex, first verifier and repairer",
+        "03_opus": "Opus, independent proof improver and critic",
+        "04_codex": "Codex, final verifier, repairer, and Aristotle-packet preparer",
     }[stage]
     stage_task = {
         "01_gemini": (
@@ -325,13 +502,23 @@ def ordinary_prompt(
         "02_codex": (
             "Review Gemini's changes. Keep correct progress, reject or revert "
             "unsound edits, repair build/type errors, and then try to close or "
-            "strictly reconstruct more `sorry`s yourself."
+            "strictly reconstruct more `sorry`s yourself. Leave a verified, clearly "
+            "diagnosed worktree for Opus, including exact remaining proof gaps and "
+            "any mathematical or interface risks that need independent review."
         ),
-        "03_claude": (
-            "Final implementation pass for this iteration. Verify the worktree "
-            "(run lake build / targeted lake env lean), repair what you can, "
-            "finish partial proofs, and leave a clean Aristotle packet for any "
-            "remaining leaf obligations with exact frozen Lean statements."
+        "03_opus": (
+            "Independently review the complete Gemini and first-Codex result. Keep "
+            "only sound progress, repair proof architecture or Lean errors, and "
+            "attack the hardest remaining obligations yourself. Prefer compiling "
+            "proofs or genuinely smaller exact leaf lemmas over prose suggestions. "
+            "Leave the worktree in a state that a final Codex pass can certify."
+        ),
+        "04_codex": (
+            "Perform the final adversarial review of all preceding edits. Inspect "
+            "the actual diff, reject or repair unsound shortcuts, close additional "
+            "leaves where possible, and run targeted builds plus the full audit as "
+            "far as practical. Then curate a clean Aristotle packet containing only "
+            "the remaining exact frozen Lean obligations and the useful partial work."
         ),
     }[stage]
     return f"""
@@ -420,6 +607,76 @@ Hard constraints:
 """
 
 
+def polishing_strategy_prompt(
+    stage: str,
+    section: dict[str, Any],
+    iteration: int,
+    previous: str,
+    span: int,
+    work_root: Path,
+) -> str:
+    role = {
+        "01_gemini": "Gemini polishing strategist",
+        "02_codex": "Codex first polishing-plan critic",
+        "03_opus": "Opus independent performance and style reviewer",
+        "04_codex": "Codex final polishing-plan synthesizer",
+    }[stage]
+    stage_task = {
+        "01_gemini": "Group the remaining debt into small dependency-aware batches and estimate build risk.",
+        "02_codex": "Check Gemini's plan against the actual declarations, imports, and build hotspots.",
+        "03_opus": "Stress-test the plan for theorem drift, elaboration regressions, and non-Mathlib style.",
+        "04_codex": "Freeze an executable four-iteration plan with exact files, declarations, and acceptance tests.",
+    }[stage]
+    return f"""
+You are {role} for strategic Lean proof polishing.
+
+Iteration: {iteration}. Plan the next {span} ordinary iterations. Do not edit
+the worktree during this strategy iteration.
+
+{section_header(section)}
+
+# Current static polishing debt
+
+```text
+{scan_polish_debt_at(work_root)}
+```
+
+# Current `sorry` scan (must remain empty)
+
+```text
+{scan_section_sorries_at(work_root, section)}
+```
+
+# Previous strategy-agent outputs
+
+```markdown
+{previous}
+```
+
+# Stage-specific task
+
+{stage_task}
+
+Required output:
+
+STATUS: STRATEGY_READY / NO_SAFE_IMPROVEMENT / NEEDS_HUMAN_DECISION
+
+## Best Plan For The Next Four Ordinary Iterations
+For each iteration give exact files/declarations, the proposed cheaper proof,
+targeted verification, expected heartbeat reduction, and rollback criterion.
+
+## Aristotle Optimization Priority
+Rank 3-8 exact declarations where independent proof search could remove a local
+heartbeat override or replace a brittle proof without changing the theorem.
+
+## Risks
+Flag any proposal that could alter the API, assumptions, semantics, or compile time.
+
+Hard constraints: no edits, no new `sorry`, no theorem weakening, and no plan
+whose only effect is moving or increasing a resource override.
+"""
+
+
 def strategy_prompt(
     stage: str,
     section: dict[str, Any],
@@ -429,10 +686,31 @@ def strategy_prompt(
     span: int,
     work_root: Path,
 ) -> str:
+    if is_polishing(section):
+        return polishing_strategy_prompt(stage, section, iteration, previous, span, work_root)
     role = {
         "01_gemini": "Gemini strategy planner",
-        "02_codex": "Codex strategy critic",
-        "03_claude": "Opus (Claude) final strategy writer",
+        "02_codex": "Codex first strategy critic",
+        "03_opus": "Opus independent strategy reviewer",
+        "04_codex": "Codex final strategy synthesizer",
+    }[stage]
+    stage_task = {
+        "01_gemini": (
+            "Propose the next proof plan from the actual declarations and dependency "
+            "graph. Identify concrete Lean-sized leaves rather than broad aspirations."
+        ),
+        "02_codex": (
+            "Critique Gemini's plan against the current Lean code. Correct false "
+            "assumptions, missing dependencies, and obligations that are too large."
+        ),
+        "03_opus": (
+            "Independently stress-test the proposed strategy mathematically and as "
+            "Lean proof engineering. Identify hidden gaps and propose sharper leaves."
+        ),
+        "04_codex": (
+            "Synthesize the final executable plan from all preceding reviews. Freeze "
+            "the next ordinary targets and exact Aristotle-sized leaf statements."
+        ),
     }[stage]
     return f"""
 You are {role} for a strategic Lean proof-planning iteration.
@@ -453,6 +731,10 @@ single proof. Plan the next {span} ordinary proof iterations for this section.
 ```markdown
 {previous}
 ```
+
+# Stage-specific task
+
+{stage_task}
 
 Required output:
 
@@ -505,7 +787,68 @@ def write_aristotle_packet(
     work_root: Path,
 ) -> Path:
     project_label = f"KCLean_{section['id']}_iter{iteration:03d}_{mode}"
-    if mode == "strategy":
+    if is_polishing(section) and mode == "strategy":
+        prompt = f"""
+You are Aristotle reviewing a strategic Lean 4 proof-polishing iteration.
+
+Project label: `{project_label}`
+Project directory: `{work_root}`
+Section: `{section['id']}` / {section['title']}
+
+Do not edit proofs in this strategic round. Review the four agents' plans and
+produce the safest next-four-iteration optimization plan. The existing theorem
+statements and semantics are frozen.
+
+# Current static polishing debt
+
+```text
+{scan_polish_debt_at(work_root)}
+```
+
+# Strategy agent outputs
+
+```markdown
+{previous_outputs(iter_dir)}
+```
+
+Rank exact declarations where a cheaper equivalent proof is plausible, and
+state targeted build checks and rollback criteria. Never propose adding,
+moving, or increasing a heartbeat override.
+"""
+    elif is_polishing(section):
+        prompt = f"""
+You are Aristotle optimizing an already-complete Lean 4 formalization.
+
+Project label: `{project_label}`
+Project directory: `{work_root}`
+Section: `{section['id']}` / {section['title']}
+
+The project currently builds with zero `sorry`. Improve one or more exact
+proofs selected by the previous agents: remove a local heartbeat override,
+reduce elaboration cost, resolve an info/warning, or replace a brittle tactic
+script with a robust Mathlib-style proof. Edit the submitted project and return
+all useful partial work even if every optimization does not succeed.
+
+Hard constraints:
+- Keep every theorem statement, assumption, public name, and definition's semantics unchanged.
+- Keep the project free of `sorry`, `sorryAx`, `axiom`, `admit`, `unsafe`,
+  `implemented_by`, and `native_decide`.
+- Never raise, globalize, disable, or merely relocate a resource limit.
+- Revert any attempted edit that does not compile.
+
+# Current static polishing debt
+
+```text
+{scan_polish_debt_at(work_root)}
+```
+
+# Agent outputs and exact optimization packet
+
+```markdown
+{previous_outputs(iter_dir)}
+```
+"""
+    elif mode == "strategy":
         prompt = f"""
 You are Aristotle working on strategic proof planning for a Lean 4 project.
 
@@ -515,7 +858,7 @@ Section: `{section['id']}` / {section['title']}
 Module: `{section['module']}`
 
 This is strategy iteration {iteration}. Do not try to solve a large proof in
-one shot. Instead, review the four preceding strategy agents and produce the
+one shot. Instead, review the preceding strategy agents and produce the
 best next-four-iteration plan for this section, with leaf obligations suitable
 for future Aristotle submissions.
 
@@ -566,7 +909,8 @@ statements.
 Hard constraints:
 - No `axiom`, `admit`, `unsafe`, or `implemented_by`.
 - Do not weaken existing statements.
-- Prefer proving leaf lemmas exactly as stated by Opus in `03_claude.md`.
+- Prefer proving leaf lemmas exactly as stated or curated by the final Codex in
+  `04_codex.md`.
 
 # Current `sorry` scan
 
@@ -885,9 +1229,9 @@ Checkpoint protocol:
             "--color",
             "never",
             "-m",
-            hp.CODEX_MODEL,
+            CODEX_MODEL,
             "-c",
-            f'model_reasoning_effort="{hp.CODEX_EFFORT}"',
+            f'model_reasoning_effort="{CODEX_EFFORT}"',
             "-",
         ]
         return run_process_capture(name=agent_id, cmd=cmd, cwd=work_root, prompt=prompt, out_dir=out_dir, timeout=timeout)
@@ -910,15 +1254,103 @@ Checkpoint protocol:
     raise ValueError(f"unsupported edit agent kind: {kind}")
 
 
-def run_strategy_agent(kind: str, agent_id: str, prompt: str, out_dir: Path, timeout: int, dry_run: bool) -> tuple[bool, str]:
+def run_strategy_agent(
+    kind: str,
+    agent_id: str,
+    prompt: str,
+    out_dir: Path,
+    timeout: int,
+    dry_run: bool,
+    work_root: Path,
+) -> tuple[bool, str]:
     prompt_path = out_dir / f"{agent_id}.prompt.md"
     write_text(prompt_path, prompt)
     if dry_run:
         text = f"STATUS: DRY_RUN\n\nPrompt written to `{prompt_path}`.\n"
         write_text(out_dir / f"{agent_id}.md", text)
         return True, text
-    call_agent_safe = import_pipeline()
-    return call_agent_safe(kind, agent_id, prompt, out_dir, timeout)
+    hp = import_pipeline_module()
+    if kind == "gemini":
+        launcher_prompt = (
+            "Read the full strategy prompt from this file and follow it exactly:\n"
+            f"{prompt_path}\n\n"
+            f"The current repository is the worktree `{work_root}`, not the parent/root checkout. "
+            "Do not edit Lean files during this strategy iteration."
+        )
+        cmd = [
+            hp.AGY_BIN,
+            "--dangerously-skip-permissions",
+            "--mode",
+            "accept-edits",
+            "--model",
+            hp.GEMINI_MODEL,
+            "--print-timeout",
+            f"{max(60, timeout - 30)}s",
+            "--add-dir",
+            str(work_root),
+            "--add-dir",
+            str(out_dir),
+            "--print",
+            launcher_prompt,
+        ]
+        return run_process_capture(
+            name=agent_id,
+            cmd=cmd,
+            cwd=work_root,
+            prompt="",
+            out_dir=out_dir,
+            timeout=timeout,
+        )
+    if kind == "codex":
+        cmd = [
+            hp.CODEX_BIN,
+            "exec",
+            "--ephemeral",
+            "--skip-git-repo-check",
+            "--sandbox",
+            "read-only",
+            "-C",
+            str(work_root),
+            "--color",
+            "never",
+            "-m",
+            CODEX_MODEL,
+            "-c",
+            f'model_reasoning_effort="{CODEX_EFFORT}"',
+            "-",
+        ]
+        return run_process_capture(
+            name=agent_id,
+            cmd=cmd,
+            cwd=work_root,
+            prompt=prompt,
+            out_dir=out_dir,
+            timeout=timeout,
+        )
+    if kind == "claude":
+        cmd = [
+            hp.CLAUDE_BIN,
+            "-p",
+            "--model",
+            hp.CLAUDE_MODEL,
+            "--effort",
+            hp.CLAUDE_EFFORT,
+            "--dangerously-skip-permissions",
+            "--no-session-persistence",
+            "--add-dir",
+            str(work_root),
+            "--add-dir",
+            str(out_dir),
+        ]
+        return run_process_capture(
+            name=agent_id,
+            cmd=cmd,
+            cwd=work_root,
+            prompt=prompt,
+            out_dir=out_dir,
+            timeout=timeout,
+        )
+    raise ValueError(f"unsupported strategy agent kind: {kind}")
 
 
 def prepare_worktree(section_dir: Path) -> Path:
@@ -1183,7 +1615,8 @@ def run_iteration(
     stages = [
         ("gemini", "01_gemini"),
         ("codex", "02_codex"),
-        ("claude", "03_claude"),
+        ("claude", "03_opus"),
+        ("codex", "04_codex"),
     ]
     for kind, stage in stages:
         if stage in completed_stages and (iter_dir / f"{stage}.md").exists():
@@ -1195,7 +1628,15 @@ def run_iteration(
         previous = previous_outputs(iter_dir)
         if mode == "strategy":
             prompt = strategy_prompt(stage, section, iteration, context, previous, args.strategy_every - 1, work_root)
-            ok, text = run_strategy_agent(kind, stage, prompt, iter_dir, args.timeout_seconds, args.dry_run)
+            ok, text = run_strategy_agent(
+                kind,
+                stage,
+                prompt,
+                iter_dir,
+                args.timeout_seconds,
+                args.dry_run,
+                work_root,
+            )
         else:
             prompt = ordinary_prompt(stage, section, iteration, context, previous, work_root)
             ok, text = run_edit_agent(kind, stage, prompt, iter_dir, args.timeout_seconds, args.dry_run, work_root)
@@ -1215,7 +1656,8 @@ def run_iteration(
     manifest["open_leaves_after_stages"] = open_leaves
     aristotle_prompt = write_aristotle_packet(section, iteration, iter_dir, mode, work_root)
     manifest["aristotle_prompt"] = str(aristotle_prompt)
-    if args.submit_aristotle and not args.dry_run and open_leaves > 0:
+    should_submit_aristotle = open_leaves > 0 or is_polishing(section)
+    if args.submit_aristotle and not args.dry_run and should_submit_aristotle:
         manifest["aristotle"] = submit_aristotle(iter_dir, args.aristotle_timeout_seconds)
         followup = manifest["aristotle"].get("followup", {}) if isinstance(manifest.get("aristotle"), dict) else {}
         if followup.get("reason") == "timeout_waiting_for_aristotle":
@@ -1223,16 +1665,19 @@ def run_iteration(
             manifest["waiting_since"] = utc_now()
             write_json(iter_dir / "manifest.json", manifest)
             return manifest
-        if manifest["aristotle"].get("returncode") == 0:
+        # Aristotle can return a useful archive even when its task status is
+        # OUT_OF_BUDGET or another nonzero terminal status. The merge gate is
+        # the authority: integrate any downloaded archive, then build/audit it.
+        if mode != "strategy" and (iter_dir / "aristotle_result.tar.gz").exists():
             manifest["aristotle_integration"] = integrate_aristotle_result(iter_dir, work_root, section)
     else:
         manifest["aristotle"] = {
             "submitted": False,
-            "reason": "no_open_sorries_after_stages" if open_leaves == 0 else "default_prepare_only",
+            "reason": "no_actionable_packet" if not should_submit_aristotle else "default_prepare_only",
         }
     if mode != "strategy" and not args.dry_run:
         integration = manifest.get("aristotle_integration", {}) if isinstance(manifest.get("aristotle_integration"), dict) else {}
-        if args.submit_aristotle and open_leaves > 0 and not integration.get("integrated"):
+        if args.submit_aristotle and should_submit_aristotle and not integration.get("integrated"):
             manifest["status"] = "blocked_missing_aristotle_result"
             manifest["blocked_reason"] = "Aristotle result was not downloaded/integrated; refusing LLM-only merge."
             write_json(iter_dir / "manifest.json", manifest)
@@ -1248,7 +1693,7 @@ def run_section(section: dict[str, Any], run_dir: Path, args: argparse.Namespace
     section_dir = run_dir / section["id"]
     section_dir.mkdir(parents=True, exist_ok=True)
     work_root = prepare_worktree(section_dir)
-    context = collect_context(section)
+    context = collect_context(section, work_root)
     write_text(section_dir / "section_context.md", context)
     results = []
     iteration = args.start_iteration

@@ -1,29 +1,33 @@
 [
   {
     "id": "restricted_type",
-    "title": "VS40 section 6: descriptions of restricted type (whole chapter)",
+    "title": "Restricted-family formalization: post-proof polishing",
     "module": "KolmogorovMathlib.Restricted",
+    "workflow": "polish",
     "files": [
-      "KolmogorovMathlib/Restricted/Family.lean",
-      "KolmogorovMathlib/Foundation/EnumerationComplexity.lean",
-      "KolmogorovMathlib/AlgorithmicStatistics/TwoPart/GapCounting.lean",
-      "KolmogorovMathlib/AlgorithmicStatistics/TwoPart/Profile.lean",
-      "KolmogorovMathlib/AlgorithmicStatistics/TwoPart/DescriptionShift.lean"
+      "KolmogorovMathlib/Restricted/BasicProfile.lean",
+      "KolmogorovMathlib/Restricted/Improving.lean",
+      "KolmogorovMathlib/Restricted/DeficiencyEquiv.lean",
+      "KolmogorovMathlib/Restricted/HammingGap.lean",
+      "KolmogorovMathlib/Restricted/FamilyCurve/Selector.lean",
+      "KolmogorovMathlib/Restricted/FamilyCurve/BadStream.lean",
+      "KolmogorovMathlib/Restricted/FamilyCurve/EffectiveRebuild.lean",
+      "KolmogorovMathlib/Restricted/FamilyCurve/EffectiveRun.lean",
+      "KolmogorovMathlib/Restricted/FamilyCurve/VersionPartrec.lean",
+      "KolmogorovMathlib/Restricted/FamilyCurve/VersionPartrec2.lean",
+      "KolmogorovMathlib/Restricted/FamilyCurve/VersionClose.lean"
     ],
     "allowed_prefixes": [
-      "KolmogorovMathlib/Restricted/",
-      "KolmogorovMathlib/Foundation/EnumerationComplexity.lean",
+      "KolmogorovMathlib/",
       "KolmogorovMathlib.lean",
       "COVERAGE.md"
     ],
     "targets": [
-      "M0: StagedEnumeration.KPPlain_le_log_index_of_enumeration (+cond, +setComplexity forms)",
-      "M2: restricted profile basic properties (full-cube point, singleton point, description shift)",
-      "M3: example families (cylinders, masks; Hamming balls as stretch)",
-      "M4: restricted improving descriptions (greedy cover -> selection -> assembly)",
-      "M5: restricted deficiency equivalence",
-      "M6/M7 (stretch): Hamming gap, restricted curve realization"
+      "Remove all 42 local set_option maxHeartbeats overrides through cheaper proofs",
+      "Resolve current Lean info/warning output and unnecessary linter suppressions",
+      "Narrow broad imports and remove dead helpers or stale implementation comments",
+      "Golf brittle proofs toward robust Mathlib style without compile-time regression"
     ],
-    "notes": "GLOBAL SECTION: the whole of PLAN_RESTRICTED_TYPE.md. M1 (Restricted/Family.lean) is already fully proved - build on it, do not restate it. Work milestone by milestone; when the current milestone has no open sorries, draft the next milestone's files under KolmogorovMathlib/Restricted/ (new files need an import line in KolmogorovMathlib.lean and a COVERAGE.md row). GapCounting/Profile/DescriptionShift are READ-ONLY references (the M0 proof route generalizes GapCounting's candidateCodes/appearanceListCodes; M2's shift mirrors inDescriptionProfile_portion). Keep each new file focused on one milestone."
+    "notes": "The formalization is complete and sorry-free at baseline commit fc5d3df. Freeze all theorem statements, assumptions, public names, and definition semantics. Never add a sorry or replace a heartbeat override by a larger, global, disabled, or relocated override. Work in small batches with targeted builds; run the full audit only after a batch is stable. Every fifth iteration is strategy-only for all agents, including Aristotle."
   }
 ]
