@@ -114,7 +114,8 @@ theorem KP_cond_remove_short_info (U : Map) (hU : IsOptimalPrefixConditional U) 
     ∃ c : ℕ, ∀ x y z, KP U x y ≤ KP U x (pairCode y z) + KPPlain U z + (c : ENat) := by
   let ctx : BitString → BitString → Nat → BitString := fun r z _ => pairCode r z
   have hctx : Computable (fun p : (BitString × BitString) × ℕ => ctx p.1.1 p.1.2 p.2) := by
-    exact pairCode_computable.comp (Computable.pair (Computable.fst.comp Computable.fst) (Computable.snd.comp Computable.fst))
+    exact pairCode_computable.comp
+        (Computable.pair (Computable.fst.comp Computable.fst) (Computable.snd.comp Computable.fst))
   have hD_decomp := condTwoStagePairBuilder_isDecompressor hU.isDecompressor hU.isPrefixMachine hctx
   have hD_prefix := condTwoStagePairBuilder_isPrefixMachine (ctx := ctx) hU.isPrefixMachine
   let D := condTwoStagePairBuilder U ctx
@@ -136,11 +137,14 @@ theorem KP_cond_remove_short_info (U : Map) (hU : IsOptimalPrefixConditional U) 
     exact lt_top_iff_ne_top.mp (h1.trans_lt h2)
   obtain ⟨q, hq, _⟩ := exists_program_of_KP_ne_top (M := U) (x := x) (y := pairCode y z) hpx
   obtain ⟨p, hp, _⟩ := exists_program_of_KP_ne_top (M := U) (x := z) (y := y) hpz'
-  have h_bound := KP_condTwoStagePairBuilder_le_of_produces (U := U) (ctx := ctx) hU.isPrefixMachine hp hq
+  have h_bound :=
+      KP_condTwoStagePairBuilder_le_of_produces (U := U) (ctx := ctx) hU.isPrefixMachine hp hq
   have h_bound2 : KP D (pairCode z x) y ≤ KP U z y + KP U x (pairCode y z) := by
     calc KP D (pairCode z x) y ≤ ((p.length + q.length : Nat) : ENat) := h_bound
       _ = (p.length : ENat) + (q.length : ENat) := by norm_cast
-      _ = KP U z y + KP U x (pairCode y z) := by rw [KP_le_programLength_of_produces hp |>.antisymm (by aesop), KP_le_programLength_of_produces hq |>.antisymm (by aesop)]
+      _ = KP U z y + KP U x (pairCode y z) :=
+          by rw [KP_le_programLength_of_produces hp |>.antisymm (by aesop),
+                  KP_le_programLength_of_produces hq |>.antisymm (by aesop)]
   have h_extract : KP U x y ≤ KP D (pairCode z x) y + c_inv + c_map := by
     calc KP U x y = KP U (decodeSecond (pairCode z x)) y := by rw [decodeSecond_pairCode]
       _ ≤ KP U (pairCode z x) y + c_map := hc_map (pairCode z x) y

@@ -59,7 +59,8 @@ theorem two_pow_mul_inv_pow_le_cast_pow_sub (n d : ℕ) :
   · push_neg at h
     have h_le : d ≤ n := h.le
     rw [← ENNReal.toReal_le_toReal (ENNReal.mul_ne_top (by norm_num) (by norm_num)) (by norm_num)]
-    simp only [ENNReal.toReal_mul, ENNReal.toReal_pow, ENNReal.toReal_ofNat, ENNReal.toReal_inv, Nat.cast_pow, Nat.cast_ofNat]
+    simp only [ENNReal.toReal_mul, ENNReal.toReal_pow, ENNReal.toReal_ofNat, ENNReal.toReal_inv,
+                Nat.cast_pow, Nat.cast_ofNat]
     refine le_of_eq ?_
     calc
       (2 : ℝ) ^ n * (2 : ℝ)⁻¹ ^ d = (2 : ℝ) ^ (n - d + d) * (2 : ℝ)⁻¹ ^ d := by

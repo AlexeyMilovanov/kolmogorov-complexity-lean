@@ -169,7 +169,8 @@ theorem fold_deleted_subset (G : Finset α) (first : Finset α → Finset α)
       exact Finset.union_subset hst (hM d (by simp))
   exact gen L (∅, first G, 0) (by simp) hD
 
-/-- A covered deletion leaves the running-window state unchanged, provided the window is not already a subset of the deleted set. -/
+/-- A covered deletion leaves the running-window state unchanged, provided the window is not
+already a subset of the deleted set. -/
 theorem step_eq_of_covered_of_not_subset (G : Finset α) (first : Finset α → Finset α)
     (st : Finset α × Finset α × ℕ) (d : Finset α)
     (h_cov : d ∩ G ⊆ st.1) (h_not_sub : ¬(st.2.1 ⊆ st.1)) :
@@ -322,7 +323,8 @@ theorem fold_count_mul_le_of_survivor
             · exact Or.inl hw2
             · right
               refine ⟨st.1 ∪ d ∩ G, Finset.Subset.refl _, ?_⟩
-              have hc : (first (G \ (st.1 ∪ d ∩ G))).card = min W (G \ (st.1 ∪ d ∩ G)).card := hcard _
+              have hc : (first (G \ (st.1 ∪ d ∩ G))).card = min W (G \ (st.1 ∪ d ∩ G)).card :=
+                  hcard _
               rw [Nat.min_def] at hc
               split_ifs at hc with hle
               · exact (hw2 hc).elim
@@ -530,7 +532,8 @@ theorem fold_count_split_le_of_survivor
         Disjoint (L'.foldl (step G first) st).2.1 P' ∧
         (L'.foldl (step G first) st).2.2 * W ≤ P'.card ∧
         (L'.foldl (step G first) st).1 ⊆ G ∧ (L'.foldl (step G first) st).2.1 ⊆ G ∧
-        ((L'.foldl (step G first) st).2.1.card = W ∨ ∃ D ⊆ (L'.foldl (step G first) st).1, (L'.foldl (step G first) st).2.1 = G \ D ∧ (L'.foldl (step G first) st).2.1.card ≤ W) ∧
+        ((L'.foldl (step G first) st).2.1.card = W ∨ ∃ D ⊆ (L'.foldl (step G first) st).1,
+            (L'.foldl (step G first) st).2.1 = G \ D ∧ (L'.foldl (step G first) st).2.1.card ≤ W) ∧
         P'.card + ((L'.foldl (step G first) st).2.1 ∩ (L'.foldl (step G first) st).1).card ≤
           c + (L'.filter p).length * W +
             ((L'.filter (fun d => !p d)).map (fun d => (d ∩ G).card)).sum) := by
@@ -551,7 +554,8 @@ theorem fold_count_split_le_of_survivor
       have h_step : ∃ P' : Finset α, P' ⊆ (step G first st d).1 ∧
           Disjoint (step G first st d).2.1 P' ∧ (step G first st d).2.2 * W ≤ P'.card ∧
           (step G first st d).1 ⊆ G ∧ (step G first st d).2.1 ⊆ G ∧
-          ((step G first st d).2.1.card = W ∨ ∃ D ⊆ (step G first st d).1, (step G first st d).2.1 = G \ D ∧ (step G first st d).2.1.card ≤ W) ∧
+          ((step G first st d).2.1.card = W ∨ ∃ D ⊆ (step G first st d).1,
+              (step G first st d).2.1 = G \ D ∧ (step G first st d).2.1.card ≤ W) ∧
           P'.card + ((step G first st d).2.1 ∩ (step G first st d).1).card ≤
             c + (if p d then W else 0) + (if !p d then (d ∩ G).card else 0) := by
         by_cases h : st.2.1 ⊆ st.1 ∪ (d ∩ G)
@@ -583,7 +587,8 @@ theorem fold_count_split_le_of_survivor
             · exact Or.inl hw2
             · right
               refine ⟨st.1 ∪ d ∩ G, Finset.Subset.refl _, ?_⟩
-              have hc : (first (G \ (st.1 ∪ d ∩ G))).card = min W (G \ (st.1 ∪ d ∩ G)).card := hcard _
+              have hc : (first (G \ (st.1 ∪ d ∩ G))).card = min W (G \ (st.1 ∪ d ∩ G)).card :=
+                  hcard _
               rw [Nat.min_def] at hc
               split_ifs at hc with hle
               · exact (hw2 hc).elim
@@ -645,10 +650,12 @@ theorem fold_count_split_le_of_survivor
                 ((L'.filter (fun d => !p d)).map (fun d => (d ∩ G).card)).sum :=
         splitCredit_cons G W c p d L'
       rw [hcredit]
-      have h_fin_mono_2 : (step G first st d).1 ⊆ (L'.foldl (step G first) (step G first st d)).1 := by
+      have h_fin_mono_2 : (step G first st d).1 ⊆ (L'.foldl (step G first) (step G first st d)).1
+          := by
         rwa [he]
       exact ih (step G first st d)
-        (c + (if p d then W else 0) + (if !p d then (d ∩ G).card else 0)) h_step h_fin_mono_2 hsurv_local
+        (c + (if p d then W else 0) + (if !p d then (d ∩ G).card else 0)) h_step h_fin_mono_2
+            hsurv_local
   have hinit : ∃ P : Finset α, P ⊆ ∅ ∧ Disjoint (first G) P ∧ 0 * W ≤ P.card ∧
         ∅ ⊆ G ∧ first G ⊆ G ∧
         ((first G).card = W ∨ ∃ D ⊆ ∅, first G = G \ D ∧ (first G).card ≤ W) ∧
@@ -664,12 +671,14 @@ theorem fold_count_split_le_of_survivor
       split_ifs at hc with hle
       · exact (hw hc).elim
       · have hc' : (first G).card = G.card := hc
-        exact ⟨(Finset.eq_of_subset_of_card_le (hsub G) hc'.ge).trans Finset.sdiff_empty.symm, by linarith⟩
+        exact ⟨(Finset.eq_of_subset_of_card_le (hsub G) hc'.ge).trans Finset.sdiff_empty.symm,
+                by linarith⟩
   have hmono : ∅ ⊆ (L.foldl (step G first) (∅, first G, 0)).1 := Finset.empty_subset _
   have hfin := h_inv L (∅, first G, 0) 0 hinit hmono hsurv
   obtain ⟨P, hP₁, -, hP₃, -, -, -, hP₈⟩ := hfin
   have hz : (L.filter p).length * W + ((L.filter (fun d => !p d)).map (fun d => (d ∩ G).card)).sum =
-    0 + (L.filter p).length * W + ((L.filter (fun d => !p d)).map (fun d => (d ∩ G).card)).sum := by ring
+    0 + (L.filter p).length * W + ((L.filter (fun d => !p d)).map (fun d => (d ∩ G).card)).sum :=
+        by ring
   rw [hz]
   exact hP₃.trans (hP₈.trans' (by linarith))
 
@@ -700,7 +709,8 @@ theorem fold_count_split_div_le_of_survivor_toFinset
     (hsurv : (G \ (fold G first L).1).Nonempty) :
     (fold G first L).2.2 ≤
       (L.toFinset.filter (fun d => p d = true)).card +
-        (((L.toFinset.filter (fun d => !(p d) = true)).toList).map (fun d => (d ∩ G).card)).sum / W := by
+        (((L.toFinset.filter (fun d => !(p d) = true)).toList).map (fun d => (d ∩ G).card)).sum / W
+            := by
   -- On a duplicate-free list the `toFinset`-based counts equal the list-based ones,
   -- so this reduces to `fold_count_split_div_le_of_survivor`.
   have hcard_eq :
@@ -726,7 +736,12 @@ theorem fold_window_nonempty (G : Finset α) (first : Finset α → Finset α)
     (Surv : Finset α) (hSurv : Surv.Nonempty) (hSurvG : Surv ⊆ G)
     (L : List (Finset α)) (hdisj : ∀ d ∈ L, Disjoint Surv (d ∩ G)) :
     (fold G first L).2.1.Nonempty := by
-  have h_foldl_nonempty : ∀ (M : List (Finset α)) (st : Finset α × Finset α × ℕ), st.2.1.Nonempty → Disjoint Surv st.1 → (∀ d ∈ M, Disjoint Surv (d ∩ G)) → (M.foldl (step G first) st).2.1.Nonempty ∧ Disjoint Surv (M.foldl (step G first) st).1 := by
+  have h_foldl_nonempty : ∀ (M : List (Finset α)) (st : Finset α × Finset α × ℕ), st.2.1.Nonempty →
+      Disjoint Surv st.1 → (∀ d ∈ M,
+                             Disjoint Surv (d ∩ G)) → (M.foldl (step G first)
+                                                        st).2.1.Nonempty ∧ Disjoint Surv (M.foldl
+                                                                                           (step G
+                                                                                               first) st).1 := by
     intro M st hst hSurv hdisj; induction M using List.reverseRecOn generalizing st with
     | nil => simp_all +decide
     | append_singleton M' d hd =>
@@ -734,7 +749,9 @@ theorem fold_window_nonempty (G : Finset α) (first : Finset α → Finset α)
       split_ifs <;> simp_all +decide [ Finset.disjoint_left ];
       · grind +splitImp;
       · exact fun a ha₁ ha₂ ha₃ => hdisj d ( Or.inr rfl ) ha₁ ha₂ ha₃;
-  exact h_foldl_nonempty L ( ∅, first G, 0 ) ( hfirst_ne G ( hSurv.mono hSurvG ) ) ( by simp +decide ) hdisj |>.1
+  exact h_foldl_nonempty L ( ∅, first G,
+                             0 ) ( hfirst_ne G ( hSurv.mono hSurvG ) ) ( by simp +decide
+                                                                         ) hdisj |>.1
 
 theorem fold_window_sdiff_deleted_nonempty (G : Finset α) (first : Finset α → Finset α)
     (hfirst_ne : ∀ S : Finset α, S.Nonempty → (first S).Nonempty)
@@ -744,7 +761,8 @@ theorem fold_window_sdiff_deleted_nonempty (G : Finset α) (first : Finset α �
     ((fold G first L).2.1 \ (fold G first L).1).Nonempty := by
   have h_foldl_nonempty : ∀ (M : List (Finset α)) (st : Finset α × Finset α × ℕ),
       (st.2.1 \ st.1).Nonempty → Disjoint Surv st.1 → (∀ d ∈ M, Disjoint Surv (d ∩ G)) →
-      ((M.foldl (step G first) st).2.1 \ (M.foldl (step G first) st).1).Nonempty ∧ Disjoint Surv (M.foldl (step G first) st).1 := by
+      ((M.foldl (step G first) st).2.1 \ (M.foldl (step G first) st).1).Nonempty ∧ Disjoint Surv
+          (M.foldl (step G first) st).1 := by
     intro M
     induction M with
     | nil =>
@@ -753,8 +771,10 @@ theorem fold_window_sdiff_deleted_nonempty (G : Finset α) (first : Finset α �
     | cons d M ih =>
       intro st h_ne h_disj hdisj_M
       have hd : Disjoint Surv (d ∩ G) := hdisj_M d List.mem_cons_self
-      have hdisj_M' : ∀ d' ∈ M, Disjoint Surv (d' ∩ G) := fun d' hd' => hdisj_M d' (List.mem_cons_of_mem d hd')
-      have h_surv_del' : Disjoint Surv (st.1 ∪ (d ∩ G)) := Finset.disjoint_union_right.mpr ⟨h_disj, hd⟩
+      have hdisj_M' : ∀ d' ∈ M, Disjoint Surv (d' ∩ G) :=
+          fun d' hd' => hdisj_M d' (List.mem_cons_of_mem d hd')
+      have h_surv_del' : Disjoint Surv (st.1 ∪ (d ∩ G)) :=
+          Finset.disjoint_union_right.mpr ⟨h_disj, hd⟩
       have he : (step G first st d).1 = st.1 ∪ (d ∩ G) := step_deleted_eq G first st d
       have h_ne' : ((step G first st d).2.1 \ (step G first st d).1).Nonempty := by
         unfold step
@@ -766,7 +786,8 @@ theorem fold_window_sdiff_deleted_nonempty (G : Finset α) (first : Finset α �
           have h_first_sub := hsub (G \ (st.1 ∪ (d ∩ G)))
           have h_disj_first : Disjoint (first (G \ (st.1 ∪ (d ∩ G)))) (st.1 ∪ (d ∩ G)) :=
             Finset.disjoint_of_subset_left h_first_sub Finset.sdiff_disjoint
-          have heq : first (G \ (st.1 ∪ d ∩ G)) \ (st.1 ∪ d ∩ G) = first (G \ (st.1 ∪ d ∩ G)) := Finset.sdiff_eq_self_iff_disjoint.mpr h_disj_first
+          have heq : first (G \ (st.1 ∪ d ∩ G)) \ (st.1 ∪ d ∩ G) = first (G \ (st.1 ∪ d ∩ G)) :=
+              Finset.sdiff_eq_self_iff_disjoint.mpr h_disj_first
           rw [heq]
           exact h_first_ne
         · simp only [h, if_false]
@@ -788,7 +809,8 @@ theorem step_count_mono {α : Type} [DecidableEq α] (G : Finset α) (first : Fi
   · exact Nat.le_add_right _ _
   · exact le_rfl
 
-theorem foldl_count_mono {α : Type} [DecidableEq α] (G : Finset α) (first : Finset α → Finset α) (L : List (Finset α)) :
+theorem foldl_count_mono {α : Type} [DecidableEq α] (G : Finset α) (first : Finset α → Finset α)
+    (L : List (Finset α)) :
     ∀ st : Finset α × Finset α × ℕ, st.2.2 ≤ (L.foldl (step G first) st).2.2 := by
   intro st
   induction L generalizing st with
@@ -796,7 +818,8 @@ theorem foldl_count_mono {α : Type} [DecidableEq α] (G : Finset α) (first : F
   | cons d L ih =>
     exact (step_count_mono G first st d).trans (ih (step G first st d))
 
-theorem fold_no_refresh_window {α : Type} [DecidableEq α] (G : Finset α) (first : Finset α → Finset α) (L : List (Finset α)) :
+theorem fold_no_refresh_window {α : Type} [DecidableEq α] (G : Finset α)
+    (first : Finset α → Finset α) (L : List (Finset α)) :
     ∀ st : Finset α × Finset α × ℕ,
       (L.foldl (step G first) st).2.2 = st.2.2 →
       (L.foldl (step G first) st).2.1 = st.2.1 := by
@@ -806,7 +829,8 @@ theorem fold_no_refresh_window {α : Type} [DecidableEq α] (G : Finset α) (fir
   | cons d L ih =>
     have h_eq' : (L.foldl (step G first) (step G first st d)).2.2 = st.2.2 := h_eq
     have h_eq2 : (step G first st d).2.2 = st.2.2 := by
-      have h_ge : (L.foldl (step G first) (step G first st d)).2.2 ≥ (step G first st d).2.2 := foldl_count_mono _ _ _ _
+      have h_ge : (L.foldl (step G first) (step G first st d)).2.2 ≥ (step G first st d).2.2 :=
+          foldl_count_mono _ _ _ _
       have h1 : st.2.2 ≤ (step G first st d).2.2 := step_count_mono _ _ _ _
       linarith
     have h_ih := ih (step G first st d) (by linarith)
@@ -819,21 +843,25 @@ theorem fold_no_refresh_window {α : Type} [DecidableEq α] (G : Finset α) (fir
     rw [← hd_eq]
     exact h_ih
 
-theorem fold_deleted_mono {α : Type} [DecidableEq α] (G : Finset α) (first : Finset α → Finset α) (L : List (Finset α)) :
+theorem fold_deleted_mono {α : Type} [DecidableEq α] (G : Finset α) (first : Finset α → Finset α)
+    (L : List (Finset α)) :
     ∀ st : Finset α × Finset α × ℕ, st.1 ⊆ (L.foldl (step G first) st).1 := by
   intro st
   exact foldl_deleted_mono G first L st
 
-theorem firstBlock_nonempty {α : Type} [DecidableEq α] (key : α → ℕ) (K : ℕ) (hK : 0 < K) (S : Finset α) (hS : S.Nonempty) :
+theorem firstBlock_nonempty {α : Type} [DecidableEq α] (key : α → ℕ) (K : ℕ) (hK : 0 < K)
+    (S : Finset α) (hS : S.Nonempty) :
     (firstBlock key K S).Nonempty := by
   rw [← Finset.card_pos, firstBlock_card]
   exact lt_min hK (Finset.card_pos.mpr hS)
 
-theorem fold_final_not_subset {α : Type} [DecidableEq α] (G : Finset α) (key : α → ℕ) (K : ℕ) (hK : 0 < K) (L : List (Finset α)) :
+theorem fold_final_not_subset {α : Type} [DecidableEq α] (G : Finset α) (key : α → ℕ) (K : ℕ)
+    (hK : 0 < K) (L : List (Finset α)) :
     ∀ st : Finset α × Finset α × ℕ,
       (G \ (L.foldl (step G (firstBlock key K)) st).1).Nonempty →
       ¬ (st.2.1 ⊆ st.1) →
-      ¬ ((L.foldl (step G (firstBlock key K)) st).2.1 ⊆ (L.foldl (step G (firstBlock key K)) st).1) := by
+      ¬ ((L.foldl (step G (firstBlock key K)) st).2.1 ⊆ (L.foldl (step G (firstBlock key K)) st).1)
+          := by
   intro st h_surv
   induction L generalizing st with
   | nil =>
@@ -841,16 +869,28 @@ theorem fold_final_not_subset {α : Type} [DecidableEq α] (G : Finset α) (key 
     exact h_not
   | cons d L ih =>
     intro h_not
-    have h_surv' : (G \ (L.foldl (step G (firstBlock key K)) (step G (firstBlock key K) st d)).1).Nonempty := h_surv
+    have h_surv' :
+        (G \ (L.foldl (step G (firstBlock key K)) (step G (firstBlock key K) st d)).1).Nonempty :=
+            h_surv
     apply ih (step G (firstBlock key K) st d) h_surv'
     unfold step
     dsimp only
     split_ifs with h_ref
     · intro h_sub
-      have h_mono := fold_deleted_mono G (firstBlock key K) L (st.1 ∪ d ∩ G, firstBlock key K (G \ (st.1 ∪ d ∩ G)), st.2.2 + 1)
-      have h_surv_sub : G \ (L.foldl (step G (firstBlock key K)) (st.1 ∪ d ∩ G, firstBlock key K (G \ (st.1 ∪ d ∩ G)), st.2.2 + 1)).1 ⊆ G \ (st.1 ∪ d ∩ G) := by
+      have h_mono :=
+          fold_deleted_mono G (firstBlock key K) L (st.1 ∪ d ∩ G,
+                                                     firstBlock key K (G \ (st.1 ∪ d ∩ G)), st.2.2
+                                                         + 1)
+      have h_surv_sub : G \ (L.foldl (step G (firstBlock key K)) (st.1 ∪ d ∩ G,
+                                                                   firstBlock key K
+                                                                       (G \ (st.1 ∪ d ∩ G)), st.2.2
+                                                                           + 1)).1 ⊆ G \ (st.1 ∪ d
+                                                                                           ∩ G) :=
+                                                                                               by
         apply Finset.sdiff_subset_sdiff subset_rfl h_mono
-      have h_surv_eq : (step G (firstBlock key K) st d) = (st.1 ∪ d ∩ G, firstBlock key K (G \ (st.1 ∪ d ∩ G)), st.2.2 + 1) := by
+      have h_surv_eq : (step G (firstBlock key K) st d) = (st.1 ∪ d ∩ G,
+                                                            firstBlock key K (G \ (st.1 ∪ d ∩ G)),
+                                                                st.2.2 + 1) := by
         unfold step
         dsimp only
         rw [if_pos h_ref]
@@ -869,7 +909,8 @@ theorem fold_final_not_subset {α : Type} [DecidableEq α] (G : Finset α) (key 
     · intro h_sub
       exact h_ref h_sub
 
-theorem fold_deleted_not_mem {α : Type} [DecidableEq α] (G : Finset α) (first : Finset α → Finset α) (L : List (Finset α)) :
+theorem fold_deleted_not_mem {α : Type} [DecidableEq α] (G : Finset α)
+    (first : Finset α → Finset α) (L : List (Finset α)) :
     ∀ st : Finset α × Finset α × ℕ, ∀ y,
       y ∉ st.1 → (∀ d ∈ L, y ∉ d) → y ∉ (L.foldl (step G first) st).1 := by
   intro st y h_init h_surv
@@ -897,7 +938,8 @@ theorem fold_deleted_not_mem {α : Type} [DecidableEq α] (G : Finset α) (first
         rw [Finset.mem_inter] at h2
         exact hy_d h2.1
 
-theorem fold_deleted_mem {α : Type} [DecidableEq α] (G : Finset α) (first : Finset α → Finset α) (L : List (Finset α)) :
+theorem fold_deleted_mem {α : Type} [DecidableEq α] (G : Finset α) (first : Finset α → Finset α)
+    (L : List (Finset α)) :
     ∀ st : Finset α × Finset α × ℕ, ∀ d_elem ∈ L, ∀ y,
       y ∈ d_elem → y ∈ G → y ∈ (L.foldl (step G first) st).1 := by
   intro st d_elem hd y hy_d hy_G
@@ -920,7 +962,8 @@ theorem fold_deleted_mem {α : Type} [DecidableEq α] (G : Finset α) (first : F
     | inr h_in =>
       exact ih (step G first st d_head) h_in
 
-theorem fold_window_eq_firstBlock {α : Type} [DecidableEq α] (G : Finset α) (key : α → ℕ) (K : ℕ) (L : List (Finset α)) :
+theorem fold_window_eq_firstBlock {α : Type} [DecidableEq α] (G : Finset α) (key : α → ℕ) (K : ℕ)
+    (L : List (Finset α)) :
     ∀ st : Finset α × Finset α × ℕ,
       (∃ D, D ⊆ st.1 ∧ st.2.1 = firstBlock key K (G \ D)) →
       ∃ D, D ⊆ (L.foldl (step G (firstBlock key K)) st).1 ∧
@@ -961,7 +1004,8 @@ theorem list_key_le_of_mem_take_of_mem_not_mem_take {α : Type} (key : α → �
             · exact ih K (List.Pairwise.of_cons hsort) hy hx
                 (fun hx_take => hx_not (Or.inr hx_take))
 
-theorem firstBlock_le_of_mem_of_not_mem {α : Type} [DecidableEq α] (key : α → ℕ) (K : ℕ) (S : Finset α) :
+theorem firstBlock_le_of_mem_of_not_mem {α : Type} [DecidableEq α] (key : α → ℕ) (K : ℕ)
+    (S : Finset α) :
     ∀ y ∈ firstBlock key K S, ∀ x ∈ S, x ∉ firstBlock key K S → key y ≤ key x := by
   intro y hy x hx hx_not
   unfold firstBlock at hy hx_not
@@ -991,11 +1035,13 @@ theorem firstBlock_le_of_mem_of_not_mem {α : Type} [DecidableEq α] (key : α �
     exact hsort_bool.imp (fun h => of_decide_eq_true h)
   exact list_key_le_of_mem_take_of_mem_not_mem_take key L K hsort hy hxL hx_not
 
-theorem temporalWindow_contains_survivor_aux {α : Type} [DecidableEq α] (G : Finset α) (key : α → ℕ) (K : ℕ) (hK : 0 < K)
+theorem temporalWindow_contains_survivor_aux {α : Type} [DecidableEq α] (G : Finset α)
+    (key : α → ℕ) (K : ℕ) (hK : 0 < K)
     (L_T L_rest : List (Finset α))
     (x : α) (hx_surv : ∀ d ∈ L_T ++ L_rest, x ∉ d)
     (hxG : x ∈ G)
-    (h_no_refresh : ((L_T ++ L_rest).foldl (step G (firstBlock key K)) (∅, firstBlock key K G, 0)).2.2 =
+    (h_no_refresh : ((L_T ++ L_rest).foldl (step G (firstBlock key K)) (∅, firstBlock key K G,
+                                                                         0)).2.2 =
                     (L_T.foldl (step G (firstBlock key K)) (∅, firstBlock key K G, 0)).2.2)
     (hle : ∀ y, y ∈ G → (∀ d ∈ L_T ++ L_rest, y ∉ d) → key x ≤ key y)
     (hinj : ∀ a b, a ∈ G → b ∈ G → key a = key b → a = b) :
@@ -1003,14 +1049,19 @@ theorem temporalWindow_contains_survivor_aux {α : Type} [DecidableEq α] (G : F
   set st_init := ((∅ : Finset α), firstBlock key K G, 0)
   set L_total := L_T ++ L_rest
   have h_foldl_append : (L_total.foldl (step G (firstBlock key K)) st_init) =
-    L_rest.foldl (step G (firstBlock key K)) (L_T.foldl (step G (firstBlock key K)) st_init) := by apply List.foldl_append
-  have h_no_refresh' : (L_rest.foldl (step G (firstBlock key K)) (L_T.foldl (step G (firstBlock key K)) st_init)).2.2 =
+    L_rest.foldl (step G (firstBlock key K)) (L_T.foldl (step G (firstBlock key K)) st_init) :=
+        by apply List.foldl_append
+  have h_no_refresh' :
+      (L_rest.foldl (step G (firstBlock key K)) (L_T.foldl (step G (firstBlock key K))
+                                                  st_init)).2.2 =
     (L_T.foldl (step G (firstBlock key K)) st_init).2.2 := by
     rw [← h_foldl_append]
     exact h_no_refresh
-  have h_win_eq : (L_total.foldl (step G (firstBlock key K)) st_init).2.1 = (L_T.foldl (step G (firstBlock key K)) st_init).2.1 := by
+  have h_win_eq : (L_total.foldl (step G (firstBlock key K)) st_init).2.1 =
+      (L_T.foldl (step G (firstBlock key K)) st_init).2.1 := by
     rw [h_foldl_append]
-    exact fold_no_refresh_window G (firstBlock key K) L_rest (L_T.foldl (step G (firstBlock key K)) st_init) h_no_refresh'
+    exact fold_no_refresh_window G (firstBlock key K) L_rest
+        (L_T.foldl (step G (firstBlock key K)) st_init) h_no_refresh'
   have h_surv_total : (G \ (L_total.foldl (step G (firstBlock key K)) st_init).1).Nonempty := by
     use x
     rw [Finset.mem_sdiff]
@@ -1029,8 +1080,12 @@ theorem temporalWindow_contains_survivor_aux {α : Type} [DecidableEq α] (G : F
     have hy_sub := h_sub hy_in
     change y ∈ (∅ : Finset α) at hy_sub
     exact (by simp : y ∉ (∅ : Finset α)) hy_sub
-  have h_not_sub_total := fold_final_not_subset G key K hK L_total st_init h_surv_total h_init_not_sub
-  have h_win_total_ne : ((L_total.foldl (step G (firstBlock key K)) st_init).2.1 \ (L_total.foldl (step G (firstBlock key K)) st_init).1).Nonempty := by
+  have h_not_sub_total :=
+      fold_final_not_subset G key K hK L_total st_init h_surv_total h_init_not_sub
+  have h_win_total_ne :
+      ((L_total.foldl (step G (firstBlock key K)) st_init).2.1 \ (L_total.foldl (step G (firstBlock
+                                                                                          key K))
+          st_init).1).Nonempty := by
     rw [← Finset.sdiff_nonempty] at h_not_sub_total
     exact h_not_sub_total
   obtain ⟨y, hy_sdiff⟩ := h_win_total_ne
@@ -1053,7 +1108,8 @@ theorem temporalWindow_contains_survivor_aux {α : Type} [DecidableEq α] (G : F
   have hy_G : y ∈ G := (Finset.mem_sdiff.mp hy_diff).1
   have hy_surv : ∀ d ∈ L_total, y ∉ d := by
     intro d hd hy_d
-    have h_contra : y ∈ (L_total.foldl (step G (firstBlock key K)) st_init).1 := fold_deleted_mem G (firstBlock key K) L_total st_init d hd y hy_d hy_G
+    have h_contra : y ∈ (L_total.foldl (step G (firstBlock key K)) st_init).1 :=
+        fold_deleted_mem G (firstBlock key K) L_total st_init d hd y hy_d hy_G
     exact hy_not_del h_contra
   have h_key_le : key x ≤ key y := hle y hy_G hy_surv
   have hx_DT : x ∉ D_T := by

@@ -33,6 +33,15 @@ structure FamilyEnumeration (mem : Finset BitString → Prop) where
   complete : ∀ (S : Finset BitString) (hS : S.Nonempty), mem S →
     ∃ t, (codedUniformOn S hS).code ∈ enum t
 
+/-- A *pre*-description family: only condition (1) (an enumerable membership
+predicate whose members are nonempty).  The effective-selection and
+description-counting machinery only needs this much; the full
+`DescriptionFamily` (conditions (1)–(3)) coerces into it. -/
+structure PreDescriptionFamily where
+  mem : Finset BitString → Prop
+  nonempty_of_mem : ∀ {S : Finset BitString}, mem S → S.Nonempty
+  enumeration : FamilyEnumeration mem
+
 /-- A description family in the sense of VS40 §6 (conditions (1)–(3)). -/
 structure DescriptionFamily where
   mem : Finset BitString → Prop
@@ -53,6 +62,33 @@ structure DescriptionFamily where
       (∀ x ∈ A, x.length = n → ∃ B ∈ 𝒞, x ∈ B) ∧
       𝒞.length * c ≤ overhead n * A.card
 
+/-- The polynomial overhead condition (used in M7). -/
+def DescriptionFamily.HasPolynomialOverhead (𝒜 : DescriptionFamily) : Prop :=
+  ∃ C d : ℕ, 0 < C ∧ ∀ n, 𝒜.overhead n ≤ C * (n + 1) ^ d
+
+/-- A polynomial covering overhead contributes only logarithmically many bits. -/
+theorem DescriptionFamily.overhead_bits_le_logSlack (𝒜 : DescriptionFamily)
+    (hPoly : 𝒜.HasPolynomialOverhead) :
+    ∃ c_over : ℕ, ∀ n, (Nat.bits (𝒜.overhead n)).length ≤ logSlack c_over n := by
+  rcases hPoly with ⟨C, d, hC, hbound⟩
+  obtain ⟨c_over, hover⟩ := polynomialOverhead_bits_le_logSlack C d hC
+  exact ⟨c_over, fun n =>
+    (length_natBits_mono (hbound n)).trans (hover n)⟩
+
+/-- Forget conditions (2)–(3), keeping only the enumerable membership data. -/
+def DescriptionFamily.toPre (𝒜 : DescriptionFamily) : PreDescriptionFamily where
+  mem := 𝒜.mem
+  nonempty_of_mem := 𝒜.nonempty_of_mem
+  enumeration := 𝒜.enumeration
+
+instance : Coe DescriptionFamily PreDescriptionFamily := ⟨DescriptionFamily.toPre⟩
+
+@[simp] theorem DescriptionFamily.toPre_mem (𝒜 : DescriptionFamily) :
+    (𝒜.toPre).mem = 𝒜.mem := rfl
+
+@[simp] theorem DescriptionFamily.toPre_enumeration (𝒜 : DescriptionFamily) :
+    (𝒜.toPre).enumeration = 𝒜.enumeration := rfl
+
 /-- Restricted `(i,j)`-description: an ordinary `(i,j)`-description that
 belongs to the family. -/
 noncomputable def IsIJDescriptionIn (𝒜 : DescriptionFamily) (U : Map)
@@ -63,6 +99,15 @@ noncomputable def IsIJDescriptionIn (𝒜 : DescriptionFamily) (U : Map)
 noncomputable def InDescriptionProfileIn (𝒜 : DescriptionFamily) (U : Map)
     (x : BitString) (i j : ℕ) : Prop :=
   ∃ (S : Finset BitString) (hS : S.Nonempty), IsIJDescriptionIn 𝒜 U x S hS i j
+
+/-- The restricted profile is contained in the unrestricted one, `P_x^𝒜 ⊆ P_x`:
+forgetting the family-membership condition turns a restricted `(i,j)`-description
+into an ordinary `(i,j)`-description. -/
+theorem inDescriptionProfileIn_imp_inDescriptionProfile {𝒜 : DescriptionFamily}
+    {U : Map} {x : BitString} {i j : ℕ}
+    (h : InDescriptionProfileIn 𝒜 U x i j) : InDescriptionProfile U x i j := by
+  rcases h with ⟨S, hS, _hmem, hdesc⟩
+  exact ⟨S, hS, hdesc⟩
 
 /-! ### The full family -/
 
@@ -136,6 +181,78 @@ theorem InDescriptionProfileIn.mono_j {𝒜 : DescriptionFamily} {U : Map}
   rcases hp with ⟨S, hS, hmem, hdesc⟩
   exact ⟨S, hS, hmem, hdesc.mono_j h⟩
 
+/-- Full family chunk cover helper. -/
+lemma fullFamily_chunk_cover (A : Finset BitString) (n c : ℕ) (hc_pos : 0 < c) (hc_le : c ≤ A.card)
+    :
+    ∃ 𝒞 : List (Finset BitString),
+      (∀ B ∈ 𝒞, B.Nonempty ∧ B.card ≤ c) ∧
+      (∀ x ∈ A, x.length = n → ∃ B ∈ 𝒞, x ∈ B) ∧
+      𝒞.length * c ≤ 3 * A.card := by
+  classical
+  let T : Finset BitString := A.filter fun x => x.length = n
+  let L : List BitString := canonicalFinsetList T
+  let q : ℕ := (L.length + c - 1) / c
+  let cover : List (Finset BitString) :=
+    (List.range q).map fun k => ((L.drop (k * c)).take c).toFinset
+  refine ⟨cover, ?_, ?_, ?_⟩
+  · intro B hB
+    rw [List.mem_map] at hB
+    rcases hB with ⟨k, hk, rfl⟩
+    have hkq : k < q := List.mem_range.mp hk
+    have hkdiv : k < (L.length + c - 1) / c := by simpa [q] using hkq
+    have hstart0 : k * c < (L.length + c - 1) - (c - 1) :=
+      (Nat.lt_div_iff_mul_lt hc_pos).mp hkdiv
+    have hcancel : (L.length + c - 1) - (c - 1) = L.length := by omega
+    have hstart : k * c < L.length := by simpa [hcancel] using hstart0
+    have hdrop : 0 < (L.drop (k * c)).length := by
+      rw [List.length_drop]
+      omega
+    have hchunk : 0 < ((L.drop (k * c)).take c).length := by
+      rw [List.length_take]
+      exact lt_min hc_pos hdrop
+    obtain ⟨x, hx⟩ := List.exists_mem_of_ne_nil _ (List.ne_nil_of_length_pos hchunk)
+    refine ⟨⟨x, List.mem_toFinset.mpr hx⟩, ?_⟩
+    exact (List.toFinset_card_le _).trans (by simp)
+  · intro x hxA hxlen
+    have hxT : x ∈ T := by simp [T, hxA, hxlen]
+    have hxL : x ∈ L := by simpa [L] using (mem_canonicalFinsetList.mpr hxT)
+    obtain ⟨p, hp, hpx⟩ := List.mem_iff_getElem.mp hxL
+    let k := p / c
+    have hkc : k * c ≤ p := by
+      simpa [k, Nat.mul_comm] using Nat.div_mul_le_self p c
+    have hrem : p - k * c < c := by
+      have hmod := Nat.mod_lt p hc_pos
+      have hdecomp : p / c * c + p % c = p := by
+        simpa [Nat.mul_comm] using Nat.div_add_mod p c
+      dsimp [k]
+      omega
+    have hstart : k * c < L.length := lt_of_le_of_lt hkc hp
+    have hkdiv : k < (L.length + c - 1) / c := by
+      apply (Nat.lt_div_iff_mul_lt hc_pos).mpr
+      have hcancel : (L.length + c - 1) - (c - 1) = L.length := by omega
+      simpa [hcancel] using hstart
+    refine ⟨((L.drop (k * c)).take c).toFinset, ?_, ?_⟩
+    · rw [List.mem_map]
+      exact ⟨k, List.mem_range.mpr (by simpa [q] using hkdiv), rfl⟩
+    · rw [List.mem_toFinset, List.mem_iff_getElem]
+      have hdecomp : k * c + (p - k * c) = p := by omega
+      have htail : p - k * c < L.length - k * c := by omega
+      have hidx : p - k * c < ((L.drop (k * c)).take c).length := by
+        rw [List.length_take, List.length_drop]
+        exact lt_min hrem htail
+      refine ⟨p - k * c, hidx, ?_⟩
+      rw [List.getElem_take, List.getElem_drop]
+      simpa only [hdecomp] using hpx
+  · rw [List.length_map, List.length_range]
+    have hqmul : q * c ≤ L.length + c - 1 := by
+      dsimp [q]
+      exact Nat.div_mul_le_self _ _
+    have hLle : L.length ≤ A.card := by
+      dsimp [L]
+      rw [length_canonicalFinsetList]
+      exact Finset.card_le_card (Finset.filter_subset _ _)
+    omega
+
 /-- The unrestricted case as an instance: the family of ALL nonempty finite
 sets. (Enumeration: enumerate all canonical uniform codes.) -/
 noncomputable def fullFamily : DescriptionFamily := by
@@ -144,7 +261,7 @@ noncomputable def fullFamily : DescriptionFamily := by
       nonempty_of_mem := fun h => h
       enumeration := ?_
       fullCube := ?_
-      overhead := fun n => 2 ^ n
+      overhead := fun _ => 3
       overhead_pos := ?_
       cover := ?_ }
   · refine
@@ -192,30 +309,15 @@ noncomputable def fullFamily : DescriptionFamily := by
   · intro n
     exact codedStringsOfLength_nonempty n
   · intro n
-    exact pow_pos (by decide) n
+    exact by decide
   · intro A hA n c hc_pos hc_le
-    let T : Finset BitString := A.filter fun x => x.length = n
-    refine ⟨(canonicalFinsetList T).map (fun x => ({x} : Finset BitString)), ?_, ?_, ?_⟩
-    · intro B hB
-      rw [List.mem_map] at hB
-      rcases hB with ⟨x, hx, rfl⟩
-      exact ⟨Finset.singleton_nonempty x, by simpa using hc_pos⟩
-    · intro x hxA hxlen
-      refine ⟨{x}, ?_, by simp⟩
-      rw [List.mem_map]
-      exact ⟨x, by simp [T, hxA, hxlen], rfl⟩
-    · have hlen : ((canonicalFinsetList T).map (fun x => ({x} : Finset BitString))).length =
-          T.card := by
-        rw [List.length_map, length_canonicalFinsetList]
-      rw [hlen]
-      have hTsub : T ⊆ stringsOfLength n := by
-        intro x hx
-        rw [Finset.mem_filter] at hx
-        exact (memStringsOfLength n x).mpr hx.2
-      have hTcard : T.card ≤ 2 ^ n := by
-        rw [← cardStringsOfLength n]
-        exact Finset.card_le_card hTsub
-      nlinarith
+    exact fullFamily_chunk_cover A n c hc_pos hc_le
+
+/-- The full family has constant covering overhead after chunking. -/
+theorem fullFamily_hasPolynomialOverhead : fullFamily.HasPolynomialOverhead := by
+  refine ⟨3, 0, by decide, ?_⟩
+  intro n
+  simp [fullFamily]
 
 /-- Sanity (mandatory before building on M1): the restricted profile for
 `fullFamily` is the unrestricted profile. -/

@@ -48,7 +48,8 @@ theorem isStochastic_mono {U : Map} {x : BitString} {alpha alpha' beta beta' : �
   (hstoch.mono_alpha ha).mono_beta hb
 
 /-- Any explicit model that fits `x` witnesses its stochasticity. -/
-theorem isStochastic_of_model (U : Map) (x : BitString) (P : CodedFiniteDistribution) (alpha beta : ℕ)
+theorem isStochastic_of_model (U : Map) (x : BitString) (P : CodedFiniteDistribution)
+    (alpha beta : ℕ)
     (hprob : P.IsProbability)
     (hcomp : P.complexity U ≤ (alpha : ENat)) (hdef : DeficiencyLe U P x beta) :
     IsStochastic U x alpha beta :=
@@ -69,7 +70,8 @@ theorem isStochastic_dirac_self (U : Map) (x : BitString) (alpha : ℕ)
   exact le_of_eq h
 
 /-- Every string of length `n` is weakly stochastic under the length-uniform model. -/
-theorem isStochastic_lengthUniform (U : Map) (x : BitString) (n : ℕ) (_ : x.length = n) (alpha beta : ℕ)
+theorem isStochastic_lengthUniform (U : Map) (x : BitString) (n : ℕ) (_ : x.length = n)
+    (alpha beta : ℕ)
     (hcomp : (codedLengthUniform n).complexity U ≤ (alpha : ENat))
     (hdef : DeficiencyLe U (codedLengthUniform n) x beta) :
     IsStochastic U x alpha beta :=
@@ -92,7 +94,8 @@ theorem lengthUniformCode_computable : Computable lengthUniformCode :=
     (((Primrec.list_findIdx Primrec.id (Primrec.not.comp Primrec.snd).to₂).of_eq
       (fun z => (takeWhile_id_length_eq_findIdx z).symm)).to_comp)).of_eq (fun _ => rfl)
 
-/-- Every string is stochastic under the length-uniform model with complexity bounded logarithmically in its length. -/
+/-- Every string is stochastic under the length-uniform model with complexity bounded
+logarithmically in its length. -/
 theorem isStochastic_lengthUniform_log (U : Map) (hU : IsOptimalPrefixConditional U) :
     ∃ c : ℕ, ∀ x : BitString, ∀ beta : ℕ,
       DeficiencyLe U (codedLengthUniform x.length) x beta →

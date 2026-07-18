@@ -36,7 +36,8 @@ def StochasticToOptimalSetGate (U : Map) : Prop :=
     ∃ c : ℕ, ∀ x : BitString, ∀ n alpha beta : ℕ,
       x.length = n →
       IsStochastic U x alpha beta →
-      IsOptimalSetStochastic U x (alpha + logSlack c (n + alpha + beta)) (beta + logSlack c (n + alpha + beta))
+      IsOptimalSetStochastic U x (alpha + logSlack c (n + alpha + beta))
+          (beta + logSlack c (n + alpha + beta))
 
 /-- Theorem 3 exported under its intended name, gated by the real statement that
 later work must prove. -/
@@ -47,7 +48,8 @@ theorem optimal_set_of_stochastic (U : Map)
     ∃ c : ℕ, ∀ x : BitString, ∀ n alpha beta : ℕ,
       x.length = n →
       IsStochastic U x alpha beta →
-      IsOptimalSetStochastic U x (alpha + logSlack c (n + alpha + beta)) (beta + logSlack c (n + alpha + beta)) :=
+      IsOptimalSetStochastic U x (alpha + logSlack c (n + alpha + beta))
+          (beta + logSlack c (n + alpha + beta)) :=
   h_gate h_size h_comp
 
 /-- Theorem 3 specialized to an optimal decompressor, still with the explicit
@@ -59,7 +61,8 @@ theorem optimal_set_of_stochastic_of_optimal (U : Map) (hU : IsOptimalPrefixCond
     ∃ c : ℕ, ∀ x : BitString, ∀ n alpha beta : ℕ,
       x.length = n →
       IsStochastic U x alpha beta →
-      IsOptimalSetStochastic U x (alpha + logSlack c (n + alpha + beta)) (beta + logSlack c (n + alpha + beta)) := by
+      IsOptimalSetStochastic U x (alpha + logSlack c (n + alpha + beta))
+          (beta + logSlack c (n + alpha + beta)) := by
   have h_size := exists_description_smaller_size_of_many_logSlack U hU
   have h_comp := exists_description_smaller_complexity_of_many_logSlack U hU
   exact optimal_set_of_stochastic U h_size h_comp h_gate
@@ -90,8 +93,11 @@ theorem setOptimalityDeficiencyLe_of_profile {U : Map} {B : Finset BitString} {h
     (h_arith : (s : ENat) + t ≤ KPPlain U x + beta) :
     SetOptimalityDeficiencyLe U B hB x beta := by
   rw [setOptimalityDeficiencyLe_iff_of_mem hx]
-  cases hx_comp : KPPlain U x <;> cases hB_comp : setComplexity U B hB <;> simp_all [complexityWeight]
-  refine le_trans ?_ (mul_le_mul_right (mul_le_mul_right (show (B.card : ENNReal)⁻¹ ≥ (2^t : ENNReal)⁻¹ from ?_) _) _)
+  cases hx_comp : KPPlain U x <;> cases hB_comp : setComplexity U B hB <;>
+    simp_all [complexityWeight]
+  refine le_trans ?_
+      (mul_le_mul_right (mul_le_mul_right (show (B.card : ENNReal)⁻¹ ≥ (2^t : ENNReal)⁻¹ from ?_)
+                          _) _)
   · simp_all [← ENNReal.mul_inv, ← ENNReal.inv_pow]
     rw [← ENNReal.toReal_le_toReal] <;> norm_num
     · field_simp
@@ -101,9 +107,11 @@ theorem setOptimalityDeficiencyLe_of_profile {U : Map} {B : Finset BitString} {h
     · exact ENNReal.mul_ne_top (by norm_num) (by norm_num)
   · gcongr; norm_cast
 
-theorem ManyIJDescriptions_k_le_i_add_one {U : Map} {x : BitString} {i j k : ℕ} (h : ManyIJDescriptions U x i j k) : k ≤ i + 1 := by
+theorem ManyIJDescriptions_k_le_i_add_one {U : Map} {x : BitString} {i j k : ℕ}
+    (h : ManyIJDescriptions U x i j k) : k ≤ i + 1 := by
   unfold ManyIJDescriptions at h
-  have h_bound : ((descriptionsWithComplexityLeAndSizeLe U i j).filter (fun S => x ∈ S)).card ≤ 2 ^ (i + 1) := by
+  have h_bound : ((descriptionsWithComplexityLeAndSizeLe U i j).filter (fun S => x ∈ S)).card ≤ 2 ^
+      (i + 1) := by
     exact (Finset.card_filter_le _ _).trans (card_descriptionsWithComplexityLeAndSizeLe U i j)
   have h_pow := h.trans h_bound
   exact (Nat.pow_le_pow_iff_right (by decide)).mp h_pow
@@ -158,7 +166,8 @@ theorem logSlack_add_one (c : ℕ) (n : ℕ) :
     simpa using length_natBits_add_le n 1
   nlinarith
 
-theorem dyadic_bracket_lower_bound {j k : ℕ} (h : (2 : ℝ≥0∞) ^ j / 2 ≤ (2 : ℝ≥0∞) ^ k) : j - 1 ≤ k := by
+theorem dyadic_bracket_lower_bound {j k : ℕ} (h : (2 : ℝ≥0∞) ^ j / 2 ≤ (2 : ℝ≥0∞) ^ k) : j - 1 ≤ k
+    := by
   cases j
   · exact Nat.zero_le _
   · rename_i j
@@ -194,22 +203,27 @@ theorem setOptimalityCardBound {U : Map} {A : Finset BitString} {hA : A.Nonempty
           _ = 2 ^ n * 2 := by ring
     · rw [h]
       exact le_top
-  · obtain ⟨k, hk⟩ : ∃ k : ℕ, KPPlain U x = k := (ENat.ne_top_iff_exists.mp h).imp fun m hm => hm.symm
+  · obtain ⟨k, hk⟩ : ∃ k : ℕ, KPPlain U x = k :=
+      (ENat.ne_top_iff_exists.mp h).imp fun m hm => hm.symm
     refine ⟨k + delta - i, ?_, ?_⟩
     · have h_opt' := h_opt
       rw [setOptimalityDeficiencyLe_iff_of_mem hx] at h_opt'
       simp only [hk, h_comp, complexityWeight_coe] at h_opt'
-      have h_card2 : (A.card : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ k ≤ (2 : ℝ≥0∞) ^ delta * (2 : ℝ≥0∞)⁻¹ ^ i := by
+      have h_card2 : (A.card : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ k ≤ (2 : ℝ≥0∞) ^ delta * (2 : ℝ≥0∞)⁻¹ ^ i :=
+          by
         calc
           (A.card : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ k
-            ≤ (A.card : ℝ≥0∞) * ((2 : ℝ≥0∞) ^ delta * ((2 : ℝ≥0∞)⁻¹ ^ i * (A.card : ℝ≥0∞)⁻¹)) := by gcongr
-          _ = (2 : ℝ≥0∞) ^ delta * (2 : ℝ≥0∞)⁻¹ ^ i * ((A.card : ℝ≥0∞) * (A.card : ℝ≥0∞)⁻¹) := by ring
+            ≤ (A.card : ℝ≥0∞) * ((2 : ℝ≥0∞) ^ delta * ((2 : ℝ≥0∞)⁻¹ ^ i * (A.card : ℝ≥0∞)⁻¹)) :=
+                by gcongr
+          _ = (2 : ℝ≥0∞) ^ delta * (2 : ℝ≥0∞)⁻¹ ^ i * ((A.card : ℝ≥0∞) * (A.card : ℝ≥0∞)⁻¹) :=
+              by ring
           _ = (2 : ℝ≥0∞) ^ delta * (2 : ℝ≥0∞)⁻¹ ^ i := by
             rw [ENNReal.mul_inv_cancel]
             · exact mul_one _
             · exact_mod_cast hA.card_pos.ne'
             · exact ENNReal.natCast_ne_top A.card
-      have h_card3 : (A.card : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ k * (2 : ℝ≥0∞) ^ k ≤ ((2 : ℝ≥0∞) ^ delta * (2 : ℝ≥0∞)⁻¹ ^ i) * (2 : ℝ≥0∞) ^ k := by
+      have h_card3 : (A.card : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ k * (2 : ℝ≥0∞) ^ k ≤
+          ((2 : ℝ≥0∞) ^ delta * (2 : ℝ≥0∞)⁻¹ ^ i) * (2 : ℝ≥0∞) ^ k := by
         gcongr
       have h_card4 : (A.card : ℝ≥0∞) ≤ (2 : ℝ≥0∞) ^ delta * (2 : ℝ≥0∞)⁻¹ ^ i * (2 : ℝ≥0∞) ^ k := by
         calc
@@ -219,7 +233,8 @@ theorem setOptimalityCardBound {U : Map} {A : Finset BitString} {hA : A.Nonempty
           _ = (A.card : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ k * (2 : ℝ≥0∞) ^ k := by ring
           _ ≤ ((2 : ℝ≥0∞) ^ delta * (2 : ℝ≥0∞)⁻¹ ^ i) * (2 : ℝ≥0∞) ^ k := h_card3
       have h_card5 : (A.card : ℝ≥0∞) ≤ (2 : ℝ≥0∞) ^ delta * (2 : ℝ≥0∞) ^ k * (2 : ℝ≥0∞)⁻¹ ^ i := by
-        have h_eq : (2 : ℝ≥0∞) ^ delta * (2 : ℝ≥0∞)⁻¹ ^ i * (2 : ℝ≥0∞) ^ k = (2 : ℝ≥0∞) ^ delta * (2 : ℝ≥0∞) ^ k * (2 : ℝ≥0∞)⁻¹ ^ i := by ring
+        have h_eq : (2 : ℝ≥0∞) ^ delta * (2 : ℝ≥0∞)⁻¹ ^ i * (2 : ℝ≥0∞) ^ k = (2 : ℝ≥0∞) ^ delta *
+            (2 : ℝ≥0∞) ^ k * (2 : ℝ≥0∞)⁻¹ ^ i := by ring
         exact h_card4.trans (le_of_eq h_eq)
       have h_card6 : (A.card : ℝ≥0∞) * (2 : ℝ≥0∞) ^ i ≤ (2 : ℝ≥0∞) ^ delta * (2 : ℝ≥0∞) ^ k := by
         calc
@@ -233,7 +248,8 @@ theorem setOptimalityCardBound {U : Map} {A : Finset BitString} {hA : A.Nonempty
           (A.card : ℝ≥0∞) * (2 : ℝ≥0∞) ^ i ≤ (2 : ℝ≥0∞) ^ delta * (2 : ℝ≥0∞) ^ k := h_card6
           _ = (2 : ℝ≥0∞) ^ (delta + k) := by rw [pow_add]
       have h_card9 : A.card * 2 ^ i ≤ 2 ^ (delta + k) := by exact_mod_cast h_card7
-      have hi : setComplexity U A hA ≤ KPPlain U x + (delta : ENat) := setComplexity_le_of_setOptimalityDeficiency hx h_opt
+      have hi : setComplexity U A hA ≤ KPPlain U x + (delta : ENat) :=
+          setComplexity_le_of_setOptimalityDeficiency hx h_opt
       rw [h_comp, hk] at hi
       have h_i_le : i ≤ delta + k := by
         rw [← ENat.coe_add] at hi
@@ -248,7 +264,8 @@ theorem setOptimalityCardBound {U : Map} {A : Finset BitString} {hA : A.Nonempty
         rw [h_eq] at h_card10
         exact h_card10
       exact Nat.le_of_mul_le_mul_right h_card11 h_pos
-    · have hi : setComplexity U A hA ≤ KPPlain U x + (delta : ENat) := setComplexity_le_of_setOptimalityDeficiency hx h_opt
+    · have hi : setComplexity U A hA ≤ KPPlain U x + (delta : ENat) :=
+        setComplexity_le_of_setOptimalityDeficiency hx h_opt
       rw [h_comp, hk] at hi
       rw [← ENat.coe_add] at hi
       have h_i_le : i ≤ k + delta := by
@@ -473,7 +490,8 @@ theorem isOptimalSetStochastic_imp_profile_of_large_sizeBudget (U : Map) (x : Bi
   refine ⟨ S, hS, hx, ?_, ?_ ⟩;
   · exact le_trans hc ( Nat.cast_le.mpr ( Nat.le_add_right _ _ ) );
   · -- From `hdef`, we have `complexityWeight (KPPlain U x) ≤ (2:ℝ≥0∞)^beta * (complexityWeight (setComplexity U S hS) * (S.card : ℝ≥0∞)⁻¹)`.
-    have hdef' : complexityWeight (KPPlain U x) ≤ (2 : ENNReal) ^ beta * (1 * (S.card : ENNReal)⁻¹) := by
+    have hdef' : complexityWeight (KPPlain U x) ≤ (2 : ENNReal) ^ beta * (1 * (S.card : ENNReal)⁻¹)
+        := by
       rw [ setOptimalityDeficiencyLe_iff_of_mem hx ] at hdef;
       exact hdef.trans ( mul_le_mul_right ( mul_le_mul_left ( complexityWeight_le_one _ ) _ ) _ );
     -- From `h_arith`, we have `KPPlain U x + beta ≤ j + slack`.
@@ -535,8 +553,10 @@ theorem isOptimalSetStochastic_imp_profile (U : Map) (hU : IsOptimalPrefixCondit
     · rw [show (2 : ENNReal)⁻¹ ^ k * (2 ^ k * 2 ^ m₀ * (S.card : ENNReal))
             = ((2 : ENNReal)⁻¹ ^ k * 2 ^ k) * (2 ^ m₀ * S.card) by ring,
         ← mul_pow, ENNReal.inv_mul_cancel (by norm_num) (by norm_num), one_pow, one_mul]
-    · rw [show 2 ^ beta * ((2 : ENNReal)⁻¹ ^ m₀ * (S.card : ENNReal)⁻¹) * (2 ^ k * 2 ^ m₀ * (S.card : ENNReal))
-            = (2 ^ k * 2 ^ beta) * ((2 : ENNReal)⁻¹ ^ m₀ * 2 ^ m₀) * ((S.card : ENNReal)⁻¹ * S.card) by ring,
+    · rw [show 2 ^ beta * ((2 : ENNReal)⁻¹ ^ m₀ * (S.card : ENNReal)⁻¹) * (2 ^ k * 2 ^ m₀ * (S.card
+        : ENNReal))
+            = (2 ^ k * 2 ^ beta) * ((2 : ENNReal)⁻¹ ^ m₀ * 2 ^ m₀) *
+                ((S.card : ENNReal)⁻¹ * S.card) by ring,
         ← mul_pow, ENNReal.inv_mul_cancel (by norm_num) (by norm_num),
         ENNReal.inv_mul_cancel hcard_ne hcard_top, one_pow, mul_one, mul_one, ← pow_add]
   have h_card_nat : 2 ^ m₀ * S.card ≤ 2 ^ (k + beta) := by exact_mod_cast h_card

@@ -172,7 +172,6 @@ theorem IsLSC.div_two_pow {f : BitString → BitString → ℝ≥0∞}
   · -- computability of the shifted approximation
     exact computable_dyadicValue_shift approx d hcomp
 
-
 /-! ### The online truncation construction
 
 This block builds the truncated function used by `IsLSC.truncate`. Fix the
@@ -937,7 +936,6 @@ theorem IsLSC.truncate {f : BitString → BitString → ℝ≥0∞} (hf : IsLSC 
   · exact truncGapprox_computable hcomp d
   · intro ctx; exact tsum_truncG_le d ctx
   · intro ctx hle out; exact truncG_eq_f_of_le hmono hsup d ctx hle out
-
 
 /-! ### Kraft–Chaitin realization engine (moved below the truncation/`ev*` machinery so that `extract_request_stream` can reuse it). -/
 

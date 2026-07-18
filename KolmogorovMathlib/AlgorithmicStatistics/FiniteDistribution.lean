@@ -73,7 +73,8 @@ noncomputable def dirac (x : BitString) : FiniteDistribution where
 /-! ### Uniform Distribution on a Finite Set -/
 
 /-- The uniform distribution on a nonempty finite set. -/
-noncomputable def uniformOn (S : Finset BitString) (hS : S.Nonempty) (code : BitString) : FiniteDistribution where
+noncomputable def uniformOn (S : Finset BitString) (hS : S.Nonempty) (code : BitString) :
+    FiniteDistribution where
   mass y := if y ∈ S then (S.card : ℝ≥0∞)⁻¹ else 0
   support := S
   code := code
@@ -91,12 +92,14 @@ noncomputable def uniformOn (S : Finset BitString) (hS : S.Nonempty) (code : Bit
     simp only [Finset.sum_const, nsmul_eq_mul]
     exact ENNReal.mul_inv_cancel hcard (ENNReal.natCast_ne_top _)
 
-@[simp] theorem uniformOn_mass_of_mem (S : Finset BitString) (hS : S.Nonempty) (code : BitString) (x : BitString) (hx : x ∈ S) :
+@[simp] theorem uniformOn_mass_of_mem (S : Finset BitString) (hS : S.Nonempty) (code : BitString)
+    (x : BitString) (hx : x ∈ S) :
     (uniformOn S hS code).mass x = (S.card : ℝ≥0∞)⁻¹ := by
   dsimp [uniformOn]
   rw [if_pos hx]
 
-@[simp] theorem uniformOn_mass_of_not_mem (S : Finset BitString) (hS : S.Nonempty) (code : BitString) (x : BitString) (hx : x ∉ S) :
+@[simp] theorem uniformOn_mass_of_not_mem (S : Finset BitString) (hS : S.Nonempty)
+    (code : BitString) (x : BitString) (hx : x ∉ S) :
     (uniformOn S hS code).mass x = 0 := by
   dsimp [uniformOn]
   rw [if_neg hx]

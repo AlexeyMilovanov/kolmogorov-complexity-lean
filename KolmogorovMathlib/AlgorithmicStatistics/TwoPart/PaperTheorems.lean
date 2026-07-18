@@ -309,7 +309,6 @@ theorem KPPlain_toNat_le_setComplexity_add_condKP (U : Map) (hU : IsOptimalPrefi
   rw [← h1, ← h2, ← h3] at hbound
   exact_mod_cast hbound
 
-
 theorem exists_realizedGap_uniformSet_of_stochastic
     (U : Map) (hU : IsOptimalPrefixConditional U) :
     ∃ c : ℕ, ∀ (x : BitString) (n alpha beta : ℕ),
@@ -478,7 +477,6 @@ theorem exists_realizedGap_uniformSet_of_stochastic
     have hdelta : delta ≤ i + j := Nat.sub_le _ _
     omega
   exact ⟨h_realized, h_def_d, h_d_le_delta, h_i_bound, h_d_bound, h_linear⟩
-
 
 /-
 Theorem 3: Stochasticity to Optimal Set Model.

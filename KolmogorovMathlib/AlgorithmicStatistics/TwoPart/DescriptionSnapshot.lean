@@ -587,8 +587,6 @@ theorem mem_listChunk_of_mem {α : Type*} (L : List α) (a b : ℕ)
     refine ⟨⟨k % b, ?_⟩, ?_⟩ <;> simp +decide [Nat.div_add_mod']
     exact ⟨Nat.mod_lt _ hb, lt_tsub_iff_left.mpr (by linarith [Nat.mod_add_div k b, k.2])⟩
 
-
-
 /-- `emittedHalfRichChunks_fold_step` processes a single new rich element `x`.
 If `x` is already placed, it does nothing. Otherwise, it extracts the currently
 unplaced half-rich elements, forms a new chunk of size at most `2^j` with `x` at
@@ -2085,8 +2083,6 @@ theorem halfRichComplexityPortion_selector_correct (U : Map) (hU : IsOptimalPref
     grind;
     grind
 
-
-
 /-- Half-rich dump bound: the objects with many descriptions are few.  This is
 the proved whole-rich cardinality estimate; the genuine complexity-half work is
 to refine this into a computable portion family with only about `2^(i-k)` viable
@@ -2208,7 +2204,6 @@ theorem exists_description_smaller_size_of_many_logSlack
     ImprovingDescriptionsSizeLogSlack U :=
   improvingDescriptionsSize_of_complexity U hU
     (exists_description_smaller_complexity_of_many_logSlack U hU)
-
 
 theorem snapshotCodes_toFinset_eq_of_max {c : Code} {U : Map} (hc : IsCodeFor c U) (alpha t t₀ : ℕ)
     (h_ge : t₀ ≤ t)

@@ -16,6 +16,26 @@ equivalence of randomness/optimality deficiencies in the restricted case.
 Stretch goals: Hamming-ball instance, the `P_x` vs `P_x^𝒜` gap, the
 restricted curve-realization theorem.
 
+## Current priority override (2026-07-14)
+
+The section owner has chosen the honest covering-code route for the Hamming
+instance (decision D1).  This decision supersedes the iteration-040/045 advice
+to park M3 and work only on M7.
+
+The old proof architecture in `Examples/HammingBalls.lean` was wrong: it
+restricted covering centers to the original ball and tried to prove a uniform
+polynomial lower bound for `B(z,r) ∩ B(y,r_c)` at every boundary point `y`.
+That intermediate statement is false.  Do not restore or restate
+`shell_intersection_lower_bound`, `hammingVol_good_col_exists`, or
+`hammingBall_intersection_lower_bound`.
+
+The immediate priority is Proposition 26's sphere-wise proof described under
+M3 below.  Preserve the public declarations `hammingBall_cover_centers`,
+`hammingFamily_cover`, and `hammingOverhead n = (n + 1)^7`.  First isolate and
+prove the coordinate-flip and sphere-incidence leaves; then assemble the shell
+cover.  Only after `hammingFamily` is sound and sorry-free should ordinary
+iterations return to M7 `exists_restricted_scale_state`.
+
 **Non-goals (do NOT start):** bounded-time complexity variants (survey
 explicitly says 𝒜 does not enter that picture), Epstein–Levin, Milovanov's
 common-model results, strong models (§7).
@@ -155,16 +175,44 @@ Owns: `KolmogorovMathlib/Restricted/Examples/Cylinders.lean`,
 - Cylinders (n-bit strings with prefix u): easy; covering = extend the prefix.
 - Ternary masks (fix arbitrary bit positions): medium; covering = fix more
   bits; counting is exact powers of 2, no estimates needed.
-- **Hamming balls: HARD, keep as separate leaf, do not block the main line.**
-  Needs: ball cardinality `V(n,r) = Σ_{s≤r} C(n,s)`, the ≤(n+1)-factor growth
-  per radius step, and the probabilistic covering argument (in Lean: a
-  counting/averaging argument — "N random centers leave a point uncovered
-  with prob < 1"; formalize as: the number of (center-tuple, uncovered-point)
-  incidences is < total tuples, hence some tuple covers everything).
-  Sub-leaves: (i) counting bounds for binomial sums, (ii) sphere-vs-ball
-  polynomial ratio, (iii) the random-order argument of the proof sketch (5)
-  may be replaced by explicit f: STRATEGIC decision whether to formalize the
-  elegant argument or grind the binomial estimate.
+- **Hamming balls: current priority; use Proposition 26's sphere-wise proof.**
+  The ball cardinality, radius-growth bound, full-cube probabilistic cover,
+  sphere decomposition, sphere cardinality, and `greedy_cover_indexed` are
+  already available.  Do not try to lower-bound the intersection of the
+  original ball with every covering ball.
+
+  Correct proof architecture:
+
+  1. If the target radius is larger than `n / 2`, cover the whole cube using
+     `hamming_probabilistic_cover`; compare `2^n` with the target ball volume.
+  2. Otherwise decompose the target ball into at most `n + 1` distance
+     spheres.  Spheres of radius `a ≤ r_c` are covered by the one ball centered
+     at `z`.
+  3. For `r_c < a ≤ n / 2`, choose a center-shell radius `f`.  For every
+     `r_c`-subset `E` of coordinates, the prefix-flip path
+     `E △ {0, ..., t-1}` starts at weight `r_c`, ends at `n-r_c`, and changes
+     weight by one per step, so it hits weight `a`.  Pigeonhole over the
+     `n + 1` times to obtain one `f` for which at least a `1/(n+1)` fraction of
+     the radius-`r_c` sphere lies in the target radius-`a` sphere.
+  4. Prove the corresponding sphere-incidence graph is regular (or prove the
+     two exact degree formulas and their double-count identity).  Apply
+     `greedy_cover_indexed` with centers on `hammingSphere n z f`.
+  5. Concatenate the shell covers.  Use
+     `hammingVol n r_c ≤ c ≤ (n+1) * hammingVol n r_c`, the sphere/ball
+     `(n+1)` factors, the greedy logarithm `≤ n+1`, and the shell count
+     `≤ n+1`.  The frozen `(n+1)^7` overhead has spare factors.
+
+  Recommended Lean leaves, in order:
+
+  - a reusable `flipPositions` representation and lemmas for length,
+    injectivity, and Hamming distance as symmetric-difference cardinality;
+  - `prefix_flip_path_hits` and `exists_dense_hamming_center_shell`;
+  - `hammingSphere_incidence_regular` (or exact row/column degree lemmas);
+  - `hammingSphere_cover_centers` using `greedy_cover_indexed`;
+  - the final `hammingBall_cover_centers` shell/full-cube dispatcher.
+
+  Every ordinary iteration must leave at most 1–3 honest named leaf holes for
+  Aristotle.  Numerical experiments are diagnostics only, never proof terms.
 
 The abstract theory (M2, M4, M5) must NEVER depend on M3.
 

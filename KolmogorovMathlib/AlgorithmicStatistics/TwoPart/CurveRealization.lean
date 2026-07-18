@@ -69,7 +69,8 @@ prefix complexity of `x` up to logarithmic slack.  Proof: the map
 theorem singletonSetComplexityGate (U : Map) (hU : IsOptimalPrefixConditional U) :
     SingletonSetComplexityGate U := by
   obtain ⟨ c, hc ⟩ := KPPlain_map_le U hU ( fun x => canonicalUniformCodeOfList [ x ] ) ( by
-    exact canonicalUniformCodeOfList_computable.comp ( Computable.list_cons.comp Computable.id ( Computable.const [] ) ) );
+    exact canonicalUniformCodeOfList_computable.comp
+        ( Computable.list_cons.comp Computable.id ( Computable.const [] ) ) );
   refine ⟨c, fun x n kx hn hk => le_trans ?_ (le_trans (hc x) ?_)⟩
   · rw [show setComplexity U {x} _
         = KPPlain U (codedUniformOn {x} _ |> CodedFiniteDistribution.code) from rfl]
@@ -89,15 +90,22 @@ Proof: the map `natCode n ↦ canonicalUniformCodeOfList (canonicalFinsetList
 -/
 theorem fullSetComplexityGate (U : Map) (hU : IsOptimalPrefixConditional U) :
     FullSetComplexityGate U := by
-  obtain ⟨c₁, hc₁⟩ :=KPPlain_map_le U hU (fun w => canonicalUniformCodeOfList (canonicalFinsetList (stringsOfLength (decodeNatCode w)))) (by
-  convert canonicalUniformCodeOfList_computable.comp ( _ : Computable fun w => canonicalFinsetList ( stringsOfLength ( decodeNatCode w ) ) ) using 1;
-  convert canonicalFinsetList_toFinset_primrec.comp ( allStrings_primrec.comp ( decodeNatCode_primrec ) ) |> Primrec.to_comp using 1)
+  obtain ⟨c₁,
+           hc₁⟩ :=KPPlain_map_le U hU (fun w =>
+               canonicalUniformCodeOfList
+                   (canonicalFinsetList (stringsOfLength (decodeNatCode w)))) (by
+  convert canonicalUniformCodeOfList_computable.comp
+      ( _ : Computable fun w => canonicalFinsetList ( stringsOfLength ( decodeNatCode w ) ) ) using
+          1;
+  convert canonicalFinsetList_toFinset_primrec.comp
+      ( allStrings_primrec.comp ( decodeNatCode_primrec ) ) |> Primrec.to_comp using 1)
   obtain ⟨c₂, hc₂⟩ :=KPPlain_natCode_le_log U hU
   use c₁ + c₂ + 2;
   intro n hn; specialize hc₁ ( natCode n ) ; specialize hc₂ n; simp_all +decide [ logSlack ] ;
   convert hc₁.trans ( add_le_add hc₂ le_rfl ) |> le_trans <| ?_ using 1;
   · convert rfl using 2;
-    convert congr_arg ( fun x : BitString => KP U x [] ) ( canonicalUniformCodeOfList_canonicalFinsetList ( stringsOfLength n ) hn ) using 1;
+    convert congr_arg ( fun x : BitString => KP U x [] )
+        ( canonicalUniformCodeOfList_canonicalFinsetList ( stringsOfLength n ) hn ) using 1;
   · norm_cast ; nlinarith [ Nat.zero_le ( List.length ( Nat.bits n ) ) ]
 
 /-! ### Unconditional profile endpoints -/

@@ -80,12 +80,14 @@ theorem pairCode_primrec : Primrec₂ pairCode :=
 /-- The `num` projection of a rational mass is primitive recursive. -/
 theorem ratMass_num_primrec : Primrec (fun q : RatMass => q.num) := by
   have := @Primrec.of_equiv
-  convert this.comp ( Primrec.id ) |> Primrec.comp ( Primrec.fst.comp ( Primrec.subtype_val ) ) using 1
+  convert this.comp ( Primrec.id ) |> Primrec.comp ( Primrec.fst.comp ( Primrec.subtype_val ) )
+      using 1
 
 /-- The `den` projection of a rational mass is primitive recursive. -/
 theorem ratMass_den_primrec : Primrec (fun q : RatMass => q.den) := by
   have := @Primrec.of_equiv
-  convert this.comp ( Primrec.id ) |> Primrec.comp ( Primrec.snd.comp ( Primrec.subtype_val ) ) using 1
+  convert this.comp ( Primrec.id ) |> Primrec.comp ( Primrec.snd.comp ( Primrec.subtype_val ) )
+      using 1
 
 /-- The map `k ↦ 2^k` is primitive recursive. -/
 theorem twoPow_primrec : Primrec (fun k : ℕ => 2 ^ k) := by
@@ -183,7 +185,8 @@ The rational mass `1 / 2 ^ n` is a primitive-recursive function of `n`.
 -/
 theorem ratMassInvPow2_primrec :
     Primrec (fun n : ℕ => ratMassInvNat (2 ^ n) (pow_pos (by decide) n)) := by
-      have h : Primrec (fun n : ℕ => ⟨(1, 2 ^ n), by simp +decide⟩ : ℕ → {p : ℕ × ℕ // 0 < p.2}) := by
+      have h : Primrec (fun n : ℕ => ⟨(1, 2 ^ n), by simp +decide⟩ : ℕ → {p : ℕ × ℕ // 0 < p.2}) :=
+          by
         -- The constant function 1 is primitive recursive.
         have h_const : Primrec (fun _ : ℕ => 1 : ℕ → ℕ) := by
           exact Primrec.const 1;

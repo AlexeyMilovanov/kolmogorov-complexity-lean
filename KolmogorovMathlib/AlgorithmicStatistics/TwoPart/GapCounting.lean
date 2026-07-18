@@ -386,7 +386,6 @@ This module bounds the description count in terms of the conditional
 complexity gap, the main quantitative step of Section 3.
 -/
 
-
 def candidateCodes (c : Code) (i j : ℕ) (x : BitString) (t : ℕ) : List BitString :=
   ((snapshotCodes c i t).filter isCanonicalUniformCodeBool).filter (fun w =>
     let S := ((decodeDistributionData w).map CodedDistributionEntry.point).toFinset

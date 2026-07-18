@@ -229,7 +229,6 @@ theorem KPPair_chain_lower_of_conditional_coding (U : Map)
     -- Read the multiplicative bound back as the additive lower bound.
     exact le_add_nat_of_complexityWeight_le hP key
 
-
 /-- Weak upper bound with only `x` as condition.
 
 This is deliberately only an upper bound. The corresponding lower bound with

@@ -251,7 +251,9 @@ lemma boundedPrograms_nodup (N : ℕ) : (boundedPrograms N).Nodup := by
   refine List.nodup_flatMap.mpr ?_;
   refine ⟨ fun x hx => exactLengthPrograms_nodup x, ?_ ⟩;
   refine List.pairwise_iff_get.mpr ?_;
-  intros i j hij; rw [ Function.onFun, List.disjoint_left ] ; intros x hx hy; have := exactLengthPrograms_length_eq _ _ hx; have := exactLengthPrograms_length_eq _ _ hy; simp_all +decide;
+  intros i j hij; rw [ Function.onFun, List.disjoint_left ] ; intros x hx hy
+  have := exactLengthPrograms_length_eq _ _ hx; have := exactLengthPrograms_length_eq _ _ hy
+  simp_all +decide;
   exact hij.ne ( Fin.ext ‹_› ▸ rfl )
 
 /-- A bitstring is in `boundedPrograms N` if and only if its length is at most `N`. -/
