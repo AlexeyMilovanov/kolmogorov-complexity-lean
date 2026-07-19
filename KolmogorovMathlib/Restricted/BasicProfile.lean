@@ -237,9 +237,6 @@ Construction (Aristotle target; matches plan M4 `GoodCoverCodes`/`coverSelector`
   give the coefficient-1 `k` term).  `f` re-runs the same canonical search and
   returns the `idx`-th cover code, which is `(codedUniformOn B hB).code`.
 -/
-set_option maxHeartbeats 1000000 in
--- The assembly re-derives the four `coverValidBool` conjuncts several times via
--- `simp [coverValidBool]`, which is elaboration-heavy; raise the heartbeat limit.
 theorem exists_coverSelector (𝒜 : DescriptionFamily) :
     ∃ (f : BitString →. BitString), Partrec f ∧ ∃ c₀ : ℕ,
       ∀ (A : Finset BitString) (hA : A.Nonempty) (x : BitString) (n j k : ℕ),
@@ -260,71 +257,66 @@ theorem exists_coverSelector (𝒜 : DescriptionFamily) :
     set idx := cover.findIdx (fun w => decide (x ∈ decodeCoverCodeList w)) with hidx
     set s := k + 1 + (Nat.bits (𝒜.overhead n)).length with hs
     set z := coverAddress n k (𝒜.overhead n) idx s with hz
+    have hvalid : coverValidBool 𝒜 (codedUniformOn A hA).code n k
+        (𝒜.overhead n) p' = true :=
+      Nat.find_spec (⟨p, hp⟩ : ∃ p, coverValidBool 𝒜
+        (codedUniformOn A hA).code n k (𝒜.overhead n) p = true)
+    have hvalid_parts := hvalid
+    simp only [coverValidBool, Bool.and_eq_true, decide_eq_true_eq,
+      List.all_eq_true] at hvalid_parts
+    have hvalid_enum : ∀ w ∈ cover, w ∈ 𝒜.enumeration.enum stage := by
+      simpa only [hcover, hstage] using hvalid_parts.1.1.1
+    have hvalid_length : cover.length ≤ (𝒜.overhead n) * 2 ^ (k + 1) := by
+      simpa only [hcover] using hvalid_parts.1.1.2
+    have hvalid_card : ∀ w ∈ cover,
+        (decodeCoverCodeList w).dedup.length ≤ max 1 (A.card / 2 ^ k) := by
+      intro w hw
+      have hw' := hvalid_parts.1.2 w (by simpa only [hcover] using hw)
+      rw [decodeCoverCodeList_code,
+        List.dedup_eq_self.mpr (canonicalFinsetList_nodup A),
+        length_canonicalFinsetList] at hw'
+      exact hw'
+    have hx_cover : ∃ w ∈ cover, x ∈ decodeCoverCodeList w := by
+      have hx' := hvalid_parts.2 x (by
+        simp only [decodeCoverCodeList_code, List.mem_filter,
+          decide_eq_true_eq, hx_len, and_true]
+        exact mem_canonicalFinsetList.mpr hxA)
+      simpa only [List.any_eq_true, decide_eq_true_eq, hcover] using hx'
+    have hidx_lt : idx < cover.length := by
+      rw [hidx]
+      exact List.findIdx_lt_length_of_exists (by simpa using hx_cover)
+    have hx_selected : x ∈ decodeCoverCodeList (cover.getD idx []) := by
+      rw [hidx] at hidx_lt ⊢
+      grind
+    have hselected_mem : cover.getD idx [] ∈ cover := by
+      rw [List.getD_eq_getElem cover [] hidx_lt]
+      exact List.getElem_mem hidx_lt
+    have hcover_members : ∀ w ∈ cover, ∃ S : Finset BitString,
+        ∃ hS : S.Nonempty, 𝒜.mem S ∧ w = (codedUniformOn S hS).code :=
+      fun w hw => 𝒜.enumeration.sound stage w (hvalid_enum w hw)
     use (decodeCoverCodeList (cover.getD idx [])).toFinset, by
-      have := Nat.find_spec ( ⟨ p, hp ⟩ : ∃ p, coverValidBool 𝒜 ( codedUniformOn A hA ).code n k ( 𝒜.overhead n ) p ) ; simp_all +decide [ coverValidBool ] ;
-      have h_nonempty : x ∈ decodeCoverCodeList (codedUniformOn A hA).code := by
-        rw [ decodeCoverCodeList_code ] ; aesop;
-      grind, z
+      exact ⟨x, List.mem_toFinset.mpr hx_selected⟩, z
     generalize_proofs at *;
     refine ⟨ ?_, ?_, ?_, ?_, ?_ ⟩;
-    · have h_cover_mem : ∀ w ∈ cover, ∃ S : Finset BitString, ∃ hS : S.Nonempty, 𝒜.mem S ∧ w = (codedUniformOn S hS).code := by
-        have h_cover_mem : ∀ w ∈ cover, w ∈ 𝒜.enumeration.enum stage := by
-          have := Nat.find_spec ‹∃ p, coverValidBool 𝒜 (codedUniformOn A hA).code n k (𝒜.overhead n) p = true›; simp_all +decide [ coverValidBool ] ;
-        exact fun w hw => 𝒜.enumeration.sound stage w ( h_cover_mem w hw );
-      obtain ⟨S, hS, hS_mem, hS_eq⟩ := h_cover_mem (cover.getD idx []) (by
-      convert List.getElem_mem _;
-      exact?;
-      have := Nat.find_spec ‹∃ p, coverValidBool 𝒜 (codedUniformOn A hA).code n k (𝒜.overhead n) p = true›; simp_all +decide [ coverValidBool ] ;
-      exact this.2 x ( by rw [ decodeCoverCodeList_code ] ; exact mem_canonicalFinsetList.mpr hxA ) |> Or.rec ( fun h => False.elim <| h <| by simp +decide [ hx_len ] ) fun h => h);
+    · obtain ⟨S, hS, hS_mem, hS_eq⟩ :=
+        hcover_members (cover.getD idx []) hselected_mem
       rw [ hS_eq, decodeCoverCodeList_code ] ; aesop;
-    · have h_cover : ∀ y ∈ (canonicalFinsetList A).filter (fun y => y.length = n), ∃ w ∈ cover, y ∈ decodeCoverCodeList w := by
-        have := Nat.find_spec ‹∃ p, coverValidBool 𝒜 (codedUniformOn A hA).code n k (𝒜.overhead n) p = true›; simp_all +decide [ coverValidBool ] ;
-        intro y hy hy_len; specialize this; have := this.2 y; simp_all +decide [ decodeCoverCodeList_code ] ;
-      have h_cover : x ∈ decodeCoverCodeList (cover.getD idx []) := by
-        have h_cover : ∃ w ∈ cover, x ∈ decodeCoverCodeList w := h_cover x (by
-        simp +decide [ hx_len, mem_canonicalFinsetList.mpr hxA ])
-        grind +suggestions
-      generalize_proofs at *;
-      exact List.mem_toFinset.mpr h_cover;
-    · have h_card : (decodeCoverCodeList (cover.getD idx [])).dedup.length ≤ max 1 (A.card / 2 ^ k) := by
-        have h_card : ∀ w ∈ cover, (decodeCoverCodeList w).dedup.length ≤ max 1 (A.card / 2 ^ k) := by
-          have h_cover_length : coverValidBool 𝒜 (codedUniformOn A hA).code n k (𝒜.overhead n) p' = true := by
-            exact Nat.find_spec ‹∃ p, coverValidBool 𝒜 ( codedUniformOn A hA ).code n k ( 𝒜.overhead n ) p = true›;
-          unfold coverValidBool at h_cover_length; simp_all +decide [ List.all_eq_true ] ;
-          convert h_cover_length.1.2 using 1;
-          rw [ decodeCoverCodeList_code ];
-          rw [ List.dedup_eq_self.mpr ( canonicalFinsetList_nodup A ), length_canonicalFinsetList ];
-        by_cases h : idx < cover.length <;> simp_all +decide;
-      convert h_card.trans _ using 1;
+    · exact List.mem_toFinset.mpr hx_selected;
+    · convert (hvalid_card (cover.getD idx []) hselected_mem).trans _ using 1;
       exact max_le ( Nat.one_le_pow _ _ ( by decide ) ) ( Nat.div_le_of_le_mul <| by rw [ ← pow_add, Nat.add_sub_of_le hk ] ; exact hA_card );
     · rw [ hz, coverAddress ];
       rw [ length_pairCode, length_pairCode, length_pairCode, chunkAddress_length ] ; omega;
-      have hidx_lt_cover_length : idx < cover.length := by
-        have := Nat.find_spec ‹∃ p, coverValidBool 𝒜 (codedUniformOn A hA).code n k (𝒜.overhead n) p = true›; simp_all +decide [ coverValidBool ] ;
-        exact this.2 x ( by rw [ decodeCoverCodeList_code ] ; exact mem_canonicalFinsetList.mpr hxA ) |> Or.rec ( fun h => False.elim <| h <| by simp +decide [ hx_len ] ) fun h => h.imp fun w hw => ⟨ hw.1, hw.2 ⟩ ;
-      have hidx_lt_cover_length : cover.length ≤ (𝒜.overhead n) * 2 ^ (k + 1) := by
-        have := Nat.find_spec ‹∃ p, coverValidBool 𝒜 (codedUniformOn A hA).code n k (𝒜.overhead n) p = true›; simp_all +decide [ coverValidBool ] ;
       have hidx_lt_cover_length : (𝒜.overhead n) < 2 ^ (Nat.bits (𝒜.overhead n)).length := by
         exact lt_two_pow_length_natBits (𝒜.overhead n);
       rw [ hs, pow_add ];
-      nlinarith [ pow_pos ( zero_lt_two' ℕ ) ( k + 1 ) ];
+      nlinarith [ hidx_lt, hvalid_length,
+        pow_pos ( zero_lt_two' ℕ ) ( k + 1 ) ];
     · convert Kolmogorov.coverSelectorFun_getD_mem 𝒜 ( codedUniformOn A hA ).code n k ( 𝒜.overhead n ) idx s p' _ _ using 1
       all_goals generalize_proofs at *;
-      · have h_cover_mem : cover.getD idx [] ∈ cover := by
-          have h_cover_mem : idx < cover.length := by
-            have := Nat.find_spec ‹∃ p, coverValidBool 𝒜 (codedUniformOn A hA).code n k (𝒜.overhead n) p = true›; simp_all +decide [ coverValidBool ] ;
-            exact this.2 x ( by rw [ decodeCoverCodeList_code ] ; exact mem_canonicalFinsetList.mpr hxA ) |> Or.rec ( fun h => False.elim <| h <| by simp +decide [ hx_len ] ) fun h => h.imp fun w hw => ⟨ hw.1, hw.2 ⟩ ;
-          generalize_proofs at *; (
-          grind)
-        generalize_proofs at *; (
-        have h_cover_mem : ∀ w ∈ cover, ∃ S : Finset BitString, ∃ hS : S.Nonempty, 𝒜.mem S ∧ w = (codedUniformOn S hS).code := by
-          have h_cover_mem : ∀ w ∈ cover, w ∈ 𝒜.enumeration.enum stage := by
-            have := Nat.find_spec ‹∃ p, coverValidBool 𝒜 ( codedUniformOn A hA ).code n k ( 𝒜.overhead n ) p = true›; simp_all +decide [ coverValidBool ] ;
-          generalize_proofs at *; (
-          exact fun w hw => 𝒜.enumeration.sound stage w ( h_cover_mem w hw ) |> fun ⟨ S, hS, hS', hw' ⟩ => ⟨ S, hS, hS', hw' ⟩)
-        generalize_proofs at *; (
-        obtain ⟨ S, hS, hS', hS'' ⟩ := h_cover_mem _ ‹_›; simp_all +decide [ decodeCoverCodeList_code ] ;));
-      · exact Nat.find_spec ‹∃ p, coverValidBool 𝒜 ( codedUniformOn A hA ).code n k ( 𝒜.overhead n ) p = true›;
+      · obtain ⟨S, hS, hS_mem, hS_eq⟩ :=
+          hcover_members (cover.getD idx []) hselected_mem
+        simp_all +decide [decodeCoverCodeList_code]
+      · exact hvalid;
       · exact fun m mn => by simpa using Nat.find_min ‹∃ p, coverValidBool 𝒜 ( codedUniformOn A hA ).code n k ( 𝒜.overhead n ) p = true› mn;
 
 /-- **M2(a3): restricted description shift** (paper Prop. `prop:a-family`(a3);

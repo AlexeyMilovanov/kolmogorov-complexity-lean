@@ -161,9 +161,6 @@ lemma restrictedSampledBadCodesRaw_computable (c : Code) (gridCode : BitString)
 attribute [local irreducible] decode_restrictedCurveGridCode_sample
   familyStageModelCodesList restrictedSampledBadCodesRaw
 
-set_option maxHeartbeats 1000000 in
--- Raised heartbeat limit: heavy `Primrec`/`Finset` elaboration in this proof.
--- Uniform composition through the accumulated family-stage enumerator is elaboration-heavy.
 /-- Uniform form: the encoded grid is an input to the enumeration algorithm,
 not a constant baked into its program. -/
 lemma restrictedSampledBadCodesRaw_computable_uniform (c : Code)
@@ -247,9 +244,6 @@ lemma restrictedSampledBadCodeStream_computable (c : Code) (gridCode : BitString
   | zero => rfl
   | succ n ih => simp [restrictedSampledBadCodeStream, ih]
 
-set_option maxHeartbeats 1000000 in
--- Raised heartbeat limit: heavy `Primrec`/`Finset` elaboration in this proof.
--- The nested computable recursion over stages is elaboration-heavy but terminating.
 /-- Uniform stream computability in both the encoded grid and the chronological
 stage.  This is the form needed by fixed-length version coding. -/
 lemma restrictedSampledBadCodeStream_computable_uniform (c : Code)

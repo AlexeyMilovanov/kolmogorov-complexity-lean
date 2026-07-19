@@ -281,12 +281,6 @@ private lemma sqrtSlack_eq_mul (m n : ℕ) :
   unfold sqrtSlack
   ring
 
-/-- `sqrtSlack` is additive in its constant. -/
-private lemma sqrtSlack_add' (a b n : ℕ) :
-    sqrtSlack a n + sqrtSlack b n = sqrtSlack (a + b) n := by
-  rw [sqrtSlack_eq_mul, sqrtSlack_eq_mul, sqrtSlack_eq_mul]
-  ring
-
 /-- Binary size is subadditive under multiplication. -/
 private lemma size_mul_le (a b : ℕ) :
     Nat.size (a * b) ≤ Nat.size a + Nat.size b := by
@@ -305,8 +299,6 @@ private lemma bits_len_le_self (a : ℕ) : (Nat.bits a).length ≤ a := by
   rw [Nat.size_eq_bits_len]
   exact Nat.size_le.mpr (Nat.lt_two_pow_self)
 
-set_option maxHeartbeats 3200000 in
--- Raised heartbeat limit: a long `Nat`-arithmetic budget chain.
 /-- The `ℕ`-level cost budget of the decoder bundle. -/
 private lemma decoder_bundle_cost_le
     (𝒜 : DescriptionFamily)
@@ -397,7 +389,9 @@ private lemma decoder_bundle_cost_le
           have := Nat.sqrt_le_self (n * L)
           omega
         calc S + 1 ≤ n * L + 1 := by omega
-          _ ≤ (n + 1) * (L + 1) := by nlinarith
+          _ ≤ (n + 1) * (L + 1) := by
+            have h : (n + 1) * (L + 1) = n * L + n + L + 1 := by ring
+            omega
       exact hSn
     have h2 : n + 1 ≤ (n + 1) * (L + 1) :=
       Nat.le_mul_of_pos_right _ (by omega)
@@ -447,8 +441,10 @@ private lemma decoder_bundle_cost_le
       (Nat.size (c_P + 1) + 4) * (S + 1) := by
     have h1 : Nat.size (c_P + 1) ≤ Nat.size (c_P + 1) * (S + 1) :=
       Nat.le_mul_of_pos_right _ (by omega)
-    nlinarith
-  calc ((Nat.bits (𝒜.overhead (n + logSlack 8 n))).length +
+    have e : (Nat.size (c_P + 1) + 4) * (S + 1) =
+        Nat.size (c_P + 1) * (S + 1) + 4 * (S + 1) := by ring
+    omega
+  have step1 : ((Nat.bits (𝒜.overhead (n + logSlack 8 n))).length +
         2 * (Nat.bits (Nat.bits
           (𝒜.overhead (n + logSlack 8 n))).length).length + c_lg) +
       ((Nat.bits s).length + 2 * (Nat.bits (Nat.bits s).length).length +
@@ -470,7 +466,11 @@ private lemma decoder_bundle_cost_le
           omega
         have b6 := hvdlog.trans hvdlogS
         omega
-    _ ≤ grid.i s + (c_P + 15 * c_over + 3 * c_lg + 5 * c_L + c_F +
+  have step2 : (5 * c_over * (S + 1) + 2 * (5 * c_over * (S + 1)) + c_lg) +
+        ((S + 1) + 2 * (S + 1) + c_lg) +
+        ((grid.i s + c_P * (S + 1) + 1) +
+          2 * ((Nat.size (c_P + 1) + 4) * (S + 1)) + c_lg) +
+        c_L * 5 + c_F ≤ grid.i s + (c_P + 15 * c_over + 3 * c_lg + 5 * c_L + c_F +
           2 * Nat.size (c_P + 1) + 40) * (S + 1) := by
         have hpos : 1 ≤ S + 1 := by omega
         have hclg : c_lg ≤ c_lg * (S + 1) :=
@@ -482,7 +482,8 @@ private lemma decoder_bundle_cost_le
             _ = 5 * c_L * (S + 1) := by ring
         have hcF : c_F ≤ c_F * (S + 1) :=
           Nat.le_mul_of_pos_right _ (by omega)
-        nlinarith
+        nlinarith only [hclg, hcL, hcF, hpos]
+  exact step1.trans step2
 
 /-- The version-coding theorem for a fixed decompressor code: every terminal
 sampled model of the anchored run is describable by the encoded grid, the

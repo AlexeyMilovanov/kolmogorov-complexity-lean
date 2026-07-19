@@ -235,10 +235,6 @@ noncomputable def restrictedEffectiveRebuildSuffixNext (𝒜 : DescriptionFamily
       (Bcode, restrictedLiveIntersectionCode state.2.1 Bcode,
         state.2.2 ++ [Bcode]))
 
-set_option maxHeartbeats 4000000 in
--- Raised heartbeat limit: heavy `Primrec`/`Finset` elaboration in this proof.
--- The nested primitive-recursive composition is large enough to exceed the
--- default elaboration heartbeat budget, but performs no unbounded proof search.
 lemma restrictedEffectiveRebuildSuffixNext_partrec (𝒜 : DescriptionFamily) :
     Partrec (fun a : BitString × (ℕ × RestrictedEffectiveRebuildState) =>
       restrictedEffectiveRebuildSuffixNext 𝒜 a.1 a.2) := by
@@ -261,49 +257,71 @@ lemma restrictedEffectiveRebuildSuffixNext_partrec (𝒜 : DescriptionFamily) :
         (restrictedEffectiveRebuildSizes a.1).getD a.2.1 0) := by
     have hget : Computable₂ (fun l : List ℕ => fun i => l.getD i 0) :=
       (Primrec.list_getD 0).to_comp
-    exact hget.comp
-      (restrictedEffectiveRebuildSizes_primrec.to_comp.comp Computable.fst) hidx
+    exact (hget.comp
+      (restrictedEffectiveRebuildSizes_primrec.to_comp.comp Computable.fst) hidx).of_eq
+      fun _ => rfl
   have hq0 : Computable (fun a : BitString ×
       (ℕ × RestrictedEffectiveRebuildState) =>
-        bitsToNat (restrictedSelectorField a.1 3)) := by
-    exact bitsToNat_computable.comp
+        bitsToNat (restrictedSelectorField a.1 3)) :=
+    (bitsToNat_computable.comp
       (restrictedSelectorField_computable.comp Computable.fst
-        (Computable.const 3))
+        ((Computable.const 3) : Computable (fun a : BitString × (ℕ × RestrictedEffectiveRebuildState) => 3)))).of_eq
+      fun _ => rfl
   have hselectorInput : Computable (fun a : BitString ×
       (ℕ × RestrictedEffectiveRebuildState) =>
         restrictedCoverSelectorInput a.2.2.1 a.2.2.2.1
           ((restrictedEffectiveRebuildSizes a.1).getD a.2.1 0)
-          (bitsToNat (restrictedSelectorField a.1 3))) := by
-    exact restrictedCoverSelectorInput_primrec.to_comp.comp
-      (hAcode.pair (hCcode.pair (hc.pair hq0)))
+          (bitsToNat (restrictedSelectorField a.1 3))) :=
+    (restrictedCoverSelectorInput_primrec.to_comp.comp
+      (hAcode.pair (hCcode.pair (hc.pair hq0)))).of_eq fun _ => rfl
   have hcall : Partrec (fun a : BitString ×
       (ℕ × RestrictedEffectiveRebuildState) =>
         restrictedEffectiveRebuildStep 𝒜
           (restrictedCoverSelectorInput a.2.2.1 a.2.2.2.1
             ((restrictedEffectiveRebuildSizes a.1).getD a.2.1 0)
             (bitsToNat (restrictedSelectorField a.1 3)))) :=
-    (restrictedEffectiveRebuildStep_partrec 𝒜).comp hselectorInput
+    ((restrictedEffectiveRebuildStep_partrec 𝒜).comp hselectorInput).of_eq fun _ => rfl
   have hpost : Computable₂ (fun
       (a : BitString × (ℕ × RestrictedEffectiveRebuildState))
       (Bcode : BitString) =>
         (Bcode, restrictedLiveIntersectionCode a.2.2.2.1 Bcode,
           a.2.2.2.2 ++ [Bcode])) := by
-    apply Computable₂.mk
-    apply Primrec.to_comp
-    apply Primrec.pair Primrec.snd
-    apply Primrec.pair
-    · exact restrictedLiveIntersectionCode_primrec.comp
-        (Primrec.pair
-          (Primrec.fst.comp
-            (Primrec.snd.comp (Primrec.snd.comp (Primrec.snd.comp Primrec.fst))))
-          Primrec.snd)
-    · exact Primrec.list_append.comp
-        (Primrec.snd.comp
-          (Primrec.snd.comp (Primrec.snd.comp (Primrec.snd.comp Primrec.fst))))
-        (Primrec.list_cons.comp Primrec.snd (Primrec.const []))
-  refine (Partrec.map hcall hpost).of_eq ?_
-  intro a
-  rfl
+    have hmodelCode : Computable (fun p :
+        (BitString × (ℕ × RestrictedEffectiveRebuildState)) × BitString =>
+          p.1.2.2.2.1) :=
+      Computable.fst.comp
+        (Computable.snd.comp (Computable.snd.comp
+          (Computable.snd.comp Computable.fst)))
+    have hBcode : Computable (fun p :
+        (BitString × (ℕ × RestrictedEffectiveRebuildState)) × BitString =>
+          p.2) :=
+      Computable.snd
+    have hcodes : Computable (fun p :
+        (BitString × (ℕ × RestrictedEffectiveRebuildState)) × BitString =>
+          p.1.2.2.2.2) :=
+      Computable.snd.comp
+        (Computable.snd.comp (Computable.snd.comp
+          (Computable.snd.comp Computable.fst)))
+    have hliveCode : Computable (fun p :
+        (BitString × (ℕ × RestrictedEffectiveRebuildState)) × BitString =>
+        restrictedLiveIntersectionCode p.1.2.2.2.1 p.2) :=
+      (restrictedLiveIntersectionCode_primrec.to_comp.comp
+        (hmodelCode.pair hBcode)).of_eq fun _ => rfl
+    have houtputCodes : Computable (fun p :
+        (BitString × (ℕ × RestrictedEffectiveRebuildState)) × BitString =>
+        p.1.2.2.2.2 ++ [p.2]) := by
+      have happend : Computable₂ (fun l1 l2 : List BitString => l1 ++ l2) :=
+        Primrec.list_append.to_comp
+      have hcons : Computable₂ (fun (c : BitString) (l : List BitString) =>
+          c :: l) := Primrec.list_cons.to_comp
+      have hnil : Computable (fun _p :
+          (BitString × (ℕ × RestrictedEffectiveRebuildState)) × BitString =>
+            ([] : List BitString)) := Computable.const []
+      exact (happend.comp hcodes (hcons.comp hBcode hnil)).of_eq fun _ => rfl
+    exact Computable₂.mk
+      ((Computable.pair hBcode
+        (Computable.pair hliveCode houtputCodes)).of_eq fun _ => rfl)
+  exact (Partrec.map hcall hpost).of_eq fun _ => rfl
 
 /-- Iterate the effective rebuild step over all cardinalities encoded in the
 input and return a `listCode` containing the predecessor followed by every

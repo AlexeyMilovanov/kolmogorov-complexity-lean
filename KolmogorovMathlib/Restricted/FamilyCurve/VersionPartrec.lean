@@ -1,11 +1,9 @@
 import KolmogorovMathlib.Restricted.FamilyCurve.VersionDecoder
 
 /-!
-# M7: the heavy uniform computability layer of the version decoder
+# M7: uniform computability layer of the version decoder
 
-Quarantined write-once module: these lemmas elaborate slowly (tens of
-millions of heartbeats each) even with opaque `Primcodable` instances, so
-they live apart from the frequently edited definitions.
+These lemmas live apart from the frequently edited decoder definitions.
 -/
 
 namespace Kolmogorov
@@ -16,16 +14,11 @@ open CodedFiniteDistribution
 section PrimcodableOpaque
 
 /- `Primcodable` instance terms stay opaque during definitional checks: the
-uniform lemmas in this section compose at 4–5-component product types, where
-reducible instance diamonds blow `whnf` past `10^8` heartbeats.  The anchored
-initializer at the end of the file lives outside the section: its `Partrec`
-argument needs the instances reducible. -/
+uniform lemmas in this section compose at 4–5-component product types.  The
+anchored initializer at the end of the file lives outside the section because
+its `Partrec` argument needs the instances reducible. -/
 attribute [local irreducible] Primcodable.prod Primcodable.list
 
-set_option maxHeartbeats 32000000 in
--- Large jointly-uniform statement: the `Primrec`/`Computable` composition
--- tower forces tens of millions of heartbeats of `whnf` even with opaque
--- instances; see the module docstring.
 /-- The raw bad-code enumeration is computable with the grid dimensions and
 slack supplied as data, rather than baked into the program. -/
 lemma restrictedSampledBadCodesRaw_computable_all (c : Code)
@@ -44,12 +37,12 @@ lemma restrictedSampledBadCodesRaw_computable_all (c : Code)
     Computable.fst.comp Computable.snd
   have hsample : Computable (fun r : Q × (ℕ × List BitString) =>
       decode_restrictedCurveGridCode_sample r.1.1.1.1 r.2.1) :=
-    decode_restrictedCurveGridCode_sample_primrec.to_comp.comp
-      (Computable.pair hgrid hindex)
+    (decode_restrictedCurveGridCode_sample_primrec.to_comp.comp
+      (Computable.pair hgrid hindex)).of_eq fun _ => rfl
   have hnextSample : Computable (fun r : Q × (ℕ × List BitString) =>
       decode_restrictedCurveGridCode_sample r.1.1.1.1 (r.2.1 + 1)) :=
-    decode_restrictedCurveGridCode_sample_primrec.to_comp.comp
-      (Computable.pair hgrid (Computable.succ.comp hindex))
+    (decode_restrictedCurveGridCode_sample_primrec.to_comp.comp
+      (Computable.pair hgrid (Computable.succ.comp hindex))).of_eq fun _ => rfl
   have hΔ : Computable (fun r : Q × (ℕ × List BitString) => r.1.1.2) :=
     Computable.snd.comp (Computable.fst.comp Computable.fst)
   have ht : Computable (fun r : Q × (ℕ × List BitString) => r.1.2) :=
@@ -57,24 +50,24 @@ lemma restrictedSampledBadCodesRaw_computable_all (c : Code)
   have hj : Computable (fun r : Q × (ℕ × List BitString) =>
       (decode_restrictedCurveGridCode_sample r.1.1.1.1 r.2.1).2 -
         (r.1.1.2 + 1)) :=
-    Primrec.nat_sub.to_comp.comp (Computable.snd.comp hsample)
-      (Computable.succ.comp hΔ)
+    (Primrec.nat_sub.to_comp.comp (Computable.snd.comp hsample)
+      (Computable.succ.comp hΔ)).of_eq fun _ => rfl
   have hstage : Computable (fun r : Q × (ℕ × List BitString) =>
       familyStageModelCodesList c
         (decode_restrictedCurveGridCode_sample r.1.1.1.1 (r.2.1 + 1)).1
         𝒜
         ((decode_restrictedCurveGridCode_sample r.1.1.1.1 r.2.1).2 -
           (r.1.1.2 + 1)) r.1.2) :=
-    (familyStageModelCodesList_computable_uniform c 𝒜).comp
+    ((familyStageModelCodesList_computable_uniform c 𝒜).comp
       (Computable.pair (Computable.fst.comp hnextSample)
-        (Computable.pair hj ht))
+        (Computable.pair hj ht))).of_eq fun _ => rfl
   have hstep : Computable₂ (fun (_p : Q) (r : ℕ × List BitString) =>
       r.2 ++ familyStageModelCodesList c
         (decode_restrictedCurveGridCode_sample _p.1.1.1 (r.1 + 1)).1 𝒜
         ((decode_restrictedCurveGridCode_sample _p.1.1.1 r.1).2 -
           (_p.1.2 + 1)) _p.2) :=
-    (Computable.list_append.comp (Computable.snd.comp Computable.snd)
-      hstage).to₂
+    ((Computable.list_append.comp
+      (Computable.snd.comp Computable.snd) hstage).to₂).of_eq fun _ => rfl
   refine (Computable.nat_rec hcount hbase hstep).of_eq ?_
   rintro ⟨⟨⟨gridCode, gridSteps⟩, Δ⟩, time⟩
   induction gridSteps with
@@ -83,10 +76,6 @@ lemma restrictedSampledBadCodesRaw_computable_all (c : Code)
       simp [restrictedSampledBadCodesRaw, List.range_succ,
         List.flatMap_append, ih]
 
-set_option maxHeartbeats 32000000 in
--- Large jointly-uniform statement: the `Primrec`/`Computable` composition
--- tower forces tens of millions of heartbeats of `whnf` even with opaque
--- instances; see the module docstring.
 /-- The density predicate with `q0` supplied as data. -/
 lemma restrictedEffectiveDensityFailsBool_primrec_all :
     Primrec (fun p : ℕ × ((List ℕ × BitString × BitString) × ℕ) =>
@@ -132,10 +121,6 @@ lemma restrictedEffectiveDensityFailsBool_primrec_all :
   exact (PrimrecPred.decide (Primrec.nat_lt.comp hleft hright)).of_eq
     (fun _ => rfl)
 
-set_option maxHeartbeats 32000000 in
--- Large jointly-uniform statement: the `Primrec`/`Computable` composition
--- tower forces tens of millions of heartbeats of `whnf` even with opaque
--- instances; see the module docstring.
 /-- Least failed scale with `q0` supplied as data. -/
 lemma restrictedEffectiveFirstFailedScale_primrec_all :
     Primrec (fun p : ℕ × (List ℕ × BitString × BitString) =>
@@ -152,10 +137,6 @@ lemma restrictedEffectiveFirstFailedScale_primrec_all :
         (Primrec.pair (Primrec.snd.comp Primrec.fst) Primrec.snd)) |>.to₂
   exact (Primrec.list_findIdx hrange hp).of_eq (fun _ => rfl)
 
-set_option maxHeartbeats 32000000 in
--- Large jointly-uniform statement: the `Primrec`/`Computable` composition
--- tower forces tens of millions of heartbeats of `whnf` even with opaque
--- instances; see the module docstring.
 /-- Rebuild input with `q0` supplied as data. -/
 lemma restrictedEffectiveSampledRunStepInput_primrec_all :
     Primrec (fun p : ℕ × (List ℕ × BitString × BitString) =>
@@ -186,10 +167,6 @@ lemma restrictedEffectiveSampledRunStepInput_primrec_all :
           (Primrec.list_cons.comp (primrecNatBits.comp Primrec.fst)
             (Primrec.const [])))))
 
-set_option maxHeartbeats 32000000 in
--- Large jointly-uniform statement: the `Primrec`/`Computable` composition
--- tower forces tens of millions of heartbeats of `whnf` even with opaque
--- instances; see the module docstring.
 /-- The decoded size list is computable jointly in code and parameters. -/
 lemma restrictedAnchoredSizesFromCode_computable_all :
     Computable (fun p : ((BitString × ℕ) × ℕ) × ℕ =>
@@ -204,8 +181,6 @@ lemma restrictedAnchoredSizesFromCode_computable_all :
   unfold restrictedAnchoredSizesFromCode
   exact Computable.list_cons.comp hhead hsizes
 
-set_option maxHeartbeats 8000000 in
--- Raised heartbeat limit: heavy `Primrec`/`Finset` elaboration in this proof.
 /-- Packed-input anchored initializer: the grid code rides in the first
 component, the four numeric parameters in one `Nat.pair` tower.  Every
 computability step is built from primitives at pair arity, so no large
@@ -290,8 +265,6 @@ lemma restrictedAnchoredInitialFromCode_partrec_packed
     ((restrictedEffectiveRebuildSuffix_partrec 𝒜).comp hinput.to_comp)
     hpost).of_eq (fun _ => rfl)
 
-set_option maxHeartbeats 32000000 in
--- Raised heartbeat limit: heavy `Primrec`/`Finset` elaboration in this proof.
 /-- The anchored initializer is partial-recursive jointly in its explicit
 overhead and all grid-derived numeric parameters. -/
 lemma restrictedAnchoredInitialFromCode_partrec_all

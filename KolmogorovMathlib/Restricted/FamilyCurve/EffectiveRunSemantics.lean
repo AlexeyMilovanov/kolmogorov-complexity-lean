@@ -168,9 +168,7 @@ lemma restrictedEffectiveSampledRunProcess_spec
 decoded state, and every previously processed canonical bad event is disjoint
 from every live level.
 
-The target exponent is deliberately tied to the executable size schedule.
-An earlier draft quantified an unrelated function `t` and therefore was not
-provable from the encoded grid. -/
+The target exponent is deliberately tied to the executable size schedule. -/
 lemma restrictedEffectiveSampledRun_processed_disjoint
     (𝒜 : DescriptionFamily) (c : Code)
     {n k N : ℕ} {target : ℕ → ℕ}
@@ -222,6 +220,14 @@ lemma restrictedEffectiveSampledRun_processed_disjoint
         badCodes.map (fun w => (decodeCoverCodeList w).toFinset)
       have hlen_bads : badCodes.length = bads.length := by
         simp [bads]
+      have hbads_getD_eq {i : ℕ} (hi : i < badCodes.length)
+          {bad : Finset BitString}
+          (hdecode : decodeCoverCodeList badCodes[i] = canonicalFinsetList bad) :
+          bads.getD i ∅ = bad := by
+        have hibads : i < bads.length := by omega
+        rw [List.getD_eq_getElem _ _ hibads]
+        simp only [bads, List.getElem_map]
+        rw [hdecode, canonicalFinsetList_toFinset]
       have hbad : ∀ i < badCodes.length,
           decodeCoverCodeList (badCodes.getD i []) =
             canonicalFinsetList (bads.getD i ∅) := by
@@ -232,11 +238,8 @@ lemma restrictedEffectiveSampledRun_processed_disjoint
         obtain ⟨bad, hdecode⟩ :=
           restrictedSampledBadBatchAt_decode_sound c
             (restrictedCurveGridCode grid) 𝒜 N Δ time badCodes[i] hwmem
-        rw [List.getD_eq_getElem _ _ hi]
-        have hibads : i < bads.length := by omega
-        rw [List.getD_eq_getElem _ _ hibads]
-        simp only [bads, List.getElem_map]
-        rw [hdecode, canonicalFinsetList_toFinset]
+        rw [List.getD_eq_getElem _ _ hi, hbads_getD_eq hi hdecode]
+        exact hdecode
       obtain ⟨output, state, hbatch, hstate, _hBzero, _hliveZero,
           hroot, hbatchDisjoint⟩ :=
         restrictedEffectiveSampledRunProcess_spec 𝒜 N ambientLength
@@ -257,10 +260,8 @@ lemma restrictedEffectiveSampledRun_processed_disjoint
           have hiBadCodes : i < badCodes.length := by
             simpa [badCodes] using hi
           have hibads : i < bads.length := by omega
-          have hbadEq : bads.getD i ∅ = bad := by
-            rw [List.getD_eq_getElem _ _ hibads]
-            simp only [bads, List.getElem_map]
-            rw [hwi, hdecode, canonicalFinsetList_toFinset]
+          have hbadEq : bads.getD i ∅ = bad :=
+            hbads_getD_eq hiBadCodes (hwi ▸ hdecode)
           have hdisjoint := hbatchDisjoint i hibads s hs
           rw [hbadEq] at hdisjoint
           exact hdisjoint

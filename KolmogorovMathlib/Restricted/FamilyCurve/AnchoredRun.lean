@@ -1,7 +1,7 @@
 import KolmogorovMathlib.Restricted.FamilyCurve.EffectiveRunSemantics
 
 /-!
-# M7: anchored effective sampled run — DRAFT statements
+# M7: anchored effective sampled run
 
 The unanchored executor stores only the sampled family models.  Consequently
 its level zero is retained forever, whereas the paper's first sampled model
@@ -169,8 +169,6 @@ def restrictedAnchoredProcessedBadUnion
         𝒜.toPre N Δ stage))
     time
 
-set_option linter.style.show false in
--- `show` unfolds local `let`-abbreviations to expose the rewrite target.
 /-- Generic decoding theorem for an anchored rebuild trace.  Unlike the
 unanchored initializer, the predecessor emitted at the head of the trace is
 retained as level zero. -/
@@ -283,7 +281,7 @@ lemma restrictedEffectiveAnchoredInitialState_generic_spec
   have hstateModel0 : stateModelCodes.getD 0 [] = Acode := by
     simp [stateModelCodes, extendedModelCodes, hpredecessor_eq_A]
   have hstateLive0 : stateLiveCodes.getD 0 [] = Acode := by
-    show (restrictedEffectiveRebuildLiveCodes Acode stateModelCodes).getD 0 [] = Acode
+    change (restrictedEffectiveRebuildLiveCodes Acode stateModelCodes).getD 0 [] = Acode
     simp only [restrictedEffectiveRebuildLiveCodes, stateModelCodes, extendedModelCodes]
     rfl
   -- Get step data with proper indexing for s ≤ N (indices 0 to N of stateModelCodes)
@@ -336,7 +334,7 @@ lemma restrictedEffectiveAnchoredInitialState_generic_spec
         simp [canonicalFinsetList_toFinset]
       · -- stateLiveCodes[0] = Acode
         have h0 : stateLiveCodes.getD 0 [] = Acode := by
-          show (restrictedEffectiveRebuildLiveCodes Acode stateModelCodes).getD 0 [] = Acode
+          change (restrictedEffectiveRebuildLiveCodes Acode stateModelCodes).getD 0 [] = Acode
           simp only [restrictedEffectiveRebuildLiveCodes, stateModelCodes, extendedModelCodes]
           rfl
         rw [h0, hAcode]
@@ -476,7 +474,7 @@ lemma restrictedEffectiveAnchoredInitialState_generic_spec
       canonicalFinsetList_toFinset, A]
     trivial
 
-/-- DRAFT leaf: the anchored initializer terminates, decodes to the shifted
+/-- The anchored initializer terminates, decodes to the shifted
 state, and keeps both the level-zero model and live pool equal to the ambient
 cube. -/
 lemma restrictedEffectiveAnchoredInitialState_spec

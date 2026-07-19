@@ -345,7 +345,7 @@ lemma exists_restricted_scale_state (U : Map) (hU : IsOptimalPrefixConditional U
   exact template.complexity_bound s hs ⟨x, template.candidate_mem x hxcand s hs⟩
 
 /--
-M7 (stretch): restricted curve realization (`thm:family-curve`, draft).
+M7: restricted curve realization (`thm:family-curve`).
 
 For a fixed restricted description family `𝒜`, every strictly decreasing boundary
 sequence `t 0 > t 1 > ... > t k = 0`, with `k ≤ n` and `t 0 ≤ n`, is realized up

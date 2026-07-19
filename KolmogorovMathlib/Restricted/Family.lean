@@ -3,7 +3,7 @@ import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.CurveRealization
 import KolmogorovMathlib.Encoding.Tuples
 
 /-!
-# M1: description families and the restricted profile — DRAFT statements
+# M1: description families and the restricted profile
 
 Plan reference: `PLAN_RESTRICTED_TYPE.md`, milestone M1. This file is owned by
 the `M1_description_family` proof-loop section.
@@ -13,10 +13,6 @@ VS40 §6 conditions on a family 𝒜 of finite sets of strings:
 covering overhead is an EXPLICIT function `overhead : ℕ → ℕ` (not "some
 polynomial"): downstream slack is `logSlack` of it, so polynomial growth only
 matters where a final `O(log n)` is claimed.
-
-Statement status: DRAFT until the first strategic freeze. Mandatory before
-anything is built on M1: the monotonicity lemmas and the `fullFamily` sanity
-theorem below.
 -/
 
 namespace Kolmogorov

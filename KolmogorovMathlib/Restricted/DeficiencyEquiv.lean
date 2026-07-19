@@ -20,9 +20,6 @@ and `restricted_deficiencies_theorem_tight` taking an arbitrary `DescriptionFami
 been removed as they had the incorrect quantifier order (`∃c` before `enum`).
 Use the `uniform_` variants below instead. -/
 
-set_option linter.style.refine false in
--- `refine'` retained: the proof relies on elaboration-order-dependent
--- postponement that `refine`/`apply` do not reproduce.
 /-
 From a *given* family member `A ∋ x` (with `setComplexity ≤ alpha` and randomness
 deficiency `≤ beta`), extract a realized optimality gap plus the visible-budget
@@ -62,7 +59,7 @@ theorem restricted_exists_realizedGap_of_member (U : Map) (hU : IsOptimalPrefixC
     unfold CodedFiniteDistribution.DeficiencyLe;
     rw [ codedUniformOn_mass_of_mem A hA x h_realized.1 ];
     rw [ ← ENat.coe_toNat (KP_ne_top_of_optimal U hU x (codedUniformOn A hA).code) ];
-    refine' le_trans _ ( mul_le_mul_right ( show ( A.card : ENNReal ) ⁻¹ ≥ ( 2 ^ j : ENNReal ) ⁻¹ from _ ) _ );
+    refine le_trans ?_ ( mul_le_mul_right ( show ( A.card : ENNReal ) ⁻¹ ≥ ( 2 ^ j : ENNReal ) ⁻¹ from ?_ ) _ );
     · rw [ show delta = i + j - kx from rfl, show kx = ( KPPlain U x ).toNat from rfl ] at * ; norm_cast at * ; simp_all +decide ;
       rw [ ← ENNReal.toReal_le_toReal ] <;> norm_num;
       · field_simp;
@@ -316,11 +313,7 @@ of its input and the rich selector word `w` from the second. -/
 def univSelectorFn (c : Code) : BitString → BitString →. BitString := fun y s =>
   progIndexSelectorFn c (decodeFirst s) y (decodeSecond s)
 
-set_option maxHeartbeats 1000000 in
--- Raised heartbeat limit: heavy `Primrec`/`Finset` elaboration in this proof.
--- `candidateCodes_primrec`/`programmedEnum_computable` have large proof terms; the
--- reshaping `Computable.comp`s below need a raised heartbeat budget, and we use
--- `.of_eq` so unification never eagerly unfolds `candidateCodes`/`programmedEnum`.
+-- We use `.of_eq` so unification never eagerly unfolds `candidateCodes`/`programmedEnum`.
 /-- Joint computability of the program-indexed candidate slice. -/
 theorem progCandidateCodes_computable (c : Code) :
     Computable (fun q : (((ℕ × ℕ) × BitString) × BitString) × ℕ =>
@@ -350,10 +343,6 @@ theorem progCandidateCodes_computable (c : Code) :
   refine (h_filter.comp (Computable.pair hcand henum)).of_eq ?_
   intro q; rfl
 
-set_option maxHeartbeats 1200000 in
--- Raised heartbeat limit: heavy `Primrec`/`Finset` elaboration in this proof.
--- Same reshaping-`comp` cost as `progCandidateCodes_computable`, plus the
--- `Computable.nat_rec` recursion; raised heartbeat budget is needed.
 /-- Joint computability of the program-indexed appearance list. -/
 theorem progAppearanceListCodes_computable (c : Code) :
     Computable (fun q : (((ℕ × ℕ) × BitString) × BitString) × ℕ =>
@@ -383,26 +372,24 @@ theorem progAppearanceListCodes_computable (c : Code) :
   | zero => rfl
   | succ t ih => simp only [progAppearanceListCodes]; rw [← ih]
 
-set_option maxHeartbeats 1000000 in
--- Raised heartbeat limit: heavy `Primrec`/`Finset` elaboration in this proof.
--- The reshaping `Computable.comp`s over `progAppearanceListCodes_computable`
--- (large proof term) need a raised heartbeat budget.
-set_option linter.style.refine false in
--- `refine'` retained: elaboration-order-dependent postponement that
--- `refine`/`apply` cannot reproduce.
-set_option linter.style.refine false in
--- `refine'` retained: elaboration-order-dependent postponement that
--- `refine`/`apply` cannot reproduce.
 /-- The universal selector is jointly partial recursive. -/
 theorem partrec_univSelectorFn (c : Code) :
     Partrec (fun q : BitString × BitString => univSelectorFn c q.2 q.1) := by
   unfold univSelectorFn progIndexSelectorFn;
-  refine' Partrec.bind _ _;
-  · refine' Partrec.of_eq _ _;
-    exact fun n => Nat.rfind fun t => Part.some ( decide ( selH ( decodeSecond n.1 ) < ( progAppearanceListCodes c ( selNat ( decodeSecond n.1 ) ) ( decodeFirst n.1 ) ( selAlpha ( decodeSecond n.1 ) ) ( decodeFirst n.2 ) t ).length ) );
-    · refine' Partrec.rfind _;
-      refine' Computable.of_eq _ _;
-      exact fun n => decide ( selH ( decodeSecond n.1.1 ) < ( progAppearanceListCodes c ( selNat ( decodeSecond n.1.1 ) ) ( decodeFirst n.1.1 ) ( selAlpha ( decodeSecond n.1.1 ) ) ( decodeFirst n.1.2 ) n.2 ).length );
+  refine Partrec.bind ?_ ?_;
+  · refine Partrec.of_eq
+      (f := fun n : BitString × BitString => Nat.rfind fun t => Part.some
+        (decide (selH (decodeSecond n.1) <
+          (progAppearanceListCodes c (selNat (decodeSecond n.1))
+            (decodeFirst n.1) (selAlpha (decodeSecond n.1))
+            (decodeFirst n.2) t).length))) ?_ ?_;
+    · refine Partrec.rfind ?_;
+      refine Computable.of_eq
+        (f := fun n : (BitString × BitString) × ℕ =>
+          decide (selH (decodeSecond n.1.1) <
+            (progAppearanceListCodes c (selNat (decodeSecond n.1.1))
+              (decodeFirst n.1.1) (selAlpha (decodeSecond n.1.1))
+              (decodeFirst n.1.2) n.2).length)) ?_ ?_;
       · have h_computable : Computable (fun (n : ((BitString × BitString) × ℕ)) => (progAppearanceListCodes c (selNat (decodeSecond n.1.1)) (decodeFirst n.1.1) (selAlpha (decodeSecond n.1.1)) (decodeFirst n.1.2) n.2).length) := by
           have h_computable : Computable (fun (n : ((BitString × BitString) × ℕ)) => progAppearanceListCodes c (selNat (decodeSecond n.1.1)) (decodeFirst n.1.1) (selAlpha (decodeSecond n.1.1)) (decodeFirst n.1.2) n.2) := by
             convert progAppearanceListCodes_computable c |> Computable.comp <| _ using 1;
@@ -428,15 +415,19 @@ theorem partrec_univSelectorFn (c : Code) :
         convert h_computable.comp ‹Computable fun n : ( BitString × BitString ) × ℕ => ( selH ( decodeSecond n.1.1 ), ( progAppearanceListCodes c ( selNat ( decodeSecond n.1.1 ) ) ( decodeFirst n.1.1 ) ( selAlpha ( decodeSecond n.1.1 ) ) ( decodeFirst n.1.2 ) n.2 ).length ) › using 1;
       · exact fun _ => rfl;
     · exact fun _ => rfl;
-  · refine' Partrec.comp _ _;
+  · refine Partrec.comp ?_ ?_;
     · exact Computable.id;
-    · refine' Computable.of_eq _ _;
-      exact fun n => List.headI ( List.drop ( selH ( decodeSecond n.1.1 ) ) ( progAppearanceListCodes c ( selNat ( decodeSecond n.1.1 ) ) ( decodeFirst n.1.1 ) ( selAlpha ( decodeSecond n.1.1 ) ) ( decodeFirst n.1.2 ) n.2 ) );
+    · refine Computable.of_eq
+        (f := fun n : (BitString × BitString) × ℕ =>
+          List.headI (List.drop (selH (decodeSecond n.1.1))
+            (progAppearanceListCodes c (selNat (decodeSecond n.1.1))
+              (decodeFirst n.1.1) (selAlpha (decodeSecond n.1.1))
+              (decodeFirst n.1.2) n.2))) ?_ ?_;
       · have h_drop : Computable (fun (n : ℕ × List BitString) => List.drop n.1 n.2) := by
           convert Primrec.list_drop.to_comp using 1;
           rotate_left;
           exact BitString;
-          exact?;
+          exact Primcodable.list;
           constructor <;> intro h <;> rw [ Computable₂ ] at *;
           · convert h.comp ( Computable.pair ( Computable.snd ) ( Computable.fst ) ) using 1;
           · convert h.comp ( Computable.snd.pair Computable.fst ) using 1;
@@ -457,7 +448,15 @@ theorem partrec_univSelectorFn (c : Code) :
             · exact decodeFirst_primrec.to_comp.comp ( Computable.fst.comp ( Computable.fst ) );
           · exact Computable.snd;
           · grind;
-      · intro n; cases h : List.drop ( selH ( decodeSecond n.1.1 ) ) ( progAppearanceListCodes c ( selNat ( decodeSecond n.1.1 ) ) ( decodeFirst n.1.1 ) ( selAlpha ( decodeSecond n.1.1 ) ) ( decodeFirst n.1.2 ) n.2 ) <;> aesop;
+      · intro n
+        cases h : List.drop (selH (decodeSecond n.1.1))
+            (progAppearanceListCodes c (selNat (decodeSecond n.1.1))
+              (decodeFirst n.1.1) (selAlpha (decodeSecond n.1.1))
+              (decodeFirst n.1.2) n.2) with
+        | nil =>
+            simp [h]
+            rfl
+        | cons _ _ => simp [h]
 
 /-- Uniform family rank lemma. -/
 theorem uniform_description_count_of_conditional_complexity_gap (U : Map) (hU : IsOptimalPrefixConditional U) :
@@ -704,10 +703,6 @@ section UnivMarkedSelectorPartrec
 -- unfolded selector.
 attribute [local irreducible] progMarkedCodeStream selN selI selJ selK selR
 
-set_option maxHeartbeats 1000000 in
--- Raised heartbeat limit: heavy `Primrec`/`Finset` elaboration in this proof.
--- Reshaping `Computable.comp`s over `progMarkedCodeStream_computable` (large proof
--- term) require a raised heartbeat budget.
 /-- The universal marked-code selector is partial recursive. -/
 theorem univMarkedCodeSelectorFn_partrec (c : Code) : Partrec (univMarkedCodeSelectorFn c) := by
   have dS : Computable (fun st : BitString × ℕ => decodeSecond st.1) :=

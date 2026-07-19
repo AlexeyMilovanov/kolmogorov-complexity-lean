@@ -127,15 +127,38 @@ def restrictedCoverValidBool (𝒜 : DescriptionFamily)
     (Clist.all (fun x =>
       cover.any (fun w => decide (x ∈ decodeCoverCodeList w))))
 
-set_option maxHeartbeats 1000000 in
--- Raised heartbeat limit: heavy `Primrec`/`Finset` elaboration in this proof.
--- Nested computability compositions for the five validity conjuncts elaborate heavily.
+def restrictedCoverValidBool_f1 (a : BitString × BitString × ℕ × ℕ × ℕ) : Bool :=
+  decide ((coverDecode a.2.2.2.2).2 ≠ [])
+
+def restrictedCoverValidBool_f2_arg (𝒜 : DescriptionFamily) (a : BitString × BitString × ℕ × ℕ × ℕ) : List BitString × List BitString :=
+  ((coverDecode a.2.2.2.2).2, 𝒜.enumeration.enum (coverDecode a.2.2.2.2).1)
+
+def restrictedCoverValidBool_f2_fun (p : List BitString × List BitString) : Bool :=
+  p.1.all (fun w => decide (w ∈ p.2))
+
+def restrictedCoverValidBool_f3_arg (a : BitString × BitString × ℕ × ℕ × ℕ) : ℕ × ℕ :=
+  ((coverDecode a.2.2.2.2).2.length * a.2.2.1, a.2.2.2.1 * (decodeCoverCodeList a.1).dedup.length)
+
+def restrictedCoverValidBool_f3_fun (p : ℕ × ℕ) : Bool :=
+  decide (p.1 ≤ p.2)
+
+def restrictedCoverValidBool_f4_arg (a : BitString × BitString × ℕ × ℕ × ℕ) : List BitString × ℕ :=
+  ((coverDecode a.2.2.2.2).2, a.2.2.1)
+
+def restrictedCoverValidBool_f4_fun (p : List BitString × ℕ) : Bool :=
+  p.1.all (fun w => decide ((decodeCoverCodeList w).dedup.length ≤ p.2))
+
+def restrictedCoverValidBool_f5_arg (a : BitString × BitString × ℕ × ℕ × ℕ) : List BitString × List BitString :=
+  (decodeCoverCodeList a.2.1, (coverDecode a.2.2.2.2).2)
+
+def restrictedCoverValidBool_f5_fun (p : List BitString × List BitString) : Bool :=
+  p.1.all (fun x => p.2.any (fun w => decide (x ∈ decodeCoverCodeList w)))
+
 theorem restrictedCoverValidBool_computable (𝒜 : DescriptionFamily) :
     Computable (fun a : BitString × BitString × ℕ × ℕ × ℕ =>
       restrictedCoverValidBool 𝒜 a.1 a.2.1 a.2.2.1
         a.2.2.2.1 a.2.2.2.2) := by
-  have h_nonempty : Computable (fun a : BitString × BitString × ℕ × ℕ × ℕ =>
-      decide ((coverDecode a.2.2.2.2).2 ≠ [])) := by
+  have h_nonempty : Computable restrictedCoverValidBool_f1 := by
     have hpos : Primrec (fun a : BitString × BitString × ℕ × ℕ × ℕ =>
         decide (0 < (coverDecode a.2.2.2.2).2.length)) :=
       PrimrecPred.decide (Primrec.nat_lt.comp (Primrec.const 0)
@@ -144,14 +167,10 @@ theorem restrictedCoverValidBool_computable (𝒜 : DescriptionFamily) :
             (Primrec.snd.comp (Primrec.snd.comp
               (Primrec.snd.comp (Primrec.snd))))))))
     exact hpos.to_comp.of_eq (fun a => by
+      rw [restrictedCoverValidBool_f1]
       cases (coverDecode a.2.2.2.2).2 <;> simp)
-  have h_enum : Computable (fun a : BitString × BitString × ℕ × ℕ × ℕ =>
-      (coverDecode a.2.2.2.2).2.all
-        (fun w => decide (w ∈
-          𝒜.enumeration.enum (coverDecode a.2.2.2.2).1))) := by
-    have hpairs : Computable (fun a : BitString × BitString × ℕ × ℕ × ℕ =>
-        ((coverDecode a.2.2.2.2).2,
-          𝒜.enumeration.enum (coverDecode a.2.2.2.2).1)) := by
+  have h_enum : Computable (fun a => restrictedCoverValidBool_f2_fun (restrictedCoverValidBool_f2_arg 𝒜 a)) := by
+    have hpairs : Computable (restrictedCoverValidBool_f2_arg 𝒜) := by
       apply Computable.pair
       · exact Computable.snd.comp (coverDecode_primrec.to_comp.comp
           (Computable.snd.comp (Computable.snd.comp
@@ -160,66 +179,76 @@ theorem restrictedCoverValidBool_computable (𝒜 : DescriptionFamily) :
           (Computable.fst.comp (coverDecode_primrec.to_comp.comp
             (Computable.snd.comp (Computable.snd.comp
               (Computable.snd.comp Computable.snd)))))
-    have hall : Primrec (fun p : List BitString × List BitString =>
-        p.1.all (fun w => decide (w ∈ p.2))) := by
+    have hall : Primrec restrictedCoverValidBool_f2_fun := by
       apply coverSearch_list_all_primrec Primrec.fst
       exact bitString_mem_primrec.comp Primrec.snd
         (Primrec.snd.comp Primrec.fst)
     exact hall.to_comp.comp hpairs
-  have h_bound : Computable (fun a : BitString × BitString × ℕ × ℕ × ℕ =>
-      decide ((coverDecode a.2.2.2.2).2.length * a.2.2.1 ≤
-        a.2.2.2.1 * (decodeCoverCodeList a.1).dedup.length)) := by
-    apply Primrec.to_comp
-    apply PrimrecPred.decide
-    apply Primrec.nat_le.comp
-    · exact Primrec.nat_mul.comp
-        (Primrec.list_length.comp (Primrec.snd.comp
-          (coverDecode_primrec.comp
-            (Primrec.snd.comp (Primrec.snd.comp
-              (Primrec.snd.comp (Primrec.snd)))))))
-        (Primrec.fst.comp (Primrec.snd.comp (Primrec.snd)))
-    · exact Primrec.nat_mul.comp
-        (Primrec.fst.comp (Primrec.snd.comp
-          (Primrec.snd.comp (Primrec.snd))))
-        (Primrec.list_length.comp (dedup_primrec.comp
-          (decodeCoverCodeList_primrec.comp Primrec.fst)))
-  have h_small : Computable (fun a : BitString × BitString × ℕ × ℕ × ℕ =>
-      (coverDecode a.2.2.2.2).2.all (fun w =>
-        decide ((decodeCoverCodeList w).dedup.length ≤ a.2.2.1))) := by
-    apply Primrec.to_comp
-    apply coverSearch_list_all_primrec
-    · exact Primrec.snd.comp (coverDecode_primrec.comp
-        (Primrec.snd.comp (Primrec.snd.comp
-          (Primrec.snd.comp (Primrec.snd)))))
-    · apply PrimrecPred.decide
+  have h_bound : Computable (fun a => restrictedCoverValidBool_f3_fun (restrictedCoverValidBool_f3_arg a)) := by
+    have hargs : Primrec restrictedCoverValidBool_f3_arg := by
+      apply Primrec.pair
+      · exact Primrec.nat_mul.comp
+          (Primrec.list_length.comp (Primrec.snd.comp
+            (coverDecode_primrec.comp
+              (Primrec.snd.comp (Primrec.snd.comp
+                (Primrec.snd.comp (Primrec.snd)))))))
+          (Primrec.fst.comp (Primrec.snd.comp (Primrec.snd)))
+      · exact Primrec.nat_mul.comp
+          (Primrec.fst.comp (Primrec.snd.comp
+            (Primrec.snd.comp (Primrec.snd))))
+          (Primrec.list_length.comp (dedup_primrec.comp
+            (decodeCoverCodeList_primrec.comp Primrec.fst)))
+    have hfun : Primrec restrictedCoverValidBool_f3_fun :=
+      PrimrecPred.decide (Primrec.nat_le.comp Primrec.fst Primrec.snd)
+    exact hfun.to_comp.comp hargs.to_comp
+  have h_small : Computable (fun a => restrictedCoverValidBool_f4_fun (restrictedCoverValidBool_f4_arg a)) := by
+    have hargs : Primrec restrictedCoverValidBool_f4_arg := by
+      apply Primrec.pair
+      · exact Primrec.snd.comp (coverDecode_primrec.comp
+          (Primrec.snd.comp (Primrec.snd.comp
+            (Primrec.snd.comp (Primrec.snd)))))
+      · exact Primrec.fst.comp (Primrec.snd.comp (Primrec.snd))
+    have hfun : Primrec restrictedCoverValidBool_f4_fun := by
+      apply coverSearch_list_all_primrec Primrec.fst
+      apply PrimrecPred.decide
       exact Primrec.nat_le.comp
         (Primrec.list_length.comp (dedup_primrec.comp
           (decodeCoverCodeList_primrec.comp Primrec.snd)))
-        (Primrec.fst.comp (Primrec.snd.comp
-          (Primrec.snd.comp Primrec.fst)))
-  have h_cover : Computable (fun a : BitString × BitString × ℕ × ℕ × ℕ =>
-      (decodeCoverCodeList a.2.1).all (fun x =>
-        (coverDecode a.2.2.2.2).2.any
-          (fun w => decide (x ∈ decodeCoverCodeList w)))) := by
-    apply Primrec.to_comp
-    apply coverSearch_list_all_primrec
-    · exact decodeCoverCodeList_primrec.comp
-        (Primrec.fst.comp Primrec.snd)
-    · apply list_any_primrec
+        (Primrec.snd.comp Primrec.fst)
+    exact hfun.to_comp.comp hargs.to_comp
+  have h_cover : Computable (fun a => restrictedCoverValidBool_f5_fun (restrictedCoverValidBool_f5_arg a)) := by
+    have hargs : Primrec restrictedCoverValidBool_f5_arg := by
+      apply Primrec.pair
+      · exact decodeCoverCodeList_primrec.comp
+          (Primrec.fst.comp Primrec.snd)
       · exact Primrec.snd.comp (coverDecode_primrec.comp
           (Primrec.snd.comp (Primrec.snd.comp
-            (Primrec.snd.comp (Primrec.snd.comp Primrec.fst)))))
-      · exact bitString_mem_primrec.comp
-          (Primrec.snd.comp Primrec.fst)
-          (decodeCoverCodeList_primrec.comp Primrec.snd)
-  convert Computable.cond h_nonempty
+            (Primrec.snd.comp (Primrec.snd)))))
+    have hfun : Primrec restrictedCoverValidBool_f5_fun := by
+      apply coverSearch_list_all_primrec Primrec.fst
+      apply list_any_primrec (Primrec.snd.comp Primrec.fst)
+      exact bitString_mem_primrec.comp
+        (Primrec.snd.comp Primrec.fst)
+        (decodeCoverCodeList_primrec.comp Primrec.snd)
+    exact hfun.to_comp.comp hargs.to_comp
+  have H := Computable.cond h_nonempty
     (Computable.cond h_enum
       (Computable.cond h_bound
         (Computable.cond h_small h_cover (Computable.const false))
         (Computable.const false))
       (Computable.const false))
-    (Computable.const false) using 1
-  ext a
+    (Computable.const false)
+  refine Computable.of_eq H ?_
+  intro a
+  change cond (restrictedCoverValidBool_f1 a)
+    (cond (restrictedCoverValidBool_f2_fun (restrictedCoverValidBool_f2_arg 𝒜 a))
+      (cond (restrictedCoverValidBool_f3_fun (restrictedCoverValidBool_f3_arg a))
+        (cond (restrictedCoverValidBool_f4_fun (restrictedCoverValidBool_f4_arg a))
+          (restrictedCoverValidBool_f5_fun (restrictedCoverValidBool_f5_arg a)) false) false) false) false = _
+  rw [restrictedCoverValidBool_f1, restrictedCoverValidBool_f2_fun, restrictedCoverValidBool_f2_arg,
+      restrictedCoverValidBool_f3_fun, restrictedCoverValidBool_f3_arg,
+      restrictedCoverValidBool_f4_fun, restrictedCoverValidBool_f4_arg,
+      restrictedCoverValidBool_f5_fun, restrictedCoverValidBool_f5_arg]
   simp [restrictedCoverValidBool, Bool.and_assoc]
 
 /-- Cardinality of the intersection of two decoded code lists.  The explicit
@@ -365,9 +394,6 @@ lemma coverCodeArgmax_intersection_bound (Ccode : BitString)
         ((decodeCoverCodeList (coverCodeArgmax Ccode cover)).toFinset ∩ C).card :=
       Nat.mul_le_mul_right _ (List.toFinset_card_le cover)
 
-set_option maxHeartbeats 1000000 in
--- Raised heartbeat limit: heavy `Primrec`/`Finset` elaboration in this proof.
--- The parameter-dependent `foldl` primitive-recursion witness is elaboration-heavy.
 theorem coverCodeArgmax_primrec :
     Primrec (fun p : BitString × List BitString =>
       coverCodeArgmax p.1 p.2) := by
@@ -375,12 +401,15 @@ theorem coverCodeArgmax_primrec :
       p.2.2.foldl (fun acc w =>
         if decodedCoverIntersectionCard p.1 w >
             decodedCoverIntersectionCard p.1 acc
-        then w else acc) p.2.1) := by
-    apply list_foldl_primrec
-    · exact Primrec.snd.comp Primrec.snd
-    · exact Primrec.fst.comp Primrec.snd
-    · apply Primrec.ite
-      · exact Primrec.nat_lt.comp
+        then w else acc) p.2.1) :=
+    list_foldl_primrec
+      (f := fun p : BitString × (BitString × List BitString) => p.2.2)
+      (g := fun p : BitString × (BitString × List BitString) => p.2.1)
+      (h := fun p acc w => if decodedCoverIntersectionCard p.1 w > decodedCoverIntersectionCard p.1 acc then w else acc)
+      (Primrec.snd.comp Primrec.snd)
+      (Primrec.fst.comp Primrec.snd)
+      (Primrec.ite
+        (Primrec.nat_lt.comp
           (decodedCoverIntersectionCard_primrec.comp
             (Primrec.pair
               (Primrec.fst.comp (Primrec.fst.comp Primrec.fst))
@@ -388,16 +417,16 @@ theorem coverCodeArgmax_primrec :
           (decodedCoverIntersectionCard_primrec.comp
             (Primrec.pair
               (Primrec.fst.comp (Primrec.fst.comp Primrec.fst))
-              Primrec.snd))
-      · exact Primrec.snd
-      · exact Primrec.snd.comp Primrec.fst
+              Primrec.snd)))
+        Primrec.snd
+        (Primrec.snd.comp Primrec.fst))
   refine (Primrec.list_casesOn Primrec.snd (Primrec.const [])
     ((hfold.comp (Primrec.pair
       (Primrec.fst.comp Primrec.fst) Primrec.snd)).to₂)).of_eq ?_
   rintro ⟨Ccode, cover⟩
   cases cover <;> rfl
 
-/-- Tuple encoding used by the selector.  Unlike the earlier draft, this uses
+/-- Tuple encoding used by the selector. This uses
 the repository's `listCode` convention and explicitly carries `q0`. -/
 def restrictedCoverSelectorInput
     (Acode Ccode : BitString) (c q0 : ℕ) : BitString :=
@@ -483,36 +512,35 @@ theorem restrictedMaxIntersectionCoverSelector_KPPlain_le
 @[simp] lemma restrictedSelectorField_input_zero
     (Acode Ccode : BitString) (c q0 : ℕ) :
     restrictedSelectorField (restrictedCoverSelectorInput Acode Ccode c q0) 0 = Acode := by
-  unfold restrictedSelectorField restrictedCoverSelectorInput;
-  rw [ decodeListCode_listCode ] ; aesop
+  simp only [restrictedSelectorField, restrictedCoverSelectorInput, decodeListCode_listCode,
+    List.getD_cons_zero]
 
 @[simp] lemma restrictedSelectorField_input_one
     (Acode Ccode : BitString) (c q0 : ℕ) :
     restrictedSelectorField (restrictedCoverSelectorInput Acode Ccode c q0) 1 = Ccode := by
-  convert decodeListCode_listCode [ Acode, Ccode, Nat.bits c, Nat.bits q0 ] |> congr_arg ( fun x => x.getD 1 [] ) using 1
+  simp only [restrictedSelectorField, restrictedCoverSelectorInput, decodeListCode_listCode,
+    List.getD_cons_succ, List.getD_cons_zero]
 
 @[simp] lemma restrictedSelectorField_input_two
     (Acode Ccode : BitString) (c q0 : ℕ) :
     bitsToNat (restrictedSelectorField
       (restrictedCoverSelectorInput Acode Ccode c q0) 2) = c := by
-  convert bitsToNat_bits c using 1;
-  unfold restrictedSelectorField restrictedCoverSelectorInput;
-  rw [ decodeListCode_listCode ] ; aesop
+  simp only [restrictedSelectorField, restrictedCoverSelectorInput, decodeListCode_listCode,
+    List.getD_cons_succ, List.getD_cons_zero, bitsToNat_bits]
 
 @[simp] lemma restrictedSelectorField_input_three
     (Acode Ccode : BitString) (c q0 : ℕ) :
     bitsToNat (restrictedSelectorField
       (restrictedCoverSelectorInput Acode Ccode c q0) 3) = q0 := by
-  unfold restrictedSelectorField restrictedCoverSelectorInput;
-  convert bitsToNat_bits q0 using 1;
-  rw [ decodeListCode_listCode ] ; aesop
+  simp only [restrictedSelectorField, restrictedCoverSelectorInput, decodeListCode_listCode,
+    List.getD_cons_succ, List.getD_cons_zero, bitsToNat_bits]
 
 lemma familyEnumeration_prefix_of_le {mem : Finset BitString → Prop}
     (E : FamilyEnumeration mem) {s t : ℕ} (hst : s ≤ t) :
     E.enum s <+: E.enum t := by
   obtain ⟨ k, hk ⟩ := Nat.exists_eq_add_of_le hst;
   subst hk;
-  induction k <;> simp_all +decide;
+  induction k <;> simp_all;
   exact List.IsPrefix.trans ‹_› ( E.mono _ )
 
 lemma DescriptionFamily.exists_nonempty_cover {𝒜 : DescriptionFamily}
@@ -524,7 +552,7 @@ lemma DescriptionFamily.exists_nonempty_cover {𝒜 : DescriptionFamily}
       (∀ x ∈ A, x.length = n → ∃ B ∈ cover, x ∈ B) ∧
       cover.length * c ≤ 𝒜.overhead n * A.card := by
   obtain ⟨ cover, hcover₁, hcover₂, hcover₃ ⟩ := 𝒜.cover hA n c hc_pos hc_le;
-  by_cases h : cover = [] <;> simp_all +decide;
+  by_cases h : cover = [] <;> simp_all;
   · refine ⟨ [ { [ ] } ], ?_, ?_, ?_ ⟩ <;> norm_num;
     · exact ⟨ DescriptionFamily.singleton_mem 𝒜 _, hc_pos ⟩;
     · nlinarith [ show 0 < 𝒜.overhead n from 𝒜.overhead_pos n ];
@@ -557,17 +585,17 @@ lemma exists_restrictedCoverValidBool_witness (𝒜 : DescriptionFamily)
     generalize_proofs at *; (
     use Finset.sup (cover.toFinset) s; intro B hB; use w B; exact ⟨familyEnumeration_prefix_of_le 𝒜.enumeration (Finset.le_sup (f := s) (by simpa using hB)) |> fun h => h.subset (hw B hB), hw' B hB⟩;))
   generalize_proofs at *; (
-  choose! f hf₁ hf₂ using hs; use Encodable.encode ( s, cover.map f ) ; simp_all +decide [ restrictedCoverValidBool ] ;
+  choose! f hf₁ hf₂ using hs; use Encodable.encode ( s, cover.map f ) ; simp_all [ restrictedCoverValidBool ] ;
   -- By definition of `coverDecode`, we know that the cover is exactly the list of codes of the sets in `cover`.
   have h_cover_decode : (coverDecode (Nat.pair s (Encodable.encode (List.map f cover)))).2 = List.map f cover := by
     unfold coverDecode; aesop;
-  simp_all +decide [ coverDecode ] ; (
+  simp_all [ coverDecode ] ; (
   refine ⟨ ⟨ ?_, ?_ ⟩, ?_ ⟩
   all_goals generalize_proofs at *;
   · convert hcover_bound using 1;
     rw [ ← length_canonicalFinsetList A, List.dedup_eq_self.mpr ];
     exact canonicalFinsetList_nodup A;
-  · intro B hB; specialize hcover_mem B hB; simp_all +decide [ canonicalFinsetList ] ;
+  · intro B hB; specialize hcover_mem B hB; simp_all [ canonicalFinsetList ] ;
     rw [ List.dedup_eq_self.mpr ] <;> norm_num [ hcover_mem ];
   · exact fun x hx => by obtain ⟨ B, hB₁, hB₂ ⟩ := hcover_card x ( hC hx ) ( hC_n x hx ) ; exact ⟨ B, hB₁, by rw [ hf₂ B hB₁ ] ; exact List.mem_toFinset.mp ( by aesop ) ⟩ ;))
 
@@ -602,18 +630,48 @@ theorem restrictedMaxIntersectionCoverSelector_spec (𝒜 : DescriptionFamily)
       use p;
     have := Nat.mem_rfind.mp ( show p0 ∈ Nat.rfind ( fun p => Part.some ( restrictedSelectorCheck 𝒜 ( restrictedCoverSelectorInput Acode Ccode c q0 ) p ) ) from by aesop ) ; aesop;
   obtain ⟨h_cover, h_card, h_inter⟩ : (coverDecode p0).2 ≠ [] ∧ (∀ w ∈ (coverDecode p0).2, w ∈ 𝒜.enumeration.enum (coverDecode p0).1) ∧ (coverDecode p0).2.length * c ≤ q0 * A.card ∧ (∀ w ∈ (coverDecode p0).2, (decodeCoverCodeList w).dedup.length ≤ c) ∧ (∀ x ∈ C, ∃ w ∈ (coverDecode p0).2, x ∈ decodeCoverCodeList w) := by
-    simp_all +decide [ restrictedSelectorCheck, restrictedCoverValidBool ];
-    grind +suggestions;
+    have hv := hp0.2
+    simp only [restrictedSelectorCheck, restrictedSelectorField_input_zero,
+      restrictedSelectorField_input_one, restrictedSelectorField_input_two,
+      restrictedSelectorField_input_three, restrictedCoverValidBool,
+      Bool.and_eq_true, decide_eq_true_eq, List.all_eq_true,
+      List.any_eq_true] at hv
+    rcases hv with ⟨⟨⟨⟨hne, henum⟩, hbound⟩, hcard⟩, hcover⟩
+    refine ⟨hne, henum, ?_, hcard, ?_⟩
+    · simpa [hAcode, List.dedup_eq_self.mpr (canonicalFinsetList_nodup A),
+        length_canonicalFinsetList] using hbound
+    · simpa [hCcode, canonicalFinsetList] using hcover
   obtain ⟨Bcode, hBcode⟩ : ∃ Bcode, restrictedSelectorPost (restrictedCoverSelectorInput Acode Ccode c q0) p0 = Bcode ∧ ∃ B, decodeCoverCodeList Bcode = canonicalFinsetList B ∧ 𝒜.mem B ∧ B.card ≤ c := by
-    obtain ⟨w, hw⟩ : ∃ w ∈ (coverDecode p0).2, restrictedSelectorPost (restrictedCoverSelectorInput Acode Ccode c q0) p0 = w := by
-      exact ⟨ _, coverCodeArgmax_mem h_cover, rfl ⟩;
-    grind +suggestions;
+    let w := restrictedSelectorPost
+      (restrictedCoverSelectorInput Acode Ccode c q0) p0
+    have hw : w ∈ (coverDecode p0).2 := coverCodeArgmax_mem h_cover
+    obtain ⟨B, _hB_nonempty, hB_mem, hw_code⟩ :=
+      𝒜.enumeration.sound (coverDecode p0).1 w (h_card w hw)
+    refine ⟨w, rfl, B, ?_, hB_mem, ?_⟩
+    · rw [hw_code, decodeCoverCodeList_code]
+    · have hw_card := h_inter.2.1 w hw
+      rw [hw_code, decodeCoverCodeList_code,
+        List.dedup_eq_self.mpr (canonicalFinsetList_nodup B),
+        length_canonicalFinsetList] at hw_card
+      exact hw_card
   obtain ⟨B, hB⟩ := hBcode.right
   have h_inter_B : C.card ≤ (coverDecode p0).2.length * ((decodeCoverCodeList Bcode).toFinset ∩ C).card := by
     convert coverCodeArgmax_intersection_bound Ccode C hCcode h_inter.2.2 using 1;
     unfold restrictedSelectorPost at hBcode; aesop;
-  use Bcode, B
-  simp_all +decide [ mul_comm, mul_left_comm ];
-  nlinarith [ show 0 ≤ ( B ∩ C ).card by positivity ]
+  refine ⟨Bcode, B, ?_, hB.1, hB.2.1, hB.2.2, ?_⟩
+  · rw [hp0.1, hBcode.1]
+  have h_inter_B' :
+      C.card ≤ (coverDecode p0).2.length * (B ∩ C).card := by
+    simpa [hB.1, canonicalFinsetList] using h_inter_B
+  have h_bound :
+      (coverDecode p0).2.length * c ≤ 𝒜.overhead n * A.card := by
+    simpa [hq0] using h_inter.1
+  calc
+    c * C.card ≤ c * ((coverDecode p0).2.length * (B ∩ C).card) :=
+      Nat.mul_le_mul_left c h_inter_B'
+    _ = ((coverDecode p0).2.length * c) * (B ∩ C).card := by
+      ac_rfl
+    _ ≤ (𝒜.overhead n * A.card) * (B ∩ C).card :=
+      Nat.mul_le_mul_right (B ∩ C).card h_bound
 
 end Kolmogorov

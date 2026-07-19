@@ -236,25 +236,25 @@ noncomputable def restrictedEffectiveLiveCodesAfterDelete
       (restrictedSelectorField stateCode 0) badCode)
     (decodeListCode (restrictedSelectorField stateCode 1))
 
-set_option maxHeartbeats 4000000 in
--- Raised heartbeat limit: `Primrec` composition over decoded selector fields.
 theorem restrictedEffectiveLiveCodesAfterDelete_primrec :
     Primrec (fun p : BitString × BitString =>
       restrictedEffectiveLiveCodesAfterDelete p.1 p.2) := by
   have hroot : Primrec (fun p : BitString × BitString =>
       restrictedSelectorField p.1 0) :=
-    restrictedSelectorField_primrec.comp Primrec.fst (Primrec.const 0)
+    (restrictedSelectorField_primrec.comp Primrec.fst
+      ((Primrec.const 0) : Primrec (fun p : BitString × BitString => 0))).of_eq fun _ => rfl
   have hmodels : Primrec (fun p : BitString × BitString =>
       decodeListCode (restrictedSelectorField p.1 1)) :=
-    decodeListCode_primrec.comp
-      (restrictedSelectorField_primrec.comp Primrec.fst (Primrec.const 1))
+    (decodeListCode_primrec.comp
+      (restrictedSelectorField_primrec.comp Primrec.fst
+        ((Primrec.const 1) : Primrec (fun p : BitString × BitString => 1)))).of_eq fun _ => rfl
   have hdeleted : Primrec (fun p : BitString × BitString =>
       restrictedEffectiveDeleteCode
         (restrictedSelectorField p.1 0) p.2) :=
-    restrictedEffectiveDeleteCode_primrec.comp
-      (Primrec.pair hroot Primrec.snd)
-  exact restrictedEffectiveRebuildLiveCodes_primrec.comp
-    (Primrec.pair hdeleted hmodels)
+    (restrictedEffectiveDeleteCode_primrec.comp
+      (Primrec.pair hroot Primrec.snd)).of_eq fun _ => rfl
+  exact (restrictedEffectiveRebuildLiveCodes_primrec.comp
+    (Primrec.pair hdeleted hmodels)).of_eq fun _ => rfl
 
 /-- Cardinality of the finite set decoded from one cover code. -/
 def restrictedDecodedCoverCard (code : BitString) : ℕ :=
@@ -390,9 +390,6 @@ noncomputable def restrictedEffectiveSampledRunStepPost (q0 : ℕ)
   restrictedEffectiveSampledStateCode deletedRootCode
     (modelCodes.take q ++ decodeListCode p.2)
 
-set_option maxHeartbeats 12000000 in
--- Raised heartbeat limit: the effective-runner computability layer composes
--- `Primrec` towers over large product types.
 theorem restrictedEffectiveSampledRunStepPost_primrec (q0 : ℕ) :
     Primrec (restrictedEffectiveSampledRunStepPost q0) := by
   have h_eq : restrictedEffectiveSampledRunStepPost q0 = fun p : (List ℕ × BitString × BitString) × BitString =>
@@ -400,30 +397,36 @@ theorem restrictedEffectiveSampledRunStepPost_primrec (q0 : ℕ) :
       (restrictedEffectiveDeleteCode (restrictedSelectorField p.1.2.1 0) p.1.2.2)
       ((decodeListCode (restrictedSelectorField p.1.2.1 1)).take (restrictedEffectiveFirstFailedScale q0 p.1.1 p.1.2.1 p.1.2.2) ++ decodeListCode p.2) := rfl
   rw [h_eq]
-  have hq := (restrictedEffectiveFirstFailedScale_primrec q0).comp
-    (@Primrec.fst (List ℕ × BitString × BitString) BitString inferInstance inferInstance)
+  have hq : Primrec (fun p : (List ℕ × BitString × BitString) × BitString =>
+      restrictedEffectiveFirstFailedScale q0 p.1.1 p.1.2.1 p.1.2.2) :=
+    ((restrictedEffectiveFirstFailedScale_primrec q0).comp
+      (@Primrec.fst (List ℕ × BitString × BitString) BitString inferInstance inferInstance)).of_eq
+      fun _ => rfl
   have hmodels : Primrec (fun p :
       (List ℕ × BitString × BitString) × BitString =>
       decodeListCode (restrictedSelectorField p.1.2.1 1)) :=
-    decodeListCode_primrec.comp
+    (decodeListCode_primrec.comp
       (restrictedSelectorField_primrec.comp
         (Primrec.fst.comp (Primrec.snd.comp Primrec.fst))
-        (Primrec.const 1))
+        ((Primrec.const 1) : Primrec (fun p : (List ℕ × BitString × BitString) × BitString => 1)))).of_eq
+      fun _ => rfl
   have hdeleted : Primrec (fun p :
       (List ℕ × BitString × BitString) × BitString =>
       restrictedEffectiveDeleteCode
         (restrictedSelectorField p.1.2.1 0) p.1.2.2) :=
-    restrictedEffectiveDeleteCode_primrec.comp
+    (restrictedEffectiveDeleteCode_primrec.comp
       (Primrec.pair
         (restrictedSelectorField_primrec.comp
           (Primrec.fst.comp (Primrec.snd.comp Primrec.fst))
-          (Primrec.const 0))
-        (Primrec.snd.comp (Primrec.snd.comp Primrec.fst)))
-  have hcodes := Primrec.list_append.comp
-    (Primrec.list_take.comp hmodels hq)
-    (decodeListCode_primrec.comp Primrec.snd)
-  exact restrictedEffectiveSampledStateCode_primrec.comp
-    (Primrec.pair hdeleted hcodes)
+          ((Primrec.const 0) : Primrec (fun p : (List ℕ × BitString × BitString) × BitString => 0)))
+        (Primrec.snd.comp (Primrec.snd.comp Primrec.fst)))).of_eq fun _ => rfl
+  have hcodes : Primrec (fun p : (List ℕ × BitString × BitString) × BitString =>
+      (decodeListCode (restrictedSelectorField p.1.2.1 1)).take (restrictedEffectiveFirstFailedScale q0 p.1.1 p.1.2.1 p.1.2.2) ++ decodeListCode p.2) :=
+    (Primrec.list_append.comp
+      (Primrec.list_take.comp hmodels hq)
+      (decodeListCode_primrec.comp Primrec.snd)).of_eq fun _ => rfl
+  exact (restrictedEffectiveSampledStateCode_primrec.comp
+    (Primrec.pair hdeleted hcodes)).of_eq fun _ => rfl
 
 /-- Process one bad event.  Prefix models strictly before `q` are copied,
 model `q` is retained as the predecessor emitted by the suffix iterator, and
@@ -457,10 +460,6 @@ noncomputable def restrictedEffectiveSampledRunProcess
         (badCodes.getD idx [])))
     badCodes.length
 
-set_option maxHeartbeats 4000000 in
--- Raised heartbeat limit: the effective-runner computability layer composes
--- `Primrec` towers over large product types.
--- The finite `Partrec.nat_rec` carries the coded state through a dependent pair.
 theorem restrictedEffectiveSampledRunProcess_partrec
     (𝒜 : DescriptionFamily) (q0 : ℕ) :
     Partrec (fun p : List ℕ × BitString × List BitString =>
@@ -548,7 +547,6 @@ lemma restrictedEffectiveSampledSizes_computable_uniform
     Computable (fun gridCode : BitString =>
       restrictedEffectiveSampledSizes gridCode gridSteps Δ) := by
   unfold restrictedEffectiveSampledSizes;
-  -- The function that takes a grid code and returns the list of sizes is computable because it's a composition of computable functions.
   have h_computable : Computable (fun (p : BitString × ℕ) => 2 ^ ((decode_restrictedCurveGridCode_sample p.1 p.2).2 - (Δ + 1))) := by
     have h_computable : Computable (fun (p : BitString × ℕ) => (decode_restrictedCurveGridCode_sample p.1 p.2).2 - (Δ + 1)) := by
       have h_computable : Computable (fun (p : BitString × ℕ) => (decode_restrictedCurveGridCode_sample p.1 p.2).2) := by
@@ -556,7 +554,7 @@ lemma restrictedEffectiveSampledSizes_computable_uniform
       have h_computable : Computable (fun (p : ℕ × ℕ) => p.1 - p.2) := by
         convert Primrec.nat_sub.to_comp using 1;
       convert h_computable.comp ( Computable.pair ‹Computable fun p : BitString × ℕ => ( decode_restrictedCurveGridCode_sample p.1 p.2 ).2› ( Computable.const ( Δ + 1 ) ) ) using 1;
-    grind +suggestions;
+    exact Computable.pow2.comp h_computable;
   generalize gridSteps + 1 = k
   induction k with
   | zero =>
@@ -580,8 +578,8 @@ lemma restrictedEffectiveSampledInitialState_input_computable
       restrictedEffectiveRebuildSuffixInput Acode Acode
         (restrictedEffectiveSampledSizes gridCode gridSteps Δ)
         (𝒜.overhead ambientLength)) := by
-  have h_listCode_primrec : Computable (fun (l : List BitString) => listCode l) := by
-    exact Computable.of_eq ( listCode_primrec.to_comp ) fun _ => rfl;
+  have h_listCode_primrec : Computable (fun (l : List BitString) => listCode l) :=
+    listCode_primrec.to_comp
   convert Computable.comp h_listCode_primrec _ using 1;
   convert Computable.list_cons.comp _ _ using 1;
   · exact Computable.const _;
@@ -616,16 +614,17 @@ lemma restrictedEffectiveSampledInitialState_post_computable
       exact restrictedLiveIntersectionCode_primrec
     have h_decodeListCode : Primrec (fun (a : BitString) => decodeListCode a) := by
       exact decodeListCode_primrec
-    have h_listCode : Primrec (fun (l : List BitString) => listCode l) := by
+    have h_encodeList : Primrec (fun (l : List BitString) => listCode l) := by
       exact listCode_primrec
-    have h_listCode : Primrec (fun (l : List BitString) => [restrictedLiveIntersectionCode (codedUniformOn (stringsOfLength ambientLength) (codedStringsOfLength_nonempty ambientLength)).code (l.headD []), listCode l]) := by
-      have h_listCode : Primrec (fun (l : List BitString) => restrictedLiveIntersectionCode (codedUniformOn (stringsOfLength ambientLength) (codedStringsOfLength_nonempty ambientLength)).code (l.headD [])) := by
-        have h_listCode : Primrec (fun (l : List BitString) => l.headD []) := by
+    have h_stateFields : Primrec (fun (l : List BitString) => [restrictedLiveIntersectionCode (codedUniformOn (stringsOfLength ambientLength) (codedStringsOfLength_nonempty ambientLength)).code (l.headD []), listCode l]) := by
+      have h_rootLiveCode : Primrec (fun (l : List BitString) => restrictedLiveIntersectionCode (codedUniformOn (stringsOfLength ambientLength) (codedStringsOfLength_nonempty ambientLength)).code (l.headD [])) := by
+        have h_headD : Primrec (fun (l : List BitString) => l.headD []) := by
           convert Primrec.list_headI using 1;
           exact funext fun l => by cases l <;> rfl;
-        convert h_restrictedLiveIntersectionCode.comp ( Primrec.const _ |> Primrec.pair <| h_listCode ) using 1;
-      exact Primrec.list_cons.comp h_listCode ( Primrec.list_cons.comp ‹_› ( Primrec.const [] ) );
-    convert h_listCode.comp ( Primrec.list_tail.comp h_decodeListCode ) |> Primrec.to_comp using 1
+        convert h_restrictedLiveIntersectionCode.comp ( Primrec.const _ |> Primrec.pair <| h_headD ) using 1;
+      exact Primrec.list_cons.comp h_rootLiveCode
+        (Primrec.list_cons.comp h_encodeList (Primrec.const []));
+    convert h_stateFields.comp ( Primrec.list_tail.comp h_decodeListCode ) |> Primrec.to_comp using 1
 
 lemma restrictedEffectiveSampledInitialState_partrec_uniform
     (𝒜 : DescriptionFamily) (ambientLength gridSteps Δ : ℕ) :
@@ -641,33 +640,39 @@ lemma restrictedSampledBadBatchAt_computable_uniform
     (c : Code) (𝒜 : PreDescriptionFamily) (gridSteps Δ : ℕ) :
     Computable (fun p : BitString × ℕ =>
       restrictedSampledBadBatchAt c p.1 𝒜 gridSteps Δ p.2) := by
-  -- We'll use the fact that if the `restrictedSampledBadCodeStream` is computable, then the `restrictedSampledBadBatchAt` is also computable.
-  have h_computable : Computable (fun p : BitString × ℕ => restrictedSampledBadCodeStream c p.1 𝒜 gridSteps Δ p.2) := by
-    convert restrictedSampledBadCodeStream_computable_uniform c 𝒜 gridSteps Δ using 1;
-  have h_computable : Computable (fun p : BitString × ℕ => restrictedSampledBadCodeStream c p.1 𝒜 gridSteps Δ (p.2 + 1)) := by
-    convert h_computable.comp ( Computable.pair ( Computable.fst ) ( Computable.succ.comp ( Computable.snd ) ) ) using 1;
-  have h_computable : Computable (fun p : BitString × ℕ => (restrictedSampledBadCodeStream c p.1 𝒜 gridSteps Δ (p.2 + 1)).drop (restrictedSampledBadCodeStream c p.1 𝒜 gridSteps Δ p.2).length) := by
-    have h_computable : Computable (fun p : List BitString × List BitString => p.1.drop p.2.length) := by
-      have h_computable : Computable (fun p : List BitString × ℕ => p.1.drop p.2) := by
-        have h_computable : Primrec (fun p : List BitString × ℕ => p.1.drop p.2) := by
+  have hstream : Computable (fun p : BitString × ℕ =>
+      restrictedSampledBadCodeStream c p.1 𝒜 gridSteps Δ p.2) :=
+    restrictedSampledBadCodeStream_computable_uniform c 𝒜 gridSteps Δ
+  have hstreamSucc : Computable (fun p : BitString × ℕ =>
+      restrictedSampledBadCodeStream c p.1 𝒜 gridSteps Δ (p.2 + 1)) :=
+    hstream.comp
+      (Computable.pair Computable.fst (Computable.succ.comp Computable.snd))
+  have hbatch : Computable (fun p : BitString × ℕ =>
+      (restrictedSampledBadCodeStream c p.1 𝒜 gridSteps Δ (p.2 + 1)).drop
+        (restrictedSampledBadCodeStream c p.1 𝒜 gridSteps Δ p.2).length) := by
+    have hdropLength : Computable (fun p : List BitString × List BitString =>
+        p.1.drop p.2.length) := by
+      have hdrop : Computable (fun p : List BitString × ℕ => p.1.drop p.2) := by
+        have hdropPrimrec : Primrec (fun p : List BitString × ℕ =>
+            p.1.drop p.2) := by
           convert Primrec.list_drop using 1
-        exact Primrec.to_comp h_computable
-      convert h_computable.comp ( Computable.fst.pair ( Computable.list_length.comp Computable.snd ) ) using 1;
-    convert h_computable.comp ( Computable.pair ‹Computable fun p : BitString × ℕ => restrictedSampledBadCodeStream c p.1 𝒜 gridSteps Δ ( p.2 + 1 ) › ‹Computable fun p : BitString × ℕ => restrictedSampledBadCodeStream c p.1 𝒜 gridSteps Δ p.2 › ) using 1;
+        exact hdropPrimrec.to_comp
+      convert hdrop.comp
+        (Computable.fst.pair (Computable.list_length.comp Computable.snd)) using 1
+    convert hdropLength.comp (Computable.pair hstreamSucc hstream) using 1
   convert Computable.nat_casesOn _ _ _ using 1;
   rotate_left;
   exact fun p => p.2;
   exact fun p => restrictedSampledBadCodeStream c p.1 𝒜 gridSteps Δ 0;
   exact fun p n => List.drop ( restrictedSampledBadCodeStream c p.1 𝒜 gridSteps Δ n ).length ( restrictedSampledBadCodeStream c p.1 𝒜 gridSteps Δ ( n + 1 ) );
   · exact Computable.snd;
-  · convert Computable.comp ‹Computable fun p : BitString × ℕ => restrictedSampledBadCodeStream c p.1 𝒜 gridSteps Δ p.2› (Computable.pair (Computable.fst) (Computable.const 0)) using 1;
-  · convert h_computable.comp ( Computable.fst.comp ( Computable.fst ) |> Computable.pair <| Computable.snd ) using 1;
+  · convert Computable.comp hstream
+      (Computable.pair Computable.fst (Computable.const 0)) using 1;
+  · convert hbatch.comp
+      (Computable.pair (Computable.fst.comp Computable.fst)
+        Computable.snd) using 1;
   · ext ⟨gridCode, time⟩; cases time <;> rfl;
 
-set_option maxHeartbeats 40000000 in
--- Raised heartbeat limit: the effective-runner computability layer composes
--- `Primrec` towers over large product types.
--- The outer recursion composes the grid decoder, bad-event batches, and coded runner.
 /-- The executor is one uniform partial-recursive procedure in the encoded
 grid and time.  Termination is deliberately separated into the validity
 specifications below. -/
@@ -682,26 +687,36 @@ lemma restrictedEffectiveSampledRun_partrec_uniform
   have hinitial : Partrec (fun p : BitString × ℕ =>
       restrictedEffectiveSampledInitialState 𝒜 ambientLength
         (restrictedEffectiveSampledSizes p.1 gridSteps Δ)) :=
-    (restrictedEffectiveSampledInitialState_partrec_uniform
-      𝒜 ambientLength gridSteps Δ).comp Computable.fst
+    ((restrictedEffectiveSampledInitialState_partrec_uniform
+      𝒜 ambientLength gridSteps Δ).comp
+        (Computable.fst : Computable (fun p : BitString × ℕ => p.1))).of_eq fun _ => rfl
   have hsizes : Computable (fun q :
       (BitString × ℕ) × (ℕ × BitString) =>
       restrictedEffectiveSampledSizes q.1.1 gridSteps Δ) :=
-    (restrictedEffectiveSampledSizes_computable_uniform gridSteps Δ).comp
-      (Computable.fst.comp Computable.fst)
+    ((restrictedEffectiveSampledSizes_computable_uniform gridSteps Δ).comp
+      ((Computable.fst.comp Computable.fst) : Computable (fun q :
+        (BitString × ℕ) × (ℕ × BitString) => q.1.1))).of_eq fun _ => rfl
   have hbatch : Computable (fun q :
       (BitString × ℕ) × (ℕ × BitString) =>
-      restrictedSampledBadBatchAt c q.1.1 𝒜.toPre gridSteps Δ q.2.1) :=
-    (restrictedSampledBadBatchAt_computable_uniform c 𝒜.toPre gridSteps Δ).comp
-      (Computable.pair (Computable.fst.comp Computable.fst)
-        (Computable.fst.comp Computable.snd))
+      restrictedSampledBadBatchAt c q.1.1 𝒜.toPre gridSteps Δ q.2.1) := by
+    have hgrid : Computable (fun q :
+        (BitString × ℕ) × (ℕ × BitString) => q.1.1) :=
+      Computable.fst.comp Computable.fst
+    have htime : Computable (fun q :
+        (BitString × ℕ) × (ℕ × BitString) => q.2.1) :=
+      Computable.fst.comp Computable.snd
+    exact ((restrictedSampledBadBatchAt_computable_uniform c 𝒜.toPre gridSteps Δ).comp
+      (Computable.pair hgrid htime)).of_eq fun _ => rfl
   have hinput : Computable (fun q :
       (BitString × ℕ) × (ℕ × BitString) =>
       (restrictedEffectiveSampledSizes q.1.1 gridSteps Δ,
         q.2.2,
-        restrictedSampledBadBatchAt c q.1.1 𝒜.toPre gridSteps Δ q.2.1)) :=
-    Computable.pair hsizes
-      (Computable.pair (Computable.snd.comp Computable.snd) hbatch)
+        restrictedSampledBadBatchAt c q.1.1 𝒜.toPre gridSteps Δ q.2.1)) := by
+    have hstate : Computable (fun q :
+        (BitString × ℕ) × (ℕ × BitString) => q.2.2) :=
+      Computable.snd.comp Computable.snd
+    exact (Computable.pair hsizes
+      (Computable.pair hstate hbatch)).of_eq fun _ => rfl
   have hnext : Partrec₂ (fun p : BitString × ℕ =>
       fun indexed : ℕ × BitString =>
         restrictedEffectiveSampledRunProcess 𝒜 q0
@@ -709,9 +724,7 @@ lemma restrictedEffectiveSampledRun_partrec_uniform
           indexed.2
           (restrictedSampledBadBatchAt c p.1 𝒜.toPre gridSteps Δ indexed.1)) :=
     ((restrictedEffectiveSampledRunProcess_partrec 𝒜 q0).comp hinput).to₂
-  refine (Partrec.nat_rec hcount hinitial hnext).of_eq ?_
-  intro p
-  rfl
+  exact (Partrec.nat_rec hcount hinitial hnext).of_eq fun _ => rfl
 
 /-- A code represents a sampled mathematical state when it contains all model
 codes and the live codes reconstructed from its root agree at every scale. -/
@@ -728,11 +741,6 @@ def DecodesToRestrictedSampledRunState
           canonicalFinsetList (state.B s) ∧
       decodeCoverCodeList (liveCodes.getD s []) =
           canonicalFinsetList (state.live s)
-
-set_option maxHeartbeats 12000000 in
--- Raised heartbeat limit: the effective-runner computability layer composes
--- `Primrec` towers over large product types.
--- Decoding the effective trace elaborates all six sampled-state invariants together.
 /-- A decreasing positive size schedule makes the initial full-cube search
 terminate and decode to a genuine sampled state. -/
 lemma restrictedEffectiveSampledInitialState_spec
@@ -950,7 +958,7 @@ lemma restrictedEffectiveSampledInitialState_spec
         (restrictedEffectiveRebuildSuffixInput Acode Acode sizes
           (𝒜.overhead ambientLength))) = Part.some stateCode
     rw [hrun, Part.map_some, hrawOutput]
-    congr 1
+    apply congrArg Part.some
     simp only [decodeListCode_listCode, List.tail_cons, List.headD_cons]
     rfl
   · unfold DecodesToRestrictedSampledRunState
@@ -967,30 +975,28 @@ lemma decode_restrictedEffectiveDeleteCode
     (hbad : decodeCoverCodeList badCode = canonicalFinsetList bad) :
     decodeCoverCodeList (restrictedEffectiveDeleteCode liveCode badCode) =
       canonicalFinsetList (live \ bad) := by
-  convert decodeCoverCodeList_canonicalUniformCodeOfList _ using 2;
-  simp_all +decide [ canonicalFinsetList ];
-  have h_dedup : List.Perm (List.filter (fun x => !decide (x ∈ bad)) (live.sort bitStringLE)) ((live \ bad).sort bitStringLE) := by
-    rw [ List.perm_iff_count ];
-    intro a; by_cases ha : a ∈ live <;> by_cases hb : a ∈ bad <;> simp_all +decide [ List.count_eq_zero_of_not_mem ] ;
-  rw [ List.dedup_eq_self.mpr ];
-  · apply_rules [ List.Perm.eq_of_pairwise ];
-    any_goals exact bitStringLE;
-    · intros a b ha hb hab hba;
-      exact Encodable.encode_injective ( le_antisymm hab hba );
-    · exact Finset.pairwise_sort _ _;
-    · exact List.Pairwise.filter _ ( Finset.pairwise_sort _ _ );
-  · exact List.Nodup.filter _ ( Finset.sort_nodup _ _ )
+  rw [restrictedEffectiveDeleteCode,
+    decodeCoverCodeList_canonicalUniformCodeOfList, hlive, hbad]
+  let L := (canonicalFinsetList live).filter
+    (fun x => decide (x ∉ canonicalFinsetList bad))
+  have hnd : L.Nodup := (canonicalFinsetList_nodup live).filter _
+  have hpair : L.Pairwise bitStringLE :=
+    List.Pairwise.filter _ (Finset.pairwise_sort live bitStringLE)
+  have hfin : L.toFinset = live \ bad := by
+    ext x
+    simp [L, mem_canonicalFinsetList]
+  have hcanon : canonicalFinsetList L.toFinset = L :=
+    canonicalFinsetList_of_sorted L hnd hpair
+  rw [List.dedup_eq_self.mpr hnd, ← hfin, hcanon]
 
 lemma restrictedDecodedCoverCard_eq
     {code : BitString} {S : Finset BitString}
     (hcode : decodeCoverCodeList code = canonicalFinsetList S) :
     restrictedDecodedCoverCard code = S.card := by
-  unfold restrictedDecodedCoverCard;
-  convert length_canonicalFinsetList S using 1;
-  rw [ hcode, List.dedup_eq_self.mpr ( canonicalFinsetList_nodup S ) ]
+  rw [restrictedDecodedCoverCard, hcode,
+    List.dedup_eq_self.mpr (canonicalFinsetList_nodup S),
+    length_canonicalFinsetList]
 
-set_option maxHeartbeats 4000000 in
--- Raised heartbeat limit: decoded-state induction with `Finset` rewriting.
 /-- Deleting a coded bad set from the root and replaying the unchanged model
 codes reconstructs exactly the pointwise set differences of the old live
 trace.  This is the decoding bridge needed to compare the executable density
@@ -1062,10 +1068,8 @@ lemma restrictedEffectiveLiveCodesAfterDelete_decode
         (state.live s \ bad) (state.B (s + 1))
         (ih hsN) (hmodel (s + 1) hs)
       rw [hdecode, hnext_old]
-      congr 1
-      ext x
-      simp only [Finset.mem_inter, Finset.mem_sdiff]
-      tauto
+      exact congrArg canonicalFinsetList
+        (Finset.sdiff_inter_right_comm (state.live s) bad (state.B (s + 1)))
 
 /-- On a decoded state, the executable Boolean density test is equivalent to
 the mathematical failed-edge predicate. -/
@@ -1298,7 +1302,10 @@ lemma restrictedEffectiveSampledRun_splice_length
     (hmodelLength : modelCodes.length = N + 1) (hq : q ≤ N)
     (hcodesLength : codes.length = N - q + 1) :
     (modelCodes.take q ++ codes).length = N + 1 := by
-  grind
+  rw [List.length_append, List.length_take, hmodelLength, hcodesLength]
+  have hq_le : q ≤ N + 1 := by omega
+  rw [Nat.min_eq_left hq_le]
+  omega
 
 /-- Before the rebuild point, lookup in the spliced model trace is lookup in
 the retained old prefix. -/
@@ -1307,7 +1314,10 @@ lemma restrictedEffectiveSampledRun_splice_getD_prefix
     (hq : q ≤ modelCodes.length) (hs : s < q) :
     (modelCodes.take q ++ codes).getD s fallback =
       modelCodes.getD s fallback := by
-  grind +suggestions
+  have hlen : s < (modelCodes.take q).length := by rw [List.length_take]; omega
+  rw [List.getD_append _ _ _ _ hlen, List.getD_eq_getElem _ _ hlen, List.getElem_take]
+  have hs_len : s < modelCodes.length := by omega
+  rw [List.getD_eq_getElem _ _ hs_len]
 
 /-- At and after the rebuild point, lookup in the spliced model trace is
 lookup in the newly emitted suffix. -/
@@ -1316,7 +1326,7 @@ lemma restrictedEffectiveSampledRun_splice_getD_suffix
     (hq : q ≤ modelCodes.length) :
     (modelCodes.take q ++ codes).getD (q + i) fallback =
       codes.getD i fallback := by
-  grind +qlia
+  rw [List.getD_append_right] <;> simp [List.length_take, Nat.min_eq_left hq]
 
 /-- A suffix trace always keeps its initial predecessor code at index zero. -/
 lemma restrictedEffectiveRebuildCodeTrace_getD_zero

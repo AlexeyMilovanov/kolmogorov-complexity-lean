@@ -92,12 +92,6 @@ private lemma stepBundle_bad (sizes : List ℕ) (state bad raw : BitString) :
   rw [decodeListCode_listCode]
   rfl
 
-private lemma stepBundle_raw (sizes : List ℕ) (state bad raw : BitString) :
-    restrictedSelectorField (stepBundle sizes state bad raw) 2 = raw := by
-  unfold restrictedSelectorField stepBundle
-  rw [decodeListCode_listCode]
-  rfl
-
 private lemma stepBundle_sizes (sizes : List ℕ) (state bad raw : BitString) :
     (decodeListCode
       (restrictedSelectorField (stepBundle sizes state bad raw) 3)).map
@@ -126,8 +120,6 @@ attribute [local irreducible] restrictedEffectiveLiveCodesAfterDelete
   anchoredDecodedSteps anchoredDecodedSlack anchoredDecodedAmbientLength
   anchoredDecodedLength anchoredModelListAt
 
-set_option maxHeartbeats 4000000 in
--- Raised limit: packed combinator tower over opaque instances.
 /-- Raw enumeration as an encoded blob: the grid parameters ride in one
 `Nat.pair` tower, the growing code list travels as `listCode`. -/
 lemma restrictedSampledBadCodesRaw_codes_packed (c : Code) (𝒜 : PreDescriptionFamily) :
@@ -152,15 +144,15 @@ lemma restrictedSampledBadCodesRaw_codes_packed (c : Code) (𝒜 : PreDescriptio
   have hsample : Computable
       (fun r : (BitString × ℕ) × (ℕ × BitString) =>
       decode_restrictedCurveGridCode_sample r.1.1 r.2.1) :=
-    decode_restrictedCurveGridCode_sample_computable.comp
+    (decode_restrictedCurveGridCode_sample_computable.comp
       (Computable.pair (Computable.fst.comp Computable.fst)
-        (Computable.fst.comp Computable.snd))
+        (Computable.fst.comp Computable.snd))).of_eq fun _ => rfl
   have hnextSample : Computable
       (fun r : (BitString × ℕ) × (ℕ × BitString) =>
       decode_restrictedCurveGridCode_sample r.1.1 (r.2.1 + 1)) :=
-    decode_restrictedCurveGridCode_sample_computable.comp
+    (decode_restrictedCurveGridCode_sample_computable.comp
       (Computable.pair (Computable.fst.comp Computable.fst)
-        (Computable.succ.comp (Computable.fst.comp Computable.snd)))
+        (Computable.succ.comp (Computable.fst.comp Computable.snd)))).of_eq fun _ => rfl
   have hstage : Computable
       (fun r : (BitString × ℕ) × (ℕ × BitString) =>
       familyStageModelCodesList c
@@ -168,11 +160,11 @@ lemma restrictedSampledBadCodesRaw_codes_packed (c : Code) (𝒜 : PreDescriptio
         ((decode_restrictedCurveGridCode_sample r.1.1 r.2.1).2 -
           ((Nat.unpair (Nat.unpair r.1.2).2).1 + 1))
         (Nat.unpair (Nat.unpair r.1.2).2).2) :=
-    (familyStageModelCodesList_computable_uniform c 𝒜).comp
+    ((familyStageModelCodesList_computable_uniform c 𝒜).comp
       (Computable.pair (Computable.fst.comp hnextSample)
         (Computable.pair
           (Primrec.nat_sub.to_comp.comp (Computable.snd.comp hsample)
-            (Computable.succ.comp hΔ)) ht))
+            (Computable.succ.comp hΔ)) ht))).of_eq fun _ => rfl
   have hstep : Computable₂
       (fun (p : BitString × ℕ) (r : ℕ × BitString) =>
       listCode (decodeListCode r.2 ++ familyStageModelCodesList c
@@ -184,7 +176,7 @@ lemma restrictedSampledBadCodesRaw_codes_packed (c : Code) (𝒜 : PreDescriptio
       (Computable.list_append.comp
         (decodeListCode_primrec.to_comp.comp
           (Computable.snd.comp Computable.snd))
-        hstage)).to₂
+        hstage)).to₂.of_eq fun _ => rfl
   refine (Computable.nat_rec hgs hbase hstep).of_eq ?_
   rintro ⟨gridCode, nd⟩
   simp only []
@@ -198,8 +190,6 @@ lemma restrictedSampledBadCodesRaw_codes_packed (c : Code) (𝒜 : PreDescriptio
         List.flatMap_append] at ih ⊢
       rw [ih, decodeListCode_listCode]
 
-set_option maxHeartbeats 2000000 in
--- Raised limit: packed combinator tower over opaque instances.
 /-- Blob raw enumeration with the time split into an explicit component. -/
 private lemma restrictedSampledBadCodesRaw_codes_at (c : Code) (𝒜 : PreDescriptionFamily) :
     Computable (fun r : (BitString × ℕ) × ℕ =>
@@ -221,8 +211,6 @@ private lemma restrictedSampledBadCodesRaw_codes_at (c : Code) (𝒜 : PreDescri
           Computable.snd))
   exact ((restrictedSampledBadCodesRaw_codes_packed c 𝒜).comp hrepack).of_eq (fun r => by simp)
 
-set_option maxHeartbeats 2000000 in
--- Raised limit: packed combinator tower over opaque instances.
 /-- Blob stage enumeration (`eraseDups` of the raw list) at explicit time. -/
 private lemma restrictedSampledBadCodesUpToTime_codes_at (c : Code) (𝒜 : PreDescriptionFamily) :
     Computable (fun r : (BitString × ℕ) × ℕ =>
@@ -235,8 +223,6 @@ private lemma restrictedSampledBadCodesUpToTime_codes_at (c : Code) (𝒜 : PreD
   exact this.of_eq (fun r => by
     simp [restrictedSampledBadCodesUpToTime, decodeListCode_listCode])
 
-set_option maxHeartbeats 2000000 in
--- Raised limit: packed combinator tower over opaque instances.
 /-- Blob stream at time zero. -/
 private lemma restrictedSampledBadCodeStream_codes_base (c : Code) (𝒜 : PreDescriptionFamily) :
     Computable (fun p : BitString × ℕ =>
@@ -260,8 +246,6 @@ private lemma restrictedSampledBadCodeStream_codes_base (c : Code) (𝒜 : PreDe
   exact this.of_eq (fun p => by
     simp [restrictedSampledBadCodesUpToTime, decodeListCode_listCode])
 
-set_option maxHeartbeats 4000000 in
--- Raised limit: packed combinator tower over opaque instances.
 /-- One blob step of the chronological stream recursion. -/
 private lemma restrictedSampledBadCodeStream_codes_step (c : Code) (𝒜 : PreDescriptionFamily) :
     Computable₂ (fun (p : BitString × ℕ) (r : ℕ × BitString) =>
@@ -284,8 +268,6 @@ private lemma restrictedSampledBadCodeStream_codes_step (c : Code) (𝒜 : PreDe
     exact this.of_eq (fun x => by simp [decodeListCode_listCode])
   exact h.to₂
 
-set_option maxHeartbeats 8000000 in
--- Raised limit: packed combinator tower over opaque instances.
 /-- The chronological bad-code stream as an encoded blob over packed
 parameters. -/
 lemma restrictedSampledBadCodeStream_codes_packed (c : Code) (𝒜 : PreDescriptionFamily) :
@@ -310,8 +292,6 @@ lemma restrictedSampledBadCodeStream_codes_packed (c : Code) (𝒜 : PreDescript
       simp [restrictedSampledBadCodeStream] at ih ⊢
       rw [ih, decodeListCode_listCode]
 
-set_option maxHeartbeats 8000000 in
--- Raised limit: packed combinator tower over opaque instances.
 /-- The chronological bad-code stream is computable jointly in its grid
 code, number of intervals, slack, and time. -/
 lemma restrictedSampledBadCodeStream_computable_all (c : Code) (𝒜 : PreDescriptionFamily) :
@@ -330,8 +310,6 @@ lemma restrictedSampledBadCodeStream_computable_all (c : Code) (𝒜 : PreDescri
   exact (decodeListCode_primrec.to_comp.comp hblob).of_eq (fun p => by
     simp [decodeListCode_listCode])
 
-set_option maxHeartbeats 4000000 in
--- Raised limit: packed combinator tower over opaque instances.
 /-- Packed least failed scale (over the blob-and-overhead carrier). -/
 private lemma FFS_packed :
     Primrec (fun w : BitString × ℕ =>
@@ -414,8 +392,6 @@ private lemma FFS_packed :
       (restrictedSelectorField w.1 0)
       (restrictedSelectorField w.1 1)).symm)
 
-set_option maxHeartbeats 4000000 in
--- Raised limit: packed combinator tower over opaque instances.
 /-- Packed rebuild-suffix input. -/
 private lemma StepInput_packed :
     Primrec (fun w : BitString × ℕ =>
@@ -473,8 +449,6 @@ private lemma StepInput_packed :
       (restrictedSelectorField w.1 0)
       (restrictedSelectorField w.1 1)).symm)
 
-set_option maxHeartbeats 4000000 in
--- Raised limit: packed combinator tower over opaque instances.
 /-- Packed reassembly with the raw suffix output as a second argument. -/
 private lemma StepPost_packed2 :
     Computable₂ (fun (w : BitString × ℕ) (raw : BitString) =>
@@ -517,8 +491,6 @@ private lemma StepPost_packed2 :
         (restrictedSelectorField r.1.1 0)
         (restrictedSelectorField r.1.1 1) r.2).symm)).to_comp.to₂
 
-set_option maxHeartbeats 4000000 in
--- Raised limit: packed combinator tower over opaque instances.
 /-- Packed one-step update. -/
 private lemma Step_packed (𝒜 : DescriptionFamily) :
     Partrec (fun w : BitString × ℕ =>
@@ -535,9 +507,6 @@ private lemma Step_packed (𝒜 : DescriptionFamily) :
         (restrictedSelectorField w.1 0)
         (restrictedSelectorField w.1 1)).symm)
 
-set_option maxHeartbeats 32000000 in
--- The tuple-to-bundle encoder composes `listCode` over five projections of a
--- four-component product; this is the one place a large budget is needed.
 /-- One effective bad-event update, partial-recursive uniformly in `q0`. -/
 lemma restrictedEffectiveSampledRunStep_partrec_all
     (𝒜 : DescriptionFamily) :
@@ -563,9 +532,6 @@ lemma restrictedEffectiveSampledRunStep_partrec_all
   exact ((Step_packed 𝒜).comp henc).of_eq (fun p => by
     rw [stepBundle_sizes, stepBundle_state, stepBundle_bad])
 
-set_option maxHeartbeats 8000000 in
--- Raised limit: `Partrec.nat_rec` over the packed step at a five-component
--- input.
 /-- Event-prefix execution is partial-recursive jointly in the overhead,
 sizes, initial state, event list, and prefix length. -/
 lemma restrictedEventPrefixRun_partrec_all (𝒜 : DescriptionFamily) :
@@ -600,8 +566,6 @@ lemma restrictedEventPrefixRun_partrec_all (𝒜 : DescriptionFamily) :
     (restrictedEffectiveSampledRunStep_partrec_all 𝒜).comp hinput |>.to₂
   exact (Partrec.nat_rec hcount hbase hnext).of_eq (fun _ => rfl)
 
-set_option maxHeartbeats 32000000 in
--- Raised limit: search-and-replay composition over five-component inputs.
 /-- The event-indexed decoder trace is a single partial-recursive procedure in
 the grid code, explicit overhead, and event count. -/
 lemma anchoredDecoderTrace_partrec (𝒜 : DescriptionFamily) (c : Code) :
@@ -712,8 +676,6 @@ lemma anchoredDecoderTrace_partrec (𝒜 : DescriptionFamily) (c : Code) :
     (Partrec.bind hinitR hprefix).to₂
   exact (Partrec.bind hfind hbody).of_eq (fun _ => rfl)
 
-set_option maxHeartbeats 32000000 in
--- Raised limit: search-and-replay composition over five-component inputs.
 /-- Change counting is partial-recursive jointly in the grid, overhead, scale,
 and event count. -/
 lemma anchoredChangeTrace_partrec (𝒜 : DescriptionFamily) (c : Code) :
@@ -788,8 +750,6 @@ lemma anchoredChangeTrace_partrec (𝒜 : DescriptionFamily) (c : Code) :
               else (p.1 + 1, anchoredModelListAt sc code))) from rfl,
         ← ih]
 
-set_option maxHeartbeats 32000000 in
--- Raised limit: search-and-replay composition over five-component inputs.
 /-- The fixed-code version decoder is partial-recursive.  In particular, its
 invariance constant may depend on the decompressor code `c`, which is why the
 paper-facing complexity leaf below fixes `c` before choosing its slack

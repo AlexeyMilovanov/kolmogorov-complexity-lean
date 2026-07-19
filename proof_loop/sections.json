@@ -1,7 +1,7 @@
 [
   {
     "id": "restricted_type",
-    "title": "Restricted-family formalization: post-proof polishing",
+    "title": "Restricted-family formalization: measured final polishing",
     "module": "KolmogorovMathlib.Restricted",
     "workflow": "polish",
     "files": [
@@ -23,11 +23,12 @@
       "COVERAGE.md"
     ],
     "targets": [
-      "Remove all 42 local set_option maxHeartbeats overrides through cheaper proofs",
-      "Resolve current Lean info/warning output and unnecessary linter suppressions",
-      "Narrow broad imports and remove dead helpers or stale implementation comments",
-      "Golf brittle proofs toward robust Mathlib style without compile-time regression"
+      "Preserve the clean baseline: zero sorry, maxHeartbeats overrides, warning output, linter suppressions, broad imports, and forbidden escape hatches",
+      "Validate and integrate the saved iteration-16 candidate: hamming_gap_exclusion measured 59648 heartbeats versus 72281 at the accepted baseline, together with comment-only removal of stale proof-loop language",
+      "Continue only measurement-gated proof simplification in the documented hot leaves: hammingListDecodingCheckBool_eq, hammingSphere_self_degree, restrictedEffectiveSampledInitialState_post_computable, coverSelectorFun_partrec, and selector witness/spec proofs",
+      "Remove remaining stale implementation/process commentary and dead private helpers while preserving mathematical documentation",
+      "Prefer robust Mathlib-style structural proofs over broad grind, simp_all, aesop, or unrestricted nlinarith, but retain the existing proof whenever a replacement is not demonstrably cheaper and clearer"
     ],
-    "notes": "The formalization is complete and sorry-free at baseline commit fc5d3df. Freeze all theorem statements, assumptions, public names, and definition semantics. Never add a sorry or replace a heartbeat override by a larger, global, disabled, or relocated override. Work in small batches with targeted builds; run the full audit only after a batch is stable. Every fifth iteration is strategy-only for all agents, including Aristotle."
+    "notes": "The formalization is complete and the accepted baseline passes the full audit with zero mandatory debt. Freeze all theorem statements, assumptions, public names, encodings, constants, and definition semantics. Never add a sorry, heartbeat override, broad import, warning suppression, or relocated expensive computation. Rebaseline each optimized declaration synchronously and reject churn without a measurable elaboration or maintainability improvement. The blocked prior iteration-16 worktree is intentional candidate input: its four local-agent stages and full audit passed, while merge was withheld only because the Aristotle API returned no downloadable archive. Every fifth iteration is strategy-only for all agents, including Aristotle."
   }
 ]

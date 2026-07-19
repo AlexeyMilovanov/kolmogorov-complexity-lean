@@ -636,41 +636,78 @@ theorem familyCandidateModelCodesList_computable_uniform
 
 section StageUniform
 -- `familyCandidateModelCodesList` is a reducible `def`; unfolding it during the
--- `Computable.comp` unifications below leads to a `whnf` heartbeat blow-up, so we
--- treat it as irreducible and raise the heartbeat budget for this one assembly.
+-- `Computable.comp` unifications below is needlessly expensive, so keep it opaque.
 attribute [local irreducible] familyCandidateModelCodesList
 
-set_option maxHeartbeats 1000000 in
+def familyStageModelCodesList_hg_arg (q : ℕ × ℕ × ℕ) : ℕ × ℕ × ℕ :=
+  (q.1, q.2.1, 0)
+
+theorem familyStageModelCodesList_hg_arg_comp : Computable familyStageModelCodesList_hg_arg :=
+  Computable.pair Computable.fst
+    (Computable.pair (Computable.fst.comp Computable.snd) (Computable.const 0))
+
+def familyStageModelCodesList_hg_fun (c : Code) (𝒜 : PreDescriptionFamily) (q : ℕ × ℕ × ℕ) : List BitString :=
+  (familyCandidateModelCodesList c q.1 𝒜 q.2.1 0).eraseDups
+
+theorem familyStageModelCodesList_hg (c : Code) (𝒜 : PreDescriptionFamily) :
+    Computable (familyStageModelCodesList_hg_fun c 𝒜) := by
+  have H := eraseDups_bitstring_primrec.to_comp.comp
+    ((familyCandidateModelCodesList_computable_uniform c 𝒜).comp familyStageModelCodesList_hg_arg_comp)
+  refine Computable.of_eq H ?_
+  intro q
+  rw [familyStageModelCodesList_hg_fun, familyStageModelCodesList_hg_arg]
+
+def familyStageModelCodesList_happ_arg (r : (ℕ × ℕ × ℕ) × (ℕ × List BitString)) : ℕ × ℕ × ℕ :=
+  (r.1.1, r.1.2.1, r.2.1 + 1)
+
+theorem familyStageModelCodesList_happ_arg_comp : Computable familyStageModelCodesList_happ_arg :=
+  Computable.pair (Computable.fst.comp Computable.fst)
+    (Computable.pair (Computable.fst.comp (Computable.snd.comp Computable.fst))
+      (Computable.succ.comp (Computable.fst.comp Computable.snd)))
+
+def familyStageModelCodesList_happ_fun (c : Code) (𝒜 : PreDescriptionFamily) (r : (ℕ × ℕ × ℕ) × (ℕ × List BitString)) : List BitString :=
+  r.2.2 ++ familyCandidateModelCodesList c r.1.1 𝒜 r.1.2.1 (r.2.1 + 1)
+
+theorem familyStageModelCodesList_happ (c : Code) (𝒜 : PreDescriptionFamily) :
+    Computable (familyStageModelCodesList_happ_fun c 𝒜) := by
+  have H := (Primrec.list_append (α := BitString)).to_comp.comp
+    (Computable.snd.comp Computable.snd)
+    ((familyCandidateModelCodesList_computable_uniform c 𝒜).comp familyStageModelCodesList_happ_arg_comp)
+  refine Computable.of_eq H ?_
+  intro r
+  rw [familyStageModelCodesList_happ_fun, familyStageModelCodesList_happ_arg]
+
+def familyStageModelCodesList_hh_fun (c : Code) (𝒜 : PreDescriptionFamily) (q : ℕ × ℕ × ℕ) (p : ℕ × List BitString) : List BitString :=
+  (p.2 ++ familyCandidateModelCodesList c q.1 𝒜 q.2.1 (p.1 + 1)).eraseDups
+
+theorem familyStageModelCodesList_hh (c : Code) (𝒜 : PreDescriptionFamily) :
+    Computable₂ (familyStageModelCodesList_hh_fun c 𝒜) := by
+  have H := eraseDups_bitstring_primrec.to_comp.comp (familyStageModelCodesList_happ c 𝒜)
+  have H2 : Computable (fun (r : (ℕ × ℕ × ℕ) × (ℕ × List BitString)) => familyStageModelCodesList_hh_fun c 𝒜 r.1 r.2) := by
+    refine Computable.of_eq H ?_
+    intro r
+    rw [familyStageModelCodesList_hh_fun, familyStageModelCodesList_happ_fun]
+  exact H2
+
 -- Uniform version of `familyStageModelCodesList_computable`: computable jointly
 -- in `(i, j, t)`.
--- The `Computable.nat_rec` assembly over the accumulated stage lists is
--- elaboration-heavy (but terminating); the default heartbeat budget is too low.
 theorem familyStageModelCodesList_computable_uniform
     (c : Code) (𝒜 : PreDescriptionFamily) :
     Computable (fun q : ℕ × ℕ × ℕ =>
       familyStageModelCodesList c q.1 𝒜 q.2.1 q.2.2) := by
-  have hg : Computable (fun q : ℕ × ℕ × ℕ =>
-      (familyCandidateModelCodesList c q.1 𝒜 q.2.1 0).eraseDups) :=
-    eraseDups_bitstring_primrec.to_comp.comp
-      ((familyCandidateModelCodesList_computable_uniform c 𝒜).comp
-        (Computable.pair Computable.fst
-          (Computable.pair (Computable.fst.comp Computable.snd) (Computable.const 0))))
-  have hh : Computable₂ (fun (q : ℕ × ℕ × ℕ) (p : ℕ × List BitString) =>
-      (p.2 ++ familyCandidateModelCodesList c q.1 𝒜 q.2.1 (p.1 + 1)).eraseDups) := by
-    have happ : Computable (fun r : (ℕ × ℕ × ℕ) × (ℕ × List BitString) =>
-        r.2.2 ++ familyCandidateModelCodesList c r.1.1 𝒜 r.1.2.1 (r.2.1 + 1)) := by
-      refine (Primrec.list_append (α := BitString)).to_comp.comp
-        (Computable.snd.comp Computable.snd) ?_
-      exact (familyCandidateModelCodesList_computable_uniform c 𝒜).comp
-        (Computable.pair (Computable.fst.comp Computable.fst)
-          (Computable.pair (Computable.fst.comp (Computable.snd.comp Computable.fst))
-            (Computable.succ.comp (Computable.fst.comp Computable.snd))))
-    exact (eraseDups_bitstring_primrec.to_comp.comp happ).to₂
-  refine (Computable.nat_rec (Computable.snd.comp Computable.snd) hg hh).of_eq (fun q => ?_)
+  have hg := familyStageModelCodesList_hg c 𝒜
+  have hh := familyStageModelCodesList_hh c 𝒜
+  have hn : Computable (fun (q : ℕ × ℕ × ℕ) => q.2.2) := Computable.snd.comp Computable.snd
+  have H := Computable.nat_rec hn hg hh
+  refine Computable.of_eq H ?_
+  intro q
   obtain ⟨i, j, t⟩ := q
   induction t with
   | zero => rfl
-  | succ n ih => simp [familyStageModelCodesList, ih]
+  | succ n ih =>
+    change familyStageModelCodesList_hh_fun c 𝒜 (i, j, n) (n, Nat.rec (familyStageModelCodesList_hg_fun c 𝒜 (i, j, n)) (fun y IH => familyStageModelCodesList_hh_fun c 𝒜 (i, j, n) (y, IH)) n) =
+      familyStageModelCodesList c i 𝒜 j (n + 1)
+    rw [ih, familyStageModelCodesList_hh_fun, familyStageModelCodesList]
 
 end StageUniform
 

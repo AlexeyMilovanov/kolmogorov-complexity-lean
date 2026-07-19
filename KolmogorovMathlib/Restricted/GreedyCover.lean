@@ -4,7 +4,6 @@ import Mathlib.Data.Nat.Log
 import Mathlib.Algebra.Order.Ring.Pow
 import Mathlib.Data.Real.Basic
 import Mathlib.Analysis.SpecialFunctions.Log.Base
-import Mathlib.Tactic
 
 /-!
 # M4: Greedy Cover Lemma
