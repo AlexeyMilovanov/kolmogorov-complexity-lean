@@ -4,9 +4,9 @@ import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.Basic
 /-!
 # Finite sampled-run combinatorics
 
-This file contains only the parts of the sampled coupled-run argument that can
-be stated independently of the still-missing chronological transition system.
-In particular, it does not package placeholder invariants as `True`.
+This file contains the parts of the sampled coupled-run argument that are stated
+independently of the chronological transition system; that system itself is
+built in `Restricted.FamilyCurve.CoupledRun`.
 -/
 
 namespace Kolmogorov

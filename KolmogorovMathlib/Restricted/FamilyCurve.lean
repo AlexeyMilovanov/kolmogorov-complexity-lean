@@ -106,7 +106,7 @@ lemma exists_restricted_anchored_output_with_model_complexity
     _ = (grid.i s + sqrtSlack (c_grid + c_ver) n : ENat) := by
         rfl
 
-/-- The remaining M7 assembly.  `RunBounds` supplies the balanced ambient
+/-- The core M7 assembly.  `RunBounds` supplies the balanced ambient
 padding, terminating anchored run, nonempty terminal survivor, and
 forbidden-profile avoidance; `restrictedAnchoredRun_model_setComplexity`
 supplies the version-coded model complexities.  The candidate complexity

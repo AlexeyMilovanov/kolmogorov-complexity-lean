@@ -224,6 +224,30 @@ theorem coverValidBool_computable (𝒜 : DescriptionFamily) :
     exact h_primrec.to_comp;
   exact (andC (andC (andC h_enum h_len) h_size) h_target).of_eq fun _ => by unfold coverValidBool; rfl
 
+private lemma coverSelectorSearchInput_computable : Computable
+    (fun p : BitString × ℕ =>
+      (decodeFirst p.1,
+        bitsToNat (decodeFirst (decodeSecond p.1)),
+        bitsToNat (decodeFirst (decodeSecond (decodeSecond p.1))),
+        bitsToNat (decodeFirst (decodeSecond (decodeSecond (decodeSecond p.1)))),
+        p.2)) := by
+  exact Computable.pair (decodeFirst_computable.comp Computable.fst)
+    (Computable.pair
+      (bitsToNat_computable.comp
+        (decodeFirst_computable.comp (decodeSecond_computable.comp Computable.fst)))
+      (Computable.pair
+        (bitsToNat_computable.comp
+          (decodeFirst_computable.comp
+            (decodeSecond_computable.comp
+              (decodeSecond_computable.comp Computable.fst))))
+        (Computable.pair
+          (bitsToNat_computable.comp
+            (decodeFirst_computable.comp
+              (decodeSecond_computable.comp
+                (decodeSecond_computable.comp
+                  (decodeSecond_computable.comp Computable.fst)))))
+          Computable.snd)))
+
 /-
 **Computability core.** The cover selector is partial recursive.
 -/
@@ -249,24 +273,8 @@ theorem coverSelectorFun_partrec (𝒜 : DescriptionFamily) :
                                                                    ) ) ( bitsToNat ( decodeFirst
                                                                                      ( decodeSecond
                                                                                          ( decodeSecond p.1 ) ) ) ) ( bitsToNat ( decodeFirst ( decodeSecond ( decodeSecond ( decodeSecond p.1 ) ) ) ) ) p.2 );
-      · have h_coverValidBool_computable : Computable
-          (fun a : BitString × ℕ × ℕ × ℕ × ℕ => coverValidBool 𝒜 a.1 a.2.1 a.2.2.1 a.2.2.2.1
-              a.2.2.2.2) := by
-          exact coverValidBool_computable 𝒜;
-        convert h_coverValidBool_computable.comp
-            ( Computable.pair ( decodeFirst_computable.comp ( Computable.fst ) )
-              ( Computable.pair
-                ( bitsToNat_computable.comp ( decodeFirst_computable.comp
-                  ( decodeSecond_computable.comp ( Computable.fst ) ) ) )
-                ( Computable.pair
-                  ( bitsToNat_computable.comp ( decodeFirst_computable.comp
-                    ( decodeSecond_computable.comp ( decodeSecond_computable.comp
-                      ( Computable.fst ) ) ) ) )
-                  ( Computable.pair
-                    ( bitsToNat_computable.comp ( decodeFirst_computable.comp
-                      ( decodeSecond_computable.comp ( decodeSecond_computable.comp
-                        ( decodeSecond_computable.comp ( Computable.fst ) ) ) ) ) )
-                    ( Computable.snd ) ) ) ) ) |> Computable.partrec using 1;
+      · convert (coverValidBool_computable 𝒜).comp
+            coverSelectorSearchInput_computable |>.partrec using 1;
       · exact fun _ => rfl;
     · rfl;
   · refine Computable.option_getD ?_ ?_;

@@ -6,13 +6,11 @@ import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.DescriptionSnapshot
 /-!
 # M4: Substrategy Bookkeeping
 
-Plan reference: `PLAN_RESTRICTED_TYPE.md`, milestone M4.
-
 This file provides the finite-stage bookkeeping for the improving descriptions
 strategy.  The proved selection lemmas choose a small indexed greedy subcover of
-the currently visible high-multiplicity strings.  The remaining M4 assembly still
-needs the effective/enumerable marked-code stream that turns this finite
-selection into a complexity bound.
+the currently visible high-multiplicity strings.  These lemmas feed the
+effective/enumerable marked-code stream (see `EffectiveSelection.lean`) that
+turns this finite selection into a complexity bound.
 -/
 
 namespace Kolmogorov

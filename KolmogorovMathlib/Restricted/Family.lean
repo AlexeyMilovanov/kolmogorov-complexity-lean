@@ -5,9 +5,6 @@ import KolmogorovMathlib.Encoding.Tuples
 /-!
 # M1: description families and the restricted profile
 
-Plan reference: `PLAN_RESTRICTED_TYPE.md`, milestone M1. This file is owned by
-the `M1_description_family` proof-loop section.
-
 VS40 §6 conditions on a family 𝒜 of finite sets of strings:
 (1) enumerability, (2) full cubes `𝔹ⁿ ∈ 𝒜`, (3) polynomial covering. The
 covering overhead is an EXPLICIT function `overhead : ℕ → ℕ` (not "some

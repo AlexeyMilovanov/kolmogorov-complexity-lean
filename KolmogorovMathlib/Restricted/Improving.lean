@@ -6,8 +6,6 @@ import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.ImprovingDescriptions
 /-!
 # M4: Restricted Improving Descriptions
 
-Plan reference: `PLAN_RESTRICTED_TYPE.md`, milestone M4.
-
 This file assembles the improving descriptions theorem (P-IMP) in the restricted
 case. It proves both the size half (using `BasicProfile.lean`'s cover shift) and
 the complexity half (using `Selection.lean`'s strategy).
@@ -383,7 +381,8 @@ theorem markedStream_rank_address_slack (c_idx : ℕ) :
   exact Nat.add_le_add_left (by simpa [M] using hsum') (i - k)
 
 /-- Any selected code has a bounded ordinal in the duplicate-free marked stream.
-This is the exact rank fact consumed by the remaining coding leaf. -/
+This is the exact rank fact consumed by
+`selected_family_code_setComplexity_bound`. -/
 theorem exists_markedStream_rank (c : Code) (i : ℕ) (𝒜 : PreDescriptionFamily)
     (n j k t : ℕ) {w : BitString}
     (hw : w ∈ familyMarkedCodeStream c i 𝒜 n j k t) :
@@ -872,10 +871,10 @@ theorem familyMarkedInput_KPPlain_le_addr (U : Map) (hU : IsOptimalPrefixConditi
         ring
 
 /-- Hard coding leaf for selected marked-code streams.  A code selected by the
-effective marked stream has set complexity bounded by its rank in that stream;
-`exists_markedStream_rank` and `markedStream_rank_address_slack` provide the
-rank-length arithmetic, while the remaining work is the packed computable
-decoder for `familyMarkedCodeStream`. -/
+effective marked stream has set complexity bounded by its rank in that stream:
+`exists_markedStream_rank` and `markedStream_rank_address_slack` supply the
+rank-length arithmetic for the packed computable decoder of
+`familyMarkedCodeStream`. -/
 theorem selected_family_code_setComplexity_bound (U : Map) (hU : IsOptimalPrefixConditional U)
     (c : Code) (hc : IsCodeFor c U) (𝒜 : PreDescriptionFamily) :
     ∃ c_slack : ℕ, ∀ (n i j k t : ℕ) (w : BitString)
@@ -1002,14 +1001,12 @@ effective selection over the family enumeration produces, for every length-`n`
 string `x` with `2^k` restricted `(i,j)`-descriptions, a family member `S ∋ x`
 of complexity `≤ (i-k) + O(log(n+i+j))` and log-size `≤ j + O(log(n+i+j))`.
 
-This is the single remaining M4 computability leaf.  Intended construction
-(matches the unrestricted `emittedHalfRichChunks` proof and plan M4):
-* make the finite-stage greedy selection of `Selection.lean` *effective* — an
-  explicit computable marked-code stream over the family enumeration
-  (`𝒜.enumeration.computable`), instead of the current `Classical.choose`-based
-  `selectionStrategy`; coverage is `selectionStrategy_covers`, the count bound is
-  `selectionStrategy_length_bound` (`≤ (i+1)²(n+1)2^(i+1-k)`, i.e. `2^(i-k)` up
-  to the visible `poly(n)` factor);
+Construction (parallel to the unrestricted `emittedHalfRichChunks` proof):
+* `EffectiveSelection.lean` makes the finite-stage greedy selection effective,
+  as an explicit computable marked-code stream over the family enumeration
+  (`𝒜.enumeration.computable`); coverage is `selectionStrategy_covers`, and the
+  count bound is `selectionStrategy_length_bound`
+  (`≤ (i+1)²(n+1)2^(i+1-k)`, i.e. `2^(i-k)` up to the visible `poly(n)` factor);
 * the marked set containing `x` is then recovered by its ordinal index in the
   marked stream, of length `≤ (i-k) + O(log n)`, via the M0 fixed-length index
   bound `StagedEnumeration.KP_le_fixed_length_index_of_cond_enumeration`.

@@ -735,7 +735,7 @@ lemma exists_restricted_anchored_structural_output
 
 /-- Package an anchored terminal state as the sampled output core once the two
 version-coding complexity estimates have been supplied.  This separates the
-pure state bookkeeping from the remaining ordinal/history argument. -/
+pure state bookkeeping from the downstream ordinal/history argument. -/
 lemma restrictedAnchoredState_to_sampledOutputCore
     (𝒜 : DescriptionFamily) (U : Map)
     {n k N c ambientLength streamSlack : ℕ} {target : ℕ → ℕ}

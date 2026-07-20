@@ -89,43 +89,18 @@ lemma hammingVol_le_two_pow_half (n : ℕ) :
         convert choose_le_exp_mul_div_pow hr1 using 1;
       -- We'll use that $Real.exp 1 * n / r \leq 2^{16}$ to bound the expression.
       have h_bound : Real.exp 1 * n / r ≤ 2 ^ 16 := by
-        have hr_pos : (0 : ℝ) < r := by exact_mod_cast hr1
-        rw [div_le_iff₀ hr_pos]
-        norm_num
-        have h_exp := Real.exp_one_lt_d9.le
-        norm_num at h_exp
-        have hn_lower : (64 : ℝ) ≤ n := by
-          norm_cast
-          omega
-        have hr_lower : (1 : ℝ) ≤ r := by exact_mod_cast hr1
-        have hn_upper : (n : ℝ) ≤ 64 * r + 63 := by
-          norm_cast
-          omega
-        nlinarith only [h_exp, hn_lower, hr_lower, hn_upper]
-      norm_num
-      calc
-        (↑r + 1) * ↑(Nat.choose n r) ≤
-            (↑r + 1) * (Real.exp 1 * ↑n / ↑r) ^ r :=
-          mul_le_mul_of_nonneg_left h_combined (by positivity)
-        _ ≤ (↑r + 1) * ((2 : ℝ) ^ 16) ^ r :=
-          mul_le_mul_of_nonneg_left
-            (pow_le_pow_left₀ (by positivity) h_bound r) (by positivity)
-        _ = (↑r + 1) * (2 : ℝ) ^ (16 * r) := by
-          rw [pow_mul]
+        rw [ div_le_iff₀ ] <;> norm_num;
+        · have := Real.exp_one_lt_d9.le;
+          norm_num at this ; nlinarith [ show ( n : ℝ ) ≥ 64 by norm_cast; linarith, show ( r : ℝ ) ≥ 1 by norm_cast, show ( n : ℝ ) ≤ 64 * r + 63 by norm_cast; omega ];
+        · linarith;
+      norm_num [ pow_mul ];
+      exact mul_le_mul_of_nonneg_left ( h_combined.trans ( pow_le_pow_left₀ ( by positivity ) h_bound _ ) ) ( by positivity ) |> le_trans <| by norm_num;
     -- Since $r \geq 1$, we have $(r + 1) \leq 2^r$.
     have h_r_plus_one : (r + 1 : ℝ) ≤ (2 : ℝ) ^ r := by
-      have : r + 1 ≤ 2 ^ r := Nat.lt_two_pow_self
-      exact_mod_cast this
+      exact mod_cast Nat.recOn r ( by norm_num ) fun n ihn => by norm_num [ Nat.pow_succ ] at * ; linarith;
     -- By combining the inequalities, we get the desired result: $(r + 1) * 2^{16r} \leq 2^{17r}$.
     have h_final : (hammingVol n r : ℝ) ≤ (2 : ℝ) ^ (17 * r) := by
-      calc
-        (hammingVol n r : ℝ) ≤ (r + 1) * (2 : ℝ) ^ (16 * r) := h_combined
-        _ ≤ (2 : ℝ) ^ r * (2 : ℝ) ^ (16 * r) :=
-          mul_le_mul_of_nonneg_right h_r_plus_one (by positivity)
-        _ = (2 : ℝ) ^ (17 * r) := by
-          rw [← pow_add]
-          congr 1
-          omega
+      exact h_combined.trans ( by rw [ show 17 * r = r + 16 * r by ring ] ; rw [ pow_add ] ; exact mul_le_mul_of_nonneg_right h_r_plus_one ( by positivity ) );
     exact_mod_cast h_final.trans ( pow_le_pow_right₀ ( by norm_num ) ( by omega ) )
 
 /-- Combinatorial counting bound: estimating the volume of Hamming balls.
@@ -344,13 +319,9 @@ lemma per_ball_bad_le (a M N n : ℕ) (haM : a ≤ M) :
 `hammingVol n r = 2 ^ n` as soon as `n ≤ r`.
 -/
 lemma hammingVol_eq_two_pow_of_ge {n r : ℕ} (h : n ≤ r) : hammingVol n r = 2 ^ n := by
-  rw [← Nat.sum_range_choose,
-    Finset.sum_subset (Finset.range_mono (Nat.succ_le_succ h))]
-  · rfl
-  · intro x hx hxr
-    exact Nat.choose_eq_zero_of_lt (by
-      simp only [Finset.mem_range] at hx hxr
-      omega)
+  rw [ ← Nat.sum_range_choose ];
+  rw [ Finset.sum_subset ( Finset.range_mono ( Nat.succ_le_succ h ) ) ] ; aesop;
+  exact fun x hx₁ hx₂ => Nat.choose_eq_zero_of_lt <| by aesop;
 
 /-
 Descending-factorial comparison used for the union bound: if `V * N ≤ M`
@@ -751,6 +722,18 @@ def hammingListDecodingCheckBool (n : ℕ) (L : List BitString) : Bool :=
         decide (L.dedup.countP
           (fun y => decide (y.length = n) && decide (hammingDist x y ≤ r')) ≤ n)))
 
+/-- The radius-`r` Hamming slice of `L` around `y`, counted as a `Finset`, has the
+same cardinality as the corresponding filtered sublist of `L.dedup`.  Both sides
+carry the length constraint, so no hypothesis on `L` is needed. -/
+private lemma hammingSlice_card_eq (n r : ℕ) (y : BitString) (L : List BitString) :
+    ({z ∈ stringsOfLength n | hammingDist y z ≤ r} ∩ L.toFinset).card =
+      (L.dedup.filter
+        (fun z => decide (z.length = n) && decide (hammingDist y z ≤ r))).length := by
+  rw [← List.toFinset_card_of_nodup (List.Nodup.filter _ (List.nodup_dedup L))]
+  congr 1
+  ext z
+  simp [stringsOfLength, and_comm]
+
 /-
 The Boolean check agrees with the decidable finite list-decoding predicate.
 -/
@@ -769,14 +752,10 @@ lemma hammingListDecodingCheckBool_eq (n : ℕ) (L : List BitString) :
     constructor <;> intro h <;> simp_all +decide [ Finset.mem_biUnion, Finset.mem_image ];
     · rintro A x hx y hy rfl; specialize h x hx y; simp_all +decide [ hammingBall, stringsOfLength ] ;
       convert h using 1;
-      rw [ ← Multiset.coe_card ] ; rw [ ← Multiset.toFinset_card_of_nodup ] ; simp +decide;
-      · congr 1 with z ; aesop;
-      · exact List.Nodup.filter _ ( List.nodup_dedup _ );
+      exact hammingSlice_card_eq n x y L
     · intro x hx y hy; specialize h ( hammingBall n y x ) x hx y; simp_all +decide [ hammingBall ] ;
       convert h ( by unfold stringsOfLength; aesop ) using 1;
-      rw [ ← Multiset.coe_card ] ; rw [ ← Multiset.toFinset_card_of_nodup ] ; simp +decide;
-      · congr 1 with z ; simp +decide [ stringsOfLength ] ; aesop;
-      · exact List.Nodup.filter _ ( List.nodup_dedup _ );
+      exact ( hammingSlice_card_eq n x y L ).symm
   · grind +locals
 
 /-
@@ -1033,8 +1012,8 @@ lemma exists_high_complexity_element_in_finset (U : Map) (_hU : IsOptimalPrefixC
 
 /-- Lemma 1: A ball of radius `R` can be covered by balls of radius `r`,
 with the same radius-bracketing hypotheses used by `hammingBall_cover_centers`.
-The lower bounds on `c` are needed for the `length * c` conclusion when the
-target balls are small. -/
+The bounds `c ≤ hammingVol n R` and `c ≤ hammingVol n (r+1)` are necessary:
+without them, the `length * c` conclusion is false for tiny target balls. -/
 lemma hammingBall_covered_by_smaller_balls (n : ℕ) (z : BitString) (R r c : ℕ)
     (hz : z.length = n) (hc : 0 < c)
     (h_R_bound : c ≤ hammingVol n R)
@@ -1474,7 +1453,7 @@ lemma hamming_gap_exclusion (U : Map) (hU : IsOptimalPrefixConditional U) (c : �
     grind
 
 /--
-M6: Hamming gap.
+M6 (stretch): Hamming gap.
 Consider the family 𝒜 that consists of all Hamming balls. For some positive ε
 and for all sufficiently large n there exists a string x of length n such that
 the distance between P_x^𝒜 and P_x exceeds ε n.

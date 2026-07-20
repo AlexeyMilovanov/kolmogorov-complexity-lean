@@ -1313,8 +1313,8 @@ lemma restrictedCurveGridPredecessor_spec
   exact ⟨hs.1, hs.2.1, hs.2.2.2⟩
 
 /-- Interpolate sampled good sets to every `idx ≤ k`.  This is the purely
-static final assembly step: the remaining dynamic construction only has to
-produce the `N + 1` sampled versions and their common surviving candidate. -/
+static final assembly step applied after the dynamic construction produces the
+`N + 1` sampled versions and their common surviving candidate. -/
 lemma RestrictedSampledOutput.toCoupledOutput
     {𝒜 : DescriptionFamily} {U : Map} {n k N c : ℕ} {t : ℕ → ℕ}
     {grid : RestrictedCurveGrid n k N t}

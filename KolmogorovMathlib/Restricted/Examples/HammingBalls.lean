@@ -119,8 +119,8 @@ Pascal-style recurrence for Hamming volumes.
 theorem hammingVol_succ (n r : ℕ) :
     hammingVol (n + 1) (r + 1) = hammingVol n (r + 1) + hammingVol n r := by
   unfold hammingVol;
-  induction r <;> simp_all +decide [ Nat.choose_succ_succ, Finset.sum_range_succ' ] ; ring;
-  simp_all +decide [ Finset.sum_add_distrib ] ; linarith
+  induction r <;> simp_all [ Nat.choose_succ_succ, Finset.sum_range_succ' ] ; ring;
+  simp_all [ Finset.sum_add_distrib ] ; linarith
 
 /-
 Honest leaf: ball cardinality as binomial sum.
@@ -128,25 +128,25 @@ Honest leaf: ball cardinality as binomial sum.
 theorem hammingBall_card (n : ℕ) (x : BitString) (r : ℕ) (hx : x.length = n) :
     (hammingBall n x r).card = hammingVol n r := by
   subst hx;
-  induction x generalizing r <;> simp_all +decide [ hammingVol ];
+  induction x generalizing r <;> simp_all [ hammingVol ];
   · unfold hammingBall;
     unfold hammingDist; simp +decide [ Finset.sum_range_succ' ] ;
-  · rename_i k hk ih; rcases r with ( _ | r ) <;> simp_all +decide [ Finset.sum_range_succ', Nat.choose_succ_succ ] ;
+  · rename_i k hk ih; rcases r with ( _ | r ) <;> simp_all [ Finset.sum_range_succ', Nat.choose_succ_succ ] ;
     · refine Finset.card_eq_one.mpr ?_;
       use k :: hk; ext; simp [hammingBall];
-      constructor <;> intro h <;> simp_all +decide [ hammingDist_self, stringsOfLength ];
+      constructor <;> intro h <;> simp_all [ hammingDist_self, stringsOfLength ];
       have h_eq : ∀ {x y : BitString}, x.length = y.length → hammingDist x y = 0 → x = y := by
-        intros x y hxy h; induction x generalizing y <;> induction y <;> simp_all +decide [ hammingDist ] ;
+        intros x y hxy h; induction x generalizing y <;> induction y <;> simp_all [ hammingDist ] ;
         grind;
-      exact h_eq ( by simp +decide [ h.1 ] ) h.2 ▸ rfl;
+      exact h_eq ( by simp [ h.1 ] ) h.2 ▸ rfl;
     · -- Let's simplify the goal using the definition of `hammingBall`.
       have h_simp : hammingBall (hk.length + 1) (k :: hk) (r + 1) = Finset.image (fun y => k :: y) (hammingBall hk.length hk (r + 1)) ∪ Finset.image (fun y => (!k) :: y) (hammingBall hk.length hk r) := by
         ext y; simp [hammingBall];
-        rcases y with ( _ | ⟨ b, y ⟩ ) <;> simp_all +decide [ stringsOfLength ];
-        cases k <;> cases b <;> simp_all +decide [ hammingDist_cons ]; all_goals exact fun _ => ⟨ fun h => by linarith, fun h => by linarith ⟩;
+        rcases y with ( _ | ⟨ b, y ⟩ ) <;> simp_all [ stringsOfLength ];
+        cases k <;> cases b <;> simp_all [ hammingDist_cons ]; all_goals exact fun _ => ⟨ fun h => by linarith, fun h => by linarith ⟩;
       rw [ h_simp, Finset.card_union_of_disjoint ];
-      · rw [ Finset.card_image_of_injective, Finset.card_image_of_injective ] <;> simp_all +decide [ Function.Injective ];
-        simp +arith +decide [ Finset.sum_add_distrib, Finset.sum_range_succ' ];
+      · rw [ Finset.card_image_of_injective, Finset.card_image_of_injective ] <;> simp_all [ Function.Injective ];
+        simp +arith [ Finset.sum_add_distrib, Finset.sum_range_succ' ];
       · norm_num [ Finset.disjoint_left ]
 
 /-- Full-cube stress test. -/
@@ -276,7 +276,7 @@ theorem hamming_probabilistic_cover (n r c : ℕ) (hc : 0 < c) (hcn : c ≤ hamm
         convert hammingBall_card n x r ( memStringsOfLength n x |>.1 hx ) using 1;
       · ext y; simp [hammingDist_comm];
         grind;
-    · obtain ⟨ C, hC₁, hC₂, hC₃ ⟩ := h; use C.toList; simp_all +decide [ Finset.subset_iff ] ;
+    · obtain ⟨ C, hC₁, hC₂, hC₃ ⟩ := h; use C.toList; simp_all [ Finset.subset_iff ] ;
       refine ⟨ fun x hx => ?_, ?_ ⟩;
       · exact memStringsOfLength n x |>.1 ( hC₁ hx );
       · convert hC₃ using 1;
@@ -284,7 +284,7 @@ theorem hamming_probabilistic_cover (n r c : ℕ) (hc : 0 < c) (hcn : c ≤ hamm
   · intro x hx;
     convert hcn using 1;
     convert hammingBall_card n x r ( memStringsOfLength n x |>.1 hx ) using 1;
-    congr 1 with y ; simp +decide [ hammingDist_comm ];
+    congr 1 with y ; simp [ hammingDist_comm ];
     unfold hammingBall; aesop;
 
 /-- The overhead for Hamming balls. -/
@@ -588,8 +588,8 @@ lemma hammingSphere_card (n : ℕ) (z : BitString) (s : ℕ) (hz : z.length = n)
       have := sum_hammingSphere_card n z r
       have := hammingBall_card n z r hz
       have := hammingVol
-      simp_all +decide [ hammingVol ];
-    have := h_sum ( s + 1 ) ; have := h_sum s; simp_all +decide [ Finset.sum_range_succ ] ;
+      simp_all [ hammingVol ];
+    have := h_sum ( s + 1 ) ; have := h_sum s; simp_all [ Finset.sum_range_succ ] ;
 
 lemma exists_good_center_shell (n : ℕ) (z y : BitString) (r_c : ℕ)
     (_hz : z.length = n) (hy : y.length = n) :
@@ -783,15 +783,15 @@ lemma hammingSphere_cover_degree (n : ℕ) (z x : BitString) (s r_c : ℕ)
         hammingDist_eq_filter_card n
       convert h_center_hamming_x _ _ _ _ using 2;
       · grind +extAll;
-      · simp +decide [ List.length_range ];
+      · simp [ List.length_range ];
       · exact memStringsOfLength n x |>.1 ( Finset.mem_filter.mp hx |>.1 )
     exact ⟨by
-    simp_all +decide [ hammingSphere ];
-    exact ⟨ by exact memStringsOfLength n _ |>.2 <| by simp +decide [ List.length_map, List.length_range ], by rw [ ← h_center_hamming, hammingDist_comm ] ⟩, by
+    simp_all [ hammingSphere ];
+    exact ⟨ by exact memStringsOfLength n _ |>.2 <| by simp [ List.length_map, List.length_range ], by rw [ ← h_center_hamming, hammingDist_comm ] ⟩, by
       exact h_center_hamming_x.le⟩;
   refine le_trans ?_ ( Finset.card_le_card <| show Finset.image ( fun R : Finset ℕ => List.map ( fun i => if i ∈ R then z[i]! else x[i]! ) ( List.range n ) ) ( Finset.powersetCard r_c ( Finset.filter ( fun i => z[i]! ≠ x[i]! ) ( Finset.range n ) ) ) ⊆ Finset.filter ( fun b => hammingDist b x ≤ r_c ) ( hammingSphere n z ( s - r_c ) ) from ?_ );
   · rw [ Finset.card_image_of_injOn, Finset.card_powersetCard, hD_card ];
-    intro R hR R' hR' h_eq; simp_all +decide [ Finset.ext_iff ] ;
+    intro R hR R' hR' h_eq; simp_all [ Finset.ext_iff ] ;
     grind;
   · grind +splitImp
 
@@ -804,8 +804,8 @@ lemma hammingDist_map_not (z y : BitString) (h : z.length = y.length) :
   induction z generalizing y with
   | nil => cases y <;> trivial
   | cons a z ih =>
-    cases y <;> simp_all +decide [ hammingDist_cons ];
-    split_ifs <;> simp_all +arith +decide;
+    cases y <;> simp_all [ hammingDist_cons ];
+    split_ifs <;> simp_all +arith;
     rw [ Nat.sub_add_comm ];
     exact hammingDist_le_right_length _ _
 
@@ -839,6 +839,10 @@ lemma hammingSphere_self_degree (n : ℕ) (z x : BitString) (s k : ℕ)
         exact ⟨hi, not_not.mp fun heq => hnot ⟨hi, heq⟩⟩
     rw [hED, Finset.card_sdiff]
     rw [Finset.inter_eq_left.mpr (Finset.filter_subset _ _), Finset.card_range, hD_card]
+  have hDE : Disjoint D E := by
+    refine Finset.disjoint_left.mpr fun i hiD hiE => ?_
+    simp only [D, E, Finset.mem_filter] at hiD hiE
+    exact hiD.2 hiE.2
   -- For any $(A, B) \in \text{powersetCard } k D \times \text{powersetCard } k E$, let $b = \text{map } (\lambda i \mapsto \text{if } i \in A \cup B \text{ then } !x[i]! \text{ else } x[i]!)$.
   have h_image : ∀ A ∈ Finset.powersetCard k D, ∀ B ∈ Finset.powersetCard k E,
     let b := (List.range n).map (fun i => if i ∈ A ∪ B then !x[i]! else x[i]!);
@@ -847,46 +851,47 @@ lemma hammingSphere_self_degree (n : ℕ) (z x : BitString) (s k : ℕ)
       let b := (List.range n).map (fun i => if i ∈ A ∪ B then !x[i]! else x[i]!)
       have hb_length : b.length = n := by
         simp [b]
+      have hA_sub := (Finset.mem_powersetCard.mp hA).1
+      have hA_card := (Finset.mem_powersetCard.mp hA).2
+      have hB_sub := (Finset.mem_powersetCard.mp hB).1
+      have hB_card := (Finset.mem_powersetCard.mp hB).2
+      have hAB : Disjoint A B := hDE.mono hA_sub hB_sub
       have hb_hammingDist : hammingDist b x = 2 * k := by
-        have hb_hammingDist : hammingDist b x = (Finset.filter (fun i => b[i]! ≠ x[i]!) (Finset.range n)).card :=
-          hammingDist_eq_filter_card n b x hb_length hx_length
-        have hb_hammingDist : Finset.filter (fun i => b[i]! ≠ x[i]!) (Finset.range n) = A ∪ B := by
-          grind;
-        simp_all +decide [ Finset.mem_powersetCard ];
-        rw [ Finset.card_union_of_disjoint ];
-        · linarith;
-        · exact Finset.disjoint_left.mpr fun x hx hx' => by have := hA.1 hx; have := hB.1 hx'; aesop;
-      have hb_hammingDist_z : hammingDist z b = s := by
-        have hb_hammingDist_z : hammingDist z b = (Finset.filter (fun i => z[i]! ≠ b[i]!) (Finset.range n)).card :=
-          hammingDist_eq_filter_card n z b hz hb_length
-        have hb_hammingDist_z : Finset.filter (fun i => z[i]! ≠ b[i]!) (Finset.range n) = D \ A ∪ B := by
-          ext i; simp [D, b];
-          by_cases hi : i < n <;> by_cases hi' : i ∈ A <;> by_cases hi'' : i ∈ B <;> simp +decide [ hi, hi', hi'' ];
-          · grind;
-          · simp_all +decide [ Finset.mem_powersetCard ];
-            have := hA.1 hi'; aesop;
-          · simp_all +decide [ Finset.mem_powersetCard ];
-            have := hB.1 hi''; aesop;
-          · exact hi ( Finset.mem_range.mp ( Finset.mem_powersetCard.mp hA |>.1 hi' |> Finset.mem_filter.mp |>.1 ) );
-          · exact hi ( Finset.mem_range.mp ( Finset.mem_powersetCard.mp hB |>.1 hi'' |> Finset.mem_filter.mp |>.1 ) );
-        simp_all +decide [ Finset.mem_powersetCard ];
-        rw [ Finset.card_union_of_disjoint ];
-        · grind;
-        · simp_all +decide [ Finset.disjoint_left ];
+        have hfilter : Finset.filter (fun i => b[i]! ≠ x[i]!) (Finset.range n) = A ∪ B := by
           grind
+        rw [hammingDist_eq_filter_card n b x hb_length hx_length, hfilter,
+          Finset.card_union_of_disjoint hAB, hA_card, hB_card, two_mul]
+      have hb_hammingDist_z : hammingDist z b = s := by
+        have hfilterz : Finset.filter (fun i => z[i]! ≠ b[i]!) (Finset.range n) = D \ A ∪ B := by
+          ext i; simp [D, b];
+          by_cases hi : i < n <;> by_cases hi' : i ∈ A <;> by_cases hi'' : i ∈ B <;> simp [ hi, hi', hi'' ];
+          · grind;
+          · simpa using (Finset.mem_filter.mp (hA_sub hi')).2
+          · simpa using (Finset.mem_filter.mp (hB_sub hi'')).2
+          · exact hi (Finset.mem_range.mp (Finset.mem_filter.mp (hA_sub hi')).1)
+          · exact hi (Finset.mem_range.mp (Finset.mem_filter.mp (hB_sub hi'')).1)
+        have hdisj : Disjoint (D \ A) B := hDE.mono Finset.sdiff_subset hB_sub
+        rw [hammingDist_eq_filter_card n z b hz hb_length, hfilterz,
+          Finset.card_union_of_disjoint hdisj, Finset.card_sdiff,
+          Finset.inter_eq_left.mpr hA_sub, hD_card, hA_card, hB_card]
+        omega
       have hb_in_hammingSphere : b ∈ hammingSphere n z s := by
         exact Finset.mem_filter.mpr ⟨ by exact memStringsOfLength n b |>.2 hb_length, hb_hammingDist_z ⟩
       exact ⟨hb_in_hammingSphere, by linarith⟩;
   have h_image_card : Finset.card (Finset.image (fun (p : Finset ℕ × Finset ℕ) => (List.range n).map (fun i => if i ∈ p.1 ∪ p.2 then !x[i]! else x[i]!)) (Finset.powersetCard k D ×ˢ Finset.powersetCard k E)) = Nat.choose s k * Nat.choose (n - s) k := by
     rw [ Finset.card_image_of_injOn, Finset.card_product, Finset.card_powersetCard, Finset.card_powersetCard, hD_card, hE_card ];
-    intro p hp q hq h_eq; simp_all +decide;
+    intro p hp q hq h_eq; simp_all;
     -- Since $p$ and $q$ are subsets of $D$ and $E$ respectively, and $D$ and $E$ are disjoint, we have $p.1 = q.1$ and $p.2 = q.2$.
     have h_eq1 : p.1 = q.1 := by
       grind
     have h_eq2 : p.2 = q.2 := by
       grind
     exact Prod.ext h_eq1 h_eq2;
-  exact h_image_card ▸ Finset.card_le_card ( Finset.image_subset_iff.mpr fun p hp => by aesop )
+  by_cases hk : k ≤ n - s
+  · exact h_image_card ▸ Finset.card_le_card (Finset.image_subset_iff.mpr fun p hp => by
+      rcases Finset.mem_product.mp hp with ⟨hpA, hpB⟩
+      exact Finset.mem_filter.mpr (h_image p.1 hpA p.2 hpB))
+  · exact (hk hkn).elim
 
 /-!
 ### Sphere-wise Hamming cover
@@ -1170,7 +1175,7 @@ lemma differenceMask_stringOfDifferenceMask (n : ℕ) (z : BitString)
 lemma stringOfDifferenceMask_differenceMask (n : ℕ) (z y : BitString)
     (hz : z.length = n) (hy : y.length = n) :
     stringOfDifferenceMask n z (differenceMask n z y) = y := by
-      refine List.ext_get ?_ ?_ <;> simp_all +decide [ stringOfDifferenceMask, differenceMask ];
+      refine List.ext_get ?_ ?_ <;> simp_all [ stringOfDifferenceMask, differenceMask ];
       grind
 
 lemma hammingDist_stringOfDifferenceMask (n : ℕ) (z : BitString)
@@ -1183,10 +1188,10 @@ lemma hammingDist_stringOfDifferenceMask (n : ℕ) (z : BitString)
           grind;
         convert congr_arg Finset.card h_diff_mask using 1;
         · convert hammingDist_eq_filter_card n _ _ _ _ using 2;
-          · refine Finset.card_bij ( fun i hi => i ) ?_ ?_ ?_ <;> simp +decide [ Finset.mem_filter, Finset.mem_range ];
+          · refine Finset.card_bij ( fun i hi => i ) ?_ ?_ ?_ <;> simp [ Finset.mem_filter, Finset.mem_range ];
             · unfold differenceMask; aesop;
             · exact fun a₁ ha₁ a₂ ha₂ h => Fin.ext h;
-            · intro b hb h; use ⟨ b, hb ⟩ ; simp +decide [ *, differenceMask ] ;
+            · intro b hb h; use ⟨ b, hb ⟩ ; simp [ *, differenceMask ] ;
           · unfold stringOfDifferenceMask; aesop;
           · unfold stringOfDifferenceMask; aesop;
         · rw [ Finset.card_union_of_disjoint ( Finset.disjoint_left.mpr fun x hxS hxT => by aesop ) ]
@@ -1230,14 +1235,14 @@ lemma mask_incidence_regular (n r_c f a : ℕ) :
               exact ⟨ Fintype.equivOfCardEq <| by aesop, trivial ⟩;
             refine ⟨ Equiv.extendSubtype σ, ?_ ⟩;
             ext x; simp [Equiv.extendSubtype];
-            by_cases hx : x ∈ D2 <;> simp +decide [ hx, Equiv.subtypeCongr ];
+            by_cases hx : x ∈ D2 <;> simp [ hx, Equiv.subtypeCongr ];
             grind +qlia;
           rw [ Finset.card_filter, Finset.card_filter ];
           apply Finset.sum_bij (fun Y _ => Finset.map σ.toEmbedding Y);
-          · simp +decide;
+          · simp;
           · exact fun a₁ _ a₂ _ h => Finset.map_injective σ.toEmbedding h;
           · exact fun b _ => ⟨ Finset.map σ.symm.toEmbedding b, Finset.mem_univ _, by aesop ⟩;
-          · simp +decide [ ← hσ, finset_symmetricDifference_card_map_perm ]
+          · simp [ ← hσ, finset_symmetricDifference_card_map_perm ]
 
 lemma filtered_hammingSphere_card_eq_mask_count
     (n r_c a : ℕ) (z c : BitString) (hz : z.length = n) (hc : c.length = n) :
@@ -1246,24 +1251,24 @@ lemma filtered_hammingSphere_card_eq_mask_count
         Y.card = a ∧ ((differenceMask n z c) \ Y).card +
           (Y \ (differenceMask n z c)).card = r_c)).card := by
             refine Finset.card_bij ( fun y hy => differenceMask n z y ) ?_ ?_ ?_;
-            · simp +decide [hammingSphere];
+            · simp [hammingSphere];
               intro y hy₁ hy₂ hy₃ hy₄;
               rw [ ← hy₂, ← hy₄, ← hammingDist_stringOfDifferenceMask ];
               exact ⟨ differenceMask_card_eq_hammingDist n z y hz ( by simpa [ stringsOfLength ] using memStringsOfLength n y |>.1 hy₃ ), by rw [ stringOfDifferenceMask_differenceMask n z c hz hc, stringOfDifferenceMask_differenceMask n z y hz ( by simpa [ stringsOfLength ] using memStringsOfLength n y |>.1 hy₃ ) ] ⟩;
-            · intro y₁ hy₁ y₂ hy₂ h; have := stringOfDifferenceMask_differenceMask n z y₁; have := stringOfDifferenceMask_differenceMask n z y₂; simp_all +decide [ Finset.ext_iff ] ;
-              simp_all +decide [differenceMask];
-              simp_all +decide [ hammingSphere ];
-              simp_all +decide [ memStringsOfLength ];
-            · intro Y hy; use stringOfDifferenceMask n z Y; simp_all +decide [ hammingSphere ] ;
+            · intro y₁ hy₁ y₂ hy₂ h; have := stringOfDifferenceMask_differenceMask n z y₁; have := stringOfDifferenceMask_differenceMask n z y₂; simp_all [ Finset.ext_iff ] ;
+              simp_all [differenceMask];
+              simp_all [ hammingSphere ];
+              simp_all [ memStringsOfLength ];
+            · intro Y hy; use stringOfDifferenceMask n z Y; simp_all [ hammingSphere ] ;
               have h_dist : hammingDist c (stringOfDifferenceMask n z Y) = (differenceMask n z c \ Y).card + (Y \ differenceMask n z c).card := by
                 convert hammingDist_stringOfDifferenceMask n z ( differenceMask n z c ) Y using 1;
                 rw [ stringOfDifferenceMask_differenceMask n z c hz hc ];
               have h_dist_z : hammingDist z (stringOfDifferenceMask n z Y) = Y.card := by
                 convert hammingDist_stringOfDifferenceMask n z ∅ Y using 1;
                 · unfold stringOfDifferenceMask; aesop;
-                · simp +decide;
-              simp_all +decide [stringsOfLength];
-              exact ⟨ by rw [ stringOfDifferenceMask ] ; simp +decide [ hz ], differenceMask_stringOfDifferenceMask n z Y ⟩
+                · simp;
+              simp_all [stringsOfLength];
+              exact ⟨ by rw [ stringOfDifferenceMask ] ; simp [ hz ], differenceMask_stringOfDifferenceMask n z Y ⟩
 
 theorem hammingSphere_incidence_regular (n r_c f a : ℕ) (z : BitString) (hz : z.length = n) :
     ∀ c1 ∈ hammingSphere n z f, ∀ c2 ∈ hammingSphere n z f,
@@ -1439,10 +1444,10 @@ lemma hammingVol_le_mul_hammingSphere_card_of_le_half
       rw [ h_hammingVol, hammingSphere_card n z s hz ];
       refine le_trans ( Finset.sum_le_sum fun i hi => show Nat.choose n i ≤ Nat.choose n s from ?_ ) ?_;
       · have h_choose_mono : ∀ {i j : ℕ}, i ≤ j → j ≤ n / 2 → Nat.choose n i ≤ Nat.choose n j := by
-          intros i j hij hjn; induction hij <;> simp_all +decide;
+          intros i j hij hjn; induction hij <;> simp_all;
           exact le_trans ( by solve_by_elim [ Nat.le_of_lt ] ) ( Nat.choose_le_succ_of_lt_half_left ( by omega ) );
         exact h_choose_mono ( Finset.mem_range_succ_iff.mp hi ) hs;
-      · simp +arith +decide [ mul_comm ];
+      · simp +arith [ mul_comm ];
         exact Nat.mul_le_mul_left _ ( by omega )
 
 lemma stringsOfLength_card_le_mul_hammingBall_card_of_half_lt
@@ -1452,7 +1457,7 @@ lemma stringsOfLength_card_le_mul_hammingBall_card_of_half_lt
         rw [ cardStringsOfLength, Nat.sum_range_choose ];
       rw [ h_cube_card, mul_comm ];
       refine le_trans ?_ ( Nat.mul_le_mul_right (k := n + 1) <| show ( hammingBall n z r |> Finset.card ) ≥ ( n.choose ( n / 2 ) ) from ?_ );
-      · exact le_trans ( Finset.sum_le_sum fun _ _ => Nat.choose_le_middle _ _ ) ( by simp +decide [ mul_comm ] );
+      · exact le_trans ( Finset.sum_le_sum fun _ _ => Nat.choose_le_middle _ _ ) ( by simp [ mul_comm ] );
       · rw [ hammingBall_card ];
         · exact Finset.single_le_sum ( fun x _ => Nat.zero_le ( Nat.choose n x ) ) ( Finset.mem_range.mpr ( by linarith ) );
         · exact hz

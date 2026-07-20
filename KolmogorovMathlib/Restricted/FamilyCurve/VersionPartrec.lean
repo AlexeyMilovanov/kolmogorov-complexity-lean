@@ -3,7 +3,8 @@ import KolmogorovMathlib.Restricted.FamilyCurve.VersionDecoder
 /-!
 # M7: uniform computability layer of the version decoder
 
-These lemmas live apart from the frequently edited decoder definitions.
+Partial-recursiveness of the version decoder, uniform in the encoded grid.
+The decoder definitions themselves live in `VersionDecoder.lean`.
 -/
 
 namespace Kolmogorov

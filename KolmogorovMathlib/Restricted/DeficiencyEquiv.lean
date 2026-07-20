@@ -11,14 +11,8 @@ open Nat.Partrec (Code)
 
 /-!
 # M5: Restricted Deficiency Equivalence
-
-Plan reference: `PLAN_RESTRICTED_TYPE.md`, milestone M5.
 -/
 
-/- Note: the unsound forms of `restricted_description_count_of_conditional_complexity_gap`
-and `restricted_deficiencies_theorem_tight` taking an arbitrary `DescriptionFamily` have
-been removed as they had the incorrect quantifier order (`∃c` before `enum`).
-Use the `uniform_` variants below instead. -/
 
 /-
 From a *given* family member `A ∋ x` (with `setComplexity ≤ alpha` and randomness

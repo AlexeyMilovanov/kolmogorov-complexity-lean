@@ -8,8 +8,6 @@ import Mathlib.Analysis.SpecialFunctions.Log.Base
 /-!
 # M4: Greedy Cover Lemma
 
-Plan reference: `PLAN_RESTRICTED_TYPE.md`, milestone M4.
-
 This file provides the purely combinatorial greedy covering lemma: if every
 element of a finite set `T` is covered by at least `m` of the sets in a finite
 family `S` (where `M := |S|`), then greedy selection covers `T` with at most

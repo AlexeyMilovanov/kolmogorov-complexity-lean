@@ -7,7 +7,7 @@ The concrete partial-recursive decoder that reconstructs a terminal sampled
 model of the anchored run from the encoded grid plus a bounded version
 ordinal.  This module proves the decoder's partial recursiveness and its
 canonical-code identities.  Replay correctness and the bounded ordinal/
-complexity accounting remain in the final M7 leaf.
+complexity accounting are proved downstream in `VersionClose.lean`.
 
 The decoder input is the self-delimiting bundle
 `listCode [gridCode, bits q0, bits s, bits v]`; every grid-derived parameter
@@ -20,9 +20,8 @@ namespace Kolmogorov
 
 /- `Primcodable` instance terms are kept opaque during definitional checks:
 the uniform computability lemmas below compose at 4–5-component product
-types, where reducible instance diamonds make `whnf` blow up past 10^8
-heartbeats.  Both sides of every check derive the instances identically, so
-opaque comparison succeeds syntactically. -/
+types.  Both sides of every check derive the instances identically, so opaque
+comparison succeeds syntactically without unfolding the instance terms. -/
 attribute [local irreducible] Primcodable.prod Primcodable.list
 
 open Nat.Partrec (Code)

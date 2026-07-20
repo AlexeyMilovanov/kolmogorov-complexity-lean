@@ -6,11 +6,9 @@ import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.CurveRealization
 /-!
 # M2: basic properties of the restricted profile
 
-Plan reference: `PLAN_RESTRICTED_TYPE.md`, milestone M2.
-
 This file records the restricted analogues of the elementary endpoint
 properties of the unrestricted description profile.  The cover/shift statement
-is intentionally left as the next M2 leaf: it is the first place where condition
+`inDescriptionProfileIn_cover_shift` is the first place where condition
 (3), the family enumeration, and the enumeration-complexity layer interact.
 -/
 
@@ -219,7 +217,7 @@ code `f` recovers from `pairCode A.code z`, where the address `z` is **short**:
 `z.length ≤ k + c₀·(|bits n| + |bits k| + |bits (overhead n)| + 1)`
 (coefficient **1** on `k`, matching the paper's `i + k + O(log n)` slack).
 
-Construction (Aristotle target; matches plan M4 `GoodCoverCodes`/`coverSelector`):
+Construction:
 * `exists_family_cover` gives, for `c := max 1 (A.card / 2^k)`, a cover `𝒞` of
   the `n`-bit part of `A` by `𝒜`-members of card `≤ 2^(j-k)`, with
   `𝒞.length ≤ overhead n · 2^(k+1)`; and `x` lies in some `B ∈ 𝒞`.
