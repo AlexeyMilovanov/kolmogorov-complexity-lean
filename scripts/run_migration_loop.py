@@ -25,6 +25,7 @@ import os
 import re
 from pathlib import Path
 import shutil
+import stat
 import subprocess
 import sys
 import tarfile
@@ -326,6 +327,42 @@ def migration_reference_args() -> list[str]:
     return []
 
 
+def migration_source_provenance() -> dict[str, Any]:
+    """Fail closed unless migration uses a recorded, read-only final 4.28 tree."""
+    configured = os.environ.get("KOLMOGOROV_MIGRATION_SOURCE_28")
+    if not configured:
+        raise RuntimeError(
+            "KOLMOGOROV_MIGRATION_SOURCE_28 must name the final polished 4.28 snapshot"
+        )
+    source = MIGRATION_SOURCE_ROOT.resolve()
+    if not source.is_dir():
+        raise RuntimeError(f"migration source does not exist: {source}")
+    metadata_path = source.parent / f"{source.name}.json"
+    metadata = load_json(metadata_path, {})
+    commit = str(metadata.get("commit", ""))
+    if not re.fullmatch(r"[0-9a-f]{40}", commit):
+        raise RuntimeError(f"missing valid final-source commit metadata: {metadata_path}")
+    if "migration-source-final-" not in source.name:
+        raise RuntimeError(f"refusing non-final migration source: {source}")
+    checked = [source, source / "lakefile.toml", source / "KolmogorovMathlib.lean"]
+    checked.extend(source.glob("KolmogorovMathlib/**/*.lean"))
+    writable = [
+        path
+        for path in checked
+        if path.exists()
+        and path.stat().st_mode & (stat.S_IWUSR | stat.S_IWGRP | stat.S_IWOTH)
+    ]
+    if writable:
+        sample = ", ".join(str(path) for path in writable[:5])
+        raise RuntimeError(f"final 4.28 source is not read-only: {sample}")
+    return {
+        "root": str(source),
+        "metadata": str(metadata_path),
+        "commit": commit,
+        "created_at": metadata.get("created_at"),
+    }
+
+
 def scan_polish_debt_at(root: Path) -> str:
     """Return static proof-engineering debt that agents can attack locally."""
     needles = (
@@ -593,7 +630,10 @@ Editable worktree: `{work_root}`
 Read-only 4.28 source: `{MIGRATION_SOURCE_ROOT}`
 
 GLOBAL GOAL, in order:
-1. Port every result missing from the final 4.28 snapshot into Lean 4.31.
+1. Treat the final polished 4.28 snapshot as the sole authority for source
+   results and proof intent. Compare every corresponding 4.31 module with it,
+   including files already touched by an older migration, and reconcile any
+   omitted result or useful final-28 cleanup through a justified 4.31 adaptation.
 2. Reach a complete `lake build KolmogorovMathlib` with no errors.
 3. Remove all warnings, `sorry`, heartbeat overrides, broad imports, linter
    suppressions, temporary files, and migration scaffolding.
@@ -631,6 +671,8 @@ GLOBAL GOAL, in order:
 
 Hard constraints:
 - Edit only the Lean 4.31 worktree. The 4.28 snapshot is read-only.
+- Previous migration output is provisional: never let an older 4.28 snapshot
+  override or substitute for the final source named above.
 - Never replace an existing shared 4.31 module wholesale with the 4.28 file.
 - No `sorry`, `sorryAx`, `axiom`, `admit`, `unsafe`, `implemented_by`, or
   `native_decide`; do not weaken theorem statements or assumptions.
@@ -900,6 +942,11 @@ Read-only source snapshot: `{MIGRATION_SOURCE_ROOT}`
 
 The ordered objective is: complete result-preserving migration, error-free full
 build, warning-free cleanup, then measured Mathlib-style polishing in 4.31.
+
+The named final polished 4.28 snapshot is the sole source authority. Inventory
+and compare all corresponding modules, including paths already migrated from an
+older snapshot; preserve deliberate 4.31 API adaptations while reconciling every
+source result and relevant final-28 proof cleanup.
 
 {section_header(section)}
 
@@ -2049,6 +2096,10 @@ def main(argv: list[str] | None = None) -> int:
             print(f"{section['id']}: {section['title']}")
         return 0
 
+    chosen = selected_sections(args, sections)
+    source_provenance = (
+        migration_source_provenance() if any(is_migration(section) for section in chosen) else None
+    )
     run_dir = (args.run_dir or (args.runs_root / f"{utc_stamp()}-proof-section-loop")).resolve()
     run_dir.mkdir(parents=True, exist_ok=True)
     write_json(
@@ -2064,9 +2115,9 @@ def main(argv: list[str] | None = None) -> int:
             "strategy_first": args.strategy_first,
             "iterations": args.iterations,
             "sections": args.section or ["all"],
+            "migration_source": source_provenance,
         },
     )
-    chosen = selected_sections(args, sections)
 
     summaries: list[dict[str, Any]] = []
     errors: list[dict[str, str]] = []
