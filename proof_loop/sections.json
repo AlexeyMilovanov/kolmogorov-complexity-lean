@@ -1,34 +1,30 @@
 [
   {
-    "id": "restricted_type",
-    "title": "Restricted-family formalization: measured final polishing",
-    "module": "KolmogorovMathlib.Restricted",
+    "id": "full_project_polish",
+    "title": "Lean 4.28 full-project strict Mathlib-style polishing",
+    "module": "KolmogorovMathlib",
     "workflow": "polish",
     "files": [
-      "KolmogorovMathlib/Restricted/BasicProfile.lean",
-      "KolmogorovMathlib/Restricted/Improving.lean",
-      "KolmogorovMathlib/Restricted/DeficiencyEquiv.lean",
-      "KolmogorovMathlib/Restricted/HammingGap.lean",
-      "KolmogorovMathlib/Restricted/FamilyCurve/Selector.lean",
-      "KolmogorovMathlib/Restricted/FamilyCurve/BadStream.lean",
-      "KolmogorovMathlib/Restricted/FamilyCurve/EffectiveRebuild.lean",
-      "KolmogorovMathlib/Restricted/FamilyCurve/EffectiveRun.lean",
-      "KolmogorovMathlib/Restricted/FamilyCurve/VersionPartrec.lean",
-      "KolmogorovMathlib/Restricted/FamilyCurve/VersionPartrec2.lean",
-      "KolmogorovMathlib/Restricted/FamilyCurve/VersionClose.lean"
+      "KolmogorovMathlib/",
+      "KolmogorovMathlib.lean",
+      "lakefile.toml"
     ],
     "allowed_prefixes": [
       "KolmogorovMathlib/",
       "KolmogorovMathlib.lean",
-      "COVERAGE.md"
+      "COVERAGE.md",
+      "POLISHING_28_PLAN.md",
+      "lakefile.toml",
+      "scripts/audit.sh",
+      "scripts/strict_lint_sweep.sh"
     ],
     "targets": [
-      "Preserve the clean baseline: zero sorry, maxHeartbeats overrides, warning output, linter suppressions, broad imports, and forbidden escape hatches",
-      "Validate and integrate the saved iteration-16 candidate: hamming_gap_exclusion measured 59648 heartbeats versus 72281 at the accepted baseline, together with comment-only removal of stale proof-loop language",
-      "Continue only measurement-gated proof simplification in the documented hot leaves: hammingListDecodingCheckBool_eq, hammingSphere_self_degree, restrictedEffectiveSampledInitialState_post_computable, coverSelectorFun_partrec, and selector witness/spec proofs",
-      "Remove remaining stale implementation/process commentary and dead private helpers while preserving mathematical documentation",
-      "Prefer robust Mathlib-style structural proofs over broad grind, simp_all, aesop, or unrestricted nlinarith, but retain the existing proof whenever a replacement is not demonstrably cheaper and clearer"
+      "Remove all four project-level linter suppressions and reach an empty uncached flexible/longLine/multiGoal/openClassical sweep over every Lean file",
+      "Preserve zero sorry, errors, emitted warnings, heartbeat/recursion overrides, broad imports, source-level suppressions, and forbidden escape hatches",
+      "Review proof hacks contextually and replace brittle broad automation with robust Mathlib-style structural proofs only when the replacement compiles and preserves performance",
+      "Narrow imports, remove genuinely dead private helpers and stale process commentary, and preserve useful mathematical documentation",
+      "Freeze every theorem statement, assumption, public name, executable definition body, encoding, and constant while making the Lean 4.28 tree maximally reviewable"
     ],
-    "notes": "The formalization is complete and the accepted baseline passes the full audit with zero mandatory debt. Freeze all theorem statements, assumptions, public names, encodings, constants, and definition semantics. Never add a sorry, heartbeat override, broad import, warning suppression, or relocated expensive computation. Rebaseline each optimized declaration synchronously and reject churn without a measurable elaboration or maintainability improvement. The blocked prior iteration-16 worktree is intentional candidate input: its four local-agent stages and full audit passed, while merge was withheld only because the Aristotle API returned no downloadable archive. Every fifth iteration is strategy-only for all agents, including Aristotle."
+    "notes": "The formalization is complete, but the old audit missed four linter=false settings in lakefile.toml. Iterations 1, 6, 11, ... are strategy-only for Gemini, Codex, Opus, Codex, and Aristotle; each plans the next four ordinary iterations from fresh measurements. Ordinary iterations may accept measured cleanup while suppressions remain, but final acceptance requires deleting all four settings and passing scripts/strict_lint_sweep.sh with empty output. Never weaken or rename declarations, alter executable definitions, or treat tactic names as automatic violations."
   }
 ]

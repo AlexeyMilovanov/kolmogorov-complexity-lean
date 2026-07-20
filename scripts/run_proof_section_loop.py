@@ -5,8 +5,9 @@ KolmogorovMathlib restricted-type (VS40 section 6) loop:
 
     Gemini -> Codex -> Opus -> Codex -> Aristotle
 
-Every Nth iteration (default: 5) is strategic and plans the next N-1 proof
-iterations. Aristotle receives a strategic packet on those iterations too.
+Every Nth iteration starting at ``--strategy-first`` is strategic and plans
+the next N-1 proof iterations. Aristotle receives a strategic packet on those
+iterations too.
 
 The same runner supports proof implementation and post-proof polishing. In
 polishing mode the theorem statements are frozen: agents reduce elaboration
@@ -157,6 +158,7 @@ def collect_context(section: dict[str, Any], root: Path) -> str:
     readme = read_text(root / "README.md", 8000)
     if section.get("workflow") == "polish":
         target_files = "\n".join(f"- `{path}`" for path in section.get("files", []))
+        polish_plan = read_text(root / "POLISHING_28_PLAN.md", 30000)
         return f"""
 # Repository Context
 
@@ -169,6 +171,12 @@ worktree instead of relying on copied source excerpts.
 ## Primary polishing files
 
 {target_files}
+
+## Strict polishing plan
+
+```markdown
+{polish_plan.strip()}
+```
 
 ## COVERAGE.md
 
@@ -290,6 +298,26 @@ def scan_polish_debt_at(root: Path) -> str:
             stripped = line.strip()
             if any(needle in line for needle in needles) or stripped == "import Mathlib":
                 lines.append(f"{rel}:{idx}:{line}")
+    lakefile = root / "lakefile.toml"
+    if lakefile.exists():
+        for idx, line in enumerate(lakefile.read_text(encoding="utf-8", errors="replace").splitlines(), 1):
+            if re.search(r"(?:weak\.)?linter\..*=\s*false\b", line):
+                lines.append(f"lakefile.toml:{idx}:{line}")
+    tactic_patterns = {
+        "simp_all": r"\bsimp_all\b",
+        "aesop": r"\baesop\b",
+        "grind": r"\bgrind\b",
+        "nlinarith": r"\bnlinarith\b",
+    }
+    counts = {name: 0 for name in tactic_patterns}
+    for path in sorted(source_root.rglob("*.lean")):
+        text = path.read_text(encoding="utf-8", errors="replace")
+        for name, pattern in tactic_patterns.items():
+            counts[name] += len(re.findall(pattern, text))
+    lines.append(
+        "TACTIC CANDIDATE INVENTORY (review contextually; not an automatic ban): "
+        + ", ".join(f"{name}={count}" for name, count in counts.items())
+    )
     return "\n".join(lines) if lines else "(no static polishing debt found)"
 
 
@@ -373,10 +401,9 @@ def polishing_ordinary_prompt(
     }[stage]
     stage_task = {
         "01_gemini": (
-            "Choose a small coherent batch of current debt and improve it in the "
-            "worktree. Start with low-risk local heartbeat overrides or the three "
-            "current Lean info suggestions. Refactor the proof rather than merely "
-            "raising or relocating a limit. Run targeted builds for every touched module."
+            "Follow the latest strategy's exact ownership batch. Remove strict-linter "
+            "warnings and locally justified proof debt without changing declarations or "
+            "executable definitions. Run direct strict-linter checks for every touched file."
         ),
         "02_codex": (
             "Adversarially review Gemini's actual diff. Revert regressions, repair "
@@ -402,7 +429,7 @@ You are {role} in a Lean 4 post-proof polishing iteration.
 Iteration: {iteration}. This is an ordinary editing iteration.
 Worktree: `{work_root}`
 
-The restricted-family formalization is already complete and kernel-checked.
+The entire Lean 4.28 formalization is already complete and kernel-checked.
 This iteration must improve implementation quality without changing its
 mathematical content. Do not add new milestones or draft new theorems.
 
@@ -437,10 +464,15 @@ mathematical content. Do not add new milestones or draft new theorems.
 {stage_task}
 
 Priorities, in order:
-1. Remove local `set_option maxHeartbeats` by making the enclosed proof cheaper.
-2. Remove Lean warnings/info suggestions and unnecessary linter suppressions.
-3. Narrow broad imports, remove dead helpers and stale implementation commentary.
-4. Prefer shorter, robust Mathlib-style proofs when compile time does not regress.
+1. Eliminate all warnings revealed by `flexible`, `longLine`, `multiGoal`, and
+   `openClassical`; remove their `lakefile.toml` suppressions only when the
+   whole direct-file sweep is clean.
+2. Keep zero heartbeat/recursion overrides, Lean warnings, source-level linter
+   suppressions, broad imports, and temporary measurement scaffolding.
+3. Narrow imports, remove genuinely dead private helpers and stale process
+   commentary, and preserve useful mathematical documentation.
+4. Prefer short robust Mathlib-style structural proofs. Treat broad `simp_all`,
+   `aesop`, `grind`, and `nlinarith` as review candidates, not automatic bans.
 
 Use targeted `lake env lean <file>` or module builds while editing. Do not launch
 repeated blind full builds; the final Codex should run `bash scripts/audit.sh`
@@ -454,7 +486,8 @@ STATUS: IMPROVED / NO_SAFE_IMPROVEMENT / BUILD_BROKEN / INTERFACE_PROBLEM
 List exact files/declarations and the debt removed.
 
 ## Verification
-Report targeted builds, full audit if run, and remaining heartbeat count.
+Report direct strict-linter checks, targeted builds, full audit if run, and
+the exact remaining warning/suppression counts.
 
 ## Aristotle Optimization Packet
 Give 1-3 exact expensive declarations or style leaves for Aristotle. Include
@@ -468,6 +501,7 @@ Hard constraints:
 - No `axiom`, `admit`, `unsafe`, `implemented_by`, or `native_decide`.
 - Do not change theorem statements, assumptions, definitions' semantics, or public names.
 - Never replace a heartbeat override by a larger/global override or by disabling limits.
+- Never add or relocate a linter suppression. Preserve executable definition bodies.
 - If an attempted cleanup does not compile, revert that attempt before finishing.
 - Do not commit, push, or edit files outside the allowed section prefixes.
 
@@ -622,7 +656,7 @@ def polishing_strategy_prompt(
         "04_codex": "Codex final polishing-plan synthesizer",
     }[stage]
     stage_task = {
-        "01_gemini": "Group the remaining debt into small dependency-aware batches and estimate build risk.",
+        "01_gemini": "Measure all four enabled-linter warning classes, group them into dependency-aware batches, and estimate build risk.",
         "02_codex": "Check Gemini's plan against the actual declarations, imports, and build hotspots.",
         "03_opus": "Stress-test the plan for theorem drift, elaboration regressions, and non-Mathlib style.",
         "04_codex": "Freeze an executable four-iteration plan with exact files, declarations, and acceptance tests.",
@@ -662,8 +696,9 @@ Required output:
 STATUS: STRATEGY_READY / NO_SAFE_IMPROVEMENT / NEEDS_HUMAN_DECISION
 
 ## Best Plan For The Next Four Ordinary Iterations
-For each iteration give exact files/declarations, the proposed cheaper proof,
-targeted verification, expected heartbeat reduction, and rollback criterion.
+For each iteration give exclusive file ownership, exact warning counts and
+declarations, proposed cleanup, direct strict-linter verification, full-build
+gate, and rollback criterion. Re-measure from the actual Lean 4.28 worktree.
 
 ## Aristotle Optimization Priority
 Rank 3-8 exact declarations where independent proof search could remove a local
@@ -1398,7 +1433,8 @@ def allowed_prefixes(section: dict[str, Any]) -> list[str]:
 
 
 def is_allowed_candidate(rel: str, section: dict[str, Any]) -> bool:
-    if rel.startswith("KolmogorovMathlib/Interface/"):
+    forbidden = [str(p) for p in section.get("forbidden_prefixes", [])]
+    if any(rel == prefix.rstrip("/") or rel.startswith(prefix) for prefix in forbidden):
         return False
     return any(rel == prefix.rstrip("/") or rel.startswith(prefix) for prefix in allowed_prefixes(section))
 
@@ -1418,7 +1454,7 @@ def iter_mergeable_files(root: Path, section: dict[str, Any]) -> list[Path]:
     files = list(iter_candidate_files(root, section))
     for prefix in allowed_prefixes(section):
         path = root / prefix
-        if path.is_file() and path.suffix == ".md":
+        if path.is_file():
             files.append(path)
         elif path.is_dir():
             files.extend(path.rglob("*.md"))
@@ -1583,7 +1619,12 @@ def run_iteration(
     context: str,
     work_root: Path,
 ) -> dict[str, Any]:
-    mode = "strategy" if args.strategy_every > 0 and iteration % args.strategy_every == 0 else "proof"
+    is_strategy = (
+        args.strategy_every > 0
+        and iteration >= args.strategy_first
+        and (iteration - args.strategy_first) % args.strategy_every == 0
+    )
+    mode = "strategy" if is_strategy else "proof"
     iter_dir = section_dir / f"iter_{iteration:03d}_{mode}"
     iter_dir.mkdir(parents=True, exist_ok=True)
     manifest_path = iter_dir / "manifest.json"
@@ -1741,6 +1782,7 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--list-sections", action="store_true")
     parser.add_argument("--iterations", type=int, default=1)
     parser.add_argument("--start-iteration", type=int, default=1)
+    parser.add_argument("--strategy-first", type=int, default=1)
     parser.add_argument("--strategy-every", type=int, default=5)
     parser.add_argument("--jobs", type=int, default=1)
     parser.add_argument("--timeout-seconds", type=int, default=3600)
@@ -1776,6 +1818,7 @@ def main(argv: list[str] | None = None) -> int:
             "submit_aristotle": args.submit_aristotle,
             "aristotle_timeout_seconds": args.aristotle_timeout_seconds,
             "strategy_every": args.strategy_every,
+            "strategy_first": args.strategy_first,
             "iterations": args.iterations,
             "sections": args.section or ["all"],
         },
