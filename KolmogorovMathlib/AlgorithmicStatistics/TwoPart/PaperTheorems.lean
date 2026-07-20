@@ -1,12 +1,14 @@
+/-
+Copyright (c) 2024 Alexey Milovanov. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Alexey Milovanov
+-/
+
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.Basic
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.Deficiencies
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.SlackArith
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.DescriptionSnapshot
 import KolmogorovMathlib.Prefix.ConditionalSymmetry
-
-namespace Kolmogorov
-
-open scoped ENNReal
 
 /-!
 # Section 3 Paper-Facing Theorem Statements
@@ -14,6 +16,10 @@ open scoped ENNReal
 This module provides the clean, paper-facing wrappers for the already-proved
 Section 3 results, avoiding the heavy internal API.
 -/
+
+namespace Kolmogorov
+
+open scoped ENNReal
 
 /-- The complexity-improvement half of the Improving Descriptions Theorem. -/
 theorem improving_descriptions_complexity_thm (U : Map) (hU : IsOptimalPrefixConditional U) :

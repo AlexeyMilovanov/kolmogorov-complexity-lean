@@ -6,8 +6,8 @@ review. Ordinary implementation begins in iteration 2.
 ## Gates
 
 - Source-only files represented in Lean 4.31: 0 / 39
-- Full Lean 4.31 build: pending baseline verification
-- Errors: pending
-- Warnings: pending
+- Full Lean 4.31 build: passed (`1758/1758` jobs)
+- Errors: 0
+- Warnings: 0
 - Sorries and forbidden escape hatches: 0 at the initial Lean 4.31 baseline
 - Polishing phase: not started

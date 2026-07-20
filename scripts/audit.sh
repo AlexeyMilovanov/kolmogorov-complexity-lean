@@ -34,7 +34,7 @@ export PATH="$HOME/.elan/bin:$PATH"
 build_log="$(mktemp)"
 trap 'rm -f "$build_log"' EXIT
 lake build KolmogorovMathlib 2>&1 | tee "$build_log"
-if grep -E '(^|:) warning:' "$build_log" >/dev/null; then
+if grep -E '(^|:)[[:space:]]*warning:' "$build_log" >/dev/null; then
   echo "ERROR: Lean warnings found"
   exit 1
 fi
