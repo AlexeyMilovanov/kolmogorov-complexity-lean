@@ -1932,26 +1932,32 @@ def run_iteration(
 
     open_leaves = count_section_sorries_at(work_root, section)
     manifest["open_leaves_after_stages"] = open_leaves
-    aristotle_prompt = write_aristotle_packet(section, iteration, iter_dir, mode, work_root)
-    manifest["aristotle_prompt"] = str(aristotle_prompt)
     should_submit_aristotle = open_leaves > 0 or is_polishing(section)
-    if args.submit_aristotle and not args.dry_run and should_submit_aristotle:
-        manifest["aristotle"] = submit_aristotle(iter_dir, args.aristotle_timeout_seconds)
-        followup = manifest["aristotle"].get("followup", {}) if isinstance(manifest.get("aristotle"), dict) else {}
-        if followup.get("reason") == "timeout_waiting_for_aristotle":
-            manifest["status"] = "waiting_aristotle"
-            manifest["waiting_since"] = utc_now()
-            write_json(iter_dir / "manifest.json", manifest)
-            return manifest
-        # Aristotle can return a useful archive even when its task status is
-        # OUT_OF_BUDGET or another nonzero terminal status. The merge gate is
-        # the authority: integrate any downloaded archive, then build/audit it.
-        if mode != "strategy" and (iter_dir / "aristotle_result.tar.gz").exists():
-            manifest["aristotle_integration"] = integrate_aristotle_result(iter_dir, work_root, section)
+    if args.submit_aristotle:
+        aristotle_prompt = write_aristotle_packet(section, iteration, iter_dir, mode, work_root)
+        manifest["aristotle_prompt"] = str(aristotle_prompt)
+        if not args.dry_run and should_submit_aristotle:
+            manifest["aristotle"] = submit_aristotle(iter_dir, args.aristotle_timeout_seconds)
+            followup = manifest["aristotle"].get("followup", {}) if isinstance(manifest.get("aristotle"), dict) else {}
+            if followup.get("reason") == "timeout_waiting_for_aristotle":
+                manifest["status"] = "waiting_aristotle"
+                manifest["waiting_since"] = utc_now()
+                write_json(iter_dir / "manifest.json", manifest)
+                return manifest
+            # Aristotle can return a useful archive even when its task status is
+            # OUT_OF_BUDGET or another nonzero terminal status. The merge gate is
+            # the authority: integrate any downloaded archive, then build/audit it.
+            if mode != "strategy" and (iter_dir / "aristotle_result.tar.gz").exists():
+                manifest["aristotle_integration"] = integrate_aristotle_result(iter_dir, work_root, section)
+        else:
+            manifest["aristotle"] = {
+                "submitted": False,
+                "reason": "dry_run" if args.dry_run else "no_actionable_packet",
+            }
     else:
         manifest["aristotle"] = {
             "submitted": False,
-            "reason": "no_actionable_packet" if not should_submit_aristotle else "default_prepare_only",
+            "reason": "disabled_for_six_stage_migration_pipeline",
         }
     if mode != "strategy" and not args.dry_run:
         integration = manifest.get("aristotle_integration", {}) if isinstance(manifest.get("aristotle_integration"), dict) else {}
