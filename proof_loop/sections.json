@@ -1,0 +1,23 @@
+[
+  {
+    "id": "migration_28_to_31",
+    "title": "Result-preserving migration of the completed Lean 4.28 development to Lean 4.31",
+    "module": "KolmogorovMathlib",
+    "workflow": "migration",
+    "files": [],
+    "allowed_prefixes": [
+      "KolmogorovMathlib/",
+      "KolmogorovMathlib.lean",
+      "MIGRATION_28_TO_31.md",
+      "MIGRATION_STATUS.md",
+      "README.md"
+    ],
+    "targets": [
+      "Migrate all 39 Lean files present only in the final 4.28 snapshot, adapting them to the existing 4.31 APIs",
+      "Preserve the deliberate 4.31 implementations of all shared files; edit shared modules only through small justified compatibility patches",
+      "Reach an error-free full lake build with no sorry, warnings, heartbeat overrides, broad imports, linter suppressions, or temporary migration scaffolding",
+      "After coverage and build completion, continue measured Mathlib-style polishing in the Lean 4.31 tree"
+    ],
+    "notes": "The source snapshot is read-only. The first dependency layer is Encoding/Tuples, Encoding/TuplesComplexity, Foundation/PrimrecExtras, Foundation/EnumerationComplexity, and Interface/StandardMachine. The new Restricted tree follows only after its required support layer builds. Strategy iterations are 1, 6, 11, ... and all six agents plan without editing on those iterations."
+  }
+]
