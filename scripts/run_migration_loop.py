@@ -1631,6 +1631,7 @@ def prepare_worktree(section_dir: Path) -> Path:
         ignored = {
             ".git",
             ".lake",
+            "migration_runs",
             "proof_loop_runs",
             "proof_loop_readiness",
             "interface_part_reviews",
