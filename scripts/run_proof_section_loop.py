@@ -24,6 +24,7 @@ import filecmp
 import json
 import os
 import re
+import signal
 from pathlib import Path
 import shutil
 import subprocess
@@ -1019,18 +1020,18 @@ def submit_aristotle(iter_dir: Path, timeout_seconds: int) -> dict[str, Any]:
     script = iter_dir / "submit_aristotle.py"
     if not script.exists():
         return {"submitted": False, "reason": "missing submit_aristotle.py"}
-    cp = subprocess.run(
+    cp = run_group_capture(
         ["python3", str(script)],
         cwd=iter_dir,
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
+        input_text=None,
+        env=None,
         timeout=timeout_seconds + 1800,
     )
-    write_text(iter_dir / "aristotle_submit.log", cp.stdout)
+    output = cp.stdout + cp.stderr
+    write_text(iter_dir / "aristotle_submit.log", output)
     archive = iter_dir / "aristotle_result.tar.gz"
-    interrupted = "Connection to server was interrupted" in cp.stdout
-    project_id, task_id = parse_aristotle_ids(cp.stdout)
+    interrupted = "Connection to server was interrupted" in output
+    project_id, task_id = parse_aristotle_ids(output)
     if (interrupted or not archive.exists()) and project_id and task_id:
         followup = wait_for_aristotle_and_download(iter_dir, project_id, task_id, archive, timeout_seconds=timeout_seconds)
         return {
@@ -1128,6 +1129,53 @@ def wait_for_aristotle_and_download(
     return {"returncode": cp.returncode, "status": last_status, "archive": str(archive)}
 
 
+def terminate_process_group(process: subprocess.Popen[str]) -> None:
+    try:
+        os.killpg(process.pid, signal.SIGTERM)
+    except ProcessLookupError:
+        return
+    try:
+        process.wait(timeout=10)
+        return
+    except subprocess.TimeoutExpired:
+        pass
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        pass
+    process.wait(timeout=10)
+
+
+def run_group_capture(
+    cmd: list[str],
+    *,
+    cwd: Path,
+    input_text: str | None,
+    env: dict[str, str] | None,
+    timeout: int,
+) -> subprocess.CompletedProcess[str]:
+    process = subprocess.Popen(
+        cmd,
+        cwd=str(cwd),
+        env=env,
+        stdin=subprocess.PIPE if input_text is not None else subprocess.DEVNULL,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        text=True,
+        start_new_session=True,
+    )
+    try:
+        stdout, stderr = process.communicate(input=input_text, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        terminate_process_group(process)
+        stdout, stderr = process.communicate()
+        raise TimeoutError(
+            f"process group timed out after {timeout}s and was terminated: {' '.join(cmd)}\n"
+            f"stdout:\n{stdout[-4000:]}\nstderr:\n{stderr[-4000:]}"
+        )
+    return subprocess.CompletedProcess(cmd, process.returncode, stdout, stderr)
+
+
 def run_process_capture(
     *,
     name: str,
@@ -1145,13 +1193,10 @@ def run_process_capture(
     started_at = utc_now()
     started = time.monotonic()
     try:
-        completed = subprocess.run(
+        completed = run_group_capture(
             cmd,
-            input=prompt,
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
             cwd=str(cwd),
+            input_text=prompt,
             env=env,
             timeout=timeout,
         )
@@ -1187,15 +1232,8 @@ def run_process_capture(
 
 
 def command_output(argv: list[str], cwd: Path, timeout: int = 1800) -> tuple[int, str]:
-    cp = subprocess.run(
-        argv,
-        cwd=cwd,
-        text=True,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.STDOUT,
-        timeout=timeout,
-    )
-    return cp.returncode, cp.stdout
+    cp = run_group_capture(argv, cwd=cwd, input_text=None, env=None, timeout=timeout)
+    return cp.returncode, cp.stdout + cp.stderr
 
 
 def run_edit_agent(
@@ -1506,13 +1544,33 @@ def integrate_aristotle_result(iter_dir: Path, work_root: Path, section: dict[st
     project = safe_extract_project_tar(archive, dest)
     if project is None:
         return {"integrated": False, "reason": "no_lakefile_in_archive"}
+    submitted_name = project.name.removesuffix("_aristotle")
+    submitted_project = iter_dir / submitted_name
+    if not submitted_project.is_dir():
+        return {
+            "integrated": False,
+            "reason": "missing_submitted_project_for_three_way_integration",
+            "result_project": str(project),
+            "expected_submitted_project": str(submitted_project),
+        }
     copied: list[str] = []
-    for rel, src in changed_candidate_files(project, section):
+    for src in iter_mergeable_files(project, section):
+        rel = src.relative_to(project).as_posix()
+        if not is_allowed_candidate(rel, section):
+            continue
+        submitted = submitted_project / rel
+        if submitted.exists() and filecmp.cmp(src, submitted, shallow=False):
+            continue
         dst = work_root / rel
         dst.parent.mkdir(parents=True, exist_ok=True)
         shutil.copy2(src, dst)
         copied.append(rel)
-    return {"integrated": True, "project": str(project), "copied": copied}
+    return {
+        "integrated": True,
+        "project": str(project),
+        "submitted_project": str(submitted_project),
+        "copied": copied,
+    }
 
 
 def restore_backup(backup: dict[str, Path | None]) -> None:
@@ -1610,6 +1668,64 @@ def merge_gate(section: dict[str, Any], work_root: Path, iter_dir: Path, args: a
             }
             write_json(gate_dir / "result.json", result)
             return result
+
+
+def sync_worktree_checkpoint(
+    section: dict[str, Any], work_root: Path, iteration: int
+) -> dict[str, Any]:
+    """Make worktree HEAD match the accepted root after every merge decision."""
+    root_files = {
+        path.relative_to(ROOT).as_posix(): path
+        for path in iter_mergeable_files(ROOT, section)
+        if is_allowed_candidate(path.relative_to(ROOT).as_posix(), section)
+    }
+    work_files = {
+        path.relative_to(work_root).as_posix(): path
+        for path in iter_mergeable_files(work_root, section)
+        if is_allowed_candidate(path.relative_to(work_root).as_posix(), section)
+    }
+    rels = sorted(set(root_files) | set(work_files))
+    for rel in rels:
+        source = root_files.get(rel)
+        target = work_root / rel
+        if source is None:
+            target.unlink(missing_ok=True)
+            continue
+        target.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(source, target)
+
+    if not rels:
+        return {"status": "NO_FILES"}
+    add_rc, add_out = command_output(["git", "add", "-A", "--", *rels], work_root, timeout=300)
+    if add_rc != 0:
+        raise RuntimeError(f"failed to stage worktree checkpoint:\n{add_out}")
+    diff_rc, diff_out = command_output(
+        ["git", "diff", "--cached", "--quiet"], work_root, timeout=120
+    )
+    if diff_rc == 0:
+        return {"status": "UNCHANGED"}
+    if diff_rc != 1:
+        raise RuntimeError(f"failed to inspect worktree checkpoint:\n{diff_out}")
+    commit_rc, commit_out = command_output(
+        [
+            "git",
+            "-c",
+            "user.name=proof-loop",
+            "-c",
+            "user.email=proof-loop@example.invalid",
+            "commit",
+            "-m",
+            f"accepted root after iteration {iteration}",
+        ],
+        work_root,
+        timeout=300,
+    )
+    if commit_rc != 0:
+        raise RuntimeError(f"failed to commit worktree checkpoint:\n{commit_out}")
+    head_rc, head_out = command_output(["git", "rev-parse", "HEAD"], work_root, timeout=60)
+    if head_rc != 0:
+        raise RuntimeError(f"failed to read worktree checkpoint HEAD:\n{head_out}")
+    return {"status": "COMMITTED", "head": head_out.strip(), "files": len(rels)}
 
 
 def run_iteration(
@@ -1725,6 +1841,9 @@ def run_iteration(
             write_json(iter_dir / "manifest.json", manifest)
             return manifest
         manifest["merge_gate"] = merge_gate(section, work_root, iter_dir, args)
+        manifest["worktree_checkpoint"] = sync_worktree_checkpoint(
+            section, work_root, iteration
+        )
     manifest["status"] = "complete"
     manifest["finished_at"] = utc_now()
     write_json(iter_dir / "manifest.json", manifest)
