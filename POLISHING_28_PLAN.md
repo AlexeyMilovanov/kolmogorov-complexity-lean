@@ -32,6 +32,28 @@ Every touched file must pass direct elaboration with `flexible`, `longLine`,
 audit; Aristotle receives only exact remaining proof/style leaves. Rejected
 batches stay in the isolated worktree and never dirty the accepted branch.
 
+## Authoritative Recovery Baseline (2026-07-21)
+
+Iteration 5 integrated an unchanged Aristotle submission copy over files that
+had been polished in earlier iterations. The accepted pre-iteration-5 versions
+of 29 non-Restricted files were recovered from the merge-gate backup, while the
+newer improvements in 12 Restricted files were retained. The runner now kills
+complete agent process groups on timeout, integrates only Aristotle's actual
+changes relative to the submitted package, and checkpoints accepted root state
+as the worktree's new Git `HEAD` after every merge decision.
+
+The recovered tree passed the full 2,843-job audit and an uncached direct sweep
+of all 118 Lean files. This is the authoritative starting point for iteration 7:
+
+- elaboration errors: 0;
+- strict linter warnings: 1,667 total;
+- original iteration-1 baseline: 2,744 total;
+- `sorry`, forbidden constructs, resource overrides, and ordinary build warnings: 0.
+
+Later agents must not use the stale 2,420-warning measurement from strategy
+iteration 6 as the current total. They should remeasure their owned files before
+editing and preserve every recovered change outside the current file batch.
+
 ## Style Policy
 
 Occurrences of `simp_all`, `aesop`, `grind`, and `nlinarith` are candidates for
