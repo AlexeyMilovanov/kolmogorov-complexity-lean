@@ -1,9 +1,9 @@
 #!/usr/bin/env python3
 """Run the Lean 4.28 -> 4.31 migration and polishing loop.
 
-Each iteration has six local stages:
+Each migration iteration has two local stages:
 
-    Gemini -> Codex -> Opus -> Codex -> Gemini -> Codex
+    Gemini -> Codex
 
 Strategy iterations are selected by ``--strategy-first`` and
 ``--strategy-every``.  With ``--strategy-first 1 --strategy-every 5`` they are
@@ -585,12 +585,8 @@ def migration_ordinary_prompt(
     work_root: Path,
 ) -> str:
     role = {
-        "01_gemini": "Gemini, first migration implementer",
-        "02_codex": "Codex, first migration verifier and repairer",
-        "03_opus": "Opus, independent migration reviewer and implementer",
-        "04_codex": "Codex, second verifier and integration repairer",
-        "05_gemini": "Gemini, second migration implementer",
-        "06_codex": "Codex, final migration verifier and merge-gate preparer",
+        "01_gemini": "Gemini, migration implementer",
+        "02_codex": "Codex, migration reviewer, repairer, and continuing implementer",
     }[stage]
     stage_task = {
         "01_gemini": (
@@ -599,29 +595,14 @@ def migration_ordinary_prompt(
             "rather than copying incompatible shared modules. Run the smallest useful builds."
         ),
         "02_codex": (
-            "Inspect Gemini's actual diff and build output. Repair 4.31 API errors, "
-            "revert unsafe or wholesale overwrites, and continue the same coherent batch."
-        ),
-        "03_opus": (
-            "Independently review the migration architecture and implementation. Fix "
-            "hidden dependency, theorem-drift, warning, or Mathlib-style problems and "
-            "advance the batch where the evidence is clear."
-        ),
-        "04_codex": (
-            "Perform a strict second review. Resolve remaining elaboration errors in "
-            "the current dependency cone, compare public declarations with the source, "
-            "and leave an accurately diagnosed worktree for the second Gemini pass."
-        ),
-        "05_gemini": (
-            "Use all prior reviews to finish the current migration batch. If it already "
-            "builds, move to the next dependency-ready files or remove warnings and "
-            "obvious 4.31-specific proof debt."
-        ),
-        "06_codex": (
-            "Run the final adversarial review. Fix remaining errors and warnings, verify "
-            "no source results were lost or weakened, run targeted builds and then one "
-            "full `bash scripts/audit.sh` when viable. Report exact blockers if the full "
-            "migration is not yet buildable; the persistent worktree will carry them forward."
+            "Adversarially inspect Gemini's complete diff and build output. Compare touched "
+            "public declarations with the final 4.28 source, revert unsafe or wholesale "
+            "overwrites, repair every 4.31 API or proof error, and finish the coherent batch. "
+            "Then continue with the next dependency-ready work when it can be completed and "
+            "verified safely in this iteration. Remove warnings and obvious 4.31-specific "
+            "proof debt as you go. Run targeted builds and one full `bash scripts/audit.sh` "
+            "when viable; leave an accurately diagnosed, merge-gate-ready worktree and report "
+            "exact blockers if the full migration is not yet buildable."
         ),
     }[stage]
     return f"""
@@ -921,19 +902,16 @@ def migration_strategy_prompt(
 ) -> str:
     role = {
         "01_gemini": "Gemini migration strategist",
-        "02_codex": "Codex dependency and API critic",
-        "03_opus": "Opus independent migration reviewer",
-        "04_codex": "Codex build-plan synthesizer",
-        "05_gemini": "Gemini second strategy reviewer",
-        "06_codex": "Codex final migration-plan owner",
+        "02_codex": "Codex migration-plan reviewer and final owner",
     }[stage]
     stage_task = {
         "01_gemini": "Inventory both trees and propose dependency-closed batches for the next four ordinary iterations.",
-        "02_codex": "Verify the inventory and import order against actual Lean 4.31 APIs; reject unsafe copy plans.",
-        "03_opus": "Stress-test theorem preservation, hidden dependencies, build cost, and likely 4.31 incompatibilities.",
-        "04_codex": "Turn the reviews into an executable file-by-file plan with targeted acceptance builds.",
-        "05_gemini": "Re-read both trees and identify omitted results, warnings, or polishing work after migration builds.",
-        "06_codex": "Freeze the final plan for four ordinary iterations, with exact ownership, gates, and rollback criteria.",
+        "02_codex": (
+            "Independently verify Gemini's inventory, theorem coverage, dependency order, and "
+            "likely Lean 4.31 API adaptations against both trees. Correct omissions, reject "
+            "unsafe copy plans, and freeze the final executable four-iteration plan with "
+            "exact file ownership, targeted builds, full-audit points, and rollback criteria."
+        ),
     }[stage]
     return f"""
 You are {role} in strategy iteration {iteration} of a Lean 4.28 to 4.31 migration.
@@ -2001,14 +1979,20 @@ def run_iteration(
         if isinstance(stage, dict) and stage.get("ok") is True
     }
 
-    stages = [
-        ("gemini", "01_gemini"),
-        ("codex", "02_codex"),
-        ("claude", "03_opus"),
-        ("codex", "04_codex"),
-        ("gemini", "05_gemini"),
-        ("codex", "06_codex"),
-    ]
+    if is_migration(section):
+        stages = [
+            ("gemini", "01_gemini"),
+            ("codex", "02_codex"),
+        ]
+    else:
+        stages = [
+            ("gemini", "01_gemini"),
+            ("codex", "02_codex"),
+            ("claude", "03_opus"),
+            ("codex", "04_codex"),
+            ("gemini", "05_gemini"),
+            ("codex", "06_codex"),
+        ]
     for kind, stage in stages:
         if stage in completed_stages and (iter_dir / f"{stage}.md").exists():
             continue
