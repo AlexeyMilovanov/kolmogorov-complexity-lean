@@ -30,6 +30,7 @@ import shutil
 import subprocess
 import sys
 import tarfile
+import tempfile
 import textwrap
 import time
 import traceback
@@ -1130,20 +1131,28 @@ def wait_for_aristotle_and_download(
 
 
 def terminate_process_group(process: subprocess.Popen[str]) -> None:
+    """Terminate the isolated agent group, including descendants after leader exit."""
     try:
         os.killpg(process.pid, signal.SIGTERM)
     except ProcessLookupError:
         return
     try:
         process.wait(timeout=10)
-        return
     except subprocess.TimeoutExpired:
         pass
+    deadline = time.monotonic() + 10
+    while time.monotonic() < deadline:
+        try:
+            os.killpg(process.pid, 0)
+        except ProcessLookupError:
+            return
+        time.sleep(0.2)
     try:
         os.killpg(process.pid, signal.SIGKILL)
     except ProcessLookupError:
-        pass
-    process.wait(timeout=10)
+        return
+    if process.poll() is None:
+        process.wait(timeout=10)
 
 
 def run_group_capture(
@@ -1154,26 +1163,42 @@ def run_group_capture(
     env: dict[str, str] | None,
     timeout: int,
 ) -> subprocess.CompletedProcess[str]:
-    process = subprocess.Popen(
-        cmd,
-        cwd=str(cwd),
-        env=env,
-        stdin=subprocess.PIPE if input_text is not None else subprocess.DEVNULL,
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        text=True,
-        start_new_session=True,
-    )
-    try:
-        stdout, stderr = process.communicate(input=input_text, timeout=timeout)
-    except subprocess.TimeoutExpired:
-        terminate_process_group(process)
-        stdout, stderr = process.communicate()
-        raise TimeoutError(
-            f"process group timed out after {timeout}s and was terminated: {' '.join(cmd)}\n"
-            f"stdout:\n{stdout[-4000:]}\nstderr:\n{stderr[-4000:]}"
+    # Agent CLIs sometimes leave background `tail -f` helpers that inherit
+    # stdout/stderr. Pipes then never reach EOF even after the agent leader
+    # exits, so `communicate()` can hang forever. Regular temporary files avoid
+    # that pipe-lifetime trap and also keep very large agent transcripts out of
+    # the runner's resident memory while the command is active.
+    with tempfile.TemporaryFile(mode="w+", encoding="utf-8") as stdout_file, tempfile.TemporaryFile(
+        mode="w+", encoding="utf-8"
+    ) as stderr_file:
+        process = subprocess.Popen(
+            cmd,
+            cwd=str(cwd),
+            env=env,
+            stdin=subprocess.PIPE if input_text is not None else subprocess.DEVNULL,
+            stdout=stdout_file,
+            stderr=stderr_file,
+            text=True,
+            start_new_session=True,
         )
-    return subprocess.CompletedProcess(cmd, process.returncode, stdout, stderr)
+        timed_out = False
+        try:
+            process.communicate(input=input_text, timeout=timeout)
+        except subprocess.TimeoutExpired:
+            timed_out = True
+        finally:
+            terminate_process_group(process)
+
+        stdout_file.seek(0)
+        stderr_file.seek(0)
+        stdout = stdout_file.read()
+        stderr = stderr_file.read()
+        if timed_out:
+            raise TimeoutError(
+                f"process group timed out after {timeout}s and was terminated: {' '.join(cmd)}\n"
+                f"stdout:\n{stdout[-4000:]}\nstderr:\n{stderr[-4000:]}"
+            )
+        return subprocess.CompletedProcess(cmd, process.returncode, stdout, stderr)
 
 
 def run_process_capture(
