@@ -1021,16 +1021,28 @@ def submit_aristotle(iter_dir: Path, timeout_seconds: int) -> dict[str, Any]:
     script = iter_dir / "submit_aristotle.py"
     if not script.exists():
         return {"submitted": False, "reason": "missing submit_aristotle.py"}
-    cp = run_group_capture(
-        ["python3", str(script)],
-        cwd=iter_dir,
-        input_text=None,
-        env=None,
-        timeout=timeout_seconds + 1800,
-    )
-    output = cp.stdout + cp.stderr
-    write_text(iter_dir / "aristotle_submit.log", output)
+    attempts: list[tuple[int, subprocess.CompletedProcess[str]]] = []
     archive = iter_dir / "aristotle_result.tar.gz"
+    for attempt in range(1, 4):
+        cp = run_group_capture(
+            ["python3", str(script)],
+            cwd=iter_dir,
+            input_text=None,
+            env=None,
+            timeout=timeout_seconds + 1800,
+        )
+        attempts.append((attempt, cp))
+        output = cp.stdout + cp.stderr
+        project_id, task_id = parse_aristotle_ids(output)
+        if archive.exists() or (project_id and task_id):
+            break
+        if attempt < 3:
+            time.sleep(30 * attempt)
+    output = "\n\n".join(
+        f"===== Aristotle submit attempt {attempt}/3 =====\n{cp.stdout}{cp.stderr}"
+        for attempt, cp in attempts
+    )
+    write_text(iter_dir / "aristotle_submit.log", output)
     interrupted = "Connection to server was interrupted" in output
     project_id, task_id = parse_aristotle_ids(output)
     if (interrupted or not archive.exists()) and project_id and task_id:
