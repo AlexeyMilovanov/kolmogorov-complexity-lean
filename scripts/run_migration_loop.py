@@ -23,12 +23,14 @@ import filecmp
 import json
 import os
 import re
+import signal
 from pathlib import Path
 import shutil
 import stat
 import subprocess
 import sys
 import tarfile
+import tempfile
 import textwrap
 import time
 import traceback
@@ -1403,6 +1405,73 @@ def wait_for_aristotle_and_download(
     return {"returncode": cp.returncode, "status": last_status, "archive": str(archive)}
 
 
+def terminate_process_group(process: subprocess.Popen[str]) -> None:
+    """Terminate the isolated agent group, including descendants after leader exit."""
+    try:
+        os.killpg(process.pid, signal.SIGTERM)
+    except ProcessLookupError:
+        return
+    try:
+        process.wait(timeout=10)
+    except subprocess.TimeoutExpired:
+        pass
+    deadline = time.monotonic() + 10
+    while time.monotonic() < deadline:
+        try:
+            os.killpg(process.pid, 0)
+        except ProcessLookupError:
+            return
+        time.sleep(0.2)
+    try:
+        os.killpg(process.pid, signal.SIGKILL)
+    except ProcessLookupError:
+        return
+    if process.poll() is None:
+        process.wait(timeout=10)
+
+
+def run_group_capture(
+    cmd: list[str],
+    *,
+    cwd: Path,
+    input_text: str | None,
+    env: dict[str, str] | None,
+    timeout: int,
+) -> subprocess.CompletedProcess[str]:
+    # Agent CLIs may leave background helpers holding stdout/stderr open. Use
+    # files instead of pipes, then explicitly reap the isolated process group.
+    with tempfile.TemporaryFile(mode="w+", encoding="utf-8") as stdout_file, tempfile.TemporaryFile(
+        mode="w+", encoding="utf-8"
+    ) as stderr_file:
+        process = subprocess.Popen(
+            cmd,
+            cwd=str(cwd),
+            env=env,
+            stdin=subprocess.PIPE if input_text is not None else subprocess.DEVNULL,
+            stdout=stdout_file,
+            stderr=stderr_file,
+            text=True,
+            start_new_session=True,
+        )
+        timed_out = False
+        try:
+            process.communicate(input=input_text, timeout=timeout)
+        except subprocess.TimeoutExpired:
+            timed_out = True
+        finally:
+            terminate_process_group(process)
+        stdout_file.seek(0)
+        stderr_file.seek(0)
+        stdout = stdout_file.read()
+        stderr = stderr_file.read()
+        if timed_out:
+            raise TimeoutError(
+                f"process group timed out after {timeout}s and was terminated: {' '.join(cmd)}\n"
+                f"stdout:\n{stdout[-4000:]}\nstderr:\n{stderr[-4000:]}"
+            )
+        return subprocess.CompletedProcess(cmd, process.returncode, stdout, stderr)
+
+
 def run_process_capture(
     *,
     name: str,
@@ -1420,13 +1489,10 @@ def run_process_capture(
     started_at = utc_now()
     started = time.monotonic()
     try:
-        completed = subprocess.run(
+        completed = run_group_capture(
             cmd,
-            input=prompt,
-            text=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.PIPE,
-            cwd=str(cwd),
+            cwd=cwd,
+            input_text=prompt,
             env=env,
             timeout=timeout,
         )
