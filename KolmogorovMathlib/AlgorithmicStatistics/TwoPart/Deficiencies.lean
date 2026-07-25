@@ -158,6 +158,31 @@ def TightGapCountingBridge (U : Map) : Prop :=
     ∃ slack : ℕ, slack ≤ logSlack c (n + delta + d) ∧
       ManyIJDescriptions U x i j (delta - d - slack)
 
+/-- Compatibility form of `GapCountingBridge` retaining the 4.28 `c_soi` parameter. -/
+def GapCountingBridgeWithSOI (U : Map) : Prop :=
+  ∃ c : ℕ, ∀ (A : Finset BitString) (hA : A.Nonempty) (x : BitString)
+      (n delta d i j c_soi : ℕ),
+    x.length = n →
+    x ∈ A →
+    setComplexity U A hA = (i : ENat) →
+    A.card ≤ 2 ^ j →
+    SetOptimalityDeficiencyLe U A hA x delta →
+    CodedFiniteDistribution.DeficiencyLe U (codedUniformOn A hA) x d →
+    d ≤ delta + c_soi →
+    ∃ slack : ℕ, slack ≤ logSlack c (n + delta + d) ∧
+      ManyIJDescriptions U x i j (delta - d - slack)
+
+/-- Compatibility form of `TightGapCountingBridge` retaining the 4.28 `c_soi` parameter. -/
+def TightGapCountingBridgeWithSOI (U : Map) : Prop :=
+  ∃ c : ℕ, ∀ (A : Finset BitString) (hA : A.Nonempty) (x : BitString)
+      (n delta d i j kx c_soi : ℕ),
+    x.length = n →
+    RealizedSetOptimalityGap U A hA x delta i j kx →
+    CodedFiniteDistribution.DeficiencyLe U (codedUniformOn A hA) x d →
+    d ≤ delta + c_soi →
+    ∃ slack : ℕ, slack ≤ logSlack c (n + delta + d) ∧
+      ManyIJDescriptions U x i j (delta - d - slack)
+
 /-- Adding one to the visible slack parameter only costs a constant-factor
 increase in the slack value. -/
 theorem logSlack_add_one (c : ℕ) (n : ℕ) :
@@ -583,5 +608,94 @@ theorem isOptimalSetStochastic_imp_profile (U : Map) (hU : IsOptimalPrefixCondit
       _ ≤ (c + 2) * (Nat.bits (alpha + beta + j)).length := Nat.mul_le_mul (by omega) (le_refl _)
   unfold logSlack
   omega
+
+/-- Compatibility form of `deficiencies_theorem` retaining the 4.28 `c_soi` interface. -/
+theorem deficiencies_theorem_with_soi (U : Map) (hU : IsOptimalPrefixConditional U)
+    (_h_size : ImprovingDescriptionsSizeLogSlack U)
+    (h_comp : ImprovingDescriptionsComplexityLogSlack U)
+    (h_gap : GapCountingBridgeWithSOI U) :
+    ∃ c : ℕ, ∀ (A : Finset BitString) (hA : A.Nonempty) (x : BitString)
+        (n delta d i j c_soi : ℕ),
+      x.length = n →
+      x ∈ A →
+      setComplexity U A hA = (i : ENat) →
+      A.card ≤ 2 ^ j →
+      SetOptimalityDeficiencyLe U A hA x delta →
+      CodedFiniteDistribution.DeficiencyLe U (codedUniformOn A hA) x d →
+      d ≤ delta + c_soi →
+      ∃ (B : Finset BitString) (hB : B.Nonempty), x ∈ B ∧
+        setComplexity U B hB + (delta - d : ℕ) ≤
+          setComplexity U A hA + (logSlack c (n + delta + d) : ENat) ∧
+        SetOptimalityDeficiencyLe U B hB x (d + logSlack c (n + delta + d)) := by
+  rcases h_gap with ⟨c_gap, h_gap⟩
+  have h_gap' : GapCountingBridge U := by
+    refine ⟨c_gap, ?_⟩
+    intro A hA x n delta d i j hn hx hcomp hcard hopt hdef hd
+    exact h_gap A hA x n delta d i j 0 hn hx hcomp hcard hopt hdef (by simpa using hd)
+  obtain ⟨c, hc⟩ := deficiencies_theorem U hU _h_size h_comp h_gap'
+  refine ⟨c, ?_⟩
+  intro A hA x n delta d i j c_soi hn hx hcomp hcard hopt hdef _
+  by_cases hd : d ≤ delta
+  · exact hc A hA x n delta d i j hn hx hcomp hcard hopt hdef hd
+  · refine ⟨A, hA, hx, ?_, ?_⟩
+    · have hsub : delta - d = 0 := Nat.sub_eq_zero_of_le (le_of_not_ge hd)
+      rw [hsub, Nat.cast_zero, add_zero]
+      exact le_add_right le_rfl
+    · refine hopt.mono_beta ?_
+      have : delta ≤ d := le_of_not_ge hd
+      omega
+
+/-- Compatibility form of `deficiencies_theorem_tight` retaining the 4.28 `c_soi` interface. -/
+theorem deficiencies_theorem_tight_with_soi (U : Map) (hU : IsOptimalPrefixConditional U)
+    (_h_size : ImprovingDescriptionsSizeLogSlack U)
+    (h_comp : ImprovingDescriptionsComplexityLogSlack U)
+    (h_gap : TightGapCountingBridgeWithSOI U) :
+    ∃ c : ℕ, ∀ (A : Finset BitString) (hA : A.Nonempty) (x : BitString)
+        (n delta d i j kx c_soi : ℕ),
+      x.length = n →
+      RealizedSetOptimalityGap U A hA x delta i j kx →
+      CodedFiniteDistribution.DeficiencyLe U (codedUniformOn A hA) x d →
+      d ≤ delta + c_soi →
+      ∃ (B : Finset BitString) (hB : B.Nonempty), x ∈ B ∧
+        setComplexity U B hB + (delta - d : ℕ) ≤
+          setComplexity U A hA + (logSlack c (n + delta + d) : ENat) ∧
+        SetOptimalityDeficiencyLe U B hB x (d + logSlack c (n + delta + d)) := by
+  rcases h_gap with ⟨c_gap, h_gap⟩
+  have h_gap' : TightGapCountingBridge U := by
+    refine ⟨c_gap, ?_⟩
+    intro A hA x n delta d i j kx hn hreal hdef hd
+    exact h_gap A hA x n delta d i j kx 0 hn hreal hdef (by simpa using hd)
+  obtain ⟨c, hc⟩ := deficiencies_theorem_tight U hU _h_size h_comp h_gap'
+  refine ⟨c, ?_⟩
+  intro A hA x n delta d i j kx c_soi hn hreal hdef _
+  by_cases hd : d ≤ delta
+  · exact hc A hA x n delta d i j kx hn hreal hdef hd
+  · refine ⟨A, hA, hreal.1, ?_, ?_⟩
+    · have hsub : delta - d = 0 := Nat.sub_eq_zero_of_le (le_of_not_ge hd)
+      rw [hsub, Nat.cast_zero, add_zero]
+      exact le_add_right le_rfl
+    · have hopt := setOptimalityDeficiencyLe_of_realizedSetOptimalityGap hreal
+      refine hopt.mono_beta ?_
+      have : delta ≤ d := le_of_not_ge hd
+      omega
+
+/-- Unconditional 4.28-strength tight deficiencies theorem. -/
+theorem deficiencies_theorem_tight_of_optimal_with_soi
+    (U : Map) (hU : IsOptimalPrefixConditional U) :
+    ∃ c : ℕ, ∀ (A : Finset BitString) (hA : A.Nonempty) (x : BitString)
+        (n delta d i j kx c_soi : ℕ),
+      x.length = n →
+      RealizedSetOptimalityGap U A hA x delta i j kx →
+      CodedFiniteDistribution.DeficiencyLe U (codedUniformOn A hA) x d →
+      d ≤ delta + c_soi →
+      ∃ (B : Finset BitString) (hB : B.Nonempty), x ∈ B ∧
+        setComplexity U B hB + (delta - d : ℕ) ≤
+          setComplexity U A hA + (logSlack c (n + delta + d) : ENat) ∧
+        SetOptimalityDeficiencyLe U B hB x (d + logSlack c (n + delta + d)) := by
+  have h_size := exists_description_smaller_size_of_many_logSlack U hU
+  have h_comp := exists_description_smaller_complexity_of_many_logSlack U hU
+  have h_gap : TightGapCountingBridgeWithSOI U :=
+    manyIJDescriptions_of_realizedSetOptimalityGap_of_le_add U hU
+  exact deficiencies_theorem_tight_with_soi U hU h_size h_comp h_gap
 
 end Kolmogorov

@@ -179,4 +179,29 @@ theorem inDescriptionProfile_lengthUniform {U : Map} {x : BitString} {i : Nat}
   refine ⟨h_comp, ?_⟩
   rw [cardStringsOfLength]
 
+/-! ### Square-root slack for curve realization -/
+
+/-- Square-root slack `O(sqrt(n log n))` for curve realization bounds. -/
+def sqrtSlack (c n : Nat) : Nat := c * Nat.sqrt (n * (Nat.bits n).length) + c
+
+theorem sqrtSlack_mono_left {c c' : Nat} (h : c ≤ c') (n : Nat) :
+    sqrtSlack c n ≤ sqrtSlack c' n := by
+  unfold sqrtSlack
+  exact Nat.add_le_add (Nat.mul_le_mul_right _ h) h
+
+theorem sqrtSlack_mono_right (c : Nat) {n m : Nat} (h : n ≤ m) :
+    sqrtSlack c n ≤ sqrtSlack c m := by
+  unfold sqrtSlack
+  have h_inner : n * (Nat.bits n).length ≤ m * (Nat.bits m).length :=
+    Nat.mul_le_mul h (length_natBits_mono h)
+  exact Nat.add_le_add_right (Nat.mul_le_mul_left _ (Nat.sqrt_le_sqrt h_inner)) c
+
+theorem sqrtSlack_le_sqrtSlack_add_right (c n m : Nat) :
+    sqrtSlack c n ≤ sqrtSlack c (n + m) :=
+  sqrtSlack_mono_right c (Nat.le_add_right n m)
+
+theorem sqrtSlack_le_sqrtSlack_add_left (c n m : Nat) :
+    sqrtSlack c n ≤ sqrtSlack c (m + n) :=
+  sqrtSlack_mono_right c (Nat.le_add_left n m)
+
 end Kolmogorov

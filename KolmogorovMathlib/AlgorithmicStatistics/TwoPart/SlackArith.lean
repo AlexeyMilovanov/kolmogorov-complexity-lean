@@ -125,4 +125,36 @@ theorem logSlack_fold_level (cc c_lb : Nat) :
   have hk' : k ≤ 2 * (n + alpha + beta) + b := by linarith [hb n]
   exact le_trans (logSlack_mono_right cc hk') (hC (n + alpha + beta))
 
+/-- Slacks at *different* visible budgets combine at the joint budget: the
+standard move for merging bounds coming from two sub-arguments. -/
+theorem logSlack_add_logSlack_le (c c' n m : Nat) :
+    logSlack c n + logSlack c' m ≤ logSlack (c + c') (n + m) :=
+  calc logSlack c n + logSlack c' m
+      ≤ logSlack c (n + m) + logSlack c' (n + m) :=
+        Nat.add_le_add (logSlack_mono_right c (Nat.le_add_right n m))
+          (logSlack_mono_right c' (Nat.le_add_left m n))
+    _ = logSlack (c + c') (n + m) := logSlack_add_const c c' (n + m)
+
+lemma polynomialOverhead_bits_le_logSlack (C d : ℕ) (hC : 0 < C) :
+  ∃ c_over : ℕ, ∀ n, (Nat.bits (C * (n + 1) ^ d)).length ≤ logSlack c_over n := by
+  refine ⟨Nat.size C + d, fun n => ?_⟩
+  have hCsize : 0 < Nat.size C := Nat.size_pos.mpr hC
+  have hn : n + 1 ≤ 2 ^ Nat.size n := Nat.succ_le_iff.mpr (Nat.lt_size_self n)
+  have hpow : (n + 1) ^ d ≤ (2 ^ Nat.size n) ^ d :=
+    Nat.pow_le_pow_left hn d
+  have hlt : C * (n + 1) ^ d < 2 ^ (Nat.size C + Nat.size n * d) := by
+    calc
+      C * (n + 1) ^ d < 2 ^ Nat.size C * (n + 1) ^ d :=
+        Nat.mul_lt_mul_of_pos_right (Nat.lt_size_self C) (pow_pos (by omega) d)
+      _ ≤ 2 ^ Nat.size C * (2 ^ Nat.size n) ^ d :=
+        Nat.mul_le_mul_left _ hpow
+      _ = 2 ^ (Nat.size C + Nat.size n * d) := by
+        rw [← pow_mul, pow_add]
+  have hsize : Nat.size (C * (n + 1) ^ d) ≤ Nat.size C + Nat.size n * d :=
+    Nat.size_le.mpr hlt
+  unfold logSlack
+  simp only [Nat.size_eq_bits_len]
+  exact hsize.trans (by
+    nlinarith [Nat.zero_le (Nat.size C * Nat.size n), Nat.zero_le d, hCsize])
+
 end Kolmogorov

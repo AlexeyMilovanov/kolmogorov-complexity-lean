@@ -94,6 +94,23 @@ theorem List.nodup_localDedup {α : Type} [DecidableEq α] (l : List α) : (l.lo
     · rw [if_neg h_in]
       exact List.nodup_cons.mpr ⟨h_in, ih⟩
 
+/-- `List.localDedup` agrees with Mathlib's `List.dedup`.
+
+This is the Lean 4.31 form of the Lean 4.28 bridge `list_dedup_eq_root_gen`.  In
+Lean 4.28 the project-local deduplication was itself called `List.dedup` and so
+shadowed the Mathlib operation; the bridge was stated as
+`List.dedup l = _root_.List.dedup l`.  Renaming the local operation to
+`List.localDedup` removes the shadowing, and the same result is stated here
+without the `_root_` qualifier. -/
+theorem List.localDedup_eq_dedup {α : Type} [DecidableEq α] (l : List α) :
+    l.localDedup = l.dedup := by
+  induction l with
+  | nil => rfl
+  | cons a t ih =>
+    by_cases h : a ∈ t
+    · rw [List.localDedup_cons_of_mem h, ih, List.dedup_cons_of_mem h]
+    · rw [List.localDedup_cons_of_notMem h, ih, List.dedup_cons_of_notMem h]
+
 namespace Kolmogorov
 
 open scoped ENNReal
@@ -2394,7 +2411,7 @@ theorem list_all_primrec {α β} [Primcodable α] [Primcodable β] {f : α → L
       (fun a q => by cases p a q.1 <;> simp)
   exact Primrec.list_foldr hf (Primrec.const true) hstep
 
-/-- The project-local `List.localDedup` agrees with Mathlib's `_root_.List.localDedup`. -/
+/-- The list implementation of one `greedyWindowStep` is primitive recursive. -/
 theorem greedyWindowStepList_primrec :
     Primrec (fun p : (List BitString × ℕ) × (List BitString × List BitString × ℕ) × List BitString =>
       greedyWindowStepList p.1.1 p.1.2 p.2.1 p.2.2) := by
@@ -3018,11 +3035,11 @@ which is `m`-independent and would need a *different, `m`-free* decoder to code 
 The restriction `m ≤ n` is faithful to the article: there `m = K(h)` is the complexity of the
 admissible curve `h`, which is a monotone function on `{0,…,n}` bounded by `h 0 ≤ n`, so
 `K(h) ≤ n + O(log n)`; the coding bound `i + m + O(log n)` is stated exactly in that regime.
-	Under `m ≤ n` we have `log m ≤ log n`, which the current decoder can absorb into `logSlack`.
-	The unrestricted main-theorem chain uses this lemma only in the internal `m ≤ n` branch;
-	the complementary `m > n` branch is discharged directly by the `m`-free first-elements
-	decoder.
-	-/
+Under `m ≤ n` we have `log m ≤ log n`, which the current decoder can absorb into `logSlack`.
+The unrestricted main-theorem chain uses this lemma only in the internal `m ≤ n` branch;
+the complementary `m > n` branch is discharged directly by the `m`-free first-elements
+decoder.
+-/
 theorem temporalWindow_setComplexity_le (U : Map) (hU : IsOptimalPrefixConditional U) :
     ∃ _c_code c_work : ℕ, 3 ≤ c_work ∧
     (∀ (n s : ℕ) (hne : (firstElements (stringsOfLength n) (2 ^ s)).Nonempty),

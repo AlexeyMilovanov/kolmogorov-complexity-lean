@@ -13,6 +13,13 @@ import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.SlackArith
 import KolmogorovMathlib.Prefix.ConditionalSymmetry
 import KolmogorovMathlib.Prefix.Symmetry
 
+/-!
+# Gap counting for two-part descriptions
+
+This file develops conditional reconstruction and description-counting bounds from realized
+optimality gaps, including the tight forms used by the deficiencies bridge.
+-/
+
 namespace Kolmogorov
 
 open scoped ENNReal
@@ -1087,5 +1094,51 @@ theorem manyIJDescriptions_of_realizedSetOptimalityGap (U : Map) (hU : IsOptimal
     refine lt_of_le_of_lt (add_le_add_three h le_rfl le_rfl) ?_
     norm_cast
     omega
+
+/-- Compatibility form of `gap_lowerBound_conditional_setComplexity_tight` retaining the
+4.28 `c_soi` interface.  When `d > delta`, the truncated gap is zero. -/
+theorem gap_lowerBound_conditional_setComplexity_tight_of_le_add
+    (U : Map) (hU : IsOptimalPrefixConditional U) :
+    ∃ c : ℕ, ∀ (A : Finset BitString) (hA : A.Nonempty) (x : BitString)
+        (n delta d i j kx c_soi : ℕ),
+      x.length = n →
+      RealizedSetOptimalityGap U A hA x delta i j kx →
+      CodedFiniteDistribution.DeficiencyLe U (codedUniformOn A hA) x d →
+      d ≤ delta + c_soi →
+      (delta - d : ENat) ≤
+        KP U (codedUniformOn A hA).code (prefixComplexityContext x kx) +
+          logSlack c (n + delta + d) := by
+  obtain ⟨c, hc⟩ := gap_lowerBound_conditional_setComplexity_tight U hU
+  refine ⟨c, ?_⟩
+  intro A hA x n delta d i j kx c_soi hn hgap hdef _
+  by_cases hd : d ≤ delta
+  · exact hc A hA x n delta d i j kx hn hgap hdef hd
+  · have hle : (delta : ENat) ≤ (d : ENat) := by
+      exact_mod_cast le_of_not_ge hd
+    rw [tsub_eq_zero_of_le hle]
+    exact bot_le
+
+/-- Compatibility form of `manyIJDescriptions_of_realizedSetOptimalityGap` retaining the
+4.28 `c_soi` interface.  The `d > delta` branch has exponent zero and is witnessed by
+the realized set itself. -/
+theorem manyIJDescriptions_of_realizedSetOptimalityGap_of_le_add
+    (U : Map) (hU : IsOptimalPrefixConditional U) :
+    ∃ c : ℕ, ∀ (A : Finset BitString) (hA : A.Nonempty) (x : BitString)
+        (n delta d i j kx c_soi : ℕ),
+      x.length = n →
+      RealizedSetOptimalityGap U A hA x delta i j kx →
+      CodedFiniteDistribution.DeficiencyLe U (codedUniformOn A hA) x d →
+      d ≤ delta + c_soi →
+      ∃ slack : ℕ, slack ≤ logSlack c (n + delta + d) ∧
+        ManyIJDescriptions U x i j (delta - d - slack) := by
+  obtain ⟨c, hc⟩ := manyIJDescriptions_of_realizedSetOptimalityGap U hU
+  refine ⟨c, ?_⟩
+  intro A hA x n delta d i j kx c_soi hn hgap hdef _
+  by_cases hd : d ≤ delta
+  · exact hc A hA x n delta d i j kx hn hgap hdef hd
+  · refine ⟨0, Nat.zero_le _, ?_⟩
+    have hsub : delta - d = 0 := Nat.sub_eq_zero_of_le (le_of_not_ge hd)
+    rw [hsub, Nat.zero_sub]
+    exact manyIJDescriptions_zero U A hA x i j hgap.1 hgap.2.1 hgap.2.2.1
 
 end Kolmogorov

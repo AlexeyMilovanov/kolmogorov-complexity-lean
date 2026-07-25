@@ -11,6 +11,13 @@ import KolmogorovMathlib.Prefix.Optimal
 import KolmogorovMathlib.Prefix.TwoStage
 import Mathlib.Computability.PartrecCode
 
+/-!
+# Conditional two-stage prefix coding
+
+This file constructs and verifies the conditional two-stage pair machine and its associated
+prefix-complexity bounds.
+-/
+
 namespace Kolmogorov
 
 open Nat.Partrec (Code)
