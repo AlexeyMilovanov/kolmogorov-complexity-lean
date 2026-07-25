@@ -619,11 +619,12 @@ def migration_ordinary_prompt(
     }[stage]
     stage_task = {
         "01_gemini": (
-            "Take the next dependency-closed full-fidelity batch from the latest "
-            "strategy. Compare the corresponding final-28 and 4.31 modules, restore "
-            "missing reusable results, and improve the 4.31 implementation without "
-            "copying incompatible shared modules. Run strict direct checks for every "
-            "touched Lean file."
+            "Take one bounded dependency-ready unit from the first unfinished "
+            "strategy batch. Prefer one substantial Lean file; use multiple files "
+            "only when they form one inseparable interface change and their known "
+            "strict debt totals at most about 80 warnings. Compare final 4.28 and "
+            "4.31, make the smallest coherent repair, run strict direct checks for "
+            "only those files, report, and stop."
         ),
         "02_codex": (
             "Adversarially inspect Gemini's complete diff and build output. Compare touched "
@@ -635,6 +636,28 @@ def migration_ordinary_prompt(
             "Leave an accurately diagnosed, merge-gate-ready worktree."
         ),
     }[stage]
+    gemini_policy = ""
+    if stage == "01_gemini":
+        gemini_policy = """
+# Bounded Gemini policy
+
+- Work on one substantial Lean file at a time. At most three Lean files may be
+  edited, and only for one inseparable change whose known debt is about 80
+  warnings or less. A single file already above that threshold is the whole
+  iteration.
+- Do not spawn subagents or background agents.
+- Do not edit `lakefile.toml`, `scripts/`, `proof_loop/`, validation metadata,
+  README, or migration/scalability plans.
+- Do not run a full `lake build`, reverse-closure build, `scripts/audit.sh`, or
+  release audit. Run fidelity plus `scripts/check_affected.py --direct-only`
+  only for the exact Lean files touched. The merge gate owns expensive builds.
+- Put any disposable helper, patch, warning dump, or experiment under `/tmp`,
+  never in the repository or worktree. Remove it when practical.
+- Do not opportunistically clean adjacent modules. Once the bounded unit is
+  strict-clean, report it and stop even if time remains.
+- If the unit cannot be made strict-clean safely, revert only this iteration's
+  experiment, preserve a concise checkpoint diagnosis, and stop for Codex.
+"""
     return f"""
 You are {role} in a Lean 4.28 to Lean 4.31 migration iteration.
 
@@ -683,6 +706,8 @@ GLOBAL GOAL, in order:
 # Stage task
 
 {stage_task}
+
+{gemini_policy}
 
 Hard constraints:
 - Edit only the Lean 4.31 worktree. The 4.28 snapshot is read-only.
@@ -2119,6 +2144,12 @@ def run_iteration(
             write_json(iter_dir / "manifest.json", manifest)
             return manifest
         previous = previous_outputs(iter_dir)
+        if kind == "gemini":
+            stage_timeout = args.gemini_timeout_seconds
+        elif kind == "codex":
+            stage_timeout = args.codex_timeout_seconds
+        else:
+            stage_timeout = args.timeout_seconds
         if mode == "strategy":
             prompt = strategy_prompt(stage, section, iteration, context, previous, args.strategy_every - 1, work_root)
             ok, text = run_strategy_agent(
@@ -2126,13 +2157,21 @@ def run_iteration(
                 stage,
                 prompt,
                 iter_dir,
-                args.timeout_seconds,
+                stage_timeout,
                 args.dry_run,
                 work_root,
             )
         else:
             prompt = ordinary_prompt(stage, section, iteration, context, previous, work_root)
-            ok, text = run_edit_agent(kind, stage, prompt, iter_dir, args.timeout_seconds, args.dry_run, work_root)
+            ok, text = run_edit_agent(
+                kind,
+                stage,
+                prompt,
+                iter_dir,
+                stage_timeout,
+                args.dry_run,
+                work_root,
+            )
         manifest["stages"].append({"stage": stage, "kind": kind, "ok": ok, "chars": len(text)})
         write_json(iter_dir / "manifest.json", manifest)
         if status := pause_status(args, section):
@@ -2285,6 +2324,8 @@ def build_parser() -> argparse.ArgumentParser:
     parser.add_argument("--strategy-first", type=int, default=1)
     parser.add_argument("--jobs", type=int, default=1)
     parser.add_argument("--timeout-seconds", type=int, default=3600)
+    parser.add_argument("--gemini-timeout-seconds", type=int, default=5400)
+    parser.add_argument("--codex-timeout-seconds", type=int, default=7200)
     parser.add_argument("--aristotle-timeout-seconds", type=int, default=86400)
     parser.add_argument("--run-dir", type=Path, default=None)
     parser.add_argument("--runs-root", type=Path, default=DEFAULT_RUNS_DIR)
@@ -2323,6 +2364,8 @@ def main(argv: list[str] | None = None) -> int:
             "strategy_every": args.strategy_every,
             "strategy_first": args.strategy_first,
             "iterations": args.iterations,
+            "gemini_timeout_seconds": args.gemini_timeout_seconds,
+            "codex_timeout_seconds": args.codex_timeout_seconds,
             "sections": args.section or ["all"],
             "migration_source": source_provenance,
         },
