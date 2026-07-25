@@ -124,21 +124,36 @@ theorem exists_uncovered_nbit_string (U : Map) (n alpha max_k : ℕ)
         P.complexity U ≤ (alpha : ENat) →
         ∀ k ≤ max_k, x ∉ levelSet P k := by
   -- By definition of `stringsOfLength`, there exists an `x` in `stringsOfLength n`.
-  obtain ⟨x, hx⟩ : ∃ x : BitString, x ∈ stringsOfLength n ∧ x ∉ (modelsWithComplexityLe U alpha).biUnion (fun c ↦ (Finset.range (max_k + 1)).biUnion (fun k ↦ levelSet (probModelOfCode c) k)) := by
-    contrapose! h;
-    apply le_trans (b := (stringsOfLength n).card)
-    · rw [ Kolmogorov.cardStringsOfLength ]
-    · apply le_trans (Finset.card_le_card h)
-      apply le_trans Finset.card_biUnion_le
-      apply le_trans
-      · apply Finset.sum_le_sum
-        intro x _
-        apply le_trans Finset.card_biUnion_le
-        apply Finset.sum_le_card_nsmul
-        intro y hy
-        have := levelSet_card_le ( probModelOfCode x ) y ( probModelOfCode_isProbability x )
-        exact_mod_cast this.trans ( pow_le_pow_right₀ ( by norm_num ) ( Finset.mem_range_succ_iff.mp hy ) )
-      · norm_num [ mul_assoc ]
+  obtain ⟨x, hx⟩ : ∃ x : BitString, x ∈ stringsOfLength n ∧
+      x ∉ (modelsWithComplexityLe U alpha).biUnion
+        (fun c ↦ (Finset.range (max_k + 1)).biUnion (fun k ↦ levelSet (probModelOfCode c) k)) := by
+    contrapose! h
+    calc
+      2 ^ n = (stringsOfLength n).card := by rw [Kolmogorov.cardStringsOfLength]
+      _ ≤ ((modelsWithComplexityLe U alpha).biUnion fun c ↦
+          (Finset.range (max_k + 1)).biUnion fun k ↦ levelSet (probModelOfCode c) k).card :=
+        Finset.card_le_card h
+      _ ≤ ∑ c ∈ modelsWithComplexityLe U alpha,
+          ((Finset.range (max_k + 1)).biUnion fun k ↦ levelSet (probModelOfCode c) k).card :=
+        Finset.card_biUnion_le
+      _ ≤ ∑ _c ∈ modelsWithComplexityLe U alpha, (max_k + 1) * 2 ^ max_k := by
+        apply Finset.sum_le_sum
+        intro c _
+        calc
+          ((Finset.range (max_k + 1)).biUnion fun k ↦
+              levelSet (probModelOfCode c) k).card ≤
+              ∑ k ∈ Finset.range (max_k + 1), (levelSet (probModelOfCode c) k).card :=
+            Finset.card_biUnion_le
+          _ ≤ (Finset.range (max_k + 1)).card * 2 ^ max_k := by
+            apply Finset.sum_le_card_nsmul
+            intro k hk
+            have hcard := levelSet_card_le
+              (probModelOfCode c) k (probModelOfCode_isProbability c)
+            exact_mod_cast hcard.trans
+              (pow_le_pow_right₀ (by norm_num) (Finset.mem_range_succ_iff.mp hk))
+          _ = (max_k + 1) * 2 ^ max_k := by simp
+      _ ≤ 2 ^ (alpha + 1) * (max_k + 1) * 2 ^ max_k := by
+        norm_num [mul_assoc]
         convert card_modelsWithComplexityLe U alpha using 1
   refine ⟨ x, ?_, ?_ ⟩
   · simp_all +decide only [levelSet, Finset.mem_biUnion, Finset.mem_range, Order.lt_add_one_iff,
@@ -263,14 +278,17 @@ theorem KPPlain_selectorInput_le (U : Map) (hU : IsOptimalPrefixConditional U) (
   by
     obtain ⟨c₀, hc₀⟩ := KPPlain_le_length_add_log U hU
     refine ⟨18 + c₀ + c_partrec, fun n alpha max_k h hh h_cov ↦ ?_⟩
-    -- Let `a := (Nat.bits n).length`. Obtain `c0` from `KPPlain_le_length_add_log U hU`. Use `c := 18 + c0 + c_partrec`.
+    -- Let `a := (Nat.bits n).length`. Obtain `c0` from `KPPlain_le_length_add_log U hU`.
+    -- Use `c := 18 + c0 + c_partrec`.
     set a := (Nat.bits n).length with ha
     have h_alpha : alpha < n := by
       contrapose! h_cov;
-      exact le_trans ( pow_le_pow_right₀ ( by decide ) ( by linarith ) ) ( Nat.le_of_dvd ( by positivity ) ( dvd_mul_of_dvd_left ( dvd_mul_right _ _ ) _ ) )
+      exact le_trans ( pow_le_pow_right₀ ( by decide ) ( by linarith ) )
+        ( Nat.le_of_dvd ( by positivity ) ( dvd_mul_of_dvd_left ( dvd_mul_right _ _ ) _ ) )
     have h_max_k : max_k < n := by
       contrapose! h_cov;
-      exact le_trans ( pow_le_pow_right₀ ( by decide ) h_cov ) ( Nat.le_of_dvd ( by positivity ) ( dvd_mul_left _ _ ) )
+      exact le_trans ( pow_le_pow_right₀ ( by decide ) h_cov )
+        ( Nat.le_of_dvd ( by positivity ) ( dvd_mul_left _ _ ) )
     have h_n : n < 2 ^ a := by
       convert lt_two_pow_length_natBits n using 1
     have h_alpha_lt : (Nat.bits alpha).length ≤ a := by
@@ -282,7 +300,9 @@ theorem KPPlain_selectorInput_le (U : Map) (hU : IsOptimalPrefixConditional U) (
     have h_a_ge_1 : 1 ≤ a := by
       lia;
     -- Using `hslen` and the bound from Step 3, in ℕ:
-    have h_bound : (selectorInput n alpha max_k h).length + 2 * (Nat.bits (selectorInput n alpha max_k h).length).length + c₀ + c_partrec ≤ alpha + (18 + c₀ + c_partrec) * a := by
+    have h_bound : (selectorInput n alpha max_k h).length
+        + 2 * (Nat.bits (selectorInput n alpha max_k h).length).length + c₀ + c_partrec
+        ≤ alpha + (18 + c₀ + c_partrec) * a := by
       have h_bound : (selectorInput n alpha max_k h).length ≤ 6 * a + alpha + 4 := by
         unfold selectorInput
         simp +arith +decide [pack4, pairCode]
@@ -341,7 +361,8 @@ theorem stochastic_mem_levelSet_of_KPPlain_bound
       simp_all +decide only [complexityWeight, pow_eq_zero_iff', ENNReal.inv_eq_zero, ne_eq,
         false_and, not_false_eq_true];
     have h_not_top : KP U x [] ≠ ⊤ := by intro h_top; rw [h_top] at hKPx; cases hKPx
-    exact absurd h (ne_of_lt (lt_of_le_of_lt (hc _ _) (WithTop.add_lt_top.mpr ⟨lt_top_iff_ne_top.mpr h_not_top, WithTop.coe_lt_top _⟩)));
+    exact absurd h (ne_of_lt (lt_of_le_of_lt (hc _ _)
+      (WithTop.add_lt_top.mpr ⟨lt_top_iff_ne_top.mpr h_not_top, WithTop.coe_lt_top _⟩)));
   · have h_bound : complexityWeight (KP U x P.code) ≤ (2 : ENNReal) ^ beta * P.mass x := by
       exact hdef;
     cases h : KP U x P.code <;>
@@ -353,7 +374,8 @@ theorem stochastic_mem_levelSet_of_KPPlain_bound
     · calc
         _ ≤ ((2 : ENNReal) ^ beta * P.mass x) * (2 : ENNReal)⁻¹ ^ beta := by gcongr
         _ = P.mass x := by
-          rw [ mul_right_comm, ← mul_pow, ENNReal.mul_inv_cancel (by norm_num) (by norm_num), one_pow, one_mul ]
+          rw [ mul_right_comm, ← mul_pow, ENNReal.mul_inv_cancel (by norm_num) (by norm_num),
+            one_pow, one_mul ]
 
 /-
 The arithmetic bridge: if `2*alpha + beta + c*log n < n`, then we can choose `max_k` such that
@@ -364,7 +386,8 @@ theorem nonstochastic_arithmetic_bridge (n alpha beta c_1 c_2 c : ℕ)
     (h_gap : 2 * alpha + beta + c * (Nat.bits n).length < n) :
     let max_k := alpha + beta + c_1 * (Nat.bits n).length + c_2;
     2 ^ (alpha + 1) * (max_k + 1) * 2 ^ max_k < 2 ^ n := by
-      -- Set max_k := alpha + beta + c_1 * n.bits.length + c_2, and note the goal LHS equals (max_k + 1) * 2 ^ E where E := 2*alpha + beta + c_1 * n.bits.length + c_2 + 1.
+      -- Set max_k := alpha + beta + c_1 * n.bits.length + c_2, and note the goal LHS equals
+      -- (max_k + 1) * 2 ^ E where E := 2*alpha + beta + c_1 * n.bits.length + c_2 + 1.
       set max_k := alpha + beta + c_1 * n.bits.length + c_2
       have h_max_k : max_k + 1 < 2 ^ (n.bits.length) := by
         have h_max_k : max_k + 1 ≤ n := by
@@ -378,20 +401,24 @@ theorem nonstochastic_arithmetic_bridge (n alpha beta c_1 c_2 c : ℕ)
           have h1 := Nat.lt_size_self n
           rwa [← Nat.size_eq_bits_len] at h1
         exact hnsize
-      -- From hc, c ≥ c_1 + c_2 + 4, so c*L ≥ (c_1+c_2+4)*L = c_1*L + c_2*L + 4*L. Since L ≥ 1, c_2*L ≥ c_2. Hence c*L ≥ c_1*L + c_2 + 4*L.
+      -- From hc, c ≥ c_1 + c_2 + 4, so c*L ≥ (c_1+c_2+4)*L = c_1*L + c_2*L + 4*L.
+      -- Since L ≥ 1, c_2*L ≥ c_2. Hence c*L ≥ c_1*L + c_2 + 4*L.
       have h_cL : c * n.bits.length ≥ c_1 * n.bits.length + c_2 + 4 * n.bits.length := by
         nlinarith [ show n.bits.length > 0 from Nat.pos_of_ne_zero ( by aesop ) ];
-      have h1 : 2 ^ (alpha + 1) * (max_k + 1) * 2 ^ max_k = (max_k + 1) * 2 ^ (2 * alpha + beta + c_1 * n.bits.length + c_2 + 1) := by
+      have h1 : 2 ^ (alpha + 1) * (max_k + 1) * 2 ^ max_k
+          = (max_k + 1) * 2 ^ (2 * alpha + beta + c_1 * n.bits.length + c_2 + 1) := by
         calc 2 ^ (alpha + 1) * (max_k + 1) * 2 ^ max_k
           _ = (max_k + 1) * (2 ^ (alpha + 1) * 2 ^ max_k) := by ring
           _ = (max_k + 1) * 2 ^ (alpha + 1 + max_k) := by rw [← pow_add]
           _ = (max_k + 1) * 2 ^ (2 * alpha + beta + c_1 * n.bits.length + c_2 + 1) := by
             congr 2
             omega
-      have h2 : (max_k + 1) * 2 ^ (2 * alpha + beta + c_1 * n.bits.length + c_2 + 1) < 2 ^ n.bits.length * 2 ^ (2 * alpha + beta + c_1 * n.bits.length + c_2 + 1) := by
+      have h2 : (max_k + 1) * 2 ^ (2 * alpha + beta + c_1 * n.bits.length + c_2 + 1)
+          < 2 ^ n.bits.length * 2 ^ (2 * alpha + beta + c_1 * n.bits.length + c_2 + 1) := by
         apply Nat.mul_lt_mul_of_pos_right h_max_k
         exact pow_pos (by decide) _
-      have h3 : 2 ^ n.bits.length * 2 ^ (2 * alpha + beta + c_1 * n.bits.length + c_2 + 1) ≤ 2 ^ n := by
+      have h3 : 2 ^ n.bits.length * 2 ^ (2 * alpha + beta + c_1 * n.bits.length + c_2 + 1)
+          ≤ 2 ^ n := by
         rw [← pow_add]
         apply Nat.pow_le_pow_right (by decide)
         omega

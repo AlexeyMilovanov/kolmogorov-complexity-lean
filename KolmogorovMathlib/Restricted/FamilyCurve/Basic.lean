@@ -221,7 +221,7 @@ with one extra unit covering zero.
 -/
 private lemma log2_succ_le_bits_length_add_one (a : ℕ) :
     Nat.log2 a + 1 ≤ (Nat.bits a).length + 1 := by
-  rcases a with (_ | _ | a) <;> simp +arith +decide
+  rcases a with (_ | _ | a) <;> simp +arith +decide only [add_le_add_iff_right]
   convert Nat.le_of_lt_succ _ using 1
   rw [Nat.log2_lt] <;> norm_num [Nat.size_eq_bits_len]
   exact Nat.lt_of_lt_of_le (Nat.lt_size_self _)
@@ -326,7 +326,9 @@ lemma restrictedCurveGrid_scale_budget (C d : ℕ) (hC : 0 < C) :
         intro n overhead N h_overhead hN
         have h_log2 : Nat.log2 (overhead n) + 1 ≤ c * (Nat.bits n).length + c + 1 := by
           refine le_trans ?_ ( hc n );
-          by_cases h : overhead n = 0 <;> simp_all +decide [ Nat.log2 ];
+          by_cases h : overhead n = 0 <;>
+            simp_all +decide only [Nat.log2, Nat.succ_eq_add_one, add_le_add_iff_right,
+              Nat.rec_zero, zero_add, le_add_iff_nonneg_left, zero_le]
           have h_log2_mono : ∀ {a b : ℕ}, 0 < a → a ≤ b → Nat.log2 a ≤ Nat.log2 b := by
             intros a b ha hb; exact (by
             rw [ Nat.le_log2 ] <;> try linarith;
@@ -782,28 +784,31 @@ lemma restricted_rebuild_suffix_pointwise_core (𝒜 : DescriptionFamily)
         (overhead_bound * 2 ^ t i) * (C' ∩ B').card
   let nextB : ℕ → Finset BitString → Finset BitString → Finset BitString :=
     fun i A' C' =>
-      if hc_le : (2 ^ t (i + 1)) ≤ A'.card ∧ 0 < (2 ^ t (i + 1)) ∧ 𝒜.mem A' ∧ C' ⊆ A' ∧ (∀ x ∈ C',
-                                                                                          x.length
-                                                                                              = n) then
+      if hc_le : (2 ^ t (i + 1)) ≤ A'.card ∧ 0 < (2 ^ t (i + 1)) ∧ 𝒜.mem A' ∧ C' ⊆ A' ∧
+          (∀ x ∈ C', x.length = n) then
         let hA_nonempty : A'.Nonempty := Finset.card_pos.mp (by omega)
         let Acode := (codedUniformOn A' hA_nonempty).code
         let Ccode : BitString := if hC_ne : C'.Nonempty then (codedUniformOn C' hC_ne).code else []
         have h_spec :=
             restrictedMaxIntersectionCoverSelector_spec 𝒜 Acode Ccode n (2 ^ t (i + 1))
                 (𝒜.overhead n) A' C' (decodeCoverCodeList_code A' hA_nonempty)
-                    (by dsimp only [Ccode]; split_ifs with h; exact decodeCoverCodeList_code C' h;
-                        have heq : C' = ∅ := Finset.not_nonempty_iff_eq_empty.mp h; subst heq
+                    (by
+                      dsimp only [Ccode]
+                      split_ifs with h
+                      · exact decodeCoverCodeList_code C' h
+                      · have heq : C' = ∅ := Finset.not_nonempty_iff_eq_empty.mp h
+                        subst heq
                         unfold canonicalFinsetList; rw [Finset.sort_empty]
                         rfl) (by rfl) hc_le.2.2.1 hc_le.2.2.2.1 hc_le.2.2.2.2 hc_le.2.1 hc_le.1
         have h_dom :
-            (restrictedMaxIntersectionCoverSelector 𝒜 (restrictedCoverSelectorInput Acode Ccode (2
-                                                                                                  ^ t (i + 1)) (𝒜.overhead n))).Dom := by
+            (restrictedMaxIntersectionCoverSelector 𝒜
+              (restrictedCoverSelectorInput Acode Ccode (2 ^ t (i + 1)) (𝒜.overhead n))).Dom := by
           obtain ⟨ Bcode, B, h_eq, _ ⟩ := h_spec
           rw [h_eq]
           trivial
         let Bcode :=
-            (restrictedMaxIntersectionCoverSelector 𝒜 (restrictedCoverSelectorInput Acode Ccode (2
-                                                                                                  ^ t (i + 1)) (𝒜.overhead n))).get h_dom
+            (restrictedMaxIntersectionCoverSelector 𝒜
+              (restrictedCoverSelectorInput Acode Ccode (2 ^ t (i + 1)) (𝒜.overhead n))).get h_dom
         (decodeCoverCodeList Bcode).toFinset
       else
         if hex2 : ∃ B', nextOK i A' C' B' then Classical.choose hex2 else A_s
@@ -822,19 +827,24 @@ lemma restricted_rebuild_suffix_pointwise_core (𝒜 : DescriptionFamily)
       have h_spec :=
           restrictedMaxIntersectionCoverSelector_spec 𝒜 Acode Ccode n (2 ^ t (i + 1))
               (𝒜.overhead n) A' C' (decodeCoverCodeList_code A' hA_nonempty)
-                  (by dsimp only [Ccode]; split_ifs with h; exact decodeCoverCodeList_code C' h;
-                      have heq : C' = ∅ := Finset.not_nonempty_iff_eq_empty.mp h; subst heq
+                  (by
+                    dsimp only [Ccode]
+                    split_ifs with h
+                    · exact decodeCoverCodeList_code C' h
+                    · have heq : C' = ∅ := Finset.not_nonempty_iff_eq_empty.mp h
+                      subst heq
                       unfold canonicalFinsetList; rw [Finset.sort_empty]
                       rfl) (by rfl) hc_le.2.2.1 hc_le.2.2.2.1 hc_le.2.2.2.2 hc_le.2.1 hc_le.1
       have h_dom :
-          (restrictedMaxIntersectionCoverSelector 𝒜 (restrictedCoverSelectorInput Acode Ccode (2 ^
-                                                                                                t (i + 1)) (𝒜.overhead n))).Dom := by
+          (restrictedMaxIntersectionCoverSelector 𝒜
+            (restrictedCoverSelectorInput Acode Ccode (2 ^ t (i + 1)) (𝒜.overhead n))).Dom := by
         obtain ⟨ Bcode, B, h_eq, _ ⟩ := h_spec
         rw [h_eq]
         trivial
       generalize hget :
-          (restrictedMaxIntersectionCoverSelector 𝒜 (restrictedCoverSelectorInput Acode Ccode (2 ^
-                                                                                                t (i + 1)) (𝒜.overhead n))).get h_dom = Bcode_ex
+          (restrictedMaxIntersectionCoverSelector 𝒜
+            (restrictedCoverSelectorInput Acode Ccode (2 ^ t (i + 1)) (𝒜.overhead n))).get h_dom =
+            Bcode_ex
       obtain ⟨ Bcode, B, h_eq, hB_eq, hB_mem, hB_card, hB_dens ⟩ := h_spec
       have hget_eq : Bcode_ex = Bcode := by
         rw [← hget, Part.get_eq_iff_eq_some, h_eq]
@@ -1533,13 +1543,13 @@ lemma RestrictedCoupledOutput.mono_slack
     exact_mod_cast Nat.add_le_add_left ( sqrtSlack_mono_left hcc' n ) s);
   · exact fun x hx =>
       le_trans ( candidate_complexity x hx ) ( by gcongr ; exact sqrtSlack_mono_left hcc' n );
-  · intro h; contrapose! survivor_not_bad; simp_all +decide [ restrictedProfileBadSet ] ;
+  · intro h; contrapose! survivor_not_bad
+    simp_all +decide only [KPPlain_eq_KP, restrictedProfileBadSet, gt_iff_lt, Finset.mem_filter,
+      true_and]
     obtain ⟨ i, hi, hi', hi'' ⟩ := h; use i, hi; refine ⟨ lt_of_le_of_lt ?_ hi', ?_ ⟩;
     · exact sqrtSlack_mono_left hcc' n;
-    · apply InDescriptionProfileIn.mono_j;
-      exact Nat.sub_le_sub_left ( Nat.succ_le_succ ( show sqrtSlack c n ≤ sqrtSlack c' n from by
-                                                      exact sqrtSlack_mono_left hcc' n ) ) _;
-      exact hi''
+    · exact InDescriptionProfileIn.mono_j
+        (Nat.sub_le_sub_left (Nat.succ_le_succ (sqrtSlack_mono_left hcc' n)) _) hi''
 
 /-
 It suffices to construct the dynamic output with a base slack constant:

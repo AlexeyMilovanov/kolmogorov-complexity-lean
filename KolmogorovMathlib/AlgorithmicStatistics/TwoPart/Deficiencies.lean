@@ -26,10 +26,9 @@ arbitrary probability model can be converted to optimal stochasticity via a
 finite set with parameter-logarithmic slack.  It explicitly takes the corrected
 log-slack improving-descriptions propositions as inputs; the old constant-slack
 statements are not part of this interface. -/
--- Planned follow-up: simplify this gate after the improving-descriptions interfaces are
--- reorganized.  Mathematically the main Section 3 input should be the complexity
--- half `A -> C`; the size half `A -> B` should be supplied as a corollary via
--- description-shift/portioning, not as an independent assumption.
+-- The interface keeps both improving-description halves explicit.  Mathematically,
+-- description shifting can derive the size half `A → B` from the complexity half
+-- `A → C`; retaining both premises here keeps that packaging choice separate.
 def StochasticToOptimalSetGate (U : Map) : Prop :=
   ImprovingDescriptionsSizeLogSlack U →
   ImprovingDescriptionsComplexityLogSlack U →
@@ -94,11 +93,14 @@ theorem setOptimalityDeficiencyLe_of_profile {U : Map} {B : Finset BitString} {h
     SetOptimalityDeficiencyLe U B hB x beta := by
   rw [setOptimalityDeficiencyLe_iff_of_mem hx]
   cases hx_comp : KPPlain U x <;> cases hB_comp : setComplexity U B hB <;>
-    simp_all [complexityWeight]
+    simp_all only [top_le_iff, ENat.coe_ne_top, Nat.cast_le, KPPlain_eq_KP,
+      complexityWeight, zero_le]
   refine le_trans ?_
       (mul_le_mul_right (mul_le_mul_right (show (B.card : ENNReal)⁻¹ ≥ (2^t : ENNReal)⁻¹ from ?_)
                           _) _)
-  · simp_all [← ENNReal.mul_inv, ← ENNReal.inv_pow]
+  · simp_all only [← ENNReal.inv_pow, ne_eq, pow_eq_zero_iff', OfNat.ofNat_ne_zero,
+      false_and, not_false_eq_true, ENNReal.pow_eq_top_iff, ENNReal.ofNat_ne_top,
+      or_self, ← ENNReal.mul_inv]
     rw [← ENNReal.toReal_le_toReal] <;> norm_num
     · field_simp
       norm_cast at *
@@ -489,7 +491,8 @@ theorem isOptimalSetStochastic_imp_profile_of_large_sizeBudget (U : Map) (x : Bi
   obtain ⟨ S, hS, hx, hc, hdef ⟩ := h_opt;
   refine ⟨ S, hS, hx, ?_, ?_ ⟩;
   · exact le_trans hc ( Nat.cast_le.mpr ( Nat.le_add_right _ _ ) );
-  · -- From `hdef`, we have `complexityWeight (KPPlain U x) ≤ (2:ℝ≥0∞)^beta * (complexityWeight (setComplexity U S hS) * (S.card : ℝ≥0∞)⁻¹)`.
+  · -- From `hdef`, `complexityWeight (KPPlain U x)` is at most `2 ^ beta` times
+    -- the weighted inverse cardinality of `S`.
     have hdef' : complexityWeight (KPPlain U x) ≤ (2 : ENNReal) ^ beta * (1 * (S.card : ENNReal)⁻¹)
         := by
       rw [ setOptimalityDeficiencyLe_iff_of_mem hx ] at hdef;
@@ -498,14 +501,15 @@ theorem isOptimalSetStochastic_imp_profile_of_large_sizeBudget (U : Map) (x : Bi
     obtain ⟨k, hk⟩ : ∃ k : ℕ, KPPlain U x = k := by
       cases h : KPPlain U x <;> simp_all +decide;
       cases h_arith;
-    simp_all +decide [ complexityWeight_coe ];
+    simp_all +decide only [KPPlain_eq_KP, one_mul, ge_iff_le, complexityWeight_coe];
     -- From `hdef'`, we have `2⁻¹ ^ k ≤ 2 ^ beta * (S.card : ℝ≥0∞)⁻¹`.
     -- Multiplying both sides by `2 ^ k * S.card`, we get `S.card ≤ 2 ^ (k + beta)`.
     have h_card : (S.card : ENNReal) ≤ 2 ^ (k + beta) := by
-      convert mul_le_mul_right hdef' ( 2 ^ k * S.card ) using 1 ; ring_nf
-      · simp +decide [ mul_assoc ];
+      convert mul_le_mul_right hdef' ( 2 ^ k * S.card ) using 1
+      all_goals ring_nf
+      · simp_all +decide only [mul_assoc];
         rw [ ← mul_pow, ENNReal.inv_mul_cancel ] <;> norm_num;
-      · simp +decide [ mul_assoc, mul_comm, mul_left_comm, pow_add ];
+      · simp_all +decide only [mul_comm, mul_left_comm, mul_assoc];
         rw [ ← mul_assoc, ENNReal.mul_inv_cancel ] <;> norm_num [ hS.ne_empty ];
     norm_cast at *;
     exact h_card.trans ( pow_le_pow_right₀ ( by decide ) h_arith )

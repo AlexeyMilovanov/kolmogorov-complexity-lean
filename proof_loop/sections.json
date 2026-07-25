@@ -14,17 +14,21 @@
       "KolmogorovMathlib.lean",
       "COVERAGE.md",
       "POLISHING_28_PLAN.md",
+      "SCALABILITY_28_PLAN.md",
       "lakefile.toml",
       "scripts/audit.sh",
-      "scripts/strict_lint_sweep.sh"
+      "scripts/strict_lint_sweep.sh",
+      "scripts/scalability_audit.py",
+      "scripts/check_affected.py"
     ],
     "targets": [
       "Remove all four project-level linter suppressions and reach an empty uncached flexible/longLine/multiGoal/openClassical sweep over every Lean file",
       "Preserve zero sorry, errors, emitted warnings, heartbeat/recursion overrides, broad imports, source-level suppressions, and forbidden escape hatches",
       "Review proof hacks contextually and replace brittle broad automation with robust Mathlib-style structural proofs only when the replacement compiles and preserves performance",
       "Narrow imports, remove genuinely dead private helpers and stale process commentary, and preserve useful mathematical documentation",
+      "Prepare for 10x-100x growth by measuring import fan-out, module size and elaboration hotspots, introducing sound layered affected checks, and improving subsystem boundaries only when measurements justify the change",
       "Freeze every theorem statement, assumption, public name, executable definition body, encoding, and constant while making the Lean 4.28 tree maximally reviewable"
     ],
-    "notes": "The formalization is complete, but the old audit missed four linter=false settings in lakefile.toml. Iterations 1, 6, 11, ... are strategy-only for Gemini, Codex, Opus, Codex, and Aristotle; each plans the next four ordinary iterations from fresh measurements. Ordinary iterations may accept measured cleanup while suppressions remain, but final acceptance requires deleting all four settings and passing scripts/strict_lint_sweep.sh with empty output. Never weaken or rename declarations, alter executable definitions, or treat tactic names as automatic violations."
+    "notes": "The formalization is complete, but the old audit missed four linter=false settings in lakefile.toml. Iterations 1, 6, 11, ... are strategy-only for Gemini, Codex, Opus, Codex, and Aristotle; each plans the next four ordinary iterations from fresh measurements. Assume the library will grow by 10x and plausibly 100x: strategic rounds must measure import fan-out, module sizes, elaboration/build hotspots, and the cost of validating local changes, then include justified architecture or layered-build work alongside proof polish. Ordinary iterations may accept measured cleanup while suppressions remain, but final acceptance requires deleting all four settings and passing scripts/strict_lint_sweep.sh with empty output. Fast affected checks supplement but never replace the full audit. Never weaken or rename declarations, alter executable definitions, split files speculatively, or treat tactic names as automatic violations."
   }
 ]

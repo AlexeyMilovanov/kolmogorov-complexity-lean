@@ -33,7 +33,6 @@ manipulation; the only deep input is the Kraft–Chaitin realization isolated in
 namespace Kolmogorov
 
 open scoped ENNReal
-open Classical
 
 /-- **First-component decoder.** Strips the self-delimiting unary length prefix of
 a `pairCode` and returns the first component: it reads the leading run of `true`s
@@ -126,6 +125,7 @@ programs, so the pair-marginal double sum over `(y, p)` injects into the
 projection-machine sum over `p`. -/
 theorem pairMarginal_le_aprioriMeasure_projMap (U : Map) (x z : BitString) :
     pairMarginal U x z ≤ aprioriMeasure (projMap U) x z := by
+  classical
   rw [pairMarginal_def]
   simp only [aprioriMeasure]
   rw [ENNReal.tsum_comm]

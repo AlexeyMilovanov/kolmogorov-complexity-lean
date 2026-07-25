@@ -47,9 +47,17 @@ theorem mem_descriptionChunk (S : Finset BitString) (x : BitString) (s : ℕ) (h
                                    ( List.findIdx ( fun y => y == x ) (canonicalFinsetList S) /
                                        descriptionChunkSize S s
                                            ) * descriptionChunkSize S s, ?_, ?_ ⟩ ) using 1 <;>
-                                             norm_num at *;
-  exact ⟨ by omega, by omega ⟩;
-  grind +suggestions
+                                             norm_num at *
+  · exact ⟨ by omega, by omega ⟩
+  · have h_idx : List.findIdx (fun x_1 => x_1 == x) (canonicalFinsetList S) /
+          descriptionChunkSize S s *
+          descriptionChunkSize S s +
+        (List.findIdx (fun y => y == x) (canonicalFinsetList S) -
+          List.findIdx (fun y => y == x) (canonicalFinsetList S) / descriptionChunkSize S s *
+            descriptionChunkSize S s) = List.findIdx (fun y => y == x) (canonicalFinsetList S) :=
+      by omega
+    simp_rw [h_idx]
+    exact eq_of_beq (List.findIdx_getElem (p := fun y => y == x) (w := by simpa using h_findIdx))
 
 theorem descriptionChunk_subset (S : Finset BitString) (x : BitString) (s : ℕ) :
     descriptionChunk S x s ⊆ S := by
@@ -242,42 +250,43 @@ theorem descriptionChunkUniformCode_computable : Computable descriptionChunkUnif
   convert Primrec.to_comp _;
   convert Primrec.comp
       ( show Primrec ( fun t : List BitString => codedDistributionDataCode ( t.map fun x =>
-                                                                             ( { point := x,
-                                                                                 mass :=
-                                                                                     ratMassInvNat
-                                                                                         ( max 1
-                                                                                             ( List.length t ) ) ( by positivity ) } : CodedDistributionEntry ) ) ) from ?_ ) ( show Primrec ( fun t : BitString => ( ( decodeDistributionData ( decodeFirst t ) ).map CodedDistributionEntry.point |> fun L => ( L.drop ( bitsToNat ( decodeSecond t ) * ( List.length L / 2 ^ ( List.length ( decodeSecond t ) ) + 1 ) ) |> fun chunk => chunk.take ( List.length L / 2 ^ ( List.length ( decodeSecond t ) ) + 1 ) ) ) ) from ?_ ) using 1;
-  · convert Primrec.of_eq _ _;
-    exact fun l =>
+        ( { point := x,
+            mass := ratMassInvNat (max 1 (List.length t)) (by positivity)
+          } : CodedDistributionEntry ) ) ) from ?_ )
+      ( show Primrec ( fun t : BitString => ( ( decodeDistributionData ( decodeFirst t ) ).map
+        CodedDistributionEntry.point |> fun L => ( L.drop ( bitsToNat ( decodeSecond t ) * (
+          List.length L / 2 ^ ( List.length ( decodeSecond t ) ) + 1 ) ) |> fun chunk =>
+            chunk.take ( List.length L / 2 ^ ( List.length ( decodeSecond t ) ) + 1 ) ) ) ) from
+              ?_ ) using 1;
+  · convert Primrec.of_eq _ _
+    · exact fun l =>
         l.foldr
             ( fun x acc => true :: pairCode ( pairCode x ( pairCode ( natCode 1 ) ( natCode ( max 1
-                l.length ) ) ) ) acc ) [ false ];
-    · convert Primrec.list_foldr _ _ _ using 1;
-      rotate_left;
-      exact BitString;
-      rotate_left;
-      exact fun l => l;
-      exact fun l => [ false ];
-      exact fun l p =>
-          true :: pairCode
-              ( pairCode p.1 ( pairCode ( natCode 1 ) ( natCode ( max 1 l.length ) ) ) ) p.2;
-      exact Primrec.id;
-      · exact Primrec.const [ false ];
-      · have h_pairCode_primrec : Primrec₂ (fun (x y : BitString) => pairCode x y) :=
-          pairCode_primrec
-        convert Primrec.list_cons.comp ( Primrec.const true )
-            ( h_pairCode_primrec.comp ( h_pairCode_primrec.comp ( Primrec.fst.comp Primrec.snd )
-                                        ( h_pairCode_primrec.comp ( this.comp ( Primrec.const 1 ) )
-                                            ( this.comp ( Primrec.nat_max.comp ( Primrec.const 1 )
-                                                          ( Primrec.list_length.comp Primrec.fst )
-                                                              ) ) ) ) ( Primrec.snd.comp
-                                                                        Primrec.snd ) ) using 1;
-      · rfl;
+                l.length ) ) ) ) acc ) [ false ]
+    · have h_pairCode_primrec : Primrec₂ (fun (x y : BitString) => pairCode x y) := pairCode_primrec
+      exact Primrec.list_foldr (f := fun (l : List BitString) => l) (g := fun _ => [false])
+        (h := fun l p => true :: pairCode (pairCode p.1 (pairCode (natCode 1)
+          (natCode (max 1 l.length)))) p.2) Primrec.id (Primrec.const [false]) (
+        by
+          convert Primrec.list_cons.comp (Primrec.const true)
+            (h_pairCode_primrec.comp (h_pairCode_primrec.comp (Primrec.fst.comp Primrec.snd)
+              (h_pairCode_primrec.comp (this.comp (Primrec.const 1))
+                (this.comp (Primrec.nat_max.comp (Primrec.const 1)
+                  (Primrec.list_length.comp Primrec.fst))))) (Primrec.snd.comp Primrec.snd)) using 1
+      )
     · intro n; exact (by
-      convert codedUniform_foldr n ( max 1 n.length ) ( by positivity ) |> Eq.symm using 1);
+      convert codedUniform_foldr n ( max 1 n.length ) ( by positivity ) |> Eq.symm using 1)
   · convert Primrec.comp
       ( primrec_listBitString_take.comp ( primrec_listBitString_drop.comp ( show Primrec ( fun t :
-                                                                                           BitString => List.map CodedDistributionEntry.point ( decodeDistributionData ( decodeFirst t ) ) ) from ?_ ) ( show Primrec ( fun t : BitString => bitsToNat ( decodeSecond t ) * ( List.length ( List.map CodedDistributionEntry.point ( decodeDistributionData ( decodeFirst t ) ) ) / 2 ^ List.length ( decodeSecond t ) + 1 ) ) from ?_ ) ) ( show Primrec ( fun t : BitString => List.length ( List.map CodedDistributionEntry.point ( decodeDistributionData ( decodeFirst t ) ) ) / 2 ^ List.length ( decodeSecond t ) + 1 ) from ?_ ) ) ( show Primrec ( fun t : BitString => t ) from ?_ ) using 1;
+          BitString => List.map CodedDistributionEntry.point
+            ( decodeDistributionData ( decodeFirst t ) ) ) from ?_ )
+        ( show Primrec ( fun t : BitString => bitsToNat ( decodeSecond t ) *
+          ( List.length ( List.map CodedDistributionEntry.point ( decodeDistributionData
+            ( decodeFirst t ) ) ) / 2 ^ List.length ( decodeSecond t ) + 1 ) ) from ?_ ) )
+      ( show Primrec ( fun t : BitString => List.length ( List.map CodedDistributionEntry.point
+        ( decodeDistributionData ( decodeFirst t ) ) ) / 2 ^ List.length ( decodeSecond t ) + 1 )
+          from
+          ?_ ) ) ( show Primrec ( fun t : BitString => t ) from ?_ ) using 1;
     · apply Primrec.list_map (decodeDistributionData_primrec.comp decodeFirst_primrec)
         (entry_point_primrec.comp Primrec.snd).to₂;
     · convert Primrec.nat_mul.comp ( bitsToNat_primrec.comp ( decodeSecond_primrec ) ) ( ?_ ) using

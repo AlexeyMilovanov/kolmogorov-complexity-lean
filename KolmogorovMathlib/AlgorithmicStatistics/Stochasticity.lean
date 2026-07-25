@@ -104,7 +104,6 @@ theorem isStochastic_lengthUniform_log (U : Map) (hU : IsOptimalPrefixConditiona
   obtain ⟨c2, hc2⟩ := KPPlain_natCode_le_log U hU
   refine ⟨c1 + c2, ?_⟩
   intro x beta hdef
-  apply isStochastic_lengthUniform U x x.length rfl
   have h_comp : (codedLengthUniform x.length).complexity U ≤
       (2 * (Nat.bits x.length).length + (c1 + c2) : ENat) := by
     have hmap := hc1 (natCode x.length)
@@ -119,7 +118,7 @@ theorem isStochastic_lengthUniform_log (U : Map) (hU : IsOptimalPrefixConditiona
       _ = (2 * (Nat.bits x.length).length + (c1 + c2 : Nat) : ENat) := by
           rw [Nat.cast_add]
           simp [add_comm, add_assoc]
-  exact h_comp
-  exact hdef
+  exact isStochastic_lengthUniform U x x.length rfl
+    (2 * (Nat.bits x.length).length + (c1 + c2)) beta h_comp hdef
 
 end Kolmogorov

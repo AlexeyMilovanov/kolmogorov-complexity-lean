@@ -122,7 +122,8 @@ theorem codedDistributionDataCode_injective : Function.Injective codedDistributi
       | nil => simp [codedDistributionDataCode] at h
       | cons y ys =>
           simp only [codedDistributionDataCode, List.cons.injEq] at h
-          have hp : (x.code, codedDistributionDataCode xs) = (y.code, codedDistributionDataCode ys) :=
+          have hp : (x.code, codedDistributionDataCode xs) =
+              (y.code, codedDistributionDataCode ys) :=
             pairCode_injective (by simpa using h.2)
           have hx : x = y := CodedDistributionEntry.code_injective (congrArg Prod.fst hp)
           have hxs : xs = ys := ih (congrArg Prod.snd hp)
@@ -149,21 +150,27 @@ Membership in the support is membership in the list of points.
 -/
 theorem mem_support_iff (P : CodedFiniteDistribution) (x : BitString) :
     x ∈ P.support ↔ x ∈ P.data.map CodedDistributionEntry.point := by
-  -- By definition of `support`, we know that `x ∈ P.support` if and only if there exists an element `e` in `P.data` such that `e.point = x`.
-  simp [CodedFiniteDistribution.support];
+  -- By definition of `support`, we know that `x ∈ P.support` if and only if there exists an element
+  --   `e` in `P.data` such that `e.point = x`.
+  simp only [CodedFiniteDistribution.support, List.mem_map]
   induction P.data with
-  | nil => simp +decide [ Finset.empty ]
-  | cons e P ih => grind
+  | nil => simp [Finset.empty]
+  | cons e P ih =>
+    simp only [List.foldr_cons, Finset.mem_insert]
+    aesop
 
 /-
 A string outside the support carries zero mass.
 -/
 theorem mass_eq_zero_of_not_mem_support (P : CodedFiniteDistribution) (x : BitString)
     (hx : x ∉ P.support) : P.mass x = 0 := by
-  -- By definition of mass, if x is not in the support, then in the foldr, each if e.point = x condition will be false. Therefore, each term in the sum will be zero, and the entire sum will be zero.
+  -- By definition of mass, if x is not in the support, then in the foldr, each if e.point = x
+  --   condition will be false. Therefore, each term in the sum will be zero, and the entire sum
+  --   will be zero.
   have h_foldr_zero : ∀ e ∈ P.data, e.point ≠ x := by
     exact fun e he => fun h => hx <| mem_support_iff P x |>.2 <| List.mem_map.2 ⟨ e, he, h ⟩;
-  have h_foldr_zero : ∀ (es : List CodedDistributionEntry), (∀ e ∈ es, e.point ≠ x) → List.foldr (fun e acc => (if e.point = x then e.mass.value else 0) + acc) 0 es = 0 := by
+  have h_foldr_zero : ∀ (es : List CodedDistributionEntry), (∀ e ∈ es, e.point ≠ x) → List.foldr
+      (fun e acc => (if e.point = x then e.mass.value else 0) + acc) 0 es = 0 := by
     intro es hes; induction es <;> aesop;
   exact h_foldr_zero _ ‹_›
 
@@ -184,7 +191,7 @@ theorem code_injective : Function.Injective code := by
   intro P Q h
   cases P
   cases Q
-  simp [code] at h
+  simp only [code] at h
   exact congrArg CodedFiniteDistribution.mk (codedDistributionDataCode_injective h)
 
 /-- `DeficiencyLe` for a coded finite distribution, in multiplicative form. -/
@@ -329,8 +336,9 @@ theorem codedUniformOn_support (S : Finset BitString) (hS : S.Nonempty) :
     (codedUniformOn S hS).support = S := by
   have h : ∀ (l : List BitString),
       (List.foldr (fun e acc => insert e.point acc) Finset.empty
-        (l.map fun x => ({ point := x, mass := ratMassInvNat S.card (Finset.Nonempty.card_pos hS) } : CodedDistributionEntry)))
-        = l.toFinset := by
+        (l.map fun x =>
+          ({ point := x, mass := ratMassInvNat S.card (Finset.Nonempty.card_pos hS) } :
+            CodedDistributionEntry))) = l.toFinset := by
     intro l; induction l with
     | nil => rfl
     | cons a l ih => simp [ih]
@@ -364,7 +372,9 @@ The coded uniform finite-set model is a probability distribution.
 theorem codedUniformOn_isProbability (S : Finset BitString) (hS : S.Nonempty) :
     (codedUniformOn S hS).IsProbability := by
   unfold CodedFiniteDistribution.IsProbability;
-  rw [ codedUniformOn_support, Finset.sum_congr rfl fun x hx => codedUniformOn_mass_of_mem S hS x hx ] ; norm_num [ hS.ne_empty ];
+  rw [codedUniformOn_support,
+    Finset.sum_congr rfl fun x hx => codedUniformOn_mass_of_mem S hS x hx];
+  norm_num [hS.ne_empty];
   rw [ ENNReal.mul_inv_cancel ] <;> aesop
 
 /-- A `Nodup`, `bitStringLE`-sorted list is exactly the canonical enumeration of
@@ -409,16 +419,21 @@ def codedLengthUniform (n : Nat) : CodedFiniteDistribution where
 
 theorem codedLengthUniform_mass_of_mem (n : Nat) (x : BitString) (hx : x.length = n) :
     (codedLengthUniform n).mass x = (2 : ENNReal)⁻¹ ^ n := by
-      unfold CodedFiniteDistribution.mass; simp +decide [ RatMass.value ] ;
-      unfold codedLengthUniform; simp +decide [ lengthUniformData ] ;
-      rw [ List.foldr_map ];
+      unfold CodedFiniteDistribution.mass
+      simp only [RatMass.value]
+      unfold codedLengthUniform
+      simp only [lengthUniformData]
+      rw [List.foldr_map]
       have h_exists : x ∈ allStrings n := by
         rw [ ← hx ];
-        -- By definition of `allStrings`, `x` is in `allStrings (List.length x)` if and only if `x` has length `List.length x`.
+        -- By definition of `allStrings`, `x` is in `allStrings (List.length x)` if and only if `x`
+        --   has length `List.length x`.
         simp [mem_allStrings];
       have h_unique : List.count x (allStrings n) = 1 := by
         exact List.count_eq_one_of_mem ( allStrings_nodup n ) h_exists;
-      have h_foldr : ∀ {l : List BitString}, List.count x l = 1 → List.foldr (fun x_1 y => (if x_1 = x then (1 : ENNReal) / (2 ^ n : ENNReal) else 0) + y) 0 l = (1 : ENNReal) / (2 ^ n : ENNReal) := by
+      have h_foldr : ∀ {l : List BitString}, List.count x l = 1 → List.foldr
+          (fun x_1 y => (if x_1 = x then (1 : ENNReal) / (2 ^ n : ENNReal) else 0) + y) 0 l =
+          (1 : ENNReal) / (2 ^ n : ENNReal) := by
         intros l hl; induction l <;> simp_all +decide [ List.count_cons ] ;
         split_ifs at hl ⊢ <;> simp_all +decide [ List.count ];
         induction ‹List BitString› <;> aesop;
@@ -428,12 +443,14 @@ theorem codedLengthUniform_mass_of_mem (n : Nat) (x : BitString) (hx : x.length 
 
 theorem codedLengthUniform_mass_of_not_mem (n : Nat) (x : BitString) (hx : x.length ≠ n) :
     (codedLengthUniform n).mass x = 0 := by
-      -- By definition of `codedLengthUniform`, we know that the mass of `x` is zero if `x` is not in the support of `lengthUniformData n`.
+      -- By definition of `codedLengthUniform`, we know that the mass of `x` is zero if `x` is not
+      --   in the support of `lengthUniformData n`.
       have h_mass_zero : ∀ e ∈ lengthUniformData n, e.point ≠ x := by
         intro e he
         simp [lengthUniformData] at he;
         grind;
-      have h_mass_zero : ∀ (l : List CodedDistributionEntry), (∀ e ∈ l, e.point ≠ x) → (List.foldr (fun e acc => (if e.point = x then e.mass.value else 0) + acc) 0 l) = 0 := by
+      have h_mass_zero : ∀ (l : List CodedDistributionEntry), (∀ e ∈ l, e.point ≠ x) →
+          (List.foldr (fun e acc => (if e.point = x then e.mass.value else 0) + acc) 0 l) = 0 := by
         intro l hl; induction l <;> aesop;
       exact h_mass_zero _ ‹_›
 
@@ -441,18 +458,22 @@ theorem codedLengthUniform_support (n : Nat) :
     (codedLengthUniform n).support = stringsOfLength n := by
       unfold CodedFiniteDistribution.support codedLengthUniform lengthUniformData;
       -- By definition of `List.foldr`, we can rewrite the left-hand side of the equation.
-      have h_foldr : ∀ (l : List BitString), List.foldr (fun e acc => insert e acc) Finset.empty l = l.toFinset := by
+      have h_foldr : ∀ (l : List BitString), List.foldr (fun e acc => insert e acc) Finset.empty l =
+          l.toFinset := by
         intro l; induction l <;> aesop;
       convert h_foldr _ using 2;
       induction ( allStrings n ) <;> aesop
 
 theorem codedLengthUniform_isProbability (n : Nat) :
     (codedLengthUniform n).IsProbability := by
-      unfold CodedFiniteDistribution.IsProbability; simp +decide [ codedLengthUniform ] ;
-      -- By definition of `codedLengthUniform`, the support is `stringsOfLength n` and the mass is `(2 : ENNReal)⁻¹ ^ n` for all `x` in the support.
+      unfold CodedFiniteDistribution.IsProbability
+      simp only [codedLengthUniform]
+      -- By definition of `codedLengthUniform`, the support is `stringsOfLength n` and the mass is
+      --   `(2 : ENNReal)⁻¹ ^ n` for all `x` in the support.
       have h_support : ( codedLengthUniform n ).support = stringsOfLength n := by
         grind +suggestions
-      have h_mass : ∀ x ∈ stringsOfLength n, (codedLengthUniform n).mass x = (2 : ENNReal)⁻¹ ^ n := by
+      have h_mass : ∀ x ∈ stringsOfLength n,
+          (codedLengthUniform n).mass x = (2 : ENNReal)⁻¹ ^ n := by
         grind +suggestions;
       convert Finset.sum_congr rfl h_mass using 1;
       · exact h_support ▸ rfl;

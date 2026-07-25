@@ -73,8 +73,7 @@ theorem domainWeight_le_one (M : Map) (y : BitString) (hM : IsPrefixMachine M) :
 
 /-- **A priori semimeasure normalization.** For a prefix machine `M`, the conditional
 a priori semimeasure is normalized: the total mass over all outputs `x` is at most
-`1`. This is the headline milestone of the prefix-machine layer; it follows in one
-step by feeding the countable Kraft bound `domainWeight_le_one` into the
+`1`. The result follows by feeding the countable Kraft bound `domainWeight_le_one` into the
 normalization reduction `tsum_aprioriMeasure_le_one_of_domainWeight_le_one`. -/
 theorem tsum_aprioriMeasure_le_one (M : Map) (y : BitString)
     (hM : IsPrefixMachine M) :

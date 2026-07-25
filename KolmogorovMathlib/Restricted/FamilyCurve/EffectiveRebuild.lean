@@ -265,7 +265,8 @@ lemma restrictedEffectiveRebuildSuffixNext_partrec (𝒜 : DescriptionFamily) :
         bitsToNat (restrictedSelectorField a.1 3)) :=
     (bitsToNat_computable.comp
       (restrictedSelectorField_computable.comp Computable.fst
-        ((Computable.const 3) : Computable (fun a : BitString × (ℕ × RestrictedEffectiveRebuildState) => 3)))).of_eq
+        ((Computable.const 3) :
+          Computable (fun a : BitString × (ℕ × RestrictedEffectiveRebuildState) => 3)))).of_eq
       fun _ => rfl
   have hselectorInput : Computable (fun a : BitString ×
       (ℕ × RestrictedEffectiveRebuildState) =>

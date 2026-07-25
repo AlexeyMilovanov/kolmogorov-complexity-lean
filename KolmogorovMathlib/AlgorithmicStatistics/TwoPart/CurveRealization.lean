@@ -101,7 +101,11 @@ theorem fullSetComplexityGate (U : Map) (hU : IsOptimalPrefixConditional U) :
       ( allStrings_primrec.comp ( decodeNatCode_primrec ) ) |> Primrec.to_comp using 1)
   obtain ⟨c₂, hc₂⟩ :=KPPlain_natCode_le_log U hU
   use c₁ + c₂ + 2;
-  intro n hn; specialize hc₁ ( natCode n ) ; specialize hc₂ n; simp_all +decide [ logSlack ] ;
+  intro n hn
+  specialize hc₁ (natCode n)
+  specialize hc₂ n
+  simp_all +decide only [decodeNatCode_natCode, KPPlain_eq_KP, logSlack, Nat.cast_add,
+    Nat.cast_mul, Nat.cast_ofNat]
   convert hc₁.trans ( add_le_add hc₂ le_rfl ) |> le_trans <| ?_ using 1;
   · convert rfl using 2;
     convert congr_arg ( fun x : BitString => KP U x [] )

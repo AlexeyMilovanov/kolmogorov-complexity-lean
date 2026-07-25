@@ -104,7 +104,7 @@ theorem list_filter_primrec {α β} [Primcodable α] [Primcodable β] {f : α �
     Primrec (fun a => (f a).filter (p a)) := by
   convert Primrec.list_foldr hf ( Primrec.const List.nil ) _ using 1;
   rotate_left;
-  exact fun a b => if p a b.1 then b.1 :: b.2 else b.2;
+  · exact fun a b => if p a b.1 then b.1 :: b.2 else b.2;
   · convert Primrec.ite _ _ _ using 1;
     · exact Primrec.eq.comp ( hp.comp ( Primrec.fst ) ( Primrec.fst.comp ( Primrec.snd ) ) )
         ( Primrec.const true );
@@ -122,8 +122,8 @@ theorem bitString_mem_primrec :
   have h_eq : Primrec₂ (fun (a b : BitString) => decide (a = b)) := by
     convert Primrec.eq;
     any_goals exact BitString;
-    convert Iff.rfl;
-    exact primrecRel_iff_primrec_decide;
+    · convert Iff.rfl
+      exact primrecRel_iff_primrec_decide
   convert list_any_primrec ( show Primrec ( fun x : BitString × List BitString => x.2 ) from ?_ )
       ( show Primrec₂ ( fun p : BitString × List BitString => fun b => decide ( p.1 = b ) ) from ?_
           ) using 1;
@@ -138,28 +138,28 @@ recursive in the inserted element and the list.
 theorem orderedInsert_primrec :
     Primrec₂ (fun (a : BitString) (l : List BitString) =>
       List.orderedInsert bitStringLE a l) := by
-  simp +decide [ Primrec₂ ];
+  simp only [Primrec₂];
   apply Primrec.of_eq;
-  convert Primrec.list_rec ( show Primrec ( fun x : BitString × List BitString => x.2 ) from ?_ )
+  · convert Primrec.list_rec ( show Primrec ( fun x : BitString × List BitString => x.2 ) from ?_ )
       ( show Primrec ( fun x : BitString × List BitString => [ x.1 ] ) from ?_ )
           ( show Primrec₂ ( fun p : BitString × List BitString => fun b : BitString × List
                             BitString × List BitString =>
                                 if decide ( bitStringLE p.1 b.1 ) then p.1 :: b.1 :: b.2.1 else b.1
-                                    :: b.2.2 ) from ?_ ) using 1;
-  · exact Primrec.snd;
-  · exact Primrec.list_cons.comp ( Primrec.fst ) ( Primrec.const [ ] );
-  · convert Primrec.ite _ _ _ using 1;
-    · convert Primrec.nat_le.comp ( Primrec.encode.comp ( Primrec.fst.comp ( Primrec.fst ) ) )
-        ( Primrec.encode.comp ( Primrec.fst.comp ( Primrec.snd ) ) ) using 1;
-      exact funext fun x => by simp +decide [ bitStringLE ] ;
-    · convert Primrec.list_cons.comp ( Primrec.fst.comp ( Primrec.fst ) )
-        ( Primrec.list_cons.comp ( Primrec.fst.comp ( Primrec.snd ) ) ( Primrec.fst.comp
-                                                                        ( Primrec.snd.comp
-                                                                            ( Primrec.snd )
-                                                                                ) ) ) using 1;
-    · exact Primrec.list_cons.comp ( Primrec.fst.comp ( Primrec.snd ) )
-        ( Primrec.snd.comp ( Primrec.snd.comp ( Primrec.snd ) ) );
-  · intro n; induction n.2 <;> simp +decide [ *, List.orderedInsert ] ;
+                                    :: b.2.2 ) from ?_ ) using 1
+    · exact Primrec.snd
+    · exact Primrec.list_cons.comp ( Primrec.fst ) ( Primrec.const [ ] )
+    · convert Primrec.ite _ _ _ using 1
+      · convert Primrec.nat_le.comp ( Primrec.encode.comp ( Primrec.fst.comp ( Primrec.fst ) ) )
+          ( Primrec.encode.comp ( Primrec.fst.comp ( Primrec.snd ) ) ) using 1
+        exact funext fun x => by simp only [bitStringLE, decide_eq_true_eq]
+      · convert Primrec.list_cons.comp ( Primrec.fst.comp ( Primrec.fst ) )
+          ( Primrec.list_cons.comp ( Primrec.fst.comp ( Primrec.snd ) ) ( Primrec.fst.comp
+                                                                          ( Primrec.snd.comp
+                                                                              ( Primrec.snd )
+                                                                                  ) ) ) using 1
+      · exact Primrec.list_cons.comp ( Primrec.fst.comp ( Primrec.snd ) )
+          ( Primrec.snd.comp ( Primrec.snd.comp ( Primrec.snd ) ) )
+  · intro n; induction n.2 <;> simp only [*, List.orderedInsert] ;
     aesop
 
 /-
@@ -196,8 +196,8 @@ theorem dedup_primrec :
     · convert bitString_mem_primrec.comp ( Primrec.fst.comp ( Primrec.snd ) )
         ( Primrec.snd.comp ( Primrec.snd ) ) using 1;
       rotate_left;
-      exact List BitString;
-      infer_instance;
+      · exact List BitString;
+      · infer_instance;
       exact primrecPred_iff_primrec_decide;
     · exact Primrec.snd.comp ( Primrec.snd );
     · exact Primrec.list_cons.comp ( Primrec.fst.comp ( Primrec.snd ) )
@@ -250,11 +250,11 @@ theorem codedUniformEncoder_primrec :
           CodedDistributionEntry))) := by
   convert Primrec.list_foldr _ _ _ using 1;
   rotate_left;
-  exact BitString;
-  infer_instance;
-  exact fun t => t;
-  exact fun _ => [ false ];
-  exact fun t p =>
+  · exact BitString;
+  · infer_instance;
+  · exact fun t => t;
+  · exact fun _ => [ false ];
+  · exact fun t p =>
       true :: pairCode ( pairCode p.1 ( pairCode ( natCode 1 ) ( natCode ( max 1 t.length ) ) ) )
           p.2;
   · exact Primrec.id;
@@ -286,8 +286,8 @@ theorem levelSetUniformCode_computable : Computable levelSetUniformCode := by
   convert Primrec.comp ( codedUniformEncoder_primrec )
       ( canonicalFinsetList_toFinset_primrec.comp ( list_filter_primrec _ _ ) ) using 1;
   rotate_left;
-  exact fun s => ( decodeDistributionData ( decodeFirst s ) ).map CodedDistributionEntry.point;
-  exact fun s x => levelSetMemBool ( decodeFirst s ) ( decodeNatCode ( decodeSecond s ) ) x;
+  · exact fun s => ( decodeDistributionData ( decodeFirst s ) ).map CodedDistributionEntry.point;
+  · exact fun s x => levelSetMemBool ( decodeFirst s ) ( decodeNatCode ( decodeSecond s ) ) x;
   · exact Primrec.list_map ( decodeDistributionData_primrec.comp decodeFirst_primrec )
       ( entry_point_primrec.comp Primrec.snd );
   · convert Primrec.comp levelSetMemBool_primrec
@@ -345,7 +345,7 @@ theorem levelSetModel_setComplexity_le (U : Map) (hU : IsOptimalPrefixConditiona
   · exact hf_eq P k h_nonempty ▸ rfl
   · unfold logSlack
     norm_cast
-    simp +decide [add_assoc]
+    simp only [KPPlain_eq_KP, Nat.cast_mul, Nat.cast_ofNat, Nat.cast_add, add_assoc]
     exact add_le_add (by rfl) (by norm_cast; nlinarith)
 
 /-

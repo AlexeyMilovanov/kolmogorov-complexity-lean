@@ -1095,7 +1095,7 @@ theorem takeWhile_id_len_eq_or {p q : List Bool} (h : p <+: q) :
     (p.takeWhile id = p ∧ (p.takeWhile id).length < (q.takeWhile id).length) := by
   induction p generalizing q with
   | nil =>
-    simp
+    simp only [List.takeWhile_nil, List.length_nil, true_and]
     by_cases hq : (q.takeWhile id).length = 0
     · left; exact hq.symm
     · right; exact Nat.pos_of_ne_zero hq
@@ -1107,7 +1107,10 @@ theorem takeWhile_id_len_eq_or {p q : List Bool} (h : p <+: q) :
       subst h1
       cases a
       · simp
-      · simp
+      · simp only [id_eq, List.takeWhile_cons_of_pos, List.length_cons,
+          Nat.add_right_cancel_iff, List.cons.injEq, List.takeWhile_eq_self_iff,
+          Bool.forall_bool, Bool.false_eq_true, imp_false, implies_true, and_true,
+          true_and, Order.lt_add_one_iff, Order.add_one_le_iff]
         rcases ih h2 with h_eq | ⟨hp, hlt⟩
         · left; exact h_eq
         · right

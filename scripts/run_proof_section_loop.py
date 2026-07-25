@@ -658,10 +658,25 @@ def polishing_strategy_prompt(
         "04_codex": "Codex final polishing-plan synthesizer",
     }[stage]
     stage_task = {
-        "01_gemini": "Measure all four enabled-linter warning classes, group them into dependency-aware batches, and estimate build risk.",
-        "02_codex": "Check Gemini's plan against the actual declarations, imports, and build hotspots.",
-        "03_opus": "Stress-test the plan for theorem drift, elaboration regressions, and non-Mathlib style.",
-        "04_codex": "Freeze an executable four-iteration plan with exact files, declarations, and acceptance tests.",
+        "01_gemini": (
+            "Measure all four enabled-linter warning classes and the architecture "
+            "baseline: import graph, reverse-dependency fan-out, module sizes, "
+            "elaboration/build hotspots, and the cost of validating a local change."
+        ),
+        "02_codex": (
+            "Check Gemini's plan against the actual declarations, imports, and build "
+            "hotspots. Reject work that improves a local metric while increasing "
+            "10x-100x maintenance or rebuild cost."
+        ),
+        "03_opus": (
+            "Stress-test the plan for theorem drift, elaboration regressions, "
+            "non-Mathlib style, weak module boundaries, and poor scalability under "
+            "10x-100x repository growth."
+        ),
+        "04_codex": (
+            "Freeze an executable four-iteration plan with exact files, declarations, "
+            "architecture/build tasks, acceptance tests, and rollback criteria."
+        ),
     }[stage]
     return f"""
 You are {role} for strategic Lean proof polishing.
@@ -689,6 +704,18 @@ the worktree during this strategy iteration.
 {previous}
 ```
 
+# Long-term scalability objective
+
+Assume this library will grow by at least 10x and plausibly 100x. Optimize
+whole-project maintainability, elaboration time, rebuild fan-out, and review
+cost rather than tactic counts or local line count. Treat zero warnings as a
+baseline, not the end state. Measure the actual import graph and build
+hotspots before proposing module splits or infrastructure. A strategy should
+include at least one concrete architecture or layered-build improvement when
+the measurements justify it. Fast affected checks may supplement the full
+audit, but the full root audit remains the release gate and must never be
+weakened.
+
 # Stage-specific task
 
 {stage_task}
@@ -697,20 +724,29 @@ Required output:
 
 STATUS: STRATEGY_READY / NO_SAFE_IMPROVEMENT / NEEDS_HUMAN_DECISION
 
+## 10x-100x Scalability Assessment
+Report the measured import/fan-out, module-size, elaboration/build, and
+change-validation bottlenecks. Distinguish present evidence from speculation.
+
 ## Best Plan For The Next Four Ordinary Iterations
 For each iteration give exclusive file ownership, exact warning counts and
-declarations, proposed cleanup, direct strict-linter verification, full-build
-gate, and rollback criterion. Re-measure from the actual Lean 4.28 worktree.
+declarations or infrastructure artifacts, proposed cleanup, scalability
+impact, the fastest sound affected-check gate, direct strict-linter
+verification, full-build gate, and rollback criterion. Re-measure from the
+actual Lean 4.28 worktree.
 
 ## Aristotle Optimization Priority
-Rank 3-8 exact declarations where independent proof search could remove a local
-heartbeat override or replace a brittle proof without changing the theorem.
+Rank 3-8 exact proof or architecture leaves where independent work could reduce
+elaboration/rebuild cost, improve module boundaries, remove a local heartbeat
+override, or replace a brittle proof without changing the public API.
 
 ## Risks
 Flag any proposal that could alter the API, assumptions, semantics, or compile time.
 
-Hard constraints: no edits, no new `sorry`, no theorem weakening, and no plan
-whose only effect is moving or increasing a resource override.
+Hard constraints: no edits, no new `sorry`, no theorem weakening, no mechanical
+tactic-count reduction, no speculative file splitting without measured
+dependency benefit, and no plan whose only effect is moving or increasing a
+resource override. Do not weaken the final full-project audit.
 """
 
 
@@ -836,6 +872,13 @@ Do not edit proofs in this strategic round. Review the four agents' plans and
 produce the safest next-four-iteration optimization plan. The existing theorem
 statements and semantics are frozen.
 
+Assume the library will grow by 10x and may grow by 100x. Review not only local
+proof style but also the measured import graph, reverse-dependency fan-out,
+module boundaries, elaboration/build hotspots, and layered validation
+workflow. Prefer changes that keep local edits cheap to validate at that scale.
+Fast affected checks may supplement, but never replace or weaken, the final
+full-project audit.
+
 # Current static polishing debt
 
 ```text
@@ -848,9 +891,10 @@ statements and semantics are frozen.
 {previous_outputs(iter_dir)}
 ```
 
-Rank exact declarations where a cheaper equivalent proof is plausible, and
-state targeted build checks and rollback criteria. Never propose adding,
-moving, or increasing a heartbeat override.
+Rank exact proof and architecture leaves where a cheaper equivalent proof,
+cleaner module boundary, or lower rebuild fan-out is plausible. State targeted
+affected checks, full-build checks, and rollback criteria. Never propose
+adding, moving, or increasing a heartbeat override.
 """
     elif is_polishing(section):
         prompt = f"""

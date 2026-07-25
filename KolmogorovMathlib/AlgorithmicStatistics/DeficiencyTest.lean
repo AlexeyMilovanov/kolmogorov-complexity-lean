@@ -37,11 +37,14 @@ For coded list distributions this needs the finite-support zero-mass lemma for
 theorem weightedTestSemimeasure_isConditionalSemimeasure
     (P : CodedFiniteDistribution) (t : RandomnessTest P) :
     IsConditionalSemimeasure (weightedTestSemimeasure P t) := by
-  intro z;
-  by_cases h : z = P.code <;> simp +decide [ h, weightedTestSemimeasure ];
-  rw [ tsum_eq_sum ];
-  exact t.expectation_le_one;
-  exact fun x hx => mul_eq_zero_of_left ( P.mass_eq_zero_of_not_mem_support x hx ) _
+  intro z
+  by_cases h : z = P.code
+  · subst z
+    simp only [weightedTestSemimeasure]
+    rw [tsum_eq_sum]
+    · exact t.expectation_le_one
+    · exact fun x hx ↦ mul_eq_zero_of_left (P.mass_eq_zero_of_not_mem_support x hx) _
+  · simp only [weightedTestSemimeasure, if_neg h, tsum_zero, zero_le]
 
 /-- The canonical test is `2^{-K(x|P.code)} / P.mass x`. -/
 noncomputable def canonicalTest (U : Map) (P : CodedFiniteDistribution) : BitString -> ENNReal :=
@@ -65,9 +68,11 @@ theorem canonicalTest_expectation_le_one (U : Map) (hU : IsOptimalPrefixConditio
   apply le_trans _ ( ENNReal.sum_le_tsum P.support )
   apply Finset.sum_le_sum fun x hx => ?_
   convert mul_le_mul (le_refl ( complexityWeight ( KP U x P.code ) ))
-      ( ENNReal.mul_inv_le_one ( P.mass x ) ) (zero_le _) (zero_le _) using 1 ; ring_nf;
-  · unfold canonicalTest; ring_nf;
-  · rw [ mul_one ]
+      ( ENNReal.mul_inv_le_one ( P.mass x ) ) (zero_le _) (zero_le _) using 1
+  · ring_nf
+    unfold canonicalTest
+    ring_nf
+  · ring_nf
 
 /-- The canonical test is bounded by `2^beta` exactly when deficiency is bounded,
 away from zero and infinite masses. -/

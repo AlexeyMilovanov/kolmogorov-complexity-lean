@@ -146,11 +146,11 @@ theorem codedDistributionDataCode_primrec : Primrec codedDistributionDataCode :=
     (g := codedDistributionDataCode) ?_ ?_
   · convert Primrec.list_rec _ _ _ using 1
     rotate_left
-    exact CodedDistributionEntry
-    exact inferInstance
-    exact fun l => l
-    exact fun _ => [false]
-    exact fun _ p => true :: pairCode p.1.code p.2.2
+    · exact CodedDistributionEntry
+    · exact inferInstance
+    · exact fun l => l
+    · exact fun _ => [false]
+    · exact fun _ p => true :: pairCode p.1.code p.2.2
     · exact Primrec.id
     · exact Primrec.const [false]
     · convert Primrec.list_cons.comp (Primrec.const true)
@@ -165,9 +165,9 @@ The computable enumeration `allStrings` is primitive recursive.
 theorem allStrings_primrec : Primrec allStrings := by
   convert Primrec.nat_rec' _ _ _ using 1;
   rotate_left;
-  exact fun n => n;
-  exact fun n => [ [] ];
-  exact fun n p => ( p.2.map ( List.cons false ) ) ++ ( p.2.map ( List.cons true ) );
+  · exact fun n => n
+  · exact fun n => [[]]
+  · exact fun n p => p.2.map (List.cons false) ++ p.2.map (List.cons true)
   · exact Primrec.id;
   · exact Primrec.const [ [] ];
   · apply Primrec₂.comp;
@@ -194,13 +194,19 @@ theorem ratMassInvPow2_primrec :
         have h_pow : Primrec (fun n : ℕ => 2 ^ n : ℕ → ℕ) := by
           have h_pow : Primrec (fun n : ℕ => Nat.pow 2 n) := by
             have h_pow_def : ∀ n : ℕ, Nat.pow 2 n = Nat.rec 1 (fun _ p => 2 * p) n := by
-              intro n; induction n <;> simp +decide [ *, Nat.pow_succ' ] ;
-              assumption
+              intro n
+              induction n with
+              | zero => rfl
+              | succ n ih =>
+                calc
+                  Nat.pow 2 (n + 1) = 2 * Nat.pow 2 n :=
+                    (Nat.pow_succ' : Nat.pow 2 (n + 1) = 2 * Nat.pow 2 n)
+                  _ = 2 * Nat.rec 1 (fun _ p => 2 * p) n := congrArg (2 * ·) ih
             convert Primrec.nat_rec' _ _ _ using 1;
             rotate_left;
-            exact fun n => n;
-            exact fun _ => 1;
-            exact fun n p => 2 * p.2;
+            · exact fun n => n
+            · exact fun _ => 1
+            · exact fun n p => 2 * p.2
             · exact Primrec.id;
             · exact h_const;
             · exact Primrec.nat_mul.comp ( Primrec.const 2 ) ( Primrec.snd.comp Primrec.snd );

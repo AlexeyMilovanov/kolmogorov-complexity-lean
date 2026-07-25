@@ -412,36 +412,69 @@ theorem fold_count_split_le
           (step G first st d).2.1.card = W ∧
           P'.card + ((step G first st d).2.1 ∩ (step G first st d).1).card ≤
             c + (if p d then W else 0) + (if !p d then (d ∩ G).card else 0) := by
-        by_cases h : st.2.1 ⊆ st.1 ∪ ( d ∩ G ) <;> simp_all +decide [ step ]
-        · refine ⟨ P ∪ st.2.1, ?_, ?_, ?_, ?_, ?_, ?_ ⟩
-          grind
-          · simp_all +decide [ Finset.disjoint_left ]
-            grind
-          · rw [ Finset.card_union_of_disjoint ]
-            · linarith
-            · exact hP₂.symm
+        by_cases h : st.2.1 ⊆ st.1 ∪ ( d ∩ G )
+        · have hroom' := hroom
+          simp only [List.foldl_cons] at hroom'
+          simp only [step, if_pos h] at hroom' ⊢
+          refine ⟨ P ∪ st.2.1, ?_, ?_, ?_, ?_, ?_, ?_ ⟩
+          · exact Finset.union_subset (Finset.Subset.trans hP₁ Finset.subset_union_left) h
+          · simp only [Finset.disjoint_left]
+            intro a ha₁ ha₂
+            have ha_diff := hsub _ ha₁
+            have ha_in : a ∈ st.1 ∪ d ∩ G := by
+              rw [Finset.mem_union] at ha₂
+              cases ha₂ with
+              | inl h1 => exact Finset.mem_union_left _ (hP₁ h1)
+              | inr h2 => exact h h2
+            exact Finset.disjoint_left.mp Finset.sdiff_disjoint ha_diff ha_in
+          · rw [Finset.card_union_of_disjoint hP₂.symm]
+            linarith
           · exact Finset.union_subset hP₄ Finset.inter_subset_right
-          · exact Finset.Subset.trans ( hsub _ ) ( Finset.sdiff_subset )
+          · exact Finset.Subset.trans (hsub _) Finset.sdiff_subset
           · constructor
-            · have h_card :
+            · have h_card_min : (first (G \ (st.1 ∪ d ∩ G))).card =
+                  min W (G \ (st.1 ∪ d ∩ G)).card := hcard _
+              have h_card_foldl :
                   (List.foldl (step G first)
-                      (st.1 ∪ d ∩ G, first (G \ (st.1 ∪ d ∩ G)), st.2.2 + 1) L).1.card ≥
+                    (st.1 ∪ d ∩ G, first (G \ (st.1 ∪ d ∩ G)), st.2.2 + 1) L).1.card ≥
                     (st.1 ∪ d ∩ G).card :=
                 Finset.card_le_card (foldl_deleted_mono G first L
                   (st.1 ∪ d ∩ G, first (G \ (st.1 ∪ d ∩ G)), st.2.2 + 1))
-              grind +splitImp
-            · have h_card : (st.2.1 \ st.1).card ≤ (d ∩ G).card :=
-                Finset.card_le_card fun x hx => by
-                  have := h ( Finset.mem_sdiff.mp hx |>.1 ) ; aesop
-              have h_card : (first (G \ (st.1 ∪ d ∩ G)) ∩ (st.1 ∪ d ∩ G)).card = 0 := by
-                simp +decide [ Finset.ext_iff ]
-                grind
-              grind +revert
-        · refine ⟨ P, ?_, ?_, ?_, ?_, ?_ ⟩
+              have h_sub_G : st.1 ∪ d ∩ G ⊆ G := Finset.union_subset hP₄ Finset.inter_subset_right
+              have h_card_sdiff : (G \ (st.1 ∪ d ∩ G)).card =
+                  G.card - (st.1 ∪ d ∩ G).card :=
+                Finset.card_sdiff_of_subset h_sub_G
+              rw [h_card_min, min_eq_left (by omega)]
+            · have h_inter_zero : (first (G \ (st.1 ∪ d ∩ G)) ∩ (st.1 ∪ d ∩ G)).card = 0 := by
+                apply Finset.card_eq_zero.mpr
+                exact Finset.disjoint_iff_inter_eq_empty.mp
+                  (Finset.disjoint_of_subset_left (hsub _) Finset.sdiff_disjoint)
+              rw [h_inter_zero]
+              have h_card_P : (P ∪ st.2.1).card = P.card + W := by
+                rw [Finset.card_union_of_disjoint hP₂.symm, hP₆]
+              rw [h_card_P]
+              by_cases hp : p d
+              · have h_rhs : c + (if p d then W else 0) +
+                    (if !p d then (d ∩ G).card else 0) = c + W := by simp [hp]
+                rw [h_rhs]
+                linarith
+              · have hp_false : p d = false := eq_false_of_ne_true hp
+                have h_rhs : c + (if p d then W else 0) +
+                    (if !p d then (d ∩ G).card else 0) = c + (d ∩ G).card := by
+                  simp [hp_false]
+                rw [h_rhs]
+                have h_union := card_inter_union_le_add_bound st.2.1 st.1 (d ∩ G)
+                  (Finset.card_le_card Finset.inter_subset_right)
+                rw [Finset.inter_eq_left.mpr h, hP₆] at h_union
+                linarith
+        · simp only [step, if_neg h] at hroom ⊢
+          refine ⟨ P, ?_, ?_, ?_, ?_, ?_, ?_, ?_ ⟩
           · exact Finset.Subset.trans hP₁ Finset.subset_union_left
           · exact hP₂
           · exact hP₃
           · exact Finset.union_subset hP₄ Finset.inter_subset_right
+          · exact hP₅
+          · exact hP₆
           · by_cases hp : p d
             · have hdel : (st.2.1 ∩ (d ∩ G)).card ≤ W :=
                 le_trans (Finset.card_le_card Finset.inter_subset_left) hP₆.le
@@ -449,16 +482,22 @@ theorem fold_count_split_le
                   (st.2.1 ∩ (st.1 ∪ d ∩ G)).card ≤
                     (st.2.1 ∩ st.1).card + W :=
                 card_inter_union_le_add_bound _ _ _ hdel
-              simp [hp]
-              linarith [hP₇, hnew]
+              have h_rhs : c + (if p d then W else 0) +
+                  (if !p d then (d ∩ G).card else 0) = c + W := by simp [hp]
+              rw [h_rhs]
+              omega
             · have hdel : (st.2.1 ∩ (d ∩ G)).card ≤ (d ∩ G).card :=
                 Finset.card_le_card Finset.inter_subset_right
               have hnew :
                   (st.2.1 ∩ (st.1 ∪ d ∩ G)).card ≤
                     (st.2.1 ∩ st.1).card + (d ∩ G).card :=
                 card_inter_union_le_add_bound _ _ _ hdel
-              simp [hp]
-              linarith [hP₇, hnew]
+              have hp_false : p d = false := eq_false_of_ne_true hp
+              have h_rhs : c + (if p d then W else 0) +
+                  (if !p d then (d ∩ G).card else 0) = c + (d ∩ G).card := by
+                simp [hp_false]
+              rw [h_rhs]
+              omega
       have hcredit :
           c + ((d :: L).filter p).length * W +
               (((d :: L).filter (fun d => !p d)).map (fun d => (d ∩ G).card)).sum
@@ -603,8 +642,10 @@ theorem fold_count_split_le_of_survivor
             have h_st21 : st.2.1 ∩ (st.1 ∪ d ∩ G) = st.2.1 := by
               exact Finset.inter_eq_left.mpr h
             by_cases hp : p d
-            · simp [hp]
-              exact le_trans (Nat.le_add_right P.card (st.2.1 ∩ st.1).card) hP₇
+            · have h_rhs : c + (if p d then W else 0) +
+                  (if !p d then (d ∩ G).card else 0) = c + W := by simp [hp]
+              rw [h_rhs]
+              omega
             · have hdel : (st.2.1 ∩ (d ∩ G)).card ≤ (d ∩ G).card :=
                 Finset.card_le_card Finset.inter_subset_right
               have h_inter := card_inter_union_le_add_bound st.2.1 st.1 (d ∩ G) hdel
@@ -612,8 +653,12 @@ theorem fold_count_split_le_of_survivor
               have hnew : W ≤ (st.2.1 ∩ st.1).card + (d ∩ G).card := by
                 rw [← hw]
                 exact h_inter
-              simp [hp]
-              linarith [hP₇, hnew]
+              have hp_false : p d = false := eq_false_of_ne_true hp
+              have h_rhs : c + (if p d then W else 0) +
+                  (if !p d then (d ∩ G).card else 0) = c + (d ∩ G).card := by
+                simp [hp_false]
+              rw [h_rhs]
+              omega
         · -- no refresh
           simp only [step, if_neg h]
           refine ⟨P, hP₁.trans Finset.subset_union_left, hP₂, hP₃, hsubG, hP₅, ?_, ?_⟩
@@ -632,16 +677,22 @@ theorem fold_count_split_le_of_survivor
                   (st.2.1 ∩ (st.1 ∪ d ∩ G)).card ≤
                     (st.2.1 ∩ st.1).card + W :=
                 card_inter_union_le_add_bound _ _ _ hdel
-              simp [hp]
-              linarith [hP₇, hnew]
+              have h_rhs : c + (if p d then W else 0) +
+                  (if !p d then (d ∩ G).card else 0) = c + W := by simp [hp]
+              rw [h_rhs]
+              omega
             · have hdel : (st.2.1 ∩ (d ∩ G)).card ≤ (d ∩ G).card :=
                 Finset.card_le_card Finset.inter_subset_right
               have hnew :
                   (st.2.1 ∩ (st.1 ∪ d ∩ G)).card ≤
                     (st.2.1 ∩ st.1).card + (d ∩ G).card :=
                 card_inter_union_le_add_bound _ _ _ hdel
-              simp [hp]
-              linarith [hP₇, hnew]
+              have hp_false : p d = false := eq_false_of_ne_true hp
+              have h_rhs : c + (if p d then W else 0) +
+                  (if !p d then (d ∩ G).card else 0) = c + (d ∩ G).card := by
+                simp [hp_false]
+              rw [h_rhs]
+              omega
       have hcredit :
           c + ((d :: L').filter p).length * W +
               (((d :: L').filter (fun d => !p d)).map (fun d => (d ∩ G).card)).sum
@@ -736,19 +787,47 @@ theorem fold_window_nonempty (G : Finset α) (first : Finset α → Finset α)
     (Surv : Finset α) (hSurv : Surv.Nonempty) (hSurvG : Surv ⊆ G)
     (L : List (Finset α)) (hdisj : ∀ d ∈ L, Disjoint Surv (d ∩ G)) :
     (fold G first L).2.1.Nonempty := by
-  have h_foldl_nonempty : ∀ (M : List (Finset α)) (st : Finset α × Finset α × ℕ), st.2.1.Nonempty →
-      Disjoint Surv st.1 → (∀ d ∈ M,
-                             Disjoint Surv (d ∩ G)) → (M.foldl (step G first)
-                                                        st).2.1.Nonempty ∧ Disjoint Surv (M.foldl
-                                                                                           (step G
-                                                                                               first) st).1 := by
-    intro M st hst hSurv hdisj; induction M using List.reverseRecOn generalizing st with
-    | nil => simp_all +decide
+  have h_foldl_nonempty :
+      ∀ (M : List (Finset α)) (st : Finset α × Finset α × ℕ), st.2.1.Nonempty →
+        Disjoint Surv st.1 → (∀ d ∈ M, Disjoint Surv (d ∩ G)) →
+          (M.foldl (step G first) st).2.1.Nonempty ∧
+            Disjoint Surv (M.foldl (step G first) st).1 := by
+    intro M st hst h_disj_st hdisj; induction M using List.reverseRecOn generalizing st with
+    | nil => exact ⟨hst, h_disj_st⟩
     | append_singleton M' d hd =>
-      specialize hd st hst hSurv ; simp_all +decide [ step ] ;
-      split_ifs <;> simp_all +decide [ Finset.disjoint_left ];
-      · grind +splitImp;
-      · exact fun a ha₁ ha₂ ha₃ => hdisj d ( Or.inr rfl ) ha₁ ha₂ ha₃;
+      have hd_pre : ∀ d_1 ∈ M', Disjoint Surv (d_1 ∩ G) := fun d_1 hd_1 =>
+        hdisj d_1 (List.mem_append.mpr (Or.inl hd_1))
+      specialize hd st hst h_disj_st hd_pre
+      simp only [List.foldl_append, List.foldl_cons, List.foldl_nil, step]
+      split_ifs
+      · refine ⟨?_, ?_⟩
+        · apply hfirst_ne
+          apply Finset.Nonempty.mono _ hSurv
+          intro x hx
+          rw [Finset.mem_sdiff, Finset.mem_union]
+          refine ⟨hSurvG hx, ?_⟩
+          push_neg
+          constructor
+          · exact Finset.disjoint_left.mp hd.2 hx
+          · have hd_disj := hdisj d (List.mem_append_right M' (List.mem_singleton_self d))
+            exact Finset.disjoint_left.mp hd_disj hx
+        · simp only [Finset.disjoint_left]
+          intro a ha₁ ha₂
+          rw [Finset.mem_union] at ha₂
+          cases ha₂ with
+          | inl h1 => exact Finset.disjoint_left.mp hd.2 ha₁ h1
+          | inr h2 =>
+            have hd_disj := hdisj d (List.mem_append_right M' (List.mem_singleton_self d))
+            exact Finset.disjoint_left.mp hd_disj ha₁ h2
+      · refine ⟨hd.1, ?_⟩
+        simp only [Finset.disjoint_left] at hd hdisj ⊢
+        intro a ha₁ ha₂
+        rw [Finset.mem_union, Finset.mem_inter] at ha₂
+        cases ha₂ with
+        | inl h1 => exact hd.2 ha₁ h1
+        | inr h2 =>
+          have hd_disj := hdisj d (List.mem_append_right M' (List.mem_singleton_self d))
+          exact hd_disj ha₁ (Finset.mem_inter.mpr h2)
   exact h_foldl_nonempty L ( ∅, first G,
                              0 ) ( hfirst_ne G ( hSurv.mono hSurvG ) ) ( by simp +decide
                                                                          ) hdisj |>.1

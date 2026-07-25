@@ -248,13 +248,16 @@ lemma exactLengthPrograms_nodup (n : ℕ) : (exactLengthPrograms n).Nodup := by
 `boundedPrograms N` has no duplicates.
 -/
 lemma boundedPrograms_nodup (N : ℕ) : (boundedPrograms N).Nodup := by
-  refine List.nodup_flatMap.mpr ?_;
-  refine ⟨ fun x hx => exactLengthPrograms_nodup x, ?_ ⟩;
-  refine List.pairwise_iff_get.mpr ?_;
-  intros i j hij; rw [ Function.onFun, List.disjoint_left ] ; intros x hx hy
-  have := exactLengthPrograms_length_eq _ _ hx; have := exactLengthPrograms_length_eq _ _ hy
-  simp_all +decide;
-  exact hij.ne ( Fin.ext ‹_› ▸ rfl )
+  refine List.nodup_flatMap.mpr ⟨fun x _ => exactLengthPrograms_nodup x, ?_⟩
+  refine List.pairwise_iff_get.mpr fun i j hij => ?_
+  rw [Function.onFun, List.disjoint_left]
+  intros x hx hy
+  have h1 := exactLengthPrograms_length_eq _ _ hx
+  have h2 := exactLengthPrograms_length_eq _ _ hy
+  have heq : List.get (List.range (N + 1)) i = List.get (List.range (N + 1)) j := by
+    rw [← h1, ← h2]
+  simp only [List.get_eq_getElem, List.getElem_range] at heq
+  exact hij.ne (Fin.ext heq)
 
 /-- A bitstring is in `boundedPrograms N` if and only if its length is at most `N`. -/
 lemma mem_boundedPrograms_iff (p : List Bool) (N : ℕ) :

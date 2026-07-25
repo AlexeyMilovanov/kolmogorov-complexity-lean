@@ -206,45 +206,35 @@ from the dovetailed enumeration `approxEnum`. -/
 /-
 Computability of a stagewise `Finset.range` supremum: if `g` and the
 two-argument family `f` are computable, then so is `a ↦ (Finset.range (g a)).sup (f a)`.
-Proved by rewriting the `Finset.range` sup as a `List.range` fold.
+The proof computes the running maximum by primitive recursion on the range bound.
 -/
 lemma computable_finset_range_sup {α : Type*} [Primcodable α]
     (g : α → ℕ) (f : α → ℕ → ℕ)
     (hg : Computable g) (hf : Computable (fun p : α × ℕ => f p.1 p.2)) :
     Computable (fun a => (Finset.range (g a)).sup (f a)) := by
-  have hconvert : ∀ (n : ℕ) (f : ℕ → ℕ), (Finset.range n).sup f = (List.range n).foldr (fun s' acc => max (f s') acc) 0 := by
-    intro n f
+  let step : α → ℕ × ℕ → ℕ := fun a q => max (f a q.1) q.2
+  have hstep : Computable
+      (fun r : (α × ℕ) × (ℕ × ℕ) => step r.1.1 r.2) := by
+    have hleft : Computable (fun r : (α × ℕ) × (ℕ × ℕ) => f r.1.1 r.2.1) :=
+      hf.comp ((Computable.fst.comp Computable.fst).pair
+        (Computable.fst.comp Computable.snd))
+    have hright : Computable (fun r : (α × ℕ) × (ℕ × ℕ) => r.2.2) :=
+      Computable.snd.comp Computable.snd
+    exact Primrec.nat_max.to_comp.comp hleft hright
+  have hrec : Computable (fun p : α × ℕ =>
+      Nat.rec (motive := fun _ => ℕ) 0 (fun n acc => step p.1 (n, acc)) p.2) :=
+    Computable.nat_rec Computable.snd (Computable.const 0) hstep.to₂
+  have hsup : ∀ (a : α) (n : ℕ),
+      Nat.rec (motive := fun _ => ℕ) 0 (fun k acc => step a (k, acc)) n =
+        (Finset.range n).sup (f a) := by
+    intro a n
     induction n with
-    | zero => simp +decide [ * ]
+    | zero => simp
     | succ n ih =>
-      simp +decide [ *, Finset.range_add_one, List.range_succ ]
-      induction ( List.range n ) <;> simp +decide [ * ];
-      grind
-  generalize_proofs at *;
-  have hconvert : Computable (fun a : α => (List.range (g a)).foldr (fun s' acc => max (f a s') acc) 0) := by
-    have hconvert : Computable (fun p : α × ℕ => List.foldr (fun s' acc => max (f p.1 s') acc) 0 (List.range p.2)) := by
-      apply Computable.of_eq;
-      apply Computable.nat_rec;
-      exact Computable.snd;
-      exact Computable.const 0;
-      rotate_left;
-      exact fun p q => max ( f p.1 q.1 ) q.2
-      all_goals generalize_proofs at *;
-      · intro n; induction n.2 <;> simp +decide [ *, List.range_succ ] ;
-        induction ( List.range ‹_› ) <;> simp +decide [ * ];
-        grind;
-      · have hconvert : Computable (fun p : α × ℕ × ℕ => max (f p.1 p.2.1) p.2.2) := by
-          have hconvert : Computable (fun p : α × ℕ × ℕ => (f p.1 p.2.1, p.2.2)) := by
-            exact Computable.pair ( hf.comp ( Computable.fst.comp Computable.id |> Computable.pair <| Computable.fst.comp ( Computable.snd.comp Computable.id ) ) ) ( Computable.snd.comp ( Computable.snd.comp Computable.id ) )
-          have hconvert : Computable (fun p : ℕ × ℕ => max p.1 p.2) := by
-            convert Primrec.nat_max.comp ( Primrec.fst ) ( Primrec.snd ) |> Primrec.to_comp using 1
-          generalize_proofs at *;
-          exact hconvert.comp ‹_›
-        generalize_proofs at *;
-        convert hconvert.comp ( Computable.fst.comp Computable.fst |> Computable.pair <| Computable.fst.comp Computable.snd |> Computable.pair <| Computable.snd.comp Computable.snd ) using 1
-    generalize_proofs at *;
-    convert hconvert.comp ( Computable.pair ( Computable.id ) hg ) using 1
-  generalize_proofs at * ; aesop;
+        change step a (n, Nat.rec 0 (fun k acc => step a (k, acc)) n) = _
+        rw [ih]
+        simp [Finset.range_add_one, step, max_comm]
+  exact (hrec.comp (Computable.id.pair hg)).of_eq (fun a => hsup a (g a))
 
 /-- **The dovetailed `evaln`-budget enumeration of all lower-semicomputable
 approximations.**
@@ -274,53 +264,78 @@ lemmas are used). -/
 lemma approxEnum_computable :
     Computable (fun p : ℕ × ℕ × BitString × BitString =>
       approxEnum p.1 p.2.1 p.2.2.1 p.2.2.2) := by
-  apply Computable.of_eq;
-  rotate_right;
-  exact fun p => ( Finset.range ( p.2.1 + 1 ) ).sup fun s' => match Nat.Partrec.Code.evaln p.2.1 ( ( Encodable.decode ( α := Nat.Partrec.Code ) p.1 ).getD Nat.Partrec.Code.zero ) ( Encodable.encode ( s', p.2.2.1, p.2.2.2 ) ) with | some v => v * 2 ^ ( p.2.1 - s' ) | none => 0;
+  refine Computable.of_eq
+    (f := fun p => ( Finset.range ( p.2.1 + 1 ) ).sup fun s' =>
+      match Nat.Partrec.Code.evaln p.2.1
+          ( ( Encodable.decode ( α := Nat.Partrec.Code ) p.1 ).getD Nat.Partrec.Code.zero )
+          ( Encodable.encode ( s', p.2.2.1, p.2.2.2 ) ) with
+      | some v => v * 2 ^ ( p.2.1 - s' )
+      | none => 0) ?_ ?_
   · convert computable_finset_range_sup _ _ _ _;
     · exact Computable.succ.comp ( Computable.fst.comp ( Computable.snd ) );
     · convert Computable.option_casesOn _ _ _ using 1;
-      rotate_left;
-      exact ℕ;
-      exact inferInstance;
-      exact fun p => Nat.Partrec.Code.evaln p.1.2.1 ( ( Encodable.decode p.1.1 ).getD Nat.Partrec.Code.zero ) ( Encodable.encode ( p.2, p.1.2.2.1, p.1.2.2.2 ) );
-      exact fun p => 0;
-      exact fun p v => v * 2 ^ ( p.1.2.1 - p.2 );
-      · convert Nat.Partrec.Code.primrec_evaln.to_comp.comp _ using 1;
-        rotate_left;
-        exact fun p => ( ( p.1.2.1, ( Encodable.decode p.1.1 ).getD Nat.Partrec.Code.zero ), Encodable.encode ( p.2, p.1.2.2.1, p.1.2.2.2 ) );
+      rotate_left
+      · exact ℕ
+      · exact inferInstance
+      · exact fun p => Nat.Partrec.Code.evaln p.1.2.1
+          ((Encodable.decode p.1.1).getD Nat.Partrec.Code.zero)
+          (Encodable.encode (p.2, p.1.2.2.1, p.1.2.2.2))
+      · exact fun _ => 0
+      · exact fun p v => v * 2 ^ (p.1.2.1 - p.2)
+      · convert Nat.Partrec.Code.primrec_evaln.to_comp.comp _ using 1
+        rotate_left
+        · exact fun p =>
+            ((p.1.2.1, (Encodable.decode p.1.1).getD Nat.Partrec.Code.zero),
+              Encodable.encode (p.2, p.1.2.2.1, p.1.2.2.2))
         · apply Computable.pair;
           · apply Computable.pair;
             · exact Computable.fst.comp ( Computable.snd.comp Computable.fst );
-            · convert Computable.option_getD ( Computable.decode.comp ( Computable.fst.comp Computable.fst ) ) ( Computable.const Nat.Partrec.Code.zero ) using 1;
+            · convert Computable.option_getD
+                ( Computable.decode.comp ( Computable.fst.comp Computable.fst ) )
+                ( Computable.const Nat.Partrec.Code.zero ) using 1;
           · apply Computable.pair;
             · exact Computable.snd;
-            · exact Computable.pair ( Computable.fst.comp ( Computable.snd.comp ( Computable.snd.comp Computable.fst ) ) ) ( Computable.snd.comp ( Computable.snd.comp ( Computable.snd.comp Computable.fst ) ) );
+            · exact Computable.pair ( Computable.fst.comp ( Computable.snd.comp (
+                Computable.snd.comp Computable.fst ) ) ) ( Computable.snd.comp (
+                  Computable.snd.comp ( Computable.snd.comp Computable.fst ) ) );
         · rfl;
       · exact Computable.const 0;
       · refine Computable.of_eq
           (f := fun p : ((ℕ × (ℕ × BitString × BitString)) × ℕ) × ℕ =>
             p.2 * 2 ^ ( p.1.1.2.1 - p.1.2 )) ?_ ?_;
-        · have h_primrec : Primrec (fun p : ℕ × ℕ × BitString × BitString × ℕ => p.2.2.2.2 * 2 ^ (p.2.1 - p.1)) := by
+        · have h_primrec : Primrec
+            (fun p : ℕ × ℕ × BitString × BitString × ℕ => p.2.2.2.2 * 2 ^ (p.2.1 - p.1)) := by
             have h_primrec : Primrec (fun p : ℕ × ℕ × BitString × BitString × ℕ => p.2.2.2.2) := by
               exact Primrec.snd.comp ( Primrec.snd.comp ( Primrec.snd.comp ( Primrec.snd ) ) );
-            have h_primrec : Primrec (fun p : ℕ × ℕ × BitString × BitString × ℕ => 2 ^ (p.2.1 - p.1)) := by
+            have h_primrec : Primrec
+                (fun p : ℕ × ℕ × BitString × BitString × ℕ => 2 ^ (p.2.1 - p.1)) := by
               have h_primrec : Primrec (fun p : ℕ × ℕ => 2 ^ (p.2 - p.1)) := by
                 have h_primrec : Primrec (fun p : ℕ × ℕ => p.2 - p.1) := by
                   exact Primrec.nat_sub.comp ( Primrec.snd ) ( Primrec.fst );
                 have h_primrec : Primrec (fun p : ℕ => 2 ^ p) := by
                   convert primrec_two_pow using 1;
                 exact h_primrec.comp ‹_›;
-              convert h_primrec.comp ( show Primrec ( fun p : ℕ × ℕ × BitString × BitString × ℕ => ( p.1, p.2.1 ) ) from ?_ ) using 1;
+              convert h_primrec.comp ( show Primrec
+                  ( fun p : ℕ × ℕ × BitString × BitString × ℕ => ( p.1, p.2.1 ) )
+                  from ?_ ) using 1;
               exact Primrec.pair ( Primrec.fst ) ( Primrec.fst.comp ( Primrec.snd ) );
             exact Primrec.nat_mul.comp ( by assumption ) ( by assumption );
-          convert h_primrec.to_comp.comp _ using 1;
-          rotate_left;
-          exact fun p => ( p.1.2, p.1.1.2.1, p.1.1.2.2.1, p.1.1.2.2.2, p.2 );
-          · exact Computable.pair ( Computable.snd.comp Computable.fst ) ( Computable.pair ( Computable.fst.comp ( Computable.snd.comp ( Computable.fst.comp Computable.fst ) ) ) ( Computable.pair ( Computable.fst.comp ( Computable.snd.comp ( Computable.snd.comp ( Computable.fst.comp Computable.fst ) ) ) ) ( Computable.pair ( Computable.snd.comp ( Computable.snd.comp ( Computable.snd.comp ( Computable.fst.comp Computable.fst ) ) ) ) ( Computable.snd ) ) ) );
+          convert h_primrec.to_comp.comp _ using 1
+          rotate_left
+          · exact fun p => (p.1.2, p.1.1.2.1, p.1.1.2.2.1, p.1.1.2.2.2, p.2)
+          · exact Computable.pair ( Computable.snd.comp Computable.fst )
+              ( Computable.pair ( Computable.fst.comp ( Computable.snd.comp (
+                Computable.fst.comp Computable.fst ) ) ) ( Computable.pair (
+                  Computable.fst.comp ( Computable.snd.comp ( Computable.snd.comp (
+                    Computable.fst.comp Computable.fst ) ) ) ) ( Computable.pair (
+                      Computable.snd.comp ( Computable.snd.comp ( Computable.snd.comp (
+                        Computable.fst.comp Computable.fst ) ) ) ) ( Computable.snd ) ) ) );
           · exact funext fun p => by cases p; rfl;
         · aesop;
-      · exact funext fun p => by cases Nat.Partrec.Code.evaln p.1.2.1 ( ( Encodable.decode p.1.1 ).getD Nat.Partrec.Code.zero ) ( Encodable.encode ( p.2, p.1.2.2.1, p.1.2.2.2 ) ) <;> rfl;
+      · exact funext (fun p => by
+          cases Nat.Partrec.Code.evaln p.1.2.1
+            ( ( Encodable.decode p.1.1 ).getD Nat.Partrec.Code.zero )
+            ( Encodable.encode ( p.2, p.1.2.2.1, p.1.2.2.2 ) ) <;> rfl);
   · grind +locals
 
 /-
@@ -350,57 +365,101 @@ lemma exists_approxEnum (approx : ℕ → BitString → BitString → ℕ)
       (⨆ s, dyadicValue (approx s out ctx) s) := by
         revert hcomp;
         intro hcomp
-        obtain ⟨c, hc⟩ : ∃ c : Nat.Partrec.Code, ∀ s out ctx, Nat.Partrec.Code.eval c (Encodable.encode (s, out, ctx)) = some (approx s out ctx) := by
-          have h_total : ∃ h : ℕ → ℕ, Computable h ∧ ∀ s out ctx, h (Encodable.encode (s, out, ctx)) = approx s out ctx := by
-            use fun n => approx (Encodable.decode (α := ℕ × BitString × BitString) n |>.getD (0, [], [])).1 (Encodable.decode (α := ℕ × BitString × BitString) n |>.getD (0, [], [])).2.1 (Encodable.decode (α := ℕ × BitString × BitString) n |>.getD (0, [], [])).2.2;
-            convert hcomp.comp ( Computable.option_getD ( Computable.decode ) ( Computable.const ( 0, [ ], [ ] ) ) ) using 1;
+        obtain ⟨c, hc⟩ : ∃ c : Nat.Partrec.Code, ∀ s out ctx, Nat.Partrec.Code.eval c
+            (Encodable.encode (s, out, ctx)) = some (approx s out ctx) := by
+          have h_total : ∃ h : ℕ → ℕ, Computable h ∧ ∀ s out ctx, h (Encodable.encode (s, out, ctx))
+              = approx s out ctx := by
+            use fun n => approx (Encodable.decode (α :=
+                ℕ × BitString × BitString) n |>.getD (0, [], [])).1
+              (Encodable.decode (α :=
+                ℕ × BitString × BitString) n |>.getD (0, [], [])).2.1
+              (Encodable.decode (α :=
+                ℕ × BitString × BitString) n |>.getD (0, [], [])).2.2;
+            convert hcomp.comp ( Computable.option_getD ( Computable.decode )
+                ( Computable.const ( 0, [ ], [ ] ) ) ) using 1;
             simp +decide [ Encodable.encodek ];
           obtain ⟨ h, hh₁, hh₂ ⟩ := h_total;
           have := @Nat.Partrec.Code.exists_code;
           obtain ⟨ c, hc ⟩ := this.mp ( show Nat.Partrec ( fun n => Part.some ( h n ) ) from by
                                           convert hh₁ using 1;
-                                          constructor <;> intro h <;> simp_all +decide [ Computable ];
+                                          constructor <;> intro h <;>
+                                            simp_all +decide only [Computable,
+                                              Encodable.encode_prod_val, Encodable.encode_nat];
                                           convert hh₁ using 1;
                                           grind +suggestions );
           exact ⟨ c, fun s out ctx => by simp +decide [ ← hh₂, hc ] ⟩;
-        refine ⟨ Encodable.encode c, fun out ctx => le_antisymm ?_ ?_ ⟩ <;> simp_all +decide [ approxEnum ];
+        refine ⟨ Encodable.encode c, fun out ctx =>
+            le_antisymm ?_ ?_ ⟩ <;>
+              simp_all +decide only [Encodable.encode_prod_val, Encodable.encode_nat,
+                Part.coe_some, approxEnum, Denumerable.decode_eq_ofNat, Denumerable.ofNat_encode,
+                Option.getD_some, iSup_le_iff];
         · intro i
-          have h_term : ∀ s' ∈ Finset.range (i + 1), dyadicValue (match Nat.Partrec.Code.evaln i c (Nat.pair s' (Nat.pair (Encodable.encode out) (Encodable.encode ctx))) with
+          have h_term : ∀ s' ∈ Finset.range (i + 1),
+              dyadicValue (match Nat.Partrec.Code.evaln i c (Nat.pair s' (Nat.pair (
+                Encodable.encode out) (Encodable.encode ctx))) with
             | some v => v * 2 ^ (i - s')
             | none => 0) i ≤ ⨆ s, dyadicValue (approx s out ctx) s := by
               intro s' hs'
-              have h_term : Nat.Partrec.Code.evaln i c (Nat.pair s' (Nat.pair (Encodable.encode out) (Encodable.encode ctx))) = some (approx s' out ctx) ∨ Nat.Partrec.Code.evaln i c (Nat.pair s' (Nat.pair (Encodable.encode out) (Encodable.encode ctx))) = none := by
-                cases h : Nat.Partrec.Code.evaln i c ( Nat.pair s' ( Nat.pair ( Encodable.encode out ) ( Encodable.encode ctx ) ) ) <;> simp_all +decide [ Part.eq_some_iff ];
+              have h_term : Nat.Partrec.Code.evaln i c
+                  (Nat.pair s' (Nat.pair (Encodable.encode out) (Encodable.encode ctx))) = some
+                  (approx s' out ctx) ∨ Nat.Partrec.Code.evaln i c
+                  (Nat.pair s' (Nat.pair (Encodable.encode out)
+                      (Encodable.encode ctx))) = none := by
+                cases h : Nat.Partrec.Code.evaln i c ( Nat.pair s' ( Nat.pair (
+                    Encodable.encode out ) ( Encodable.encode ctx ) ) ) <;>
+                  simp_all +decide [ Part.eq_some_iff ];
                 have := Nat.Partrec.Code.evaln_sound h; simp_all +decide [ Part.mem_eq ] ;
                 cases hc s' out ctx ; aesop
               generalize_proofs at *; (
-              cases h_term <;> simp +decide [ *, dyadicValue ];
-              refine le_trans ?_ ( le_ciSup ?_ s' ) <;> norm_num [ div_eq_mul_inv, mul_assoc, mul_comm, mul_left_comm, pow_add ];
-              rw [ show ( 2 ^ i : ℝ≥0∞ ) = 2 ^ ( i - s' ) * 2 ^ s' by rw [ ← pow_add, Nat.sub_add_cancel ( Finset.mem_range_succ_iff.mp hs' ) ] ] ; norm_num [ mul_assoc, mul_comm, mul_left_comm ];
+              cases h_term <;>
+                simp +decide only [dyadicValue, Nat.cast_mul, Nat.cast_pow, Nat.cast_ofNat,
+                  ge_iff_le, Nat.cast_zero, ENNReal.zero_div, zero_le, *];
+              refine le_trans ?_ ( le_ciSup ?_ s' ) <;> norm_num [ div_eq_mul_inv, mul_assoc,
+                  mul_comm, mul_left_comm, pow_add ];
+              rw [ show ( 2 ^ i : ℝ≥0∞ ) = 2 ^ ( i - s' ) * 2 ^ s' by rw [ ← pow_add,
+                  Nat.sub_add_cancel ( Finset.mem_range_succ_iff.mp hs' ) ] ] ;
+              norm_num [ mul_assoc, mul_comm, mul_left_comm ];
               simp +decide [    ENNReal.mul_inv ];
               simp +decide [ mul_left_comm ( 2 ^ ( i - s' ) : ℝ≥0∞ ), ENNReal.mul_inv_cancel ]);
-          have h_sup : ∀ {S : Finset ℕ} {f : ℕ → ℕ}, (∀ s' ∈ S, dyadicValue (f s') i ≤ ⨆ s, dyadicValue (approx s out ctx) s) → dyadicValue (S.sup f) i ≤ ⨆ s, dyadicValue (approx s out ctx) s := by
+          have h_sup : ∀ {S : Finset ℕ} {f : ℕ → ℕ},
+              (∀ s' ∈ S, dyadicValue (f s') i ≤ ⨆ s,
+                dyadicValue (approx s out ctx) s) →
+              dyadicValue (S.sup f) i ≤ ⨆ s, dyadicValue (approx s out ctx) s := by
             intro S f
             induction S using Finset.induction with
             | empty => intro hf; simp_all +decide [ dyadicValue ]
             | @insert s' S' hs' ih =>
               intro hf
-              cases max_cases ( f s' ) ( S'.sup f ) <;> simp +decide [ * ]
+              cases max_cases ( f s' ) ( S'.sup f ) <;>
+                simp +decide only [Finset.sup_insert, sup_of_le_left, Finset.mem_insert,
+                  or_false, *]
               exact ih fun s' hs' => hf s' ( Finset.mem_insert_of_mem hs' )
           exact h_sup h_term;
         · intro s;
-          -- By definition of `Nat.Partrec.Code.evaln`, there exists some `k` such that `Nat.Partrec.Code.evaln k c (Nat.pair s (Nat.pair (Encodable.encode out) (Encodable.encode ctx))) = some (approx s out ctx)`.
-          obtain ⟨k, hk⟩ : ∃ k, Nat.Partrec.Code.evaln k c (Nat.pair s (Nat.pair (Encodable.encode out) (Encodable.encode ctx))) = some (approx s out ctx) := by
-            simp_all +decide [ Part.eq_some_iff ];
+          -- By definition of `Nat.Partrec.Code.evaln`, there exists some `k` such that
+          --   `Nat.Partrec.Code.evaln k c (Nat.pair s (Nat.pair (Encodable.encode out)
+          --   (Encodable.encode ctx))) = some (approx s out ctx)`.
+          obtain ⟨k, hk⟩ : ∃ k, Nat.Partrec.Code.evaln k c
+              (Nat.pair s (Nat.pair (Encodable.encode out) (Encodable.encode ctx))) = some
+              (approx s out ctx) := by
+            simp_all +decide only [Part.eq_some_iff];
             obtain ⟨ h, hh ⟩ := hc s out ctx;
             exact Nat.Partrec.Code.evaln_complete.mp (hc s out ctx);
           refine le_trans ?_ ( le_iSup _ ( Max.max s k ) );
-          refine le_trans ?_ ( ENNReal.div_le_div ( Nat.cast_le.mpr <| Finset.le_sup <| Finset.mem_range.mpr <| Nat.lt_succ_of_le <| le_max_left s k ) le_rfl );
-          rw [ show Nat.Partrec.Code.evaln ( Max.max s k ) c ( Nat.pair s ( Nat.pair ( Encodable.encode out ) ( Encodable.encode ctx ) ) ) = some ( approx s out ctx ) from ?_ ];
-          · unfold dyadicValue; norm_num [ pow_add, pow_one, pow_mul, mul_assoc, mul_comm, mul_left_comm, div_eq_mul_inv ] ;
-            rw [ show ( 2 : ℝ≥0∞ ) ^ max s k = ( 2 : ℝ≥0∞ ) ^ ( max s k - s ) * ( 2 : ℝ≥0∞ ) ^ s by rw [ ← pow_add, Nat.sub_add_cancel ( le_max_left _ _ ) ] ] ; ring_nf ;
-            simp +decide [  mul_comm, mul_left_comm, ENNReal.mul_inv ];
-            rw [ mul_left_comm ( 2 ^ ( max s k - s ) : ℝ≥0∞ ), ENNReal.mul_inv_cancel ( by norm_num ) ( by norm_num ), mul_one ];
+          refine le_trans ?_ ( ENNReal.div_le_div ( Nat.cast_le.mpr <| Finset.le_sup
+              <| Finset.mem_range.mpr <| Nat.lt_succ_of_le <| le_max_left s k ) le_rfl );
+          rw [ show Nat.Partrec.Code.evaln ( Max.max s k ) c ( Nat.pair s ( Nat.pair (
+              Encodable.encode out ) ( Encodable.encode ctx ) ) ) =
+                some ( approx s out ctx ) from ?_ ];
+          · unfold dyadicValue; norm_num [ pow_add, pow_one, pow_mul, mul_assoc, mul_comm,
+              mul_left_comm, div_eq_mul_inv ] ;
+            rw [ show ( 2 : ℝ≥0∞ ) ^ max s k = ( 2 : ℝ≥0∞ ) ^ ( max s k - s ) * ( 2 : ℝ≥0∞ ) ^
+                s by rw [ ← pow_add, Nat.sub_add_cancel ( le_max_left _ _ ) ] ] ; ring_nf ;
+            simp +decide only [ne_eq, pow_eq_zero_iff', OfNat.ofNat_ne_zero, false_and,
+              not_false_eq_true, ENNReal.pow_eq_top_iff, or_self, ENNReal.mul_inv, mul_comm,
+              mul_left_comm];
+            rw [ mul_left_comm ( 2 ^ ( max s k - s ) : ℝ≥0∞ ),
+                ENNReal.mul_inv_cancel ( by norm_num ) ( by norm_num ), mul_one ];
           · exact Nat.Partrec.Code.evaln_mono ( le_max_right _ _ ) hk
 
 /-- The monotonic wrapper for an approximation to ensure `dyadicValue` is non-decreasing. -/
@@ -409,7 +468,8 @@ def makeMono (approx : ℕ → BitString → BitString → ℕ) : ℕ → BitStr
   | (s+1), out, ctx => max (2 * makeMono approx s out ctx) (approx (s+1) out ctx)
 
 lemma makeMono_mono (approx : ℕ → BitString → BitString → ℕ) (s : ℕ) (out ctx : BitString) :
-    dyadicValue (makeMono approx s out ctx) s ≤ dyadicValue (makeMono approx (s + 1) out ctx) (s + 1) := by
+    dyadicValue (makeMono approx s out ctx) s ≤ dyadicValue (makeMono approx (s + 1) out ctx)
+        (s + 1) := by
   change dyadicValue (makeMono approx s out ctx) s
       ≤ dyadicValue (max (2 * makeMono approx s out ctx) (approx (s + 1) out ctx)) (s + 1)
   calc
@@ -506,37 +566,41 @@ lemma makeMono_computable_uniform (b : ℕ → ℕ → BitString → BitString �
     (hb : Computable (fun p : ℕ × ℕ × BitString × BitString => b p.1 p.2.1 p.2.2.1 p.2.2.2)) :
     Computable (fun p : ℕ × ℕ × BitString × BitString =>
       makeMono (b p.1) p.2.1 p.2.2.1 p.2.2.2) := by
-  apply Computable.of_eq;
-  apply Computable.nat_rec;
-  exact Computable.fst.comp Computable.snd;
-  convert hb.comp _;
-  exact fun p => ( p.1, 0, p.2.2.1, p.2.2.2 );
-  exact Computable.pair ( Computable.fst ) ( Computable.pair ( Computable.const 0 ) ( Computable.pair ( Computable.fst.comp ( Computable.snd.comp ( Computable.snd ) ) ) ( Computable.snd.comp ( Computable.snd.comp ( Computable.snd ) ) ) ) );
-  rotate_left;
-  exact fun p q => max ( 2 * q.2 ) ( b p.1 ( q.1 + 1 ) p.2.2.1 p.2.2.2 );
-  · intro n; induction n.2.1 <;> simp +decide [ *, makeMono ] ;
-  · apply Computable.of_eq;
-    rotate_right;
-    exact fun p => max ( 2 * p.2.2 ) ( b p.1.1 ( p.2.1 + 1 ) p.1.2.2.1 p.1.2.2.2 );
-    · apply Computable.of_eq;
-      apply Computable.comp (Primrec.nat_max.to_comp);
-      rotate_left;
-      exact fun p => ( 2 * p.2.2, b p.1.1 ( p.2.1 + 1 ) p.1.2.2.1 p.1.2.2.2 );
-      · grind;
-      · apply Computable.pair;
-        · apply Computable.comp (Primrec.nat_mul.to_comp) (Computable.const 2 |> Computable.pair <| Computable.snd.comp Computable.snd);
-        · convert hb.comp _ using 1;
-          rotate_left;
-          exact fun p => ( p.1.1, p.2.1 + 1, p.1.2.2.1, p.1.2.2.2 );
-          · apply Computable.pair;
-            · exact Computable.fst.comp Computable.fst;
-            · apply Computable.pair;
-              · exact Computable.succ.comp ( Computable.fst.comp ( Computable.snd ) );
-              · apply Computable.pair;
-                · exact Computable.fst.comp ( Computable.snd.comp ( Computable.snd.comp Computable.fst ) );
-                · exact Computable.snd.comp ( Computable.snd.comp ( Computable.snd.comp Computable.fst ) );
-          · rfl;
-    · grind +extAll
+  apply Computable.of_eq
+  · apply Computable.nat_rec
+    case hf.hf => exact Computable.fst.comp Computable.snd
+    case hf.hg =>
+      exact hb.comp (Computable.fst.pair ((Computable.const 0).pair
+        (Computable.snd.comp Computable.snd)))
+    case hf.h => exact fun p q => max ( 2 * q.2 ) ( b p.1 ( q.1 + 1 ) p.2.2.1 p.2.2.2 )
+    case hf.hh =>
+      apply Computable.of_eq
+      rotate_right
+      · exact fun p => max ( 2 * p.2.2 ) ( b p.1.1 ( p.2.1 + 1 ) p.1.2.2.1 p.1.2.2.2 )
+      · apply Computable.of_eq
+        · apply Computable.comp (Primrec.nat_max.to_comp)
+          rotate_left
+          · exact fun p =>
+            ( 2 * p.2.2, b p.1.1 ( p.2.1 + 1 ) p.1.2.2.1 p.1.2.2.2 )
+          · apply Computable.pair
+            · apply Computable.comp (Primrec.nat_mul.to_comp)
+                (Computable.const 2 |> Computable.pair <| Computable.snd.comp Computable.snd)
+            · convert hb.comp _ using 1
+              rotate_left
+              · exact fun p => ( p.1.1, p.2.1 + 1, p.1.2.2.1, p.1.2.2.2 )
+              · apply Computable.pair
+                · exact Computable.fst.comp Computable.fst
+                · apply Computable.pair
+                  · exact Computable.succ.comp ( Computable.fst.comp ( Computable.snd ) )
+                  · apply Computable.pair
+                    · exact Computable.fst.comp ( Computable.snd.comp
+                        ( Computable.snd.comp Computable.fst ) )
+                    · exact Computable.snd.comp ( Computable.snd.comp
+                        ( Computable.snd.comp Computable.fst ) )
+              · rfl
+        · grind
+      · grind +extAll
+  · intro n; induction n.2.1 <;> simp +decide [ *, makeMono ]
 
 /-- A sanitised LSC approximation generated by truncating `makeMono (approxEnum i)` to unit mass. -/
 noncomputable def lscEnum (i : ℕ) : BitString → BitString → ℝ≥0∞ :=
@@ -606,10 +670,17 @@ lemma dyadicValue_mixtureDyadicApprox
           dyadicWeight i * dyadicValue (a i (S / 2) out ctx) (S / 2) := by
   unfold dyadicValue mixtureDyadicApprox dyadicWeight;
   rw [ Nat.cast_sum, ENNReal.div_eq_inv_mul ];
-  rw [ Finset.mul_sum _ _ _ ] ; refine Finset.sum_congr rfl fun i hi => ?_ ; rw [ show ( 2 : ENNReal ) ^ S = ( 2 : ENNReal ) ^ ( i + 1 ) * ( 2 : ENNReal ) ^ ( S / 2 ) * ( 2 : ENNReal ) ^ ( S - ( i + 1 ) - S / 2 ) from _ ] ; ring_nf;
-  · simp +decide [ div_eq_mul_inv, mul_assoc, mul_comm, mul_left_comm, ENNReal.mul_inv, ENNReal.inv_pow ];
-    simp +decide [ ← mul_assoc ];
-    simp +decide [ mul_assoc, ← mul_pow ];
+  rw [ Finset.mul_sum _ _ _ ] ; refine Finset.sum_congr rfl fun i hi =>
+      ?_ ; rw [ show ( 2 : ENNReal ) ^ S = ( 2 : ENNReal ) ^ ( i + 1 ) *
+        ( 2 : ENNReal ) ^ ( S / 2 ) *
+        ( 2 : ENNReal ) ^ ( S - ( i + 1 ) - S / 2 ) from _ ];
+  · ring_nf
+    simp +decide only [mul_assoc, mul_comm, ne_eq, OfNat.ofNat_ne_zero, not_false_eq_true, true_or,
+      mul_eq_zero, pow_eq_zero_iff', false_and, Nat.div_eq_zero_iff, false_or, not_lt, or_self,
+      ENNReal.mul_inv, ENNReal.pow_eq_top_iff, ENNReal.inv_pow, Nat.cast_mul, Nat.cast_pow,
+      Nat.cast_ofNat, mul_left_comm, div_eq_mul_inv];
+    simp +decide only [← mul_assoc];
+    simp +decide only [mul_assoc, ← mul_pow];
     rw [ ENNReal.mul_inv_cancel ] <;> norm_num;
   · rw [ ← pow_add, ← pow_add ] ; congr 1 ; norm_num at * ; omega;
 
@@ -643,32 +714,46 @@ lemma isLSC_unaryMixture_dyadicWeight_of_uniform
   intro μ a hmono hsup hcomp
   set a' : ℕ → BitString → BitString → ℕ := fun S out ctx => mixtureDyadicApprox a S out ctx;
   -- Prove that `a'` is monotone in `S`.
-  have ha'_mono : ∀ S out ctx, dyadicValue (a' S out ctx) S ≤ dyadicValue (a' (S + 1) out ctx) (S + 1) := by
+  have ha'_mono : ∀ S out ctx, dyadicValue (a' S out ctx) S ≤ dyadicValue (a' (S + 1) out ctx)
+      (S + 1) := by
     intros S out ctx
-    simp [a', dyadicValue_mixtureDyadicApprox];
-    refine le_trans ?_ ( Finset.sum_le_sum_of_subset_of_nonneg ( Finset.range_mono ( Nat.div_le_div_right ( Nat.le_succ _ ) ) ) fun _ _ _ => by positivity );
+    simp only [dyadicValue_mixtureDyadicApprox, a'];
+    refine le_trans ?_ ( Finset.sum_le_sum_of_subset_of_nonneg ( Finset.range_mono (
+        Nat.div_le_div_right ( Nat.le_succ _ ) ) ) fun _ _ _ => by positivity );
     gcongr;
     cases Nat.mod_two_eq_zero_or_one S <;> simp_all +decide [ Nat.add_div ];
   -- Prove that `a'` converges to the mixture.
-  have ha'_sup : ∀ out ctx, ⨆ S, dyadicValue (a' S out ctx) S = ∑' i, dyadicWeight i * μ i out ctx := by
+  have ha'_sup : ∀ out ctx, ⨆ S, dyadicValue (a' S out ctx) S = ∑' i,
+      dyadicWeight i * μ i out ctx := by
     intro out ctx
-    have h_double_sup : ⨆ k, ∑ i ∈ Finset.range k, dyadicWeight i * dyadicValue (a i k out ctx) k = ∑' i, dyadicWeight i * μ i out ctx := by
-      have h_double_sup : ⨆ k, ∑ i ∈ Finset.range k, dyadicWeight i * dyadicValue (a i k out ctx) k = ⨆ k, ∑ i ∈ Finset.range k, dyadicWeight i * (⨆ s, dyadicValue (a i s out ctx) s) := by
+    have h_double_sup : ⨆ k, ∑ i ∈ Finset.range k, dyadicWeight i * dyadicValue (a i k out ctx) k =
+        ∑' i, dyadicWeight i * μ i out ctx := by
+      have h_double_sup : ⨆ k, ∑ i ∈ Finset.range k, dyadicWeight i * dyadicValue (a i k out ctx) k
+          = ⨆ k, ∑ i ∈ Finset.range k, dyadicWeight i * (⨆ s, dyadicValue (a i s out ctx) s) := by
         apply le_antisymm;
         · refine iSup_mono fun k => Finset.sum_le_sum fun i hi => mul_le_mul_right ?_ _;
           exact le_iSup_of_le k le_rfl;
         · refine iSup_le fun k => ?_;
           refine le_of_forall_lt_imp_le_of_dense fun x hx => ?_;
-          -- Since $x < \sum_{i=0}^{k-1} \text{dyadicWeight}(i) \cdot \sup_{s} \text{dyadicValue}(a(i, s, out, ctx))$, there exists some $N$ such that $x < \sum_{i=0}^{k-1} \text{dyadicWeight}(i) \cdot \text{dyadicValue}(a(i, N, out, ctx))$.
-          obtain ⟨N, hN⟩ : ∃ N, x < ∑ i ∈ Finset.range k, dyadicWeight i * dyadicValue (a i N out ctx) N := by
-            have h_lim : Filter.Tendsto (fun N => ∑ i ∈ Finset.range k, dyadicWeight i * dyadicValue (a i N out ctx) N) Filter.atTop (nhds (∑ i ∈ Finset.range k, dyadicWeight i * ⨆ s, dyadicValue (a i s out ctx) s)) := by
+          -- Since $x < \sum_{i=0}^{k-1} \text{dyadicWeight}(i) \cdot \sup_{s}
+          --   \text{dyadicValue}(a(i, s, out, ctx))$, there exists some $N$ such that $x <
+          --   \sum_{i=0}^{k-1} \text{dyadicWeight}(i) \cdot \text{dyadicValue}(a(i, N, out, ctx))$.
+          obtain ⟨N, hN⟩ : ∃ N, x < ∑ i ∈ Finset.range k, dyadicWeight i * dyadicValue
+              (a i N out ctx) N := by
+            have h_lim : Filter.Tendsto
+                (fun N => ∑ i ∈ Finset.range k, dyadicWeight i * dyadicValue (a i N out ctx) N)
+                Filter.atTop
+                (nhds (∑ i ∈ Finset.range k, dyadicWeight i * ⨆ s,
+                    dyadicValue (a i s out ctx) s)) := by
               refine tendsto_finset_sum _ fun i _ => ?_;
               refine ENNReal.Tendsto.const_mul ?_ ?_;
-              · exact tendsto_atTop_iSup fun s t hst => monotone_nat_of_le_succ ( fun s => hmono i s out ctx ) hst;
+              · exact tendsto_atTop_iSup fun s t hst => monotone_nat_of_le_succ ( fun s =>
+                  hmono i s out ctx ) hst;
               · exact Or.inr ( by simp +decide [ dyadicWeight ] );
             exact ( h_lim.eventually ( lt_mem_nhds hx ) ) |> fun h => h.exists;
           refine le_trans hN.le ( le_trans ?_ ( le_iSup _ ( Max.max k N ) ) );
-          refine le_trans ?_ ( Finset.sum_le_sum_of_subset_of_nonneg ( Finset.range_mono ( le_max_left k N ) ) fun _ _ _ => by positivity );
+          refine le_trans ?_ ( Finset.sum_le_sum_of_subset_of_nonneg ( Finset.range_mono (
+              le_max_left k N ) ) fun _ _ _ => by positivity );
           gcongr;
           exact monotone_nat_of_le_succ ( fun s => hmono _ s _ _ ) ( le_max_right _ _ );
       simp_all +decide [ ENNReal.tsum_eq_iSup_nat ];
@@ -684,32 +769,39 @@ lemma isLSC_unaryMixture_dyadicWeight_of_uniform
       norm_num;
   -- Prove that `a'` is computable.
   have ha'_comp : Computable (fun p : ℕ × BitString × BitString => a' p.1 p.2.1 p.2.2) := by
-    apply Computable.of_eq;
-    convert computable_range_sum _ _ _ _ using 1;
-    use fun p i => a i ( p.1 / 2 ) p.2.1 p.2.2 * 2 ^ ( p.1 - ( i + 1 ) - p.1 / 2 );
-    rotate_left;
-    use fun p => p.1 / 2;
-    · convert Primrec.to_comp ( Primrec.nat_div.comp ( Primrec.fst ) ( Primrec.const 2 ) ) using 1;
-    · aesop;
-    · apply Computable₂.comp;
-      · exact Primrec.to_comp ( Primrec.nat_mul.comp ( Primrec.fst ) ( Primrec.snd ) );
-      · convert hcomp.comp _ using 1;
-        rotate_left;
-        exact fun p => ( p.2, p.1.1 / 2, p.1.2.1, p.1.2.2 );
-        · apply Computable.pair;
-          · exact Computable.snd;
-          · apply Computable.pair;
-            · have h_div : Primrec (fun n : ℕ => n / 2) := by
-                exact Primrec.nat_div.comp ( Primrec.id ) ( Primrec.const 2 );
-              exact h_div.to_comp.comp ( Computable.fst.comp Computable.fst );
-            · exact Computable.pair ( Computable.fst.comp ( Computable.snd.comp Computable.fst ) ) ( Computable.snd.comp ( Computable.snd.comp Computable.fst ) );
-        · rfl;
-      · apply Computable.of_eq;
-        rotate_right;
-        exact fun p => 2 ^ ( p.1.1 - ( p.2 + 1 ) - p.1.1 / 2 );
-        · convert Primrec.to_comp _;
-          convert Primrec.comp ( primrec_two_pow ) ( Primrec.nat_sub.comp ( Primrec.nat_sub.comp ( Primrec.fst.comp ( Primrec.fst ) ) ( Primrec.succ.comp ( Primrec.snd ) ) ) ( Primrec.nat_div.comp ( Primrec.fst.comp ( Primrec.fst ) ) ( Primrec.const 2 ) ) ) using 1;
-        · exact fun _ => rfl;
+    apply Computable.of_eq
+    case hf =>
+      convert computable_range_sum _ _ _ _ using 1
+      · use fun p i =>
+        a i ( p.1 / 2 ) p.2.1 p.2.2 * 2 ^ ( p.1 - ( i + 1 ) - p.1 / 2 )
+      · apply Computable₂.comp
+        · exact Primrec.to_comp ( Primrec.nat_mul.comp ( Primrec.fst ) ( Primrec.snd ) )
+        · convert hcomp.comp _ using 1
+          rotate_left
+          · exact fun p => ( p.2, p.1.1 / 2, p.1.2.1, p.1.2.2 )
+          · apply Computable.pair
+            · exact Computable.snd
+            · apply Computable.pair
+              · have h_div : Primrec (fun n : ℕ => n / 2) := by
+                  exact Primrec.nat_div.comp ( Primrec.id ) ( Primrec.const 2 )
+                exact h_div.to_comp.comp ( Computable.fst.comp Computable.fst )
+              · apply Computable.pair
+                · exact Computable.fst.comp ( Computable.snd.comp Computable.fst )
+                · exact Computable.snd.comp ( Computable.snd.comp Computable.fst )
+          · rfl
+        · apply Computable.of_eq
+          rotate_right
+          · exact fun p => 2 ^ ( p.1.1 - ( p.2 + 1 ) - p.1.1 / 2 )
+          · convert Primrec.to_comp _
+            convert Primrec.comp ( primrec_two_pow )
+              ( Primrec.nat_sub.comp ( Primrec.nat_sub.comp ( Primrec.fst.comp (
+                Primrec.fst ) ) ( Primrec.succ.comp ( Primrec.snd ) ) ) (
+                  Primrec.nat_div.comp ( Primrec.fst.comp ( Primrec.fst ) )
+                    ( Primrec.const 2 ) ) ) using 1
+          · exact fun _ => rfl
+      · use fun p => p.1 / 2
+      · convert Primrec.to_comp ( Primrec.nat_div.comp ( Primrec.fst ) ( Primrec.const 2 ) ) using 1
+    case H => aesop
   use a'
 
 /-
@@ -725,10 +817,17 @@ threaded through `makeMono` and `truncGapprox` (via the uniform
 lemma lscEnumApprox_uniform_computable :
     Computable (fun p : ℕ × ℕ × BitString × BitString =>
       truncGapprox (makeMono (approxEnum p.1)) 0 p.2.1 p.2.2.1 []) := by
-  convert Computable.comp ( show Computable ( fun p : ℕ × ℕ × BitString × BitString => truncGapprox ( makeMono ( approxEnum p.1 ) ) 0 p.2.1 p.2.2.1 p.2.2.2 ) from ?_ ) ( show Computable ( fun p : ℕ × ℕ × BitString × BitString => ( p.1, p.2.1, p.2.2.1, [] ) ) from ?_ ) using 1;
-  · convert truncGapprox_computable_uniform ( fun i => makeMono ( approxEnum i ) ) ( makeMono_computable_uniform _ _ ) 0 using 1;
+  convert Computable.comp ( show Computable ( fun p : ℕ × ℕ × BitString × BitString =>
+      truncGapprox ( makeMono ( approxEnum p.1 ) ) 0 p.2.1 p.2.2.1 p.2.2.2 ) from ?_ )
+      ( show Computable ( fun p : ℕ × ℕ × BitString × BitString =>
+        ( p.1, p.2.1, p.2.2.1, [] ) ) from ?_ ) using 1;
+  · convert truncGapprox_computable_uniform ( fun i =>
+      makeMono ( approxEnum i ) ) ( makeMono_computable_uniform _ _ ) 0 using 1;
     exact approxEnum_computable;
-  · exact Computable.pair ( Computable.fst ) ( Computable.pair ( Computable.fst.comp ( Computable.snd ) ) ( Computable.pair ( Computable.fst.comp ( Computable.snd.comp ( Computable.snd ) ) ) ( Computable.const [] ) ) )
+  · exact Computable.pair ( Computable.fst )
+      ( Computable.pair ( Computable.fst.comp ( Computable.snd ) ) ( Computable.pair (
+        Computable.fst.comp ( Computable.snd.comp ( Computable.snd ) ) )
+          ( Computable.const [] ) ) )
 
 /-- The dyadic mixture of the sanitized enumeration is a lower-semicomputable
 unary semimeasure. The mass bound is immediate from the generic mixture theorem;
@@ -773,7 +872,8 @@ theorem exists_lsc_semimeasure_family :
       makeMono_mono (approxEnum i)
     have hsup_i : ∀ out ctx, ⨆ s, dyadicValue (makeMono (approxEnum i) s out ctx) s =
         (⨆ s, dyadicValue (makeMono (approxEnum i) s out ctx) s) := fun _ _ => rfl
-    have hle_i : (∑' out, ⨆ s, dyadicValue (makeMono (approxEnum i) s out []) s) ≤ (2 : ℝ≥0∞) ^ 0 := by
+    have hle_i : (∑' out, ⨆ s,
+        dyadicValue (makeMono (approxEnum i) s out []) s) ≤ (2 : ℝ≥0∞) ^ 0 := by
       rw [pow_zero]
       calc
         (∑' out, ⨆ s, dyadicValue (makeMono (approxEnum i) s out []) s)
@@ -790,7 +890,9 @@ theorem exists_lsc_semimeasure_family :
             ext out
             exact hsup out []
         _ ≤ 1 := hm'_semi
-    have h_trunc := truncG_eq_f_of_le (approx := makeMono (approxEnum i)) (f := fun out ctx => ⨆ s, dyadicValue (makeMono (approxEnum i) s out ctx) s) hmono_i hsup_i 0 [] hle_i x
+    have h_trunc := truncG_eq_f_of_le (approx := makeMono (approxEnum i)) (f :=
+        fun out ctx => ⨆ s, dyadicValue (makeMono (approxEnum i) s out ctx) s)
+      hmono_i hsup_i 0 [] hle_i x
     have h_lsc : lscEnum i x [] = truncG (makeMono (approxEnum i)) 0 x [] := rfl
     change m' x ≤ lscEnum i x []
     rw [h_lsc, h_trunc, iSup_makeMono_eq_iSup, hi x []]

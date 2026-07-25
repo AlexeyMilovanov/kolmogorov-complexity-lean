@@ -1,5 +1,4 @@
 import KolmogorovMathlib.AlgorithmicStatistics.Stochasticity
-import KolmogorovMathlib.Prefix.Properties
 
 /-!
 # Normalized coded finite rational distributions
@@ -138,13 +137,14 @@ theorem combinePointMass_value (x : BitString) (data : List CodedDistributionEnt
   induction data with
   | nil => exact RatMass.zero_value
   | cons e data ih =>
-    by_cases h : e.point = x <;> simp +decide [h]
+    by_cases h : e.point = x <;> simp +decide only [List.foldr_cons, h, ↓reduceIte, zero_add]
     · convert RatMass.add_value e.mass ( combinePointMass x data ) using 1
       · exact congr_arg RatMass.value
           ( by rw [ show combinePointMass x ( e :: data ) = e.mass.add ( combinePointMass x data )
                     from if_pos h ] )
       · rw [ ih ]
-    · grind +locals
+    · rw [combinePointMass, if_neg h]
+      exact ih
 
 /-- The mass at `x` equals the combined-mass value of the raw data. -/
 theorem mass_eq_combinePointMass (P : CodedFiniteDistribution) (x : BitString) :
@@ -177,37 +177,84 @@ Normalization removes duplicate point entries.
 -/
 theorem normalize_noDuplicatePoints (P : CodedFiniteDistribution) :
     P.normalize.NoDuplicatePoints := by
-  -- Let's unfold the definition of `normalizeNoDuplicatePoints`.
-  unfold NoDuplicatePoints at *; simp_all +decide [ normalizeData ] ;
-  rw [ List.nodup_map_iff_inj_on ];
-  · unfold normalizedEntry?; aesop;
-  · apply List.Nodup.filterMap;
-    · unfold normalizedEntry?; aesop;
+  simp only [NoDuplicatePoints, normalize_data, normalizeData]
+  rw [List.nodup_map_iff_inj_on]
+  · intros a ha b hb hab
+    simp only [List.mem_filterMap] at ha hb
+    rcases ha with ⟨x, _, hx⟩
+    rcases hb with ⟨y, _, hy⟩
+    simp only [normalizedEntry?] at hx hy
+    split at hx
+    · cases hx
+    · split at hy
+      · cases hy
+      · cases hx
+        cases hy
+        cases hab
+        rfl
+  · apply List.Nodup.filterMap
+    · intros a b x ha hb
+      simp only [normalizedEntry?] at ha hb
+      split at ha
+      · cases ha
+      · split at hb
+        · cases hb
+        · cases ha
+          cases hb
+          rfl
     · -- By definition of `List.eraseDupsBy.loop`, the resulting list is nodup.
       have h_loop_nodup : ∀ (l : List BitString) (acc : List BitString), List.Nodup acc →
           List.Nodup (List.eraseDupsBy.loop (fun x1 x2 => x1 == x2) l acc) := by
         intros l acc hacc
         induction l generalizing acc with
-        | nil => simp_all +decide [ List.eraseDupsBy.loop ]
+        | nil =>
+          simpa only [List.eraseDupsBy.loop] using List.nodup_reverse.mpr hacc
         | cons hd tl ih =>
-          simp_all +decide [ List.eraseDupsBy.loop ]
-          cases h : acc.any fun x2 => hd == x2 <;> simp_all +decide
-          exact ih _ ( List.nodup_cons.mpr ⟨ fun hx => h _ hx rfl, hacc ⟩ )
-      exact h_loop_nodup _ _ ( by simp +decide )
+          rw [List.eraseDupsBy.loop]
+          cases h : acc.any fun x2 => hd == x2
+          · exact ih _ (List.nodup_cons.mpr
+              ⟨fun hx => (List.any_eq_false.mp h) hd hx (beq_iff_eq.mpr rfl), hacc⟩)
+          · exact ih _ hacc
+      exact h_loop_nodup _ _ (by simp)
 
 /-
 Normalization removes entries whose exact rational mass is zero.
 -/
 theorem normalize_noZeroMassEntries (P : CodedFiniteDistribution) :
     P.normalize.NoZeroMassEntries := by
-  intro e he; unfold CodedFiniteDistribution.normalize at he; simp_all +decide;
-  unfold normalizeData at he; simp_all +decide [ List.mem_filterMap ] ;
-  unfold normalizedEntry? at he; aesop;
+  intro e he
+  simp only [CodedFiniteDistribution.normalize, normalizeData, List.mem_filterMap] at he
+  rcases he with ⟨x, _, hx⟩
+  simp only [normalizedEntry?] at hx
+  split at hx
+  · cases hx
+  · cases hx
+    assumption
 
 /-- The output of `normalize` is structurally normalized. -/
 theorem normalize_normalized (P : CodedFiniteDistribution) :
     P.normalize.Normalized :=
   ⟨P.normalize_noDuplicatePoints, P.normalize_noZeroMassEntries⟩
+
+private theorem mem_eraseDups_iff {a : BitString} {l : List BitString} :
+    a ∈ l.eraseDups ↔ a ∈ l := by
+  induction l using List.reverseRecOn with
+  | nil => simp
+  | append_singleton l y ih =>
+    rw [List.eraseDups_append, List.mem_append, ih]
+    by_cases hy : y ∈ l
+    · have h0 : ([y] : List BitString).removeAll l = [] := by
+        simp [List.removeAll, hy]
+      rw [h0, List.eraseDups_nil]
+      simp only [List.not_mem_nil, or_false, List.mem_append, List.mem_singleton]
+      exact ⟨Or.inl, fun h => h.elim id (fun hay => hay ▸ hy)⟩
+    · have h1 : ([y] : List BitString).removeAll l = [y] := by
+        simp [List.removeAll, hy]
+      rw [h1]
+      have hy1 : ([y] : List BitString).eraseDups = [y] := by
+        simp [List.eraseDups_cons]
+      rw [hy1]
+      simp [List.mem_append]
 
 /-
 Combining repeated entries preserves the represented mass at every point.
@@ -218,73 +265,98 @@ theorem normalize_mass (P : CodedFiniteDistribution) (x : BitString) :
   have h_foldr_eq : ∀ (l : List BitString), List.foldr
       (fun y acc => (if y = x then (combinePointMass x P.data).value else 0) + acc) 0
           (List.eraseDups l) = (if x ∈ l then (combinePointMass x P.data).value else 0) := by
-    intro l;
-    induction l using List.reverseRecOn with
-    | nil => simp_all +decide
-    | append_singleton l ih _ =>
-      simp_all +decide [ List.eraseDups_append ]
-      simp_all +decide [ List.removeAll ]
-      by_cases h : ih ∈ l <;> simp_all +decide
-      · grind
-      · simp_all +decide [ List.eraseDups_cons ]
-        split_ifs at * <;> simp_all +decide
-        convert congr_arg ( fun y => y + ( combinePointMass x P.data ).value ) ‹List.foldr
-            ( fun y acc => ( if y = x then ( combinePointMass x P.data ).value else 0 ) + acc ) 0
-                l.eraseDups = 0› using 1
-        · induction l.eraseDups <;> simp +decide [ * ]
-          rw [ add_assoc ]
-        · rw [ zero_add ]
+    intro l
+    let rec h_nodup_eraseDups : (d : List BitString) → d.eraseDups.Nodup
+      | [] => by simp
+      | a :: as => by
+        rw [List.eraseDups_cons]
+        refine List.nodup_cons.mpr ⟨?_, h_nodup_eraseDups _⟩
+        intro hmem
+        rw [mem_eraseDups_iff, List.mem_filter] at hmem
+        simp at hmem
+      termination_by d => d.length
+      decreasing_by exact Nat.lt_succ_of_le (List.length_filter_le _ _)
+    have h_foldr_nodup : ∀ (d : List BitString), d.Nodup → List.foldr
+        (fun y acc => (if y = x then (combinePointMass x P.data).value else 0) + acc) 0 d =
+          (if x ∈ d then (combinePointMass x P.data).value else 0) := by
+      intro d hd
+      induction d with
+      | nil => simp
+      | cons a d ih =>
+        rw [List.foldr_cons, ih (List.nodup_cons.mp hd).2]
+        by_cases hax : a = x
+        · subst a
+          simp [List.nodup_cons.mp hd |>.1]
+        · have hxa : x ≠ a := Ne.symm hax
+          simp [hax, hxa]
+    simpa [mem_eraseDups_iff] using h_foldr_nodup l.eraseDups (h_nodup_eraseDups l)
   convert h_foldr_eq ( P.data.map CodedDistributionEntry.point ) using 1;
   · rw [ CodedFiniteDistribution.normalize_data, normalizeData ];
     have h_filterMap_eq : ∀ (l : List BitString), List.foldr
         (fun y acc => (if y = x then (combinePointMass x P.data).value else 0) + acc) 0 l =
             List.foldr (fun e acc => (if e.point = x then e.mass.value else 0) + acc) 0
                 (List.filterMap (normalizedEntry? P.data) l) := by
-      intro l; induction l <;> simp +decide [ * ] ;
-      simp +decide [ List.filterMap_cons, normalizedEntry? ];
-      split_ifs <;> simp_all +decide [ RatMass.value ];
-    grind;
+      intro l
+      induction l with
+      | nil => rfl
+      | cons y ys ih =>
+        rw [List.foldr_cons, List.filterMap_cons]
+        by_cases hyx : y = x
+        · subst hyx
+          simp only [normalizedEntry?, if_true]
+          by_cases hnum : (combinePointMass y P.data).num = 0
+          · have hval : (combinePointMass y P.data).value = 0 := by
+              simp [RatMass.value, hnum]
+            rw [if_pos hnum, ih, hval, zero_add]
+          · rw [if_neg hnum]
+            simp only [List.foldr_cons, if_true, ih]
+        · simp only [normalizedEntry?, if_neg hyx]
+          by_cases hnum : (combinePointMass y P.data).num = 0
+          · rw [if_pos hnum]
+            simp only [zero_add]
+            exact ih
+          · rw [if_neg hnum]
+            simp only [List.foldr_cons, if_neg hyx, zero_add]
+            exact ih
+    exact (h_filterMap_eq _).symm
   · rw [ ← combinePointMass_value ];
-    split_ifs <;> simp_all +decide [ List.mem_map ];
-    have h_combine_zero : ∀ (l : List CodedDistributionEntry), (∀ e ∈ l,
-                                                                 e.point ≠
-                                                                     x) → combinePointMass x l =
-                                                                         RatMass.zero := by
-      intros l hl; induction l <;> simp_all +decide [ combinePointMass ] ;
-    rw [ h_combine_zero _ ‹_›, RatMass.zero_value ]
+    by_cases hx : x ∈ P.data.map CodedDistributionEntry.point
+    · rw [if_pos hx]
+    · rw [if_neg hx]
+      have hpoint : ∀ e ∈ P.data, e.point ≠ x := by
+        intro e he hex
+        exact hx (List.mem_map.mpr ⟨e, he, hex⟩)
+      have h_combine_zero : ∀ (l : List CodedDistributionEntry), (∀ e ∈ l,
+          e.point ≠ x) → combinePointMass x l = RatMass.zero := by
+        intro l hl
+        induction l with
+        | nil => rfl
+        | cons e l ih =>
+          rw [combinePointMass, if_neg (hl e (List.mem_cons_self))]
+          exact ih fun a ha => hl a (List.mem_cons_of_mem e ha)
+      rw [h_combine_zero _ hpoint, RatMass.zero_value]
 
 /-
 Normalization preserves the probability condition.
 -/
 theorem normalize_isProbability {P : CodedFiniteDistribution}
     (hP : P.IsProbability) : P.normalize.IsProbability := by
-  refine Eq.trans ?_ hP;
-  rw [ Finset.sum_subset ( show P.normalize.support ⊆ P.support from ?_ ) ?_ ];
-  · exact Finset.sum_congr rfl fun x hx => normalize_mass P x;
-  · intro x hx; simp_all +decide [ mem_support_iff ] ;
-    obtain ⟨ a, ha, rfl ⟩ := hx;
-    have h_mem : a.point ∈ P.data.map CodedDistributionEntry.point := by
-      have h_mem : a.point ∈ (P.data.map CodedDistributionEntry.point).eraseDups := by
-        unfold normalizeData at ha; simp_all +decide [ List.mem_filterMap ] ;
-        unfold normalizedEntry? at ha; aesop;
-      have h_mem : ∀ (l : List BitString), a.point ∈ List.eraseDups l → a.point ∈ l := by
-        intros l hl
-        induction l using List.reverseRecOn <;> simp_all +decide [ List.eraseDups_append ] ;
-        simp_all +decide [ List.removeAll ];
-        grind;
-      exact h_mem _ ‹_›;
-    aesop;
-  · intros x hx hx';
-    contrapose! hx';
-    convert mem_support_iff _ _ |>.2 _;
-    contrapose! hx';
-    convert mass_eq_combinePointMass _ _ using 1;
-    have h_combine_zero : ∀ (l : List CodedDistributionEntry), (∀ e ∈ l,
-                                                                 e.point ≠
-                                                                     x) → combinePointMass x l =
-                                                                         RatMass.zero := by
-      intros l hl; induction l <;> simp_all +decide [ combinePointMass ] ;
-    rw [ h_combine_zero _ fun e he => by aesop ] ; norm_num [ RatMass.zero_value ]
+  refine Eq.trans ?_ hP
+  rw [Finset.sum_subset (show P.normalize.support ⊆ P.support from ?_) ?_]
+  · exact Finset.sum_congr rfl fun x _ => normalize_mass P x
+  · intro x hx
+    rw [mem_support_iff] at hx ⊢
+    rcases List.mem_map.mp hx with ⟨a, ha, rfl⟩
+    rw [normalize_data] at ha
+    simp only [normalizeData, List.mem_filterMap] at ha
+    rcases ha with ⟨y, hy, hentry⟩
+    simp only [normalizedEntry?] at hentry
+    split at hentry
+    · cases hentry
+    · cases hentry
+      exact mem_eraseDups_iff.mp hy
+  · intro x _ hx
+    exact mass_eq_zero_of_not_mem_support P.normalize x hx
 
 /-- Package a raw probability model as a normalized probability model. -/
 def normalizedFiniteDistributionOfProbability (P : CodedFiniteDistribution)
@@ -443,15 +515,15 @@ theorem decodeRatMass_primrec : Primrec decodeRatMass := by
                                             ⟩) ?_ ?_
   · convert Primrec.of_equiv_symm.comp _ using 1;
     rotate_left;
-    exact fun w =>
+    · exact fun w =>
         ⟨ ( decodeNatCode ( decodeFirst w ), max 1 ( decodeNatCode ( decodeSecond w ) ) ),
-            by simp +decide ⟩;
+            by simp +decide ⟩
     · refine Primrec.subtype_mk ?_;
       exact Primrec.pair ( decodeNatCode_primrec.comp decodeFirst_primrec )
           ( Primrec.nat_max.comp ( Primrec.const 1 ) ( decodeNatCode_primrec.comp
                                                        decodeSecond_primrec ) );
     · exact funext fun _ => rfl;
-  · aesop
+  · exact fun _ => rfl
 
 /-
 The entry decoder is primitive recursive.
@@ -461,7 +533,7 @@ theorem decodeDistributionEntry_primrec : Primrec decodeDistributionEntry := by
   · convert Primrec.of_equiv_symm.comp
       ( Primrec.pair ( decodeFirst_primrec ) ( decodeRatMass_primrec.comp decodeSecond_primrec ) )
           using 1;
-  · aesop
+  · exact fun _ => rfl
 
 /-- One forward step of the fuelled list decoder: consume one `true`-led entry
 and append it to the accumulator, otherwise stop (identity). -/
@@ -479,16 +551,38 @@ theorem decodeDistributionDataAux_eq_iter (n : Nat) (w : BitString)
     (acc : List CodedDistributionEntry) :
     (Nat.rec (motive := fun _ => BitString × List CodedDistributionEntry) (w, acc)
         (fun _ s => ddStep s) n).2 = acc ++ decodeDistributionDataAux n w := by
-          induction n generalizing w acc with
-          | zero => simp +decide [ decodeDistributionDataAux ]
-          | succ n ih =>
-            convert ih ( ddStep ( w, acc ) |>.1 ) ( ddStep ( w, acc ) |>.2 ) using 1
-            · congr! 1
-              exact Nat.recOn n rfl fun n ih => by aesop
-            · cases w <;> simp +decide [ ddStep ]
-              · cases n <;> rfl
-              · cases ‹Bool› <;> simp +decide [ decodeDistributionDataAux ]
-                cases n <;> rfl
+  -- It suffices to prove the statement for `ddStep` iterated with `Function.iterate`,
+  -- which unfolds one step from the *front* and matches `decodeDistributionDataAux`.
+  suffices h : ∀ (m : Nat) (v : BitString) (a : List CodedDistributionEntry),
+      (ddStep^[m] (v, a)).2 = a ++ decodeDistributionDataAux m v by
+    have hbridge : (Nat.rec (motive := fun _ => BitString × List CodedDistributionEntry) (w, acc)
+        (fun _ s => ddStep s) n) = ddStep^[n] (w, acc) := by
+      induction n with
+      | zero => rfl
+      | succ n ih => rw [Function.iterate_succ_apply']; exact congrArg ddStep ih
+    rw [hbridge]; exact h n w acc
+  intro m
+  induction m with
+  | zero => intro v a; simp [decodeDistributionDataAux]
+  | succ m ih =>
+    intro v a
+    rw [Function.iterate_succ_apply]
+    cases v with
+    | nil =>
+      have hz : ∀ k, decodeDistributionDataAux k ([] : BitString) = [] :=
+        fun k => by cases k <;> rfl
+      simpa [ddStep, hz] using ih [] a
+    | cons b w' =>
+      cases b with
+      | false =>
+        have hz : ∀ k, decodeDistributionDataAux k (false :: w') = [] :=
+          fun k => by cases k <;> rfl
+        simpa [ddStep, hz] using ih (false :: w') a
+      | true =>
+        rw [show ddStep (true :: w', a)
+              = (decodeSecond w', a ++ [decodeDistributionEntry (decodeFirst w')]) from rfl,
+          ih (decodeSecond w') (a ++ [decodeDistributionEntry (decodeFirst w')])]
+        simp [decodeDistributionDataAux]
 
 /-- The list decoder as a `Nat.rec` iteration suitable for `Primrec.nat_rec'`. -/
 theorem decodeDistributionData_eq_iter (w : BitString) :
@@ -542,9 +636,9 @@ theorem decodeDistributionData_primrec : Primrec decodeDistributionData := by
   refine Primrec.snd.comp ?_;
   convert Primrec.nat_rec' _ _ _ using 1;
   rotate_left;
-  exact fun w => List.length w;
-  exact fun w => ( w, [] );
-  exact fun w p => ddStep p.2;
+  · exact fun w => List.length w
+  · exact fun w => ( w, [] )
+  · exact fun w p => ddStep p.2
   · exact Primrec.list_length;
   · exact Primrec.pair Primrec.id ( Primrec.const [] );
   · exact ddStep_primrec.comp ( Primrec.snd.comp Primrec.snd );
@@ -557,13 +651,13 @@ theorem combinePointMass_primrec :
     Primrec₂ (fun x data => combinePointMass x data) := by
       convert Primrec.list_rec _ _ _ using 1;
       rotate_left;
-      exact BitString × List CodedDistributionEntry;
-      exact CodedDistributionEntry;
-      exact RatMass;
-      all_goals try infer_instance;
-      exact fun p => p.2;
-      exact fun p => RatMass.zero;
-      exact fun p q => if q.1.point = p.1 then q.1.mass.add q.2.2 else q.2.2;
+      · exact BitString × List CodedDistributionEntry
+      · exact CodedDistributionEntry
+      · exact RatMass
+      all_goals try infer_instance
+      · exact fun p => p.2
+      · exact fun p => RatMass.zero
+      · exact fun p q => if q.1.point = p.1 then q.1.mass.add q.2.2 else q.2.2
       · exact Primrec.snd;
       · exact Primrec.const RatMass.zero;
       · refine Primrec.ite ?_ ?_ ?_;
@@ -587,22 +681,43 @@ theorem combinePointMass_primrec :
 -/
 theorem eraseDups_bitstring_eq_foldl (l : List BitString) :
     l.eraseDups = l.foldl (fun acc a => if a ∈ acc then acc else acc ++ [a]) [] := by
-      induction l using List.reverseRecOn with
-      | nil => simp +decide [ * ]
-      | append_singleton l ih _ =>
-        simp +decide [ *, List.eraseDups_append ]
-        simp +decide [ List.removeAll ]
-        split_ifs <;> simp_all +decide [ List.filter_cons ]
-        · have h_foldl : ∀ (l : List BitString) (acc : List BitString), ih ∈ List.foldl
-            (fun acc a => if a ∈ acc then acc else acc ++ [a]) acc l → ih ∈ acc ∨ ih ∈ l := by
-            intros l acc h; induction l using List.reverseRecOn <;> aesop
-          grind
-        · split_ifs <;> simp_all +decide [ List.eraseDups_cons ]
-          rename_i h₁ h₂ h₃
-          have h_foldl : ∀ (l : List BitString) (acc : List BitString), ih ∈ l → ih ∈ List.foldl
-              (fun acc a => if a ∈ acc then acc else acc ++ [a]) acc l := by
-            intros l acc h; induction l using List.reverseRecOn <;> aesop
-          exact h₂ <| h_foldl _ _ h₃
+  have mem_foldl : ∀ (xs acc : List BitString) (x : BitString),
+      x ∈ xs.foldl (fun acc a => if a ∈ acc then acc else acc ++ [a]) acc ↔
+        x ∈ acc ∨ x ∈ xs := by
+    intro xs
+    induction xs with
+    | nil => simp
+    | cons a xs ih =>
+        intro acc x
+        rw [List.foldl_cons, ih]
+        by_cases ha : a ∈ acc
+        · simp only [ha, ↓reduceIte, List.mem_cons]
+          constructor
+          · rintro (hacc | hxs)
+            · exact Or.inl hacc
+            · exact Or.inr (Or.inr hxs)
+          · rintro (hacc | hxa | hxs)
+            · exact Or.inl hacc
+            · subst x
+              exact Or.inl ha
+            · exact Or.inr hxs
+        · simp only [ha, ↓reduceIte, List.mem_append, List.mem_cons, List.not_mem_nil,
+            or_false]
+          tauto
+  induction l using List.reverseRecOn with
+  | nil => rfl
+  | append_singleton l x ih =>
+      simp only [List.foldl_append, List.foldl_cons, List.foldl_nil]
+      rw [List.eraseDups_append, ih]
+      have hmem : x ∈ List.foldl
+          (fun acc a => if a ∈ acc then acc else acc ++ [a]) [] l ↔ x ∈ l := by
+        simpa using mem_foldl l [] x
+      by_cases hx : x ∈ l
+      · have hxfold := hmem.mpr hx
+        simp [hxfold, List.removeAll, hx]
+      · have hxfold : x ∉ List.foldl
+            (fun acc a => if a ∈ acc then acc else acc ++ [a]) [] l := fun h => hx (hmem.mp h)
+        simp [hxfold, List.removeAll, hx, List.eraseDups_cons]
 
 /-
 List membership of bit strings is a primitive-recursive predicate.
@@ -610,29 +725,25 @@ List membership of bit strings is a primitive-recursive predicate.
 theorem mem_bitstring_primrec :
     PrimrecPred (fun p : BitString × List BitString => p.1 ∈ p.2) := by
       refine ⟨ ?_, ?_ ⟩;
-      exact fun _ => inferInstance;
-      have h_mem : Primrec (fun p : BitString × List BitString => List.idxOf p.1 p.2) := by
-        convert Primrec.list_idxOf.comp ( Primrec.fst ) ( Primrec.snd ) using 1;
-        convert rfl;
-        infer_instance;
-      convert Primrec.nat_lt.comp ( h_mem ) ( Primrec.list_length.comp ( Primrec.snd ) ) using 1;
-      simp +decide [ PrimrecPred, List.idxOf_lt_length_iff ]
+      · exact fun _ => inferInstance
+      · have h_mem : Primrec (fun p : BitString × List BitString => List.idxOf p.1 p.2) := by
+          convert Primrec.list_idxOf.comp ( Primrec.fst ) ( Primrec.snd ) using 1
+          · convert rfl
+          · infer_instance
+        convert Primrec.nat_lt.comp ( h_mem ) ( Primrec.list_length.comp ( Primrec.snd ) ) using 1
+        simp +decide [ PrimrecPred, List.idxOf_lt_length_iff ]
 
 /-
 `eraseDups` on bit-string lists is primitive recursive.
 -/
 theorem eraseDups_bitstring_primrec :
     Primrec (fun l : List BitString => l.eraseDups) := by
-      rw [ show ( fun l : List BitString => l.eraseDups ) = fun l => l.foldl ( fun acc a => if a ∈
-                                                                               acc then acc else
-                                                                                   acc ++ [ a ]
-                                                                                       ) [ ] from
-                                                                                           funext
-                                                                                 fun l =>
-                                                                                     eraseDups_bitstring_eq_foldl l ];
+      rw [show (fun l : List BitString => l.eraseDups)
+          = fun l => l.foldl (fun acc a => if a ∈ acc then acc else acc ++ [a]) []
+          from funext fun l => eraseDups_bitstring_eq_foldl l];
       convert Primrec.list_foldl ( Primrec.id ) ( Primrec.const [] ) _ using 1;
       rotate_left;
-      exact fun l p => if p.2 ∈ p.1 then p.1 else p.1 ++ [ p.2 ];
+      · exact fun l p => if p.2 ∈ p.1 then p.1 else p.1 ++ [ p.2 ]
       · convert Primrec.ite _ _ _ using 1;
         · convert mem_bitstring_primrec.comp
             ( Primrec.snd.comp ( Primrec.snd ) |> Primrec.pair <| Primrec.fst.comp ( Primrec.snd )

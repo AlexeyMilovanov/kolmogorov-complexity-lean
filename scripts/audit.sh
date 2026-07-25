@@ -34,13 +34,34 @@ fi
 echo "== lake build, root plus standalone modules =="
 export PATH="$HOME/.elan/bin:$PATH"
 build_log="$(mktemp)"
-trap 'rm -f "$build_log"' EXIT
-lake build KolmogorovMathlib \
-  KolmogorovMathlib.AlgorithmicProbability.KraftChaitinOnline \
-  KolmogorovMathlib.AlgorithmicStatistics.FiniteDistribution \
-  KolmogorovMathlib.Prefix.KPPairSwap 2>&1 | tee "$build_log"
+smoke_log="$(mktemp)"
+trap 'rm -f "$build_log" "$smoke_log"' EXIT
+if ! build_roots_output="$(
+  python3 -B scripts/check_affected.py --print-project-build-roots
+)"; then
+  echo "ERROR: failed to discover project build roots"
+  exit 1
+fi
+if [[ -z "$build_roots_output" ]]; then
+  echo "ERROR: project build-root discovery returned no modules"
+  exit 1
+fi
+mapfile -t build_roots <<<"$build_roots_output"
+lake build "${build_roots[@]}" 2>&1 | tee "$build_log"
 if grep -E '(^|:)[[:space:]]*warning:' "$build_log" >/dev/null; then
   echo "ERROR: Lean warnings found"
+  exit 1
+fi
+
+echo "== public tactic smoke tests =="
+if ! lake env lean scripts/smoke/PrimrecAuto.lean >"$smoke_log" 2>&1; then
+  cat "$smoke_log"
+  echo "ERROR: public tactic smoke test failed"
+  exit 1
+fi
+if [[ -s "$smoke_log" ]]; then
+  cat "$smoke_log"
+  echo "ERROR: public tactic smoke test emitted output"
   exit 1
 fi
 

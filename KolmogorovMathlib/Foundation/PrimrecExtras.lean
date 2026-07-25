@@ -1,3 +1,4 @@
+import Mathlib.Computability.Partrec
 import Mathlib.Computability.Primrec.List
 
 /-!
@@ -14,6 +15,10 @@ their first use.**
 Provided: `Primrec.list_drop`, `Primrec.list_take`, `Primrec.list_takeWhile`,
 `Primrec.list_replicate`, `Primrec.nat_iterate'`, and the best-effort tactic
 macro `primrec_auto`.
+
+`Mathlib.Computability.Partrec` provides `Primrec.to_comp`, which is used by
+the `primrec_auto` quotation and must therefore be available at the macro's
+declaration site.
 -/
 
 namespace Kolmogorov
@@ -41,7 +46,18 @@ theorem _root_.Primrec.list_take :
     Primrec₂ (fun (l : List α) (n : ℕ) => l.take n) := by
   have h_take_eq : ∀ (l : List α) (n : ℕ),
       l.take n = (l.reverse.drop (l.length - n)).reverse := by
-    grind +suggestions
+    intro l n
+    induction l generalizing n with
+    | nil => simp
+    | cons a l ih =>
+      cases n with
+      | zero => simp
+      | succ n =>
+        simp only [List.take_succ_cons, List.reverse_cons, List.length_cons,
+          Nat.succ_sub_succ_eq_sub]
+        rw [List.drop_append_of_le_length (l₁ := l.reverse) (l₂ := [a])
+          (i := l.length - n) (by simp), List.reverse_append]
+        simp [ih]
   have h : Primrec (fun p : List α × ℕ =>
       (p.1.reverse.drop (p.1.length - p.2)).reverse) :=
     Primrec.list_reverse.comp

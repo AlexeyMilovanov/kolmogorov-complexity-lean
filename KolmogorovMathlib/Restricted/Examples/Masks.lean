@@ -120,11 +120,14 @@ theorem mask_card (m : Mask) : (maskSet m).card = 2 ^ maskWild m := by
     cases o with
     | none =>
       unfold maskWild
-      have H_disj : Disjoint (Finset.image (List.cons false) (maskSet t)) (Finset.image (List.cons true) (maskSet t)) := by
+      have H_disj : Disjoint (Finset.image (List.cons false) (maskSet t))
+          (Finset.image (List.cons true) (maskSet t)) := by
         simp only [Finset.disjoint_left, Finset.mem_image, not_exists, not_and]
         rintro _ ⟨x, _, rfl⟩ y _ h_eq
         cases h_eq
-      have H_eq : maskSet (none :: t) = Finset.image (List.cons false) (maskSet t) ∪ Finset.image (List.cons true) (maskSet t) := by
+      have H_eq : maskSet (none :: t) =
+          Finset.image (List.cons false) (maskSet t) ∪
+            Finset.image (List.cons true) (maskSet t) := by
         ext y
         rw [mem_maskSet_cons, Finset.mem_union, Finset.mem_image, Finset.mem_image]
         constructor
@@ -261,7 +264,8 @@ theorem mask_cover_pieces (m : Mask) (keep : ℕ) (hkeep : keep ≤ maskWild m) 
       (∀ x ∈ maskSet m, ∃ B ∈ 𝒞, x ∈ B) ∧
       𝒞.length = 2 ^ (maskWild m - keep) := by
   refine ⟨ ( fixWildcards m keep ).map maskSet, ?_, ?_, ?_ ⟩;
-  · simp +zetaDelta at *;
+  · simp +zetaDelta only [List.mem_map, forall_exists_index, and_imp,
+      forall_apply_eq_imp_iff₂] at *
     exact fun x hx =>
         ⟨ ⟨ x, rfl ⟩, by rw [ mask_card, fixWildcards_maskWild m keep x hx, min_eq_left hkeep ] ⟩;
   · intro x hx; obtain ⟨ m', hm', hm'' ⟩ := fixWildcards_cover m keep x hx; use maskSet m'; aesop;
@@ -327,7 +331,7 @@ def encodeMask (m : Mask) : BitString := listCode (m.map encodeOptionBool)
 theorem decodeMask_encodeMask (m : Mask) : decodeMask (encodeMask m) = m := by
   unfold decodeMask encodeMask;
   rw [ decodeListCode_listCode ];
-  induction m <;> simp_all +decide;
+  induction m <;> simp_all +decide only [List.map_cons, List.map_map, List.cons.injEq, and_true]
   rename_i k hk ih; cases k <;> rfl;
 
 theorem maskSet_nonempty (m : Mask) : (maskSet m).Nonempty :=
@@ -374,9 +378,9 @@ theorem maskCode_primrec : Primrec maskCode := by
 
 theorem maskCode_eq_code (w : BitString) :
     maskCode w = (codedUniformOn (maskSet (decodeMask w)) (maskSet_nonempty _)).code := by
-      convert canonicalUniformCodeOfList_canonicalFinsetList _ _ using 1;
-      congr! 2;
-      · exact Eq.symm ( maskList_toFinset _ );
+      convert canonicalUniformCodeOfList_canonicalFinsetList _ _ using 1
+      · congr! 2
+        exact Eq.symm ( maskList_toFinset _ )
       · exact maskList_toFinset ( decodeMask w ) ▸ maskSet_nonempty _
 
 /-- Stage `t` of the mask enumeration. -/
@@ -388,7 +392,7 @@ theorem maskEnum_computable : Computable maskEnum := by
 
 theorem maskEnum_mono (t : ℕ) : maskEnum t <+: maskEnum (t + 1) := by
   -- By definition of `maskEnum`, we know that `maskEnum t = (boundedPrograms t).map maskCode`.
-  simp [maskEnum];
+  simp only [maskEnum]
   rw [ boundedPrograms_succ ];
   simp +decide [ List.map_append ]
 
@@ -436,7 +440,7 @@ theorem maskFamily_cover {A : Finset BitString} (hA : maskFamilyMem A) (n c : �
             Nat.lt_pow_of_log_lt ( by linarith ) ( by linarith ), Nat.le_trans
                 ( Nat.log_mono_right hc_le ) ( by rw [ hA_card, Nat.log_pow ( by linarith ) ] ) ⟩;
       obtain ⟨𝒞, h𝒞⟩ := mask_cover_pieces m r hr.2.2;
-      refine ⟨ 𝒞, ?_, ?_, ?_ ⟩ <;> simp_all +decide [ maskOverhead ];
+      refine ⟨ 𝒞, ?_, ?_, ?_ ⟩ <;> simp_all +decide only [and_self, implies_true, maskOverhead]
       convert Nat.mul_le_mul_left ( 2 ^ ( maskWild m - r ) ) hr.2.1.le using 1 ; ring_nf;
       rw [ ← pow_add, Nat.sub_add_cancel hr.2.2 ];
     · refine ⟨[], by simp, ?_, by simp [maskOverhead]⟩

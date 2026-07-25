@@ -46,7 +46,8 @@ theorem bitsToNat_bits (n : ℕ) : bitsToNat (Nat.bits n) = n := by
 
 theorem bitsToNat_primrec : Primrec bitsToNat := by
   unfold bitsToNat
-  have hstep : Primrec₂ (fun (_ : List Bool) (p : Bool × ℕ) => 2 * p.2 + (if p.1 then 1 else 0)) := by
+  have hstep : Primrec₂
+      (fun (_ : List Bool) (p : Bool × ℕ) => 2 * p.2 + (if p.1 then 1 else 0)) := by
     apply Primrec.nat_add.comp₂
     · exact (Primrec.nat_mul.comp (Primrec.const 2) (Primrec.snd.comp Primrec.snd)).to₂
     · exact (Primrec.ite (Primrec.eq.comp (Primrec.fst.comp Primrec.snd) (Primrec.const true))
@@ -87,9 +88,11 @@ theorem selNat_computable : Computable selNat :=
 theorem selAlpha_computable : Computable selAlpha :=
   bitsToNat_computable.comp (decodeFirst_computable.comp decodeSecond_computable)
 theorem selMaxK_computable : Computable selMaxK :=
-  bitsToNat_computable.comp (decodeFirst_computable.comp (decodeSecond_computable.comp decodeSecond_computable))
+  bitsToNat_computable.comp
+    (decodeFirst_computable.comp (decodeSecond_computable.comp decodeSecond_computable))
 theorem selH_computable : Computable selH :=
-  bitsToNat_computable.comp (decodeSecond_computable.comp (decodeSecond_computable.comp decodeSecond_computable))
+  bitsToNat_computable.comp
+    (decodeSecond_computable.comp (decodeSecond_computable.comp decodeSecond_computable))
 
 theorem selNat_primrec : Primrec selNat :=
   bitsToNat_primrec.comp decodeFirst_primrec
@@ -98,7 +101,8 @@ theorem selAlpha_primrec : Primrec selAlpha :=
 theorem selMaxK_primrec : Primrec selMaxK :=
   bitsToNat_primrec.comp (decodeFirst_primrec.comp (decodeSecond_primrec.comp decodeSecond_primrec))
 theorem selH_primrec : Primrec selH :=
-  bitsToNat_primrec.comp (decodeSecond_primrec.comp (decodeSecond_primrec.comp decodeSecond_primrec))
+  bitsToNat_primrec.comp
+    (decodeSecond_primrec.comp (decodeSecond_primrec.comp decodeSecond_primrec))
 
 /-! ### Computable level-set / probability tests on raw codes -/
 
@@ -131,9 +135,11 @@ theorem levelSetMemBool_iff (w : BitString) (k : ℕ) (x : BitString) :
   · unfold levelSetMemBool RatMass.ge_invPow2;
     rw [ RatMass.ge_invPow2_iff ];
     grind;
-  · unfold levelSet; simp +decide [ CodedFiniteDistribution.mass_eq_combinePointMass ] ;
+  · unfold levelSet
+    simp +decide only [CodedFiniteDistribution.mass_eq_combinePointMass, Finset.mem_filter]
     rw [ ← RatMass.ge_invPow2_iff ];
-      by_cases h : x ∈ ( decodeCodedFiniteDistribution w ).support <;> simp_all +decide;
+      by_cases h : x ∈ ( decodeCodedFiniteDistribution w ).support <;>
+        simp_all +decide only [true_and, false_and, false_iff, not_le]
     · rfl;
     · rw [ ← CodedFiniteDistribution.mass_eq_combinePointMass ];
       rw [ CodedFiniteDistribution.mass_eq_zero_of_not_mem_support ];
@@ -149,10 +155,17 @@ theorem mass_total (Q : CodedFiniteDistribution) :
   induction Q.data with
   | nil => simp_all +decide
   | cons e l ih =>
-    simp_all +decide [ RatMass.add_value ]
-    by_cases h : e.point ∈ List.foldr ( fun e acc => insert e.point acc ) Finset.empty l <;> simp_all +decide [ Finset.sum_add_distrib ];
-    rw [ show List.foldr ( fun e_1 acc => ( if e_1.point = e.point then e_1.mass.value else 0 ) + acc ) 0 l = 0 from ?_ ] ; ring;
-    have h_foldr_zero : ∀ {l : List CodedDistributionEntry}, e.point ∉ List.foldr (fun e_1 acc => insert e_1.point acc) Finset.empty l → List.foldr (fun e_1 acc => (if e_1.point = e.point then e_1.mass.value else 0) + acc) 0 l = 0 := by
+    simp_all +decide only [List.foldr_cons, RatMass.add_value]
+    by_cases h : e.point ∈ List.foldr ( fun e acc => insert e.point acc ) Finset.empty l <;>
+      simp_all +decide only [Finset.insert_eq_of_mem, Finset.sum_add_distrib, Finset.sum_ite_eq,
+        ↓reduceIte, Finset.mem_insert, or_false, not_false_eq_true, Finset.sum_insert]
+    rw [ show List.foldr
+        ( fun e_1 acc => ( if e_1.point = e.point then e_1.mass.value else 0 ) + acc ) 0 l = 0
+        from ?_ ]
+    · ring
+    have h_foldr_zero : ∀ {l : List CodedDistributionEntry}, e.point ∉ List.foldr
+        (fun e_1 acc => insert e_1.point acc) Finset.empty l → List.foldr
+        (fun e_1 acc => (if e_1.point = e.point then e_1.mass.value else 0) + acc) 0 l = 0 := by
       intros l hl; induction l <;> simp_all +decide [ Finset.mem_insert ] ;
       lia;
     exact h_foldr_zero h
@@ -160,7 +173,7 @@ theorem mass_total (Q : CodedFiniteDistribution) :
 theorem isProbBool_iff (w : BitString) :
     isProbBool w = true ↔ (decodeCodedFiniteDistribution w).IsProbability := by
   rw [ isProbBool, CodedFiniteDistribution.IsProbability ];
-  rw [ mass_total ] ; simp +decide [ RatMass.value ] ;
+  rw [ mass_total ] ; simp +decide only [decide_eq_true_eq, RatMass.value] ;
   rw [ ENNReal.div_eq_one_iff ] <;> norm_cast ;
   · exact Nat.ne_of_gt ( RatMass.den_pos _ );
   · exact ENNReal.coe_ne_top
@@ -175,8 +188,8 @@ theorem isProbBool_code (P : CodedFiniteDistribution) (hP : P.IsProbability) :
 
 theorem levelSetMemBool_primrec :
     Primrec (fun p : (BitString × ℕ) × BitString => levelSetMemBool p.1.1 p.1.2 p.2) := by
-  have h_ge_invPow2_primrec : Primrec₂ (fun (q : RatMass) (k : ℕ) => q.ge_invPow2 k) := by
-    grind +suggestions;
+  have h_ge_invPow2_primrec : Primrec₂ (fun (q : RatMass) (k : ℕ) => q.ge_invPow2 k) :=
+    ratMass_ge_invPow2_primrec
   convert h_ge_invPow2_primrec.comp _ _ using 1;
   · convert combinePointMass_primrec.comp _ _ using 1;
     · exact Primrec.snd;
@@ -184,13 +197,16 @@ theorem levelSetMemBool_primrec :
   · exact Primrec.snd.comp ( Primrec.fst )
 
 theorem isValidCodeBool_primrec : Primrec isValidCodeBool := by
-  have h_decide_eq : Primrec₂ (fun w v : BitString => decide (codedDistributionDataCode (decodeDistributionData w) = v)) := by
-    have h_primrec : Primrec (fun w : BitString => codedDistributionDataCode (decodeDistributionData w)) := by
+  have h_decide_eq : Primrec₂
+      (fun w v : BitString =>
+        decide (codedDistributionDataCode (decodeDistributionData w) = v)) := by
+    have h_primrec : Primrec
+        (fun w : BitString => codedDistributionDataCode (decodeDistributionData w)) := by
       have h_codedDistributionDataCode_primrec : Primrec codedDistributionDataCode := by
         convert CodedFiniteDistribution.codedDistributionDataCode_primrec;
       exact h_codedDistributionDataCode_primrec.comp ( decodeDistributionData_primrec );
     convert Primrec.eq.comp ( h_primrec.comp ( Primrec.fst ) ) ( Primrec.snd ) using 1;
-    constructor <;> intro h <;> simp_all +decide [ Primrec₂, PrimrecPred ];
+    constructor <;> intro h <;> simp_all +decide only [Primrec₂, PrimrecPred];
     · exact ⟨ inferInstance, h ⟩;
     · grind;
   convert h_decide_eq.comp ( Primrec.id ) ( Primrec.id ) using 1
@@ -198,19 +214,23 @@ theorem isValidCodeBool_primrec : Primrec isValidCodeBool := by
 theorem isProbBool_primrec : Primrec isProbBool := by
   -- The function `totalMassRat` is primitive recursive.
   have totalMassRat_primrec : Primrec totalMassRat := by
-    have h_totalMassRat : Primrec (fun (data : List CodedDistributionEntry) => List.foldr (fun e acc => e.mass.add acc) RatMass.zero data) := by
-      have h_add : Primrec₂ (fun (e : CodedDistributionEntry) (acc : RatMass) => e.mass.add acc) := by
+    have h_totalMassRat : Primrec
+        (fun (data : List CodedDistributionEntry) =>
+          List.foldr (fun e acc => e.mass.add acc) RatMass.zero data) := by
+      have h_add : Primrec₂
+          (fun (e : CodedDistributionEntry) (acc : RatMass) => e.mass.add acc) := by
         have h_add : Primrec₂ (fun (m1 m2 : RatMass) => m1.add m2) := by
-          -- The addition of two RatMass values is primitive recursive because it is a composition of primitive recursive functions.
+          -- The addition of two RatMass values is primitive recursive because it is a composition
+          --   of primitive recursive functions.
           apply ratMass_add_primrec;
-        have h_proj : Primrec (fun (e : CodedDistributionEntry) => e.mass) := by
-          grind +suggestions;
+        have h_proj : Primrec (fun (e : CodedDistributionEntry) => e.mass) :=
+          entry_mass_primrec
         exact h_add.comp ( h_proj.comp ( Primrec.fst ) ) ( Primrec.snd )
       convert Primrec.list_foldr _ _ _;
       rotate_left;
       rotate_left;
-      exact fun _ p => p.1.mass.add p.2;
-      exact Primrec.id;
+      · exact fun _ p => p.1.mass.add p.2
+      · exact Primrec.id
       · exact Primrec.const RatMass.zero;
       · exact h_add.comp ( Primrec.fst.comp ( Primrec.snd ) ) ( Primrec.snd.comp ( Primrec.snd ) );
       · rfl;
@@ -219,13 +239,16 @@ theorem isProbBool_primrec : Primrec isProbBool := by
     have h_eq : Primrec₂ (fun (a b : ℕ) => decide (a = b)) := by
       obtain ⟨_, hx⟩ := (Primrec.eq : PrimrecRel (α := ℕ) Eq)
       exact Primrec.of_eq hx (fun a => by by_cases h : a.1 = a.2 <;> simp [h])
-    exact h_eq.comp ( ratMass_num_primrec.comp ( Primrec.fst ) ) ( ratMass_den_primrec.comp ( Primrec.snd ) );
-  convert h_eq.comp ( totalMassRat_primrec.comp ( decodeDistributionData_primrec ) ) ( totalMassRat_primrec.comp ( decodeDistributionData_primrec ) ) using 1
+    exact h_eq.comp ( ratMass_num_primrec.comp ( Primrec.fst ) )
+      ( ratMass_den_primrec.comp ( Primrec.snd ) );
+  convert h_eq.comp ( totalMassRat_primrec.comp ( decodeDistributionData_primrec ) )
+    ( totalMassRat_primrec.comp ( decodeDistributionData_primrec ) ) using 1
 
 /-- `List.any` with a primrec list and primrec predicate is primrec. -/
 theorem list_any_primrec {α β} [Primcodable α] [Primcodable β] {f : α → List β} {p : α → β → Bool}
     (hf : Primrec f) (hp : Primrec₂ p) : Primrec (fun a => (f a).any (p a)) := by
-  have heq : (fun a => (f a).any (p a)) = (fun a => (f a).foldr (fun b acc => p a b || acc) false) := by
+  have heq : (fun a => (f a).any (p a))
+      = (fun a => (f a).foldr (fun b acc => p a b || acc) false) := by
     funext a; induction f a with
     | nil => rfl
     | cons b t ih => simp [List.any_cons, ih]
@@ -238,12 +261,18 @@ theorem list_any_primrec {α β} [Primcodable α] [Primcodable β] {f : α → L
 theorem coveredBool_primrec :
     Primrec (fun p : (List BitString × ℕ) × BitString => coveredBool p.1.1 p.1.2 p.2) := by
   apply list_any_primrec (Primrec.fst.comp Primrec.fst);
-  convert Primrec.and.comp ( Primrec.and.comp ( isValidCodeBool_primrec.comp ( Primrec.snd ) ) ( isProbBool_primrec.comp ( Primrec.snd ) ) ) ( list_any_primrec _ _ ) using 1;
-  exact inferInstance;
-  · convert Primrec.list_range.comp ( Primrec.succ.comp ( Primrec.snd.comp ( Primrec.fst.comp ( Primrec.fst ) ) ) ) using 1;
-  · have h_levelSetMemBool_primrec : Primrec (fun p : (BitString × ℕ) × BitString => levelSetMemBool p.1.1 p.1.2 p.2) := by
+  convert Primrec.and.comp
+    ( Primrec.and.comp ( isValidCodeBool_primrec.comp ( Primrec.snd ) )
+      ( isProbBool_primrec.comp ( Primrec.snd ) ) ) ( list_any_primrec _ _ ) using 1;
+  · exact inferInstance
+  · convert Primrec.list_range.comp
+      ( Primrec.succ.comp ( Primrec.snd.comp ( Primrec.fst.comp ( Primrec.fst ) ) ) ) using 1;
+  · have h_levelSetMemBool_primrec : Primrec
+      (fun p : (BitString × ℕ) × BitString => levelSetMemBool p.1.1 p.1.2 p.2) := by
       convert levelSetMemBool_primrec using 1;
-    convert h_levelSetMemBool_primrec.comp ( Primrec.pair ( Primrec.snd.comp ( Primrec.fst ) ) ( Primrec.snd ) |> Primrec.pair <| Primrec.snd.comp ( Primrec.fst.comp ( Primrec.fst ) ) ) using 1
+    convert h_levelSetMemBool_primrec.comp ( Primrec.pair ( Primrec.snd.comp ( Primrec.fst ) )
+      ( Primrec.snd ) |> Primrec.pair <| Primrec.snd.comp ( Primrec.fst.comp ( Primrec.fst ) ) )
+      using 1
 
 /-! ### Dovetailing snapshot -/
 
@@ -272,7 +301,8 @@ def snapshotCodes (c : Code) (alpha t : ℕ) : List BitString :=
   (boundedPrograms alpha).filterMap (runOut c t)
 
 /-- `List.countP` with a primrec list and primrec predicate is primrec. -/
-theorem list_countP_primrec {α β} [Primcodable α] [Primcodable β] {f : α → List β} {p : α → β → Bool}
+theorem list_countP_primrec {α β} [Primcodable α] [Primcodable β] {f : α → List β}
+    {p : α → β → Bool}
     (hf : Primrec f) (hp : Primrec₂ p) : Primrec (fun a => (f a).countP (p a)) := by
   have heq : (fun a => (f a).countP (p a))
       = (fun a => (f a).foldr (fun b n => bif p a b then n+1 else n) 0) := by
@@ -296,7 +326,9 @@ theorem evaln_primrec (c : Code) : Primrec₂ (fun (t : ℕ) (x : ℕ) => Code.e
 theorem countHalts_primrec (c : Code) :
     Primrec (fun p : ℕ × ℕ => countHalts c p.1 p.2) := by
   apply_rules [ list_countP_primrec, primrec_boundedPrograms.comp ( Primrec.fst ) ];
-  convert Primrec.option_isSome.comp ( evaln_primrec c |> Primrec.comp <| Primrec.snd.comp Primrec.fst |> Primrec.pair <| Primrec.encode.comp <| Primrec.pair Primrec.snd <| Primrec.const [] ) using 1
+  convert Primrec.option_isSome.comp
+    ( evaln_primrec c |> Primrec.comp <| Primrec.snd.comp Primrec.fst |> Primrec.pair
+      <| Primrec.encode.comp <| Primrec.pair Primrec.snd <| Primrec.const [] ) using 1
 
 theorem countHalts_computable (c : Code) :
     Computable (fun p : ℕ × ℕ => countHalts c p.1 p.2) := (countHalts_primrec c).to_comp
@@ -335,9 +367,8 @@ theorem haltsWithin_mono (c : Code) {t t' : ℕ} (h : t ≤ t') (p : BitString) 
 
 theorem countHalts_mono (c : Code) (alpha : ℕ) {t t' : ℕ} (h : t ≤ t') :
     countHalts c alpha t ≤ countHalts c alpha t' := by
-  unfold countHalts;
-  induction ( boundedPrograms alpha ) using List.reverseRecOn <;> simp_all +decide [ List.countP_cons ];
-  grind +suggestions
+  unfold countHalts
+  exact List.countP_mono_left fun p _ => haltsWithin_mono c h p
 
 theorem countHalts_le_length (c : Code) (alpha t : ℕ) :
     countHalts c alpha t ≤ (boundedPrograms alpha).length :=
@@ -348,11 +379,12 @@ The dovetailing count attains a maximum over all step budgets.
 -/
 theorem exists_max_countHalts (c : Code) (alpha : ℕ) :
     ∃ t, ∀ t', countHalts c alpha t' ≤ countHalts c alpha t := by
-  obtain ⟨t, ht⟩ : ∃ t, t ∈ Set.range (fun t => countHalts c alpha t) ∧ ∀ t' ∈ Set.range (fun t => countHalts c alpha t), t' ≤ t := by
-    apply_rules [ Set.exists_max_image ];
-    · exact Set.finite_iff_bddAbove.mpr ⟨ _, Set.forall_mem_range.mpr fun t => countHalts_le_length c alpha t ⟩;
-    · exact ⟨ _, ⟨ 0, rfl ⟩ ⟩;
-  aesop
+  obtain ⟨_, ⟨t0, rfl⟩, hmax⟩ :=
+    Set.exists_max_image (Set.range fun t => countHalts c alpha t) id
+      (Set.finite_iff_bddAbove.mpr
+        ⟨_, Set.forall_mem_range.mpr fun t => countHalts_le_length c alpha t⟩)
+      ⟨_, ⟨0, rfl⟩⟩
+  exact ⟨t0, fun t' => hmax _ ⟨t', rfl⟩⟩
 
 theorem runOut_sound {c : Code} {U : Map} (hc : IsCodeFor c U) {t : ℕ} {p w : BitString}
     (h : runOut c t p = some w) : produces U p [] w := by
@@ -364,14 +396,45 @@ theorem runOut_sound {c : Code} {U : Map} (hc : IsCodeFor c U) {t : ℕ} {p w : 
 
 theorem runOut_complete {c : Code} {U : Map} (hc : IsCodeFor c U) {p out : BitString}
     (h : produces U p [] out) : ∃ t, runOut c t p = some out := by
-  obtain ⟨t, ht⟩ : ∃ t, Encodable.encode out ∈ Code.evaln t c (Encodable.encode ((p, []) : BitString × BitString)) := by
-    have h_evaln : Encodable.encode out ∈ c.eval (Encodable.encode ((p, []) : BitString × BitString)) := by
+  obtain ⟨t, ht⟩ : ∃ t, Encodable.encode out ∈ Code.evaln t c
+      (Encodable.encode ((p, []) : BitString × BitString)) := by
+    have h_evaln : Encodable.encode out ∈ c.eval
+        (Encodable.encode ((p, []) : BitString × BitString)) := by
       simp_all +decide [ produces, IsCodeFor ];
-    grind +suggestions;
-  -- By definition of `runOut`, we have `runOut c t p = (Code.evaln t c (Encodable.encode ((p, []) : BitString × BitString))).bind (fun r => (Encodable.decode r : Option BitString))`.
+    exact Code.evaln_complete.mp h_evaln
+  -- By definition of `runOut`, we have `runOut c t p = (Code.evaln t c (Encodable.encode ((p, []) :
+  --   BitString × BitString))).bind (fun r => (Encodable.decode r : Option BitString))`.
   use t
   simp [runOut];
   simp_all +decide [ Encodable.encodek ]
+
+/-
+Strict monotonicity of `List.countP`: if `q` holds wherever `p` does on the
+list and some list element flips from `p = false` to `q = true`, the count
+strictly increases.
+-/
+theorem countP_lt_of_witness {α : Type*} {l : List α} {p q : α → Bool} {a : α}
+    (ha : a ∈ l) (hp : p a = false) (hq : q a = true)
+    (hmono : ∀ x ∈ l, p x → q x) :
+    l.countP p < l.countP q := by
+  induction l with
+  | nil => simp only [List.not_mem_nil] at ha
+  | cons b t ih =>
+    rw [List.countP_cons, List.countP_cons]
+    have hmono' : ∀ x ∈ t, p x → q x := fun x hx => hmono x (List.mem_cons_of_mem _ hx)
+    have hle : t.countP p ≤ t.countP q := List.countP_mono_left hmono'
+    rcases List.mem_cons.1 ha with rfl | hat
+    · simp only [hp, hq, Bool.false_eq_true, ↓reduceIte]; omega
+    · have hlt := ih hat hmono'
+      by_cases hb : p b = true
+      · have hqb : q b = true := hmono b (List.mem_cons_self ..) hb
+        simp only [hb, hqb, ↓reduceIte]; omega
+      · rw [Bool.not_eq_true] at hb
+        simp only [hb, Bool.false_eq_true, ↓reduceIte]
+        by_cases hqb : q b = true
+        · simp only [hqb, ↓reduceIte]; omega
+        · rw [Bool.not_eq_true] at hqb
+          simp only [hqb, Bool.false_eq_true, ↓reduceIte]; omega
 
 /-
 At a step budget achieving the maximal halting count, every output of a
@@ -382,32 +445,36 @@ theorem code_mem_snapshot_of_max {c : Code} {U : Map} (hc : IsCodeFor c U) (alph
     {p out : BitString} (hp : p ∈ boundedPrograms alpha) (hout : produces U p [] out) :
     out ∈ snapshotCodes c alpha t := by
   contrapose! hmax;
-  obtain ⟨ t', ht' ⟩ := runOut_complete hc hout; use t'; simp_all +decide [ countHalts ] ;
-  have h_countP_mono : ∀ {l : List BitString} {p : BitString}, p ∈ l → haltsWithin c t p = false → haltsWithin c t' p = true → List.countP (haltsWithin c t) l < List.countP (haltsWithin c t') l := by
-    intros l p hp ht ht'; induction l <;> simp_all +decide [ List.countP_cons ] ;
-    cases hp <;> simp_all +decide;
-    · rename_i k hk₁ hk₂ hk₃;
-      by_cases hk₄ : k ∈ hk₁ <;> simp_all +decide;
-      · grind;
-      · induction hk₁ <;> simp_all +decide [ List.countP_cons ];
-        split_ifs <;> simp_all +decide;
-        · exact absurd ( haltsWithin_mono c ( show t ≤ t' from Nat.le_of_not_lt fun h => by
-                                                exact absurd ( haltsWithin_mono c h.le _ ) ( by aesop ) ) _ ) ( by aesop );
-        · bv_omega;
-    · split_ifs <;> simp_all +decide;
-      · exact absurd ( haltsWithin_mono c ( show t ≤ t' from le_of_not_gt fun h => by have := haltsWithin_mono c h.le p; aesop ) _ ) ( by aesop );
-      · grind;
-  unfold runOut at ht'; simp_all +decide [ Option.bind_eq_some_iff ] ;
-  obtain ⟨ a, ha₁, ha₂ ⟩ := ht'; specialize @h_countP_mono ( boundedPrograms alpha ) p hp; simp_all +decide [ haltsWithin ] ;
+  obtain ⟨ t', ht' ⟩ := runOut_complete hc hout; use t'; simp_all +decide only [countHalts] ;
+  have h_countP_mono : ∀ {l : List BitString} {p : BitString}, p ∈ l → haltsWithin c t p = false →
+      haltsWithin c t' p = true →
+        List.countP (haltsWithin c t) l < List.countP (haltsWithin c t') l := by
+    intro l r hr hrt hrt'
+    have htt' : t ≤ t' := by
+      by_contra hcon
+      rw [not_le] at hcon
+      have := haltsWithin_mono c hcon.le r hrt'
+      rw [this] at hrt
+      exact absurd hrt (by decide)
+    exact countP_lt_of_witness hr hrt hrt' (fun x _ => haltsWithin_mono c htt' x)
+  unfold runOut at ht'
+  simp_all +decide only [Encodable.encode_prod_val, Encodable.encode_list_nil,
+    Option.bind_eq_some_iff, gt_iff_lt]
+  obtain ⟨ a, ha₁, ha₂ ⟩ := ht'; specialize @h_countP_mono ( boundedPrograms alpha ) p hp;
+  simp_all +decide only [haltsWithin, Encodable.encode_prod_val, Encodable.encode_list_nil,
+    Option.isSome_eq_false_iff, Option.isNone_iff_eq_none, Option.isSome_some, forall_const]
   apply h_countP_mono; exact (by
-  unfold snapshotCodes at hmax; simp_all +decide [ List.mem_filterMap ] ;
-  unfold runOut at hmax; simp_all +decide [ Option.bind_eq_some_iff ] ;
+  unfold snapshotCodes at hmax; simp_all +decide only [List.mem_filterMap, not_exists, not_and] ;
+  unfold runOut at hmax
+  simp_all +decide only [Encodable.encode_prod_val, Encodable.encode_list_nil,
+    Option.bind_eq_some_iff, not_exists, not_and]
   exact Option.eq_none_iff_forall_not_mem.mpr fun x hx =>
     hmax p hp x hx <| by
       have := Nat.Partrec.Code.evaln_mono (show t ≤ t' from
         Nat.le_of_not_lt fun h => by
           have := Nat.Partrec.Code.evaln_mono (show t' ≤ t from le_of_lt h) ha₁
-          simp_all +decide
+          simp_all +decide only [Option.mem_def, Option.some.injEq, reduceCtorEq,
+            IsEmpty.forall_iff]
           exact hmax p hp a
             (by simpa [this] using Nat.Partrec.Code.evaln_mono (show t' ≤ t from le_of_lt h) ha₁)
             ha₂) hx
@@ -422,7 +489,8 @@ theorem exists_halting_program_of_complexity_le (U : Map) (P : CodedFiniteDistri
     ∃ p, p ∈ boundedPrograms alpha ∧ produces U p [] P.code := by
   by_cases h : KP U P.code [] = ⊤;
   · simp_all +decide [ complexity, KPPlain_eq_KP ];
-  · obtain ⟨p, hp_prod, hp_len⟩ : ∃ p, produces U p [] P.code ∧ (programLength p : ENat) = KP U P.code [] :=
+  · obtain ⟨p, hp_prod, hp_len⟩ :
+        ∃ p, produces U p [] P.code ∧ (programLength p : ENat) = KP U P.code [] :=
       exists_program_of_KP_ne_top h
     have h_len : (programLength p : ENat) ≤ alpha := by
       convert hcomp using 1;
@@ -452,19 +520,30 @@ theorem list_find?_primrec {α β} [Primcodable α] [Primcodable β] {f : α →
   exact Primrec.list_foldr hf (Primrec.const none) hstep
 
 theorem partrec_selectorFn (c : Code) : Partrec (selectorFn c) := by
-  have h_check : Computable (fun st : BitString × ℕ => decide (countHalts c (selAlpha st.1) st.2 = selH st.1)) := by
+  have h_check : Computable
+      (fun st : BitString × ℕ => decide (countHalts c (selAlpha st.1) st.2 = selH st.1)) := by
     have h_eq : Computable (fun p : ℕ × ℕ => decide (p.1 = p.2)) := by
       obtain ⟨ _, h ⟩ := ( Primrec.eq : PrimrecRel ( α := ℕ ) Eq );
       convert h.to_comp;
-    convert h_eq.comp ( Computable.pair ( countHalts_computable c |> Computable.comp <| Computable.pair ( selAlpha_computable.comp Computable.fst ) Computable.snd ) ( selH_computable.comp Computable.fst ) ) using 1;
-  have h_post : Computable (fun st : BitString × ℕ => (allStrings (selNat st.1)).find? (fun x => ! coveredBool (snapshotCodes c (selAlpha st.1) st.2) (selMaxK st.1) x)) := by
+    convert h_eq.comp ( Computable.pair ( countHalts_computable c |> Computable.comp <|
+      Computable.pair ( selAlpha_computable.comp Computable.fst ) Computable.snd )
+      ( selH_computable.comp Computable.fst ) ) using 1;
+  have h_post : Computable
+      (fun st : BitString × ℕ => (allStrings (selNat st.1)).find?
+        (fun x => ! coveredBool (snapshotCodes c (selAlpha st.1) st.2) (selMaxK st.1) x)) := by
     convert list_find?_primrec _ _ |> Primrec.to_comp using 1;
     · exact allStrings_primrec.comp ( selNat_primrec.comp Primrec.fst );
-    · have h_post : Primrec (fun st : BitString × ℕ => ( snapshotCodes c ( selAlpha st.1 ) st.2, selMaxK st.1 )) := by
-        convert Primrec.pair ( snapshotCodes_primrec c |> Primrec.comp <| Primrec.pair ( selAlpha_primrec.comp <| Primrec.fst ) <| Primrec.snd ) ( selMaxK_primrec.comp <| Primrec.fst ) using 1;
-      have h_post : Primrec (fun st : (List BitString × ℕ) × BitString => !coveredBool st.1.1 st.1.2 st.2) := by
+    · have h_post : Primrec
+        (fun st : BitString × ℕ => ( snapshotCodes c ( selAlpha st.1 ) st.2, selMaxK st.1 )) := by
+        convert Primrec.pair ( snapshotCodes_primrec c |> Primrec.comp <|
+          Primrec.pair ( selAlpha_primrec.comp <| Primrec.fst ) <| Primrec.snd )
+          ( selMaxK_primrec.comp <| Primrec.fst ) using 1;
+      have h_post : Primrec
+          (fun st : (List BitString × ℕ) × BitString => !coveredBool st.1.1 st.1.2 st.2) := by
         exact Primrec.not.comp ( coveredBool_primrec );
-      convert h_post.comp ( ‹Primrec fun st : BitString × ℕ => ( snapshotCodes c ( selAlpha st.1 ) st.2, selMaxK st.1 ) ›.comp ( Primrec.fst ) |> Primrec.pair <| Primrec.snd ) using 1;
+      convert h_post.comp ( ‹Primrec fun st : BitString × ℕ =>
+          ( snapshotCodes c ( selAlpha st.1 ) st.2, selMaxK st.1 ) ›.comp ( Primrec.fst )
+        |> Primrec.pair <| Primrec.snd ) using 1;
   convert Partrec.bind ( Partrec.rfind _ ) _ using 1;
   · convert h_check.partrec using 1;
   · convert h_post.ofOption using 1
@@ -476,8 +555,8 @@ theorem coveredBool_iff (codes : List BitString) (max_k : ℕ) (x : BitString) :
     coveredBool codes max_k x = true ↔
       ∃ w ∈ codes, isValidCodeBool w = true ∧ isProbBool w = true ∧
         ∃ k ≤ max_k, levelSetMemBool w k x = true := by
-  unfold coveredBool;
-  grind
+  unfold coveredBool
+  simp only [List.any_eq_true, Bool.and_eq_true_iff, List.mem_range, Nat.lt_succ_iff, and_assoc]
 
 /-
 Any code in the snapshot has plain prefix complexity at most `alpha`.
@@ -485,13 +564,15 @@ Any code in the snapshot has plain prefix complexity at most `alpha`.
 theorem complexity_decode_of_mem_snapshot {c : Code} {U : Map} (hc : IsCodeFor c U)
     {alpha t : ℕ} {w : BitString} (hw : w ∈ snapshotCodes c alpha t) :
     KPPlain U w ≤ (alpha : ENat) := by
-  -- By definition of `snapshotCodes`, there exists a program `p` with `p ∈ boundedPrograms alpha` and `runOut c t p = some w`.
+  -- By definition of `snapshotCodes`, there exists a program `p` with `p ∈ boundedPrograms alpha`
+  --   and `runOut c t p = some w`.
   obtain ⟨p, hp⟩ : ∃ p ∈ boundedPrograms alpha, runOut c t p = some w := by
     unfold snapshotCodes at hw; aesop;
   have h_complexity_le_alpha : KP U w [] ≤ (programLength p : ENat) := by
     apply KP_le_programLength_of_produces;
     exact runOut_sound hc hp.2;
-  exact h_complexity_le_alpha.trans ( by exact_mod_cast by have := mem_boundedPrograms_iff p alpha; aesop )
+  exact h_complexity_le_alpha.trans
+    ( by exact_mod_cast by have := mem_boundedPrograms_iff p alpha; aesop )
 
 /-! ### Main constructive theorem -/
 
@@ -503,18 +584,23 @@ theorem exists_partrec_uncovered_selector (U : Map) (hU : IsOptimalPrefixConditi
           ∃ x, x ∈ f (selectorInput n alpha max_k h) ∧ x.length = n ∧
             (∀ P : CodedFiniteDistribution, P.IsProbability →
               P.complexity U ≤ (alpha : ENat) → ∀ k ≤ max_k, x ∉ levelSet P k) := by
-  -- By definition of `IsOptimalPrefixConditional`, there exists a code `c` such that `IsCodeFor c U`.
+  -- By definition of `IsOptimalPrefixConditional`, there exists a code `c` such that `IsCodeFor c
+  --   U`.
   obtain ⟨c, hc⟩ := Nat.Partrec.Code.exists_code.mp hU.isDecompressor;
   refine ⟨ ?_, ?_, ?_ ⟩;
-  exact selectorFn c;
+  · exact selectorFn c
   · exact partrec_selectorFn c;
   · intro n alpha max_k hcov
     obtain ⟨t_star, hmax⟩ := exists_max_countHalts c alpha
     set h := countHalts c alpha t_star
     have h_lt : h < 2 ^ (alpha + 1) := by
-      exact lt_of_le_of_lt ( countHalts_le_length c alpha t_star ) ( length_boundedPrograms_lt alpha )
-    obtain ⟨t₀, ht0, ht0_min⟩ : ∃ t₀, countHalts c alpha t₀ = h ∧ ∀ m < t₀, countHalts c alpha m ≠ h := by
-      exact ⟨ Nat.find ( ⟨ t_star, rfl ⟩ : ∃ t₀, countHalts c alpha t₀ = h ), Nat.find_spec ( ⟨ t_star, rfl ⟩ : ∃ t₀, countHalts c alpha t₀ = h ), fun m mn => Nat.find_min ( ⟨ t_star, rfl ⟩ : ∃ t₀, countHalts c alpha t₀ = h ) mn ⟩
+      exact lt_of_le_of_lt ( countHalts_le_length c alpha t_star )
+        ( length_boundedPrograms_lt alpha )
+    obtain ⟨t₀, ht0, ht0_min⟩ :
+        ∃ t₀, countHalts c alpha t₀ = h ∧ ∀ m < t₀, countHalts c alpha m ≠ h := by
+      exact ⟨ Nat.find ( ⟨ t_star, rfl ⟩ : ∃ t₀, countHalts c alpha t₀ = h ),
+        Nat.find_spec ( ⟨ t_star, rfl ⟩ : ∃ t₀, countHalts c alpha t₀ = h ),
+        fun m mn => Nat.find_min ( ⟨ t_star, rfl ⟩ : ∃ t₀, countHalts c alpha t₀ = h ) mn ⟩
     have hmax0 : ∀ t', countHalts c alpha t' ≤ countHalts c alpha t₀ := by
       grind
     set s := selectorInput n alpha max_k h
@@ -523,7 +609,8 @@ theorem exists_partrec_uncovered_selector (U : Map) (hU : IsOptimalPrefixConditi
     obtain ⟨x0, hx0len, hx0unc⟩ := exists_uncovered_nbit_string U n alpha max_k hcov
     have hpred : pred x0 = true := by
       by_contra h_contra
-      obtain ⟨w, hw⟩ : ∃ w ∈ snap, isValidCodeBool w = true ∧ isProbBool w = true ∧ ∃ k ≤ max_k, levelSetMemBool w k x0 = true := by
+      obtain ⟨w, hw⟩ : ∃ w ∈ snap, isValidCodeBool w = true ∧ isProbBool w = true ∧ ∃ k ≤ max_k,
+          levelSetMemBool w k x0 = true := by
         grind +locals;
       obtain ⟨k, hk₁, hk₂⟩ := hw.2.2.2
       have hQ : (decodeCodedFiniteDistribution w).IsProbability := by
@@ -539,7 +626,8 @@ theorem exists_partrec_uncovered_selector (U : Map) (hU : IsOptimalPrefixConditi
     have hx0snap : x0 ∈ allStrings n := by
       exact mem_allStrings n x0 |>.2 hx0len
     obtain ⟨y, hy⟩ : ∃ y, (allStrings n).find? pred = some y := by
-      exact Option.isSome_iff_exists.mp ( List.find?_isSome.mpr ⟨ x0, hx0snap, hpred ⟩ ) |> fun ⟨ y, hy ⟩ => ⟨ y, hy ⟩
+      exact Option.isSome_iff_exists.mp ( List.find?_isSome.mpr ⟨ x0, hx0snap, hpred ⟩ )
+        |> fun ⟨ y, hy ⟩ => ⟨ y, hy ⟩
     have hylen : y.length = n := by
       exact mem_allStrings n y |>.1 ( List.mem_of_find?_eq_some hy )
     have hxy : y ∈ selectorFn c s := by
@@ -548,7 +636,9 @@ theorem exists_partrec_uncovered_selector (U : Map) (hU : IsOptimalPrefixConditi
     refine ⟨ hxy, hylen, ?_ ⟩;
     intro P hP hcomp k hk hyk
     have hPcode : P.code ∈ snap := by
-      have := exists_halting_program_of_complexity_le U P alpha hcomp; obtain ⟨ p, hp₁, hp₂ ⟩ := this; exact code_mem_snapshot_of_max hc alpha t₀ hmax0 hp₁ hp₂;
+      have := exists_halting_program_of_complexity_le U P alpha hcomp
+      obtain ⟨ p, hp₁, hp₂ ⟩ := this
+      exact code_mem_snapshot_of_max hc alpha t₀ hmax0 hp₁ hp₂;
     have hPvalid : isValidCodeBool P.code = true := by
       exact isValidCodeBool_code P
     have hPprob : isProbBool P.code = true := by
@@ -580,7 +670,8 @@ theorem KPPlain_uncovered_string (U : Map) (hU : IsOptimalPrefixConditional U) :
   obtain ⟨h, hh, x, hx_some, hx_len, hx_cov⟩ := hf_correct n alpha max_k h_cov
   refine ⟨x, hx_len, hx_cov, ?_⟩
   calc
-    KPPlain U x ≤ KPPlain U (selectorInput n alpha max_k h) + (c_partrec : ENat) := hc_partrec _ _ hx_some
+    KPPlain U x ≤ KPPlain U (selectorInput n alpha max_k h) + (c_partrec : ENat) :=
+      hc_partrec _ _ hx_some
     _ ≤ (alpha : ENat) + (c : ENat) * (Nat.bits n).length := hc n alpha max_k h hh h_cov
 
 /-- The first paper-level non-stochastic existence theorem with explicit constants. -/

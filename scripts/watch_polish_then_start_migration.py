@@ -320,8 +320,9 @@ class Handoff:
                 "COVERAGE.md",
                 "README.md",
                 "POLISHING_28_PLAN.md",
-                "scripts/audit.sh",
-                "scripts/strict_lint_sweep.sh",
+                "SCALABILITY_28_PLAN.md",
+                "proof_loop/sections.json",
+                "scripts",
             ],
             "Finalize strict Lean 4.28 Mathlib-style polishing",
         )
@@ -363,6 +364,8 @@ class Handoff:
     def prepare_migration_root(self) -> str:
         if self.migration_runner_pids():
             raise RuntimeError("a Lean 4.31 migration runner is already active")
+        for pycache in self.migration_root.rglob("__pycache__"):
+            shutil.rmtree(pycache, ignore_errors=True)
         self.run(
             ["bash", "scripts/audit.sh"],
             cwd=self.migration_root,

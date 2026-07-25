@@ -1,5 +1,4 @@
 import Mathlib.Computability.Partrec
-import Mathlib.Data.List.Basic
 import Mathlib.Data.ENat.Lattice
 
 /-!

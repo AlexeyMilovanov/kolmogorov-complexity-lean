@@ -37,7 +37,9 @@ theorem cylinder_card (n : ℕ) (u : List Bool) (h : u.length ≤ n) :
                                                                       Finset.card_image_of_injOn,
                                                                           cardStringsOfLength ];
       · exact fun x hx y hy hxy => by simpa using hxy;
-      · ext x; simp [cylinder, stringsOfLength];
+      · ext x
+        simp only [cylinder, stringsOfLength, Finset.mem_filter, List.mem_toFinset, mem_allStrings,
+          Finset.mem_image]
         constructor <;> intro hx;
         · obtain ⟨ a, rfl ⟩ := hx.2; use a; aesop;
         · grind +qlia
@@ -60,7 +62,8 @@ A prefix cube is exactly a cylinder (with prefix `p` and total length `p.length 
 theorem prefixCubeSet_eq_cylinder (p : BitString) (m : ℕ) :
     prefixCubeSet p m = cylinder (p.length + m) p := by
       ext x
-      simp [prefixCubeSet, cylinder];
+      simp only [prefixCubeSet, List.mem_toFinset, List.mem_map, mem_allStrings, cylinder,
+        Finset.mem_filter];
       constructor;
       · rintro ⟨ a, rfl, rfl ⟩ ; simp +decide [ stringsOfLength ] ;
       · rintro ⟨ hx₁, hx₂ ⟩;
@@ -114,7 +117,7 @@ theorem cylinderEnum_complete : ∀ (S : Finset BitString) (hS : S.Nonempty),
       have hS_eq : S = prefixCubeSet u m := by
         rw [ hu.2, prefixCubeSet_eq_cylinder, hm ]
       use (pairCode u (natCode m)).length
-      simp [cylinderEnum, hS_eq];
+      simp only [cylinderEnum, length_pairCode, length_natCode, hS_eq, List.mem_map];
       refine ⟨ pairCode u ( natCode m ), ?_, ?_ ⟩;
       · exact ( mem_boundedPrograms_iff _ _ ).mpr ( by simp +arith +decide [ *, length_pairCode,
                                                                              length_natCode ] );
@@ -141,18 +144,22 @@ theorem cylinder_cover_pieces (n : ℕ) (u : List Bool) (k : ℕ)
       (∀ B ∈ 𝒞, cylinderFamilyMem B ∧ B.card = 2 ^ (n - k)) ∧
       (∀ x ∈ cylinder n u, ∃ B ∈ 𝒞, x ∈ B) ∧
       𝒞.length = 2 ^ (k - u.length) := by
-        refine
-            ⟨ ( stringsOfLength ( k - u.length ) |> Finset.toList |> List.map ( fun v => cylinder n
-                                                                                ( u ++ v )
-                                                                                    ) ), ?_, ?_, ?_ ⟩
-                                                                                        <;>
-                                                                                          simp +decide [ * ];
+        refine ⟨(stringsOfLength (k - u.length) |> Finset.toList |>
+            List.map (fun v => cylinder n (u ++ v))), ?_, ?_, ?_⟩ <;>
+          simp +decide only [List.mem_map, Finset.mem_toList, forall_exists_index, and_imp,
+            forall_apply_eq_imp_iff₂, exists_exists_and_eq_and, List.length_map,
+            Finset.length_toList];
         · intro v hv; rw [ cylinder_card ] ;
-          · have := memStringsOfLength ( k - u.length ) v; simp_all +decide [ List.length_append ] ;
+          · have := memStringsOfLength (k - u.length) v
+            simp_all +decide only [iff_true, List.length_append, add_tsub_cancel_of_le, and_true]
             exact ⟨ n, u ++ v, by simp +decide [ hv, hu, hk ], rfl ⟩;
           · grind +suggestions;
-        · intro x hx; use x.drop u.length |>.take ( k - u.length ) ; simp_all +decide [ cylinder ] ;
-          rcases hx.2 with ⟨ y, rfl ⟩ ; simp_all +decide [ stringsOfLength ];
+        · intro x hx; use x.drop u.length |>.take (k - u.length)
+          simp_all +decide only [cylinder, Finset.mem_filter, true_and]
+          rcases hx.2 with ⟨y, rfl⟩
+          simp_all +decide only [stringsOfLength, List.mem_toFinset, mem_allStrings,
+            List.length_append, List.prefix_append, and_true, List.drop_left', List.length_take,
+            inf_eq_left, tsub_le_iff_right, List.prefix_append_right_inj]
           exact ⟨ by linarith, List.take_prefix _ _ ⟩;
         · exact cardStringsOfLength _
 
@@ -180,12 +187,14 @@ theorem cylinderFamily_cover {A : Finset BitString} (hA : cylinderFamilyMem A) (
       obtain ⟨𝒞, h𝒞⟩ := cylinder_cover_pieces n u (n - r) (by
       omega) (by
       exact Nat.sub_le _ _);
-      refine ⟨ 𝒞, ?_, ?_, ?_ ⟩ <;> simp_all +decide [ Nat.sub_sub ];
+      refine ⟨𝒞, ?_, ?_, ?_⟩ <;> simp_all +decide only [Nat.sub_sub, true_and, implies_true];
       · grind;
-      · have := cylinder_card N u hu; simp_all +decide [ cylinderOverhead ] ;
+      · have := cylinder_card N u hu; simp_all +decide only [cylinderOverhead, ge_iff_le]
         rw [ show N - u.length = ( N - ( r + u.length ) ) + r by omega ] ; ring_nf at *
         nlinarith [ pow_pos ( zero_lt_two' ℕ ) r, pow_succ' ( 2 : ℕ ) r ] ;
-    · refine ⟨ [ ], ?_, ?_, ?_ ⟩ <;> simp +decide;
+    · refine ⟨[], ?_, ?_, ?_⟩ <;>
+        simp +decide only [List.not_mem_nil, IsEmpty.forall_iff, implies_true, false_and,
+          exists_const, imp_false, List.length_nil, zero_mul, zero_le];
       intro x hx; rw [ mem_cylinder ] at hx; aesop;
 
 /-- The description family of cylinders. -/

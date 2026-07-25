@@ -39,7 +39,9 @@ theorem levelSet_card_le (P : CodedFiniteDistribution) (k : Nat)
   contrapose! h_sum_mass_le;
   refine lt_of_lt_of_le ?_ ( Finset.sum_le_sum h_mass_ge ) ; norm_num;
   rw [ ← ENNReal.toReal_lt_toReal ] at * <;> norm_num at *;
-  · convert mul_lt_mul_of_pos_right h_sum_mass_le ( by positivity : 0 < ( 1 / 2 : ℝ ) ^ k ) using 1 ; norm_num [ ← mul_pow ];
+  · convert mul_lt_mul_of_pos_right h_sum_mass_le
+      (by positivity : 0 < (1 / 2 : ℝ) ^ k) using 1
+    norm_num [← mul_pow]
   · exact ENNReal.mul_ne_top ( by norm_num ) ( by norm_num )
 
 /-- The coded uniform distribution over a nonempty level set. -/
@@ -63,9 +65,11 @@ theorem levelSetModel_mass_ge (P : CodedFiniteDistribution) (k : Nat)
   have h_card : (levelSet P k).card ≤ 2 ^ k := by
     convert levelSet_card_le P k hprob using 1;
     norm_cast;
-  convert ENNReal.inv_le_inv.mpr ( Nat.cast_le.mpr h_card ) using 1 ; norm_num;
-  · rw [ ENNReal.inv_pow ];
-  · convert codedUniformOn_mass_of_mem ( levelSet P k ) h_nonempty x hx using 1
+  unfold levelSetModel
+  rw [codedUniformOn_mass_of_mem (levelSet P k) h_nonempty x hx]
+  rw [← ENNReal.inv_pow]
+  apply ENNReal.inv_le_inv.mpr
+  exact_mod_cast h_card
 
 /-
 Deficiency under a coded level-set model, using its canonical code.
@@ -78,7 +82,8 @@ theorem deficiencyLe_levelSetModel (U : Map) (P : CodedFiniteDistribution) (k : 
       complexityWeight (KP U x (levelSetModel P k h_nonempty).code) <=
         (2 : ENNReal) ^ beta * ((levelSet P k).card : ENNReal)⁻¹) :
     DeficiencyLe U (levelSetModel P k h_nonempty) x beta := by
-  -- By definition of `DeficiencyLe`, we need to show that the complexity weight is less than or equal to 2^beta times the mass.
+  -- By definition of `DeficiencyLe`, the complexity weight is at most
+  -- `2^beta` times the mass.
   unfold DeficiencyLe;
   convert h_weight using 1;
   unfold CodedFiniteDistribution.DeficiencyLe;

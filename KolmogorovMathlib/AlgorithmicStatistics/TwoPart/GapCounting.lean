@@ -121,7 +121,8 @@ theorem setComplexity_le_of_setOptimalityDeficiency {U : Map} {A : Finset BitStr
           ≤ (2 : ℝ≥0∞) ^ delta * (complexityWeight (setComplexity U A hA) * 1) := by gcongr
         _ = (2 : ℝ≥0∞) ^ delta * complexityWeight (setComplexity U A hA) := by rw [mul_one]
     calc (2 : ℝ≥0∞)⁻¹ ^ delta * complexityWeight (KPPlain U x)
-        ≤ (2 : ℝ≥0∞)⁻¹ ^ delta * ((2 : ℝ≥0∞) ^ delta * complexityWeight (setComplexity U A hA)) := by
+        ≤ (2 : ℝ≥0∞)⁻¹ ^ delta *
+          ((2 : ℝ≥0∞) ^ delta * complexityWeight (setComplexity U A hA)) := by
           gcongr
       _ = ((2 : ℝ≥0∞)⁻¹ * 2) ^ delta * complexityWeight (setComplexity U A hA) := by
           rw [mul_pow]; ring
@@ -137,20 +138,35 @@ theorem card_le_of_deficiency {U : Map} {A : Finset BitString} {hA : A.Nonempty}
     (hdef : CodedFiniteDistribution.DeficiencyLe U (codedUniformOn A hA) x d) :
     ∃ j : ℕ, A.card ≤ 2 ^ j ∧ (j : ENat) ≤ KP U x (codedUniformOn A hA).code + (d : ENat) := by
   by_cases h : KP U x ( codedUniformOn A hA |> CodedFiniteDistribution.code ) = ⊤;
-  · exact ⟨ A.card, Nat.le_of_lt ( Nat.recOn A.card ( by norm_num ) fun n ihn => by norm_num [ Nat.pow_succ ] at * ; linarith ), by simp +decide [ h ] ⟩;
+  · refine ⟨A.card, Nat.le_of_lt ?_, by simp only [h, top_add, le_top]⟩
+    exact Nat.recOn A.card (by norm_num) fun n ihn => by
+      norm_num [Nat.pow_succ] at *
+      linarith
   · obtain ⟨k, hk⟩ : ∃ k : ℕ, KP U x (codedUniformOn A hA).code = k :=
       (ENat.ne_top_iff_exists.mp h).imp fun m hm => hm.symm
-    refine ⟨ d + k, ?_, ?_ ⟩ <;> simp_all +decide [ add_comm ];
-    have h_card : (A.card : ENNReal) ≤ (2 : ENNReal) ^ d * (2 : ENNReal) ^ k := by
-      have h_card : (2 : ENNReal)⁻¹ ^ k ≤ (2 : ENNReal) ^ d * (A.card : ENNReal)⁻¹ := by
-        convert hdef using 1;
-        unfold CodedFiniteDistribution.DeficiencyLe; simp +decide [ hk, codedUniformOn_mass_of_mem A hA x hx ] ;
-      have h_card : (A.card : ENNReal) * (2 : ENNReal)⁻¹ ^ k ≤ (2 : ENNReal) ^ d := by
-        refine le_trans ( mul_le_mul_right h_card _ ) ?_;
-        rw [ mul_left_comm, ENNReal.mul_inv_cancel ] <;> aesop;
-      refine le_trans ?_ ( mul_le_mul_left h_card _ );
-      rw [ mul_assoc, ← mul_pow, ENNReal.inv_mul_cancel ] <;> norm_num;
-    rw [ ← @Nat.cast_le ENNReal ] ; simp_all +decide [ pow_add ]
+    refine ⟨ d + k, ?_, ?_ ⟩
+    · have h_card : (A.card : ENNReal) ≤ (2 : ENNReal) ^ d * (2 : ENNReal) ^ k := by
+        have h_card : (2 : ENNReal)⁻¹ ^ k ≤ (2 : ENNReal) ^ d * (A.card : ENNReal)⁻¹ := by
+          convert hdef using 1;
+          unfold CodedFiniteDistribution.DeficiencyLe
+          simp only [hk, codedUniformOn_mass_of_mem A hA x hx, complexityWeight_coe, mul_comm]
+        have h_card_2 : (A.card : ENNReal) * (2 : ENNReal)⁻¹ ^ k ≤ (2 : ENNReal) ^ d := by
+          refine le_trans ( mul_le_mul_right h_card _ ) ?_
+          rw [ mul_left_comm, ENNReal.mul_inv_cancel ]
+          · exact le_of_eq (mul_one _)
+          · exact mod_cast ne_of_gt (Finset.card_pos.mpr hA)
+          · exact ENNReal.natCast_ne_top _
+        refine le_trans ?_ ( mul_le_mul_left h_card_2 _ )
+        have h_cancel2 : (2 : ENNReal)⁻¹ ^ k * (2 : ENNReal) ^ k = 1 := by
+          rw [← mul_pow, ENNReal.inv_mul_cancel, one_pow]
+          · norm_num
+          · norm_num
+        rw [mul_assoc, h_cancel2, mul_one]
+      rw [pow_add]
+      exact mod_cast h_card
+    · rw [hk]
+      push_cast
+      exact le_of_eq (add_comm _ _)
 
 /--
 **Numeric input for the gap lower bound (S1).**  The two deficiency hypotheses,
@@ -178,7 +194,9 @@ theorem gap_deficiency_numeric_bound (U : Map) (A : Finset BitString) (hA : A.No
 
 theorem gap_lowerBound_KPPair (U : Map) (hU : IsOptimalPrefixConditional U)
     (x code : BitString) (kx : ℕ) (hkx : HasPrefixComplexityValue U x kx) :
-    ∃ c : ℕ, KPPlain U x + KP U code (prefixComplexityContext x kx) ≤ KPPair U x code + (c : ENat) := by
+    ∃ c : ℕ,
+      KPPlain U x + KP U code (prefixComplexityContext x kx) ≤ KPPair U x code +
+        (c : ENat) := by
   obtain ⟨c, hc⟩ := KPPair_chain_lower U hU
   exact ⟨c, hc x code kx hkx⟩
 
@@ -259,14 +277,16 @@ at least the redistributed gap `delta - d`, up to visible-parameter log slack.
 
 This uses the tight/realized optimality deficiency `delta = i + j - kx` directly.
 -/
-theorem gap_lowerBound_conditional_setComplexity_tight (U : Map) (hU : IsOptimalPrefixConditional U) :
+theorem gap_lowerBound_conditional_setComplexity_tight (U : Map) (hU : IsOptimalPrefixConditional U)
+    :
     ∃ c : ℕ, ∀ (A : Finset BitString) (hA : A.Nonempty) (x : BitString)
         (n delta d i j kx c_soi : ℕ),
       x.length = n →
       RealizedSetOptimalityGap U A hA x delta i j kx →
       CodedFiniteDistribution.DeficiencyLe U (codedUniformOn A hA) x d →
       d ≤ delta + c_soi →
-      (delta - d : ENat) ≤ KP U (codedUniformOn A hA).code (prefixComplexityContext x kx) + logSlack c (n + delta + d) := by
+      (delta - d : ENat) ≤ KP U (codedUniformOn A hA).code (prefixComplexityContext x kx) + logSlack
+          c (n + delta + d) := by
   obtain ⟨c_lower, hc_lower⟩ := KPPair_chain_lower U hU
   obtain ⟨c_upper, hc_upper⟩ := KPPair_chain_upper U hU
   obtain ⟨c_symm, hc_symm⟩ := KPPair_symm U hU
@@ -328,7 +348,8 @@ theorem gap_lowerBound_conditional_setComplexity_tight (U : Map) (hU : IsOptimal
   have h_kp_x_code_ne_top : KP U x code ≠ ⊤ := by
     intro h_contra
     have hp := hc_plain x code
-    have h_top_ineq : ⊤ ≤ ((x.length : ENat) + 2 * (Nat.bits x.length).length + c_len) + c_plain := by
+    have h_top_ineq : ⊤ ≤
+        ((x.length : ENat) + 2 * (Nat.bits x.length).length + c_len) + c_plain := by
       calc ⊤ = KP U x code := h_contra.symm
            _ ≤ KPPlain U x + c_plain := hp
            _ ≤ ((x.length : ENat) + 2 * (Nat.bits x.length).length + c_len) + c_plain := by
@@ -437,12 +458,14 @@ def appearanceListCodes (c : Code) (i j : ℕ) (x : BitString) : ℕ → List Bi
 | t + 1 => (appearanceListCodes c i j x t ++ candidateCodes c i j x (t + 1)).eraseDups
 
 theorem appearanceListCodes_primrec (c : Code) :
-    Primrec (fun p : ((ℕ × ℕ) × BitString) × ℕ => appearanceListCodes c p.1.1.1 p.1.1.2 p.1.2 p.2) := by
+    Primrec (fun p : ((ℕ × ℕ) × BitString) × ℕ =>
+      appearanceListCodes c p.1.1.1 p.1.1.2 p.1.2 p.2) := by
   -- Primitive recursion on `t = p.2`: base `candidateCodes … 0`, step appends the
   -- fresh `candidateCodes … (n+1)` and deduplicates.
   have hbase : Primrec (fun p : ((ℕ × ℕ) × BitString) × ℕ =>
       (candidateCodes c p.1.1.1 p.1.1.2 p.1.2 0).eraseDups) :=
-    eraseDups_bitstring_primrec.comp ((candidateCodes_primrec c).comp (Primrec.pair Primrec.fst (Primrec.const 0)))
+    eraseDups_bitstring_primrec.comp
+      ((candidateCodes_primrec c).comp (Primrec.pair Primrec.fst (Primrec.const 0)))
   have hstep : Primrec₂ (fun (p : ((ℕ × ℕ) × BitString) × ℕ) (z : ℕ × List BitString) =>
       (z.2 ++ candidateCodes c p.1.1.1 p.1.1.2 p.1.2 (z.1 + 1)).eraseDups) :=
     eraseDups_bitstring_primrec.comp (Primrec.list_append.comp
@@ -479,7 +502,8 @@ theorem mem_eraseDups_bitString {a : BitString} :
       rw [hx1]
       simp [List.mem_append]
 
-theorem mem_appearanceListCodes_of_mem_candidateCodes {c : Code} {i j : ℕ} {x : BitString} {t : ℕ} {w : BitString} :
+theorem mem_appearanceListCodes_of_mem_candidateCodes {c : Code} {i j : ℕ} {x : BitString} {t : ℕ}
+    {w : BitString} :
     w ∈ candidateCodes c i j x t → w ∈ appearanceListCodes c i j x t := by
   induction t with
   | zero => exact fun h => mem_eraseDups_bitString.mpr h
@@ -510,13 +534,16 @@ theorem code_mem_candidateCodes {U : Map} {c : Code} (hc : IsCodeFor c U)
   use t₀
   have hc_mem : (codedUniformOn A hA).code ∈ snapshotCodes c i t₀ := by
     have hcomp' : complexity U (codedUniformOn A hA) = i := hcomp
-    obtain ⟨p, hp₁, hp₂⟩ := exists_halting_program_of_complexity_le U (codedUniformOn A hA) i (le_of_eq hcomp')
+    obtain ⟨p, hp₁, hp₂⟩ := exists_halting_program_of_complexity_le U
+      (codedUniformOn A hA) i (le_of_eq hcomp')
     exact code_mem_snapshot_of_max hc i t₀ hmax hp₁ hp₂
   simp only [candidateCodes, List.mem_filter]
   refine ⟨⟨hc_mem, ?_⟩, ?_⟩
-  · exact (isCanonicalUniformCodeBool_iff (codedUniformOn A hA).code).mpr (isCanonicalUniformCode_codedUniformOn A hA)
+  · exact (isCanonicalUniformCodeBool_iff (codedUniformOn A hA).code).mpr
+      (isCanonicalUniformCode_codedUniformOn A hA)
   · rw [decide_eq_true_eq]
-    have h_supp : ((decodeDistributionData (codedUniformOn A hA).code).map CodedDistributionEntry.point).toFinset = A := by
+    have h_supp : ((decodeDistributionData (codedUniformOn A hA).code).map
+        CodedDistributionEntry.point).toFinset = A := by
       rw [dataPoints_codedUniformOn A hA, canonicalFinsetList_toFinset]
     rw [h_supp]
     exact ⟨hxA, hsize⟩
@@ -680,7 +707,8 @@ theorem appearanceListCodes_length_le_descriptionsContaining {U : Map} {c : Code
     fun w => ((decodeDistributionData w).map CodedDistributionEntry.point).toFinset with hf
   have hnodup : L.Nodup := by
     rw [hL]; cases t <;> exact nodup_eraseDups_bitString _
-  have hmaps : ∀ w ∈ L, f w ∈ (descriptionsWithComplexityLeAndSizeLe U i j).filter (fun S => x ∈ S) := by
+  have hmaps : ∀ w ∈ L,
+      f w ∈ (descriptionsWithComplexityLeAndSizeLe U i j).filter (fun S => x ∈ S) := by
     intro w hw
     obtain ⟨t', hw'⟩ := exists_candidate_of_mem_appearanceListCodes hw
     obtain ⟨_, hxS, hSmem⟩ := mem_snapshotDescriptionsAndSizeLe_of_mem_candidateCodes hw'
@@ -744,11 +772,13 @@ theorem appearanceListCodes_prefix (c : Code) (i j : ℕ) (x : BitString) (t : �
     appearanceListCodes c i j x t <+: appearanceListCodes c i j x (t + 1) := by
   have hn : (appearanceListCodes c i j x t).Nodup := by
     cases t <;> exact nodup_eraseDups_bitString _
-  have h_eq : appearanceListCodes c i j x (t + 1) = (appearanceListCodes c i j x t ++ candidateCodes c i j x (t + 1)).eraseDups := rfl
+  have h_eq : appearanceListCodes c i j x (t + 1) =
+      (appearanceListCodes c i j x t ++ candidateCodes c i j x (t + 1)).eraseDups := rfl
   rw [h_eq]
   exact prefix_eraseDups_append_of_nodup _ _ hn
 
-theorem prefix_of_le_appearanceListCodes (c : Code) (i j : ℕ) (x : BitString) {t1 t2 : ℕ} (hle : t1 ≤ t2) :
+theorem prefix_of_le_appearanceListCodes (c : Code) (i j : ℕ) (x : BitString) {t1 t2 : ℕ}
+    (hle : t1 ≤ t2) :
   appearanceListCodes c i j x t1 <+: appearanceListCodes c i j x t2 := by
   induction hle with
   | refl => exact List.prefix_refl _
@@ -769,28 +799,52 @@ theorem exists_drop_eq_cons_of_mem (l : List BitString) (a : BitString) (h : a �
 theorem indexSelectorFn_eq_code (c : Code) (i j : ℕ) (x : BitString) (code : BitString) (t0 : ℕ)
   (h_mem : code ∈ appearanceListCodes c i j x t0) :
   ∃ r < (appearanceListCodes c i j x t0).length,
-    ∀ (y w : BitString), decodeFirst y = x → selNat w = i → selAlpha w = j → selH w = r → indexSelectorFn c y w = Part.some code := by
+    ∀ (y w : BitString), decodeFirst y = x → selNat w = i → selAlpha w = j → selH w = r →
+        indexSelectorFn c y w = Part.some code := by
   obtain ⟨r, l', hr_lt, h_drop⟩ := exists_drop_eq_cons_of_mem _ _ h_mem
   refine ⟨r, hr_lt, ?_⟩
   intro y w hy hi hj hr
   convert Part.eq_some_iff.mpr _ using 1;
-  unfold indexSelectorFn; simp +decide [ * ] ;
-  refine ⟨ Nat.find ( ⟨ t0, hr_lt ⟩ : ∃ t, r < ( appearanceListCodes c i j x t ).length ), ⟨ ?_, ?_ ⟩, ?_ ⟩;
-  · exact Nat.find_spec ( ⟨ t0, hr_lt ⟩ : ∃ t, r < ( appearanceListCodes c i j x t ).length );
+  unfold indexSelectorFn
+  simp only [Part.mem_bind_iff, Nat.mem_rfind, Part.mem_some_iff, hy, hi, hj, hr]
+  refine ⟨Nat.find (⟨t0, hr_lt⟩ : ∃ t, r < (appearanceListCodes c i j x t).length),
+    ⟨?_, ?_⟩, ?_⟩
+  · exact (decide_eq_true (Nat.find_spec
+      (⟨t0, hr_lt⟩ : ∃ t, r < (appearanceListCodes c i j x t).length))).symm
   · intro m hm; contrapose! hm; aesop;
-  · have h_drop_eq : (appearanceListCodes c i j x (Nat.find (⟨t0, hr_lt⟩ : ∃ t, r < (appearanceListCodes c i j x t).length)))[r]! = (appearanceListCodes c i j x t0)[r]! := by
-      have h_drop_eq : appearanceListCodes c i j x (Nat.find (⟨t0, hr_lt⟩ : ∃ t, r < (appearanceListCodes c i j x t).length)) <+: appearanceListCodes c i j x t0 := by
+  · have h_drop_eq :
+        (appearanceListCodes c i j x
+          (Nat.find (⟨t0, hr_lt⟩ : ∃ t, r < (appearanceListCodes c i j x t).length)))[r]! =
+          (appearanceListCodes c i j x t0)[r]! := by
+      have h_drop_eq : appearanceListCodes c i j x
+          (Nat.find (⟨t0, hr_lt⟩ : ∃ t, r < (appearanceListCodes c i j x t).length)) <+:
+          appearanceListCodes c i j x t0 := by
         exact prefix_of_le_appearanceListCodes c i j x ( Nat.find_le hr_lt );
       obtain ⟨ k, hk ⟩ := h_drop_eq;
       grind;
-    convert h_drop_eq.symm using 1;
-    · replace h_drop := congr_arg List.head? h_drop; aesop;
-    · cases h : List.drop r ( appearanceListCodes c i j x ( Nat.find ( ⟨ t0, hr_lt ⟩ : ∃ t, r < ( appearanceListCodes c i j x t ).length ) ) ) <;> simp_all +decide;
-      replace h := congr_arg List.head? h; aesop;
+    convert h_drop_eq.symm using 1
+    · replace h_drop := congr_arg List.head? h_drop; aesop
+    · clear h_drop_eq
+      have h_get :
+          (appearanceListCodes c i j x
+            (Nat.find (⟨t0, hr_lt⟩ : ∃ t,
+              r < (appearanceListCodes c i j x t).length)))[r]? =
+            (List.drop r (appearanceListCodes c i j x
+              (Nat.find (⟨t0, hr_lt⟩ : ∃ t,
+                r < (appearanceListCodes c i j x t).length)))).head? :=
+        List.head?_drop.symm
+      cases h : List.drop r (appearanceListCodes c i j x
+        (Nat.find (⟨t0, hr_lt⟩ : ∃ t, r < (appearanceListCodes c i j x t).length)))
+      · rw [List.getElem!_eq_getElem?_getD, h_get, h]
+        rfl
+      · rw [List.getElem!_eq_getElem?_getD, h_get, h]
+        rfl
 
 /-- A computable function that extracts the index from `y` to return the right model code.
-If `x` has `< 2^m` `(i,j)`-descriptions, it is fully determined by `x, K(x), i, j` and an `m`-bit index. -/
-theorem description_count_of_conditional_complexity_gap (U : Map) (hU : IsOptimalPrefixConditional U) :
+If `x` has `< 2^m` `(i,j)`-descriptions, it is fully determined by
+`x, K(x), i, j` and an `m`-bit index. -/
+theorem description_count_of_conditional_complexity_gap (U : Map)
+    (hU : IsOptimalPrefixConditional U) :
     ∃ c : ℕ, ∀ (A : Finset BitString) (hA : A.Nonempty) (x : BitString)
         (n i j m kx : ℕ),
       x.length = n →
@@ -799,10 +853,12 @@ theorem description_count_of_conditional_complexity_gap (U : Map) (hU : IsOptima
       A.card ≤ 2 ^ j →
       HasPrefixComplexityValue U x kx →
       ¬ ManyIJDescriptions U x i j m →
-      KP U (codedUniformOn A hA).code (prefixComplexityContext x kx) ≤ (m + logSlack c (n + i + j) : ENat) := by
+      KP U (codedUniformOn A hA).code (prefixComplexityContext x kx) ≤
+          (m + logSlack c (n + i + j) : ENat) := by
   obtain ⟨c_opt, hc_opt⟩ : ∃ c_opt : Code, IsCodeFor c_opt U := by
     convert Nat.Partrec.Code.exists_code.mp hU.isDecompressor using 1
-  obtain ⟨c_kp, hkp⟩ := KP_partrec_cond_first_map_le U hU (indexSelectorFn c_opt) (partrec_indexSelectorFn c_opt)
+  obtain ⟨c_kp, hkp⟩ := KP_partrec_cond_first_map_le U hU (indexSelectorFn c_opt)
+    (partrec_indexSelectorFn c_opt)
   obtain ⟨c_plain, hc_plain⟩ := KP_le_KPPlain U hU
   obtain ⟨c_len, hc_len⟩ := KPPlain_le_length_add_log U hU
   obtain ⟨C2, hC2⟩ := logSlack_linear_bound 2 3 7
@@ -824,12 +880,15 @@ theorem description_count_of_conditional_complexity_gap (U : Map) (hU : IsOptima
   have h_in : code ∈ indexSelectorFn c_opt y w := Part.eq_some_iff.mp h_some
   have h_bound1 : KP U code y ≤ KP U w y + (c_kp : ENat) := hkp w code y h_in
   have h_bound2 : KP U w y ≤ KPPlain U w + (c_plain : ENat) := hc_plain w y
-  have h_bound3 : KPPlain U w ≤ (w.length : ENat) + 2 * (Nat.bits w.length).length + c_len := hc_len w
-  have h_w_len_r : w.length ≤ 2 * (Nat.bits i).length + 2 * (Nat.bits j).length + (Nat.bits r).length + 6 := by
+  have h_bound3 : KPPlain U w ≤
+      (w.length : ENat) + 2 * (Nat.bits w.length).length + c_len := hc_len w
+  have h_w_len_r : w.length ≤ 2 * (Nat.bits i).length + 2 * (Nat.bits j).length +
+      (Nat.bits r).length + 6 := by
     unfold w richInput selectorInput pack4
     simp [length_pairCode]
     omega
-  have hr_lt_2m : r < 2 ^ m := lt_trans hr_lt (appearanceListCodes_length_lt_of_not_manyIJ hc_opt h_not_many t₀)
+  have hr_lt_2m : r < 2 ^ m := lt_trans hr_lt
+    (appearanceListCodes_length_lt_of_not_manyIJ hc_opt h_not_many t₀)
   have hr_lt_2i : r < 2 ^ (i + 1) := by
     have h1 := appearanceListCodes_length_le_descriptionsContaining hc_opt i j x t₀
     have h2 := Finset.card_filter_le (descriptionsWithComplexityLeAndSizeLe U i j) (fun S => x ∈ S)
@@ -843,13 +902,19 @@ theorem description_count_of_conditional_complexity_gap (U : Map) (hU : IsOptima
       rw [Nat.size_eq_bits_len]
       exact Nat.size_le.mpr hr_lt_2i
     omega
-  have h_slack : c_kp + c_plain + c_len + 2 * (Nat.bits i).length + 2 * (Nat.bits j).length + 6 + 2 * (Nat.bits w.length).length ≤ logSlack C1 M := by
+  have h_slack : c_kp + c_plain + c_len + 2 * (Nat.bits i).length + 2 * (Nat.bits j).length + 6 + 2
+      * (Nat.bits w.length).length ≤ logSlack C1 M := by
     have hw1 : (Nat.bits w.length).length ≤ (Nat.bits (3 * M + 7)).length := by
-      have h : w.length < 2 ^ (Nat.size (3 * M + 7)) := lt_of_le_of_lt h_w_len_M (Nat.lt_size_self _)
+      have h : w.length < 2 ^ (Nat.size (3 * M + 7)) :=
+        lt_of_le_of_lt h_w_len_M (Nat.lt_size_self _)
       simpa [← Nat.size_eq_bits_len] using Nat.size_le.mpr h
-    have hw3 : 2 * (Nat.bits (3 * M + 7)).length ≤ logSlack 2 (3 * M + 7) := by unfold logSlack; omega
+    have hw3 : 2 * (Nat.bits (3 * M + 7)).length ≤ logSlack 2 (3 * M + 7) := by
+      unfold logSlack
+      omega
     have hw5 : logSlack C2 M = C2 * (Nat.bits M).length + C2 := rfl
-    have hw6 : logSlack C1 M = (C2 + c_kp + c_plain + c_len + 6) * (Nat.bits M).length + (C2 + c_kp + c_plain + c_len + 6) := rfl
+    have hw6 : logSlack C1 M =
+        (C2 + c_kp + c_plain + c_len + 6) * (Nat.bits M).length +
+          (C2 + c_kp + c_plain + c_len + 6) := rfl
     have hiM : i ≤ M := by omega
     have hjM : j ≤ M := by omega
     have hi_len : (Nat.bits i).length ≤ (Nat.bits M).length := by
@@ -863,20 +928,32 @@ theorem description_count_of_conditional_complexity_gap (U : Map) (hU : IsOptima
   calc KP U code y ≤ KP U w y + c_kp := h_bound1
     _ ≤ KPPlain U w + c_plain + c_kp := by gcongr
     _ ≤ (w.length : ENat) + 2 * (Nat.bits w.length).length + c_len + c_plain + c_kp := by gcongr
-    _ ≤ ((2 * (Nat.bits i).length + 2 * (Nat.bits j).length + (Nat.bits r).length + 6 : ℕ) : ENat) + 2 * (Nat.bits w.length).length + c_len + c_plain + c_kp := by
-      have h : w.length + 2 * w.length.bits.length + c_len + c_plain + c_kp ≤ (2 * i.bits.length + 2 * j.bits.length + r.bits.length + 6) + 2 * w.length.bits.length + c_len + c_plain + c_kp := by omega
+    _ ≤ ((2 * (Nat.bits i).length + 2 * (Nat.bits j).length + (Nat.bits r).length + 6 : ℕ) : ENat) +
+        2 * (Nat.bits w.length).length + c_len + c_plain + c_kp := by
+      have h : w.length + 2 * w.length.bits.length + c_len + c_plain + c_kp ≤
+          (2 * i.bits.length + 2 * j.bits.length + r.bits.length + 6) +
+            2 * w.length.bits.length + c_len + c_plain + c_kp := by omega
       exact_mod_cast h
-    _ ≤ ((2 * (Nat.bits i).length + 2 * (Nat.bits j).length + m + 6 : ℕ) : ENat) + 2 * (Nat.bits w.length).length + c_len + c_plain + c_kp := by
+    _ ≤ ((2 * (Nat.bits i).length + 2 * (Nat.bits j).length + m + 6 : ℕ) : ENat) + 2 *
+        (Nat.bits w.length).length + c_len + c_plain + c_kp := by
       have h_r_m : (Nat.bits r).length ≤ m := by
         rw [Nat.size_eq_bits_len]
         exact Nat.size_le.mpr hr_lt_2m
-      have h : (2 * i.bits.length + 2 * j.bits.length + r.bits.length + 6) + 2 * w.length.bits.length + c_len + c_plain + c_kp ≤ (2 * i.bits.length + 2 * j.bits.length + m + 6) + 2 * w.length.bits.length + c_len + c_plain + c_kp := by omega
+      have h : (2 * i.bits.length + 2 * j.bits.length + r.bits.length + 6) +
+          2 * w.length.bits.length + c_len + c_plain + c_kp ≤
+            (2 * i.bits.length + 2 * j.bits.length + m + 6) +
+              2 * w.length.bits.length + c_len + c_plain + c_kp := by omega
       exact_mod_cast h
-    _ = (m : ENat) + (c_kp + c_plain + c_len + 2 * (Nat.bits i).length + 2 * (Nat.bits j).length + 6 + 2 * (Nat.bits w.length).length : ℕ) := by push_cast; ring
+    _ = (m : ENat) + (c_kp + c_plain + c_len + 2 * (Nat.bits i).length +
+        2 * (Nat.bits j).length + 6 + 2 * (Nat.bits w.length).length : ℕ) := by
+      push_cast
+      ring
     _ ≤ (m : ENat) + logSlack C1 M := by gcongr
 
-/-- If `x ∈ A`, `setComplexity U A hA = i`, and `A.card ≤ 2^j`, then `x` has at least `2^0 = 1` `(i, j)`-description. -/
-theorem manyIJDescriptions_zero (U : Map) (A : Finset BitString) (hA : A.Nonempty) (x : BitString) (i j : ℕ)
+/-- If `x ∈ A`, `setComplexity U A hA = i`, and `A.card ≤ 2^j`, then `x` has at
+least `2^0 = 1` `(i, j)`-description. -/
+theorem manyIJDescriptions_zero (U : Map) (A : Finset BitString) (hA : A.Nonempty) (x : BitString)
+    (i j : ℕ)
     (hxA : x ∈ A) (h_comp : setComplexity U A hA = (i : ENat)) (h_size : A.card ≤ 2 ^ j) :
     ManyIJDescriptions U x i j 0 := by
   unfold ManyIJDescriptions
@@ -898,25 +975,33 @@ theorem gapCounting_slack_arithmetic (U : Map) (hU : IsOptimalPrefixConditional 
       x.length = n →
       (i : ENat) ≤ KPPlain U x + (delta : ENat) →
       (j_min : ENat) ≤ KP U x code + (d : ENat) →
-      logSlack c2 (n + i + j_min) + logSlack c1 (n + delta + d) < logSlack c_out (n + delta + d) := by
+      logSlack c2 (n + i + j_min) + logSlack c1 (n + delta + d) <
+        logSlack c_out (n + delta + d) := by
   obtain ⟨cKP⟩ := Kolmogorov.KP_le_KPPlain U hU
   obtain ⟨c0⟩ := Kolmogorov.KPPlain_le_length_add_log U hU
   use 9*c2 + c1 + c2*(2*c0 + cKP + 9) + c2 + c1 + 1
   intro n delta d i j_min x code hx hi hj;
-  -- Let `W := L (n + delta + d)`. Using `length_natBits_mono` (monotone in argument) and `length_natBits_add_le` repeatedly, plus `L k ≤ k` and `L k ≤ W` whenever `k ≤ n + delta + d`:
+  -- Let `W := L (n + delta + d)`. Using `length_natBits_mono` (monotone in argument) and
+  --   `length_natBits_add_le` repeatedly, plus `L k ≤ k` and `L k ≤ W` whenever `k ≤ n + delta +
+  --   d`:
   set W := (Nat.bits (n + delta + d)).length
   have hW : (Nat.bits n).length ≤ W ∧ (Nat.bits delta).length ≤ W ∧ (Nat.bits d).length ≤ W := by
-    exact ⟨ length_natBits_mono ( by linarith ), length_natBits_mono ( by linarith ), length_natBits_mono ( by linarith ) ⟩
+    exact ⟨length_natBits_mono (by linarith), length_natBits_mono (by linarith),
+      length_natBits_mono (by linarith)⟩
   have hL_i : (Nat.bits i).length ≤ 4*W + c0 + 3 := by
-    have hL_i : (Nat.bits i).length ≤ (Nat.bits (n + 2 * (Nat.bits n).length + c0 + delta)).length := by
+    have hL_i : (Nat.bits i).length ≤
+        (Nat.bits (n + 2 * (Nat.bits n).length + c0 + delta)).length := by
       refine length_natBits_mono ?_;
       convert hi.trans _;
       rotate_left;
-      exact ↑ ( n + 2 * n.bits.length + c0 + delta );
+      · exact ↑ ( n + 2 * n.bits.length + c0 + delta );
       · aesop;
       · norm_cast;
-    have hL_i : (Nat.bits (n + 2 * (Nat.bits n).length + c0 + delta)).length ≤ (Nat.bits n).length + (Nat.bits (2 * (Nat.bits n).length)).length + (Nat.bits c0).length + (Nat.bits delta).length + 3 := by
-      have hL_i : ∀ a b : ℕ, (Nat.bits (a + b)).length ≤ (Nat.bits a).length + (Nat.bits b).length + 1 := by
+    have hL_i : (Nat.bits (n + 2 * (Nat.bits n).length + c0 + delta)).length ≤ (Nat.bits n).length +
+        (Nat.bits (2 * (Nat.bits n).length)).length + (Nat.bits c0).length + (Nat.bits delta).length
+        + 3 := by
+      have hL_i : ∀ a b : ℕ, (Nat.bits (a + b)).length ≤ (Nat.bits a).length + (Nat.bits b).length +
+          1 := by
         intros a b
         have hL_i : (Nat.bits (a + b)).length ≤ (Nat.bits a).length + (Nat.bits b).length + 1 := by
           have := length_natBits_add_le a b
@@ -927,19 +1012,26 @@ theorem gapCounting_slack_arithmetic (U : Map) (hU : IsOptimalPrefixConditional 
       length_natBits_le_self _
     linarith [length_natBits_le_self c0]
   have hL_j_min : (Nat.bits j_min).length ≤ 4*W + c0 + cKP + 4 := by
-    have hL_j_min : (Nat.bits j_min).length ≤ (Nat.bits (n + 2 * (Nat.bits n).length + c0 + cKP + d)).length := by
+    have hL_j_min : (Nat.bits j_min).length ≤
+        (Nat.bits (n + 2 * (Nat.bits n).length + c0 + cKP + d)).length := by
       refine length_natBits_mono ?_;
       rename_i h₁ h₂;
       contrapose! hj;
       refine lt_of_le_of_lt ( add_le_add ( h₁ _ _ ) le_rfl ) ?_;
       refine lt_of_le_of_lt ?_ ( Nat.cast_lt.mpr hj );
-      convert add_le_add_right ( add_le_add_right ( h₂ x ) ( cKP : ENat ) ) ( d : ENat ) using 1 ; simp +arith +decide;
+      convert add_le_add_right ( add_le_add_right ( h₂ x ) ( cKP : ENat ) )
+          ( d : ENat ) using 1
+      all_goals try simp only [KPPlain_eq_KP]
       · abel1;
       · exact mod_cast by rw [ hx ] ; ring;
-    have hL_j_min : (Nat.bits (n + 2 * (Nat.bits n).length + c0 + cKP + d)).length ≤ (Nat.bits n).length + (Nat.bits (2 * (Nat.bits n).length)).length + (Nat.bits c0).length + (Nat.bits cKP).length + (Nat.bits d).length + 4 := by
-      have hL_j_min : ∀ a b : ℕ, (Nat.bits (a + b)).length ≤ (Nat.bits a).length + (Nat.bits b).length + 1 := by
+    have hL_j_min : (Nat.bits (n + 2 * (Nat.bits n).length + c0 + cKP + d)).length ≤
+        (Nat.bits n).length + (Nat.bits (2 * (Nat.bits n).length)).length + (Nat.bits c0).length +
+        (Nat.bits cKP).length + (Nat.bits d).length + 4 := by
+      have hL_j_min : ∀ a b : ℕ, (Nat.bits (a + b)).length ≤ (Nat.bits a).length +
+          (Nat.bits b).length + 1 := by
         intros a b
-        have hL_j_min : (Nat.bits (a + b)).length ≤ (Nat.bits a).length + (Nat.bits b).length + 1 := by
+        have hL_j_min : (Nat.bits (a + b)).length ≤
+            (Nat.bits a).length + (Nat.bits b).length + 1 := by
           have := length_natBits_add_le a b
           exact this
         generalize_proofs at *;
@@ -952,7 +1044,8 @@ theorem gapCounting_slack_arithmetic (U : Map) (hU : IsOptimalPrefixConditional 
       ⟨length_natBits_le_self c0, length_natBits_le_self cKP⟩
     linarith
   have hL_sum : (Nat.bits (n + i + j_min)).length ≤ 9*W + (2*c0 + cKP + 9) := by
-    have hL_sum : (Nat.bits (n + i + j_min)).length ≤ (Nat.bits (n + i)).length + (Nat.bits j_min).length + 1 :=
+    have hL_sum : (Nat.bits (n + i + j_min)).length ≤
+        (Nat.bits (n + i)).length + (Nat.bits j_min).length + 1 :=
       length_natBits_add_le (n + i) j_min
     linarith [ length_natBits_add_le n i ]
   simp_all +decide [ logSlack ];
@@ -964,7 +1057,8 @@ From `RealizedSetOptimalityGap U A hA x delta i j kx`, `DeficiencyLe U (codedUni
 `d ≤ delta`, derive `ManyIJDescriptions U x i j (delta - d - slack)`
 up to the log-slack already in the theorem.
 -/
-theorem manyIJDescriptions_of_realizedSetOptimalityGap (U : Map) (hU : IsOptimalPrefixConditional U) :
+theorem manyIJDescriptions_of_realizedSetOptimalityGap (U : Map) (hU : IsOptimalPrefixConditional U)
+    :
     ∃ c : ℕ, ∀ (A : Finset BitString) (hA : A.Nonempty) (x : BitString)
         (n delta d i j kx c_soi : ℕ),
       x.length = n →
@@ -989,7 +1083,8 @@ theorem manyIJDescriptions_of_realizedSetOptimalityGap (U : Map) (hU : IsOptimal
     norm_cast
     omega
   rcases card_le_of_deficiency hxA hdef_cond with ⟨j_opt, hj_opt, hj_bound⟩
-  have h_gap := hc1 A hA x n delta d i j kx c_soi hn ⟨hxA, hi, hj, hj_lower, hkx, hdelta_eq⟩ hdef_cond hd
+  have h_gap := hc1 A hA x n delta d i j kx c_soi hn
+    ⟨hxA, hi, hj, hj_lower, hkx, hdelta_eq⟩ hdef_cond hd
   have hj_min : A.card ≤ 2 ^ min j j_opt := by
     by_cases hle : j ≤ j_opt
     · rw [Nat.min_eq_left hle]
@@ -1008,15 +1103,15 @@ theorem manyIJDescriptions_of_realizedSetOptimalityGap (U : Map) (hU : IsOptimal
     -- bound (`hc2`), and the slack arithmetic (`hc3`).
     contrapose! h_zero
     have := hc2 A hA x n i (Min.min j j_opt) (delta - d - slack) kx hn hxA hi hj_min hkx
-    simp_all +decide [Nat.sub_sub]
+    simp_all only [tsub_le_iff_right, ge_iff_le, Nat.sub_sub]
     have := hc3 n delta d i (Min.min j j_opt) x (codedUniformOn A hA).code hn hi_bound
       (le_trans (mod_cast min_le_right _ _) hj_bound)
-    simp_all +decide [logSlack]
+    simp_all only [logSlack]
     rename_i h
     specialize h (fun h => h_zero <| h.mono_j <| min_le_left _ _)
-    simp_all +decide [slack]
+    simp_all only [slack]
     contrapose! h_gap
-    simp_all +decide [logSlack]
+    simp_all only [logSlack]
     refine lt_of_le_of_lt (add_le_add_three h le_rfl le_rfl) ?_
     norm_cast
     omega
