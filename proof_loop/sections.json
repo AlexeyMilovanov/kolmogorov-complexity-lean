@@ -1,7 +1,7 @@
 [
   {
     "id": "migration_28_to_31",
-    "title": "Result-preserving migration of the completed Lean 4.28 development to Lean 4.31",
+    "title": "Full-fidelity migration of the final polished Lean 4.28 development to Lean 4.31",
     "module": "KolmogorovMathlib",
     "workflow": "migration",
     "files": [],
@@ -10,14 +10,19 @@
       "KolmogorovMathlib.lean",
       "MIGRATION_28_TO_31.md",
       "MIGRATION_STATUS.md",
-      "README.md"
+      "SCALABILITY_31_PLAN.md",
+      "COVERAGE.md",
+      "README.md",
+      "lakefile.toml"
     ],
     "targets": [
-      "Migrate all 39 Lean files present only in the final 4.28 snapshot, adapting them to the existing 4.31 APIs",
-      "Preserve the deliberate 4.31 implementations of all shared files; edit shared modules only through small justified compatibility patches",
-      "Reach an error-free full lake build with no sorry, warnings, heartbeat overrides, broad imports, linter suppressions, or temporary migration scaffolding",
-      "After coverage and build completion, continue measured Mathlib-style polishing in the Lean 4.31 tree"
+      "Preserve every mathematical result and public interface from all 118 modules of the immutable final Lean 4.28 snapshot",
+      "Keep intentional Lean 4.31 API adaptations only when documented in the machine-checked compatibility ledger",
+      "Make every touched Lean module pass strict direct elaboration and ultimately validate all 118 modules without linter suppressions",
+      "Remove all warnings, dirty hacks, broad imports, heartbeat overrides, stale scaffolding, and avoidable proof or architectural debt",
+      "Retain dependency-aware validation and prepare module boundaries, imports, and feedback workflows for 10x-100x project growth",
+      "Stop only after the deterministic release audit and independent final review both pass"
     ],
-    "notes": "The source snapshot is read-only. The first dependency layer is Encoding/Tuples, Encoding/TuplesComplexity, Foundation/PrimrecExtras, Foundation/EnumerationComplexity, and Interface/StandardMachine. The new Restricted tree follows only after its required support layer builds. Strategy iterations are 1, 6, 11, ... and all six agents plan without editing on those iterations."
+    "notes": "The final Lean 4.28 snapshot is the read-only mathematical and quality authority; path presence or completion of the original 39-file port is not completion. Existing Lean 4.31 implementations should be adapted rather than overwritten wholesale, but every result and reusable source interface must survive. Validators and proof_loop configuration are protected from agents. Ordinary iterations are Gemini implementation followed by Codex review, repair, and continuation. Strategy iterations are 1, 6, 11, ...; both agents plan without editing and Codex may request the final release gate only when scripts/audit.sh --release is already expected to pass."
   }
 ]

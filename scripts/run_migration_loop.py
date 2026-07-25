@@ -44,6 +44,7 @@ DEFAULT_RUNS_DIR = ROOT / "proof_loop_runs"
 DEFAULT_STOP_FILE = PROOF_LOOP_DIR / "PAUSE"
 CODEX_MODEL = os.environ.get("KOLMOGOROV_CODEX_MODEL", "gpt-5.6-sol")
 CODEX_EFFORT = os.environ.get("KOLMOGOROV_CODEX_EFFORT", "xhigh")
+RELEASE_CANDIDATE_RE = re.compile(r"(?m)^STATUS:\s*RELEASE_CANDIDATE\s*$")
 MIGRATION_SOURCE_ROOT = Path(
     os.environ.get(
         "KOLMOGOROV_MIGRATION_SOURCE_28",
@@ -169,11 +170,20 @@ def collect_context(section: dict[str, Any], root: Path) -> str:
             path.relative_to(MIGRATION_SOURCE_ROOT).as_posix()
             for path in MIGRATION_SOURCE_ROOT.glob("KolmogorovMathlib/**/*.lean")
         } if MIGRATION_SOURCE_ROOT.exists() else set()
+        if (MIGRATION_SOURCE_ROOT / "KolmogorovMathlib.lean").exists():
+            source_files.add("KolmogorovMathlib.lean")
         target_files = {
             path.relative_to(root).as_posix()
             for path in root.glob("KolmogorovMathlib/**/*.lean")
         }
+        if (root / "KolmogorovMathlib.lean").exists():
+            target_files.add("KolmogorovMathlib.lean")
         missing = "\n".join(f"- `{path}`" for path in sorted(source_files - target_files))
+        fidelity_rc, fidelity_output = command_output(
+            [sys.executable, "-B", "scripts/check_migration_fidelity.py"],
+            root,
+            timeout=300,
+        )
         return f"""
 # Migration Context
 
@@ -194,14 +204,33 @@ do not overwrite a shared file wholesale with its Lean 4.28 counterpart.
 {read_text(root / "MIGRATION_28_TO_31.md", 30000).strip()}
 ```
 
+## Migration status
+
+```markdown
+{read_text(root / "MIGRATION_STATUS.md", 20000).strip()}
+```
+
+## Scalability plan
+
+```markdown
+{read_text(root / "SCALABILITY_31_PLAN.md", 20000).strip()}
+```
+
+## Machine fidelity check (exit {fidelity_rc})
+
+```text
+{fidelity_output.strip()}
+```
+
 ## Target README
 
 ```markdown
 {readme.strip()}
 ```
 
-Inspect both trees directly for exact declarations and imports. Build errors
-in the Lean 4.31 worktree, not textual similarity, decide the required port.
+Inspect both trees directly for exact declarations and imports. The fidelity
+checker, strict direct elaboration, and release audit decide acceptance; path
+presence, textual similarity, or a cached root build do not.
 """
     if section.get("workflow") == "polish":
         target_files = "\n".join(f"- `{path}`" for path in section.get("files", []))
@@ -590,19 +619,20 @@ def migration_ordinary_prompt(
     }[stage]
     stage_task = {
         "01_gemini": (
-            "Take the next dependency-closed batch from the latest strategy. Port it "
-            "from the read-only 4.28 snapshot into the 4.31 worktree, adapting APIs "
-            "rather than copying incompatible shared modules. Run the smallest useful builds."
+            "Take the next dependency-closed full-fidelity batch from the latest "
+            "strategy. Compare the corresponding final-28 and 4.31 modules, restore "
+            "missing reusable results, and improve the 4.31 implementation without "
+            "copying incompatible shared modules. Run strict direct checks for every "
+            "touched Lean file."
         ),
         "02_codex": (
             "Adversarially inspect Gemini's complete diff and build output. Compare touched "
-            "public declarations with the final 4.28 source, revert unsafe or wholesale "
-            "overwrites, repair every 4.31 API or proof error, and finish the coherent batch. "
-            "Then continue with the next dependency-ready work when it can be completed and "
-            "verified safely in this iteration. Remove warnings and obvious 4.31-specific "
-            "proof debt as you go. Run targeted builds and one full `bash scripts/audit.sh` "
-            "when viable; leave an accurately diagnosed, merge-gate-ready worktree and report "
-            "exact blockers if the full migration is not yet buildable."
+            "public declarations and proof quality with the final 4.28 source, revert unsafe "
+            "or wholesale overwrites, repair every 4.31 API or proof error, and finish the "
+            "coherent batch. Continue into the next dependency-ready work when it can be "
+            "strictly checked in this iteration. Run `scripts/check_affected.py --direct-only` "
+            "for every touched Lean file; the merge gate owns the repository-wide audit. "
+            "Leave an accurately diagnosed, merge-gate-ready worktree."
         ),
     }[stage]
     return f"""
@@ -614,13 +644,15 @@ Read-only 4.28 source: `{MIGRATION_SOURCE_ROOT}`
 
 GLOBAL GOAL, in order:
 1. Treat the final polished 4.28 snapshot as the sole authority for source
-   results and proof intent. Compare every corresponding 4.31 module with it,
-   including files already touched by an older migration, and reconcile any
-   omitted result or useful final-28 cleanup through a justified 4.31 adaptation.
-2. Reach a complete `lake build KolmogorovMathlib` with no errors.
+   results, reusable interfaces, and proof quality. Compare every one of the
+   118 corresponding 4.31 modules with it, including files already touched by
+   an older migration.
+2. Preserve intentional 4.31 API adaptations only through the machine-readable
+   compatibility ledger; restore every other missing public source declaration.
 3. Remove all warnings, `sorry`, heartbeat overrides, broad imports, linter
-   suppressions, temporary files, and migration scaffolding.
-4. Continue with measured Mathlib-style polishing in the 4.31 tree.
+   suppressions, temporary proof scaffolding, and avoidable proof debt.
+4. Retain scalable dependency-aware validation and improve module/import
+   architecture for expected 10x-100x growth.
 
 {section_header(section)}
 
@@ -660,9 +692,16 @@ Hard constraints:
 - No `sorry`, `sorryAx`, `axiom`, `admit`, `unsafe`, `implemented_by`, or
   `native_decide`; do not weaken theorem statements or assumptions.
 - Preserve the mathematical API of newly migrated 4.28 results. If a 4.31 API
-  adaptation changes a statement syntactically, explain and prove equivalence.
+  adaptation changes a statement syntactically, record target evidence in the
+  protected compatibility ledger through a human-controlled change; do not
+  silently declare a missing source name obsolete.
 - New files must be imported into the correct module roots once they compile.
 - Do not hide errors with heartbeat increases, warning suppressions, or broad imports.
+- Every touched Lean file must pass
+  `python3 -B scripts/check_affected.py --direct-only <files>`. Do not spend
+  agent time on repeated blind full builds; the merge gate runs the full audit.
+- Do not edit `scripts/` or `proof_loop/`; validation and migration metadata are
+  protected. Do not remove migration validation infrastructure from the release.
 - Revert failed experiments before finishing the stage; preserve useful diagnosis
   in the checkpoint and report.
 - Do not commit or push.
@@ -905,12 +944,18 @@ def migration_strategy_prompt(
         "02_codex": "Codex migration-plan reviewer and final owner",
     }[stage]
     stage_task = {
-        "01_gemini": "Inventory both trees and propose dependency-closed batches for the next four ordinary iterations.",
+        "01_gemini": (
+            "Run the fidelity inventory and inspect both trees. Group missing API, "
+            "strict-linter debt, proof-style debt, and architecture work into "
+            "dependency-closed batches for the next four ordinary iterations."
+        ),
         "02_codex": (
-            "Independently verify Gemini's inventory, theorem coverage, dependency order, and "
-            "likely Lean 4.31 API adaptations against both trees. Correct omissions, reject "
-            "unsafe copy plans, and freeze the final executable four-iteration plan with "
-            "exact file ownership, targeted builds, full-audit points, and rollback criteria."
+            "Independently verify Gemini's complete 118-module inventory, public API "
+            "coverage, strict-linter state, dependency order, and Lean 4.31 adaptations. "
+            "Correct omissions and freeze the next executable batches. Emit exactly "
+            "`STATUS: RELEASE_CANDIDATE` as the first line only if the release audit is "
+            "already expected to pass with no known actionable mathematical, style, or "
+            "scalability debt; otherwise emit exactly `STATUS: CONTINUE_MIGRATION`."
         ),
     }[stage]
     return f"""
@@ -920,8 +965,9 @@ Do not edit either tree. Plan the next {span} ordinary iterations.
 Editable target worktree: `{work_root}`
 Read-only source snapshot: `{MIGRATION_SOURCE_ROOT}`
 
-The ordered objective is: complete result-preserving migration, error-free full
-build, warning-free cleanup, then measured Mathlib-style polishing in 4.31.
+The objective is a full-fidelity 4.31 release: all mathematics and reusable API
+from all 118 final-28 modules, strict warning-free Mathlib style without project
+suppressions, and validation/module architecture ready for 10x-100x growth.
 
 The named final polished 4.28 snapshot is the sole source authority. Inventory
 and compare all corresponding modules, including paths already migrated from an
@@ -940,9 +986,11 @@ source result and relevant final-28 proof cleanup.
 
 {stage_task}
 
-Required output:
+Required first line:
 
-STATUS: STRATEGY_READY / MIGRATION_COMPLETE / NEEDS_HUMAN_DECISION / INTERFACE_PROBLEM
+- Gemini: `STATUS: CONTINUE_MIGRATION`
+- Codex: `STATUS: CONTINUE_MIGRATION` or, only under the release condition
+  above, `STATUS: RELEASE_CANDIDATE`
 
 ## Current Migration State
 State which 4.28 results/files are present, building, blocked, or still absent.
@@ -952,14 +1000,16 @@ For each iteration name exact source and target files, dependency order,
 expected 4.31 adaptations, targeted build, full-build criterion, and rollback rule.
 
 ## Completion Audit
-Explain how to verify result coverage, zero errors/warnings/debt, and when to
-switch from migration to 4.31 polishing.
+Report the actual output of `scripts/check_migration_fidelity.py`, remaining
+project linter suppressions, strict batches not yet checked, all maximal build
+roots, and the exact evidence needed for `scripts/audit.sh --release`.
 
 ## Risks
 Flag shared files that differ and must not be copied wholesale.
 
 Hard constraints: planning only; no edits, no `sorry`, no theorem weakening,
-and no use of the 4.28 project as an editable worktree.
+no claim that the original 39-file port is complete migration, and no use of
+the 4.28 project as an editable worktree.
 
 {context}
 """
@@ -1780,7 +1830,7 @@ def iter_mergeable_files(root: Path, section: dict[str, Any]) -> list[Path]:
     files = list(iter_candidate_files(root, section))
     for prefix in allowed_prefixes(section):
         path = root / prefix
-        if path.is_file() and path.suffix == ".md":
+        if path.is_file() and path.suffix in {".md", ".toml"}:
             files.append(path)
         elif path.is_dir():
             files.extend(path.rglob("*.md"))
@@ -1851,6 +1901,29 @@ def restore_backup(backup: dict[str, Path | None]) -> None:
         shutil.copy2(saved, target)
 
 
+LAKE_LINTER_SUPPRESSION_RE = re.compile(
+    r"^\s*weak\.linter\.(?:style\.(?:longLine|multiGoal)|flexible)\s*=\s*false\s*$"
+)
+
+
+def validate_lakefile_candidate(candidate: Path) -> tuple[bool, str]:
+    """Allow agents to remove known linter suppressions, but no other Lake edits."""
+    current = ROOT / "lakefile.toml"
+    if not current.exists() or not candidate.exists():
+        return False, "missing_lakefile"
+    current_lines = current.read_text(encoding="utf-8").splitlines()
+    candidate_lines = candidate.read_text(encoding="utf-8").splitlines()
+    current_body = [line for line in current_lines if not LAKE_LINTER_SUPPRESSION_RE.match(line)]
+    candidate_body = [line for line in candidate_lines if not LAKE_LINTER_SUPPRESSION_RE.match(line)]
+    if current_body != candidate_body:
+        return False, "lakefile_change_is_not_linter_suppression_removal"
+    current_count = sum(bool(LAKE_LINTER_SUPPRESSION_RE.match(line)) for line in current_lines)
+    candidate_count = sum(bool(LAKE_LINTER_SUPPRESSION_RE.match(line)) for line in candidate_lines)
+    if candidate_count >= current_count:
+        return False, "lakefile_did_not_remove_a_linter_suppression"
+    return True, f"removed_{current_count - candidate_count}_linter_suppressions"
+
+
 def merge_gate(section: dict[str, Any], work_root: Path, iter_dir: Path, args: argparse.Namespace) -> dict[str, Any]:
     import fcntl
 
@@ -1863,6 +1936,45 @@ def merge_gate(section: dict[str, Any], work_root: Path, iter_dir: Path, args: a
         result = {"status": "NO_CHANGES", "before_sorries": before_count, "changed": []}
         write_json(gate_dir / "result.json", result)
         return result
+
+    lake_candidates = [src for rel, src in changed if rel == "lakefile.toml"]
+    if lake_candidates:
+        lake_ok, lake_reason = validate_lakefile_candidate(lake_candidates[0])
+        write_text(gate_dir / "lakefile_validation.log", lake_reason + "\n")
+        if not lake_ok:
+            result = {
+                "status": "REJECTED",
+                "reason": lake_reason,
+                "before_sorries": before_count,
+                "changed": [rel for rel, _ in changed],
+            }
+            write_json(gate_dir / "result.json", result)
+            return result
+
+    changed_lean = [rel for rel, _ in changed if rel.endswith(".lean")]
+    if changed_lean:
+        strict_rc, strict_out = command_output(
+            [
+                sys.executable,
+                "-B",
+                "scripts/check_affected.py",
+                "--direct-only",
+                *changed_lean,
+            ],
+            work_root,
+            timeout=args.audit_timeout_seconds,
+        )
+        write_text(gate_dir / "direct_strict.log", strict_out)
+        if strict_rc != 0:
+            result = {
+                "status": "REJECTED",
+                "reason": "changed_lean_files_failed_strict_direct_check",
+                "strict_rc": strict_rc,
+                "before_sorries": before_count,
+                "changed": [rel for rel, _ in changed],
+            }
+            write_json(gate_dir / "result.json", result)
+            return result
 
     with lock_path.open("w") as lock:
         fcntl.flock(lock, fcntl.LOCK_EX)
@@ -2022,6 +2134,39 @@ def run_iteration(
             write_json(iter_dir / "manifest.json", manifest)
             return manifest
 
+    if mode == "strategy" and is_migration(section):
+        final_strategy = iter_dir / "02_codex.md"
+        strategy_text = read_text(final_strategy, 100000)
+        if RELEASE_CANDIDATE_RE.search(strategy_text):
+            release_dir = iter_dir / "final_release"
+            release_dir.mkdir(parents=True, exist_ok=True)
+            release_rc, release_out = command_output(
+                [
+                    sys.executable,
+                    "-B",
+                    "scripts/final_release_gate.py",
+                    "--output-dir",
+                    str(release_dir),
+                    "--strategy-report",
+                    str(final_strategy),
+                    "--timeout-seconds",
+                    str(args.audit_timeout_seconds),
+                ],
+                ROOT,
+                timeout=max(args.audit_timeout_seconds * 3, 3600),
+            )
+            write_text(release_dir / "runner.log", release_out)
+            manifest["final_release_gate"] = {
+                "rc": release_rc,
+                "output": str(release_dir / "runner.log"),
+            }
+            if release_rc == 0:
+                manifest["status"] = "release_complete"
+                manifest["finished_at"] = utc_now()
+                write_json(iter_dir / "manifest.json", manifest)
+                return manifest
+            write_json(iter_dir / "manifest.json", manifest)
+
     if status := pause_status(args, section):
         mark_paused(manifest, status, paused_before_aristotle=True)
         write_json(iter_dir / "manifest.json", manifest)
@@ -2054,7 +2199,11 @@ def run_iteration(
     else:
         manifest["aristotle"] = {
             "submitted": False,
-            "reason": "disabled_for_six_stage_migration_pipeline",
+            "reason": (
+                "disabled_for_two_stage_migration_pipeline"
+                if is_migration(section)
+                else "disabled_by_configuration"
+            ),
         }
     if mode != "strategy" and not args.dry_run:
         integration = manifest.get("aristotle_integration", {}) if isinstance(manifest.get("aristotle_integration"), dict) else {}
@@ -2090,7 +2239,11 @@ def run_section(section: dict[str, Any], run_dir: Path, args: argparse.Namespace
             break
         result = run_iteration(section, section_dir, iteration, args, context, work_root)
         results.append(result)
-        if result.get("status") in {"waiting_aristotle", "blocked_missing_aristotle_result"}:
+        if result.get("status") in {
+            "waiting_aristotle",
+            "blocked_missing_aristotle_result",
+            "release_complete",
+        }:
             break
         iteration += 1
         completed += 1
