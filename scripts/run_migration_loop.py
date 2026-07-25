@@ -1556,6 +1556,11 @@ def run_process_capture(
 
 
 def command_output(argv: list[str], cwd: Path, timeout: int = 1800) -> tuple[int, str]:
+    env = os.environ.copy()
+    elan_bin = str(Path.home() / ".elan" / "bin")
+    path_entries = env.get("PATH", "").split(os.pathsep)
+    if elan_bin not in path_entries:
+        env["PATH"] = os.pathsep.join([elan_bin, *path_entries])
     cp = subprocess.run(
         argv,
         cwd=cwd,
@@ -1563,6 +1568,7 @@ def command_output(argv: list[str], cwd: Path, timeout: int = 1800) -> tuple[int
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         timeout=timeout,
+        env=env,
     )
     return cp.returncode, cp.stdout
 
