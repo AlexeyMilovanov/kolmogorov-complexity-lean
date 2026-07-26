@@ -65,6 +65,10 @@ def test_candidate_tree() -> None:
         obsolete.unlink()
         deleted = gate.candidate_tree(root, paths)
         assert deleted != baseline
+        git(root, "add", "-A")
+        git(root, "commit", "-qm", "delete obsolete document")
+        assert gate.candidate_tree(root, paths) == deleted
+
         obsolete.write_text("obsolete\n", encoding="utf-8")
         assert gate.candidate_tree(root, paths) == baseline
 

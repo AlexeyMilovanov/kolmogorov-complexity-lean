@@ -77,21 +77,40 @@ def run(
     return result
 
 
+def candidate_pathspecs(
+    root: Path = ROOT,
+    commit_paths: tuple[str, ...] = COMMIT_PATHS,
+) -> list[str]:
+    stageable_paths = []
+    for path in commit_paths:
+        full_path = root / path
+        tracked = run(
+            ["git", "ls-files", "--", path],
+            timeout=60,
+            cwd=root,
+        ).stdout.strip()
+        if full_path.exists() or full_path.is_symlink() or tracked:
+            stageable_paths.append(path)
+    return stageable_paths
+
+
 def candidate_tree(
     root: Path = ROOT,
     commit_paths: tuple[str, ...] = COMMIT_PATHS,
 ) -> str:
     """Return the exact Git tree that commit_release would create."""
+    stageable_paths = candidate_pathspecs(root, commit_paths)
     with tempfile.TemporaryDirectory(prefix="kolmogorov-release-index-") as tmp:
         index = Path(tmp) / "index"
         env = {"GIT_INDEX_FILE": str(index)}
         run(["git", "read-tree", "HEAD"], timeout=60, cwd=root, extra_env=env)
-        run(
-            ["git", "add", "-A", "--", *commit_paths],
-            timeout=120,
-            cwd=root,
-            extra_env=env,
-        )
+        if stageable_paths:
+            run(
+                ["git", "add", "-A", "--", *stageable_paths],
+                timeout=120,
+                cwd=root,
+                extra_env=env,
+            )
         return run(
             ["git", "write-tree"],
             timeout=60,
@@ -234,7 +253,9 @@ def run_codex(
 
 
 def commit_release(expected_tree: str) -> str:
-    run(["git", "add", "-A", "--", *COMMIT_PATHS], timeout=120)
+    stageable_paths = candidate_pathspecs()
+    if stageable_paths:
+        run(["git", "add", "-A", "--", *stageable_paths], timeout=120)
     staged = run(
         ["git", "diff", "--cached", "--quiet"],
         timeout=60,
