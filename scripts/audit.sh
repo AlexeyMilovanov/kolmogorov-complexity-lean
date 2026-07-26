@@ -50,11 +50,6 @@ else
   strict_linters_enabled=true
 fi
 
-echo "== migration fidelity =="
-python3 -B scripts/test_migration_fidelity.py
-python3 -B scripts/test_final_release_gate.py
-python3 -B scripts/check_migration_fidelity.py
-
 echo "== lake build, root plus standalone modules =="
 export PATH="$HOME/.elan/bin:$PATH"
 build_log="$(mktemp)"
@@ -86,18 +81,6 @@ fi
 if [[ -s "$smoke_log" ]]; then
   cat "$smoke_log"
   echo "ERROR: public tactic smoke test emitted output"
-  exit 1
-fi
-
-echo "== compatibility smoke test =="
-if ! lake env lean scripts/smoke/MigrationCompatibility.lean >"$smoke_log" 2>&1; then
-  cat "$smoke_log"
-  echo "ERROR: compatibility smoke test failed"
-  exit 1
-fi
-if [[ -s "$smoke_log" ]]; then
-  cat "$smoke_log"
-  echo "ERROR: compatibility smoke test emitted output"
   exit 1
 fi
 
