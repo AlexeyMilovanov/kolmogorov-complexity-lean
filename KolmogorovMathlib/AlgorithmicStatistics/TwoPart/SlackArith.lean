@@ -21,6 +21,12 @@ theorem logSlack_add_const (c c' n : Nat) :
     logSlack c n + logSlack c' n = logSlack (c + c') n := by
   unfold logSlack; ring
 
+/-- An additive `O(1)` constant folds into the slack constant. -/
+theorem logSlack_add_const_le (c c' n : Nat) :
+    logSlack c n + c' ≤ logSlack (c + c') n := by
+  unfold logSlack
+  nlinarith [Nat.zero_le (c' * (Nat.bits n).length)]
+
 /-
 A linear reparametrisation of the visible budget can be absorbed into the
 slack constant: for fixed `a, b`, the slack `logSlack c (a*M+b)` is dominated by
@@ -30,23 +36,36 @@ theorem logSlack_linear_bound (c a b : Nat) :
     ∃ C : Nat, ∀ M : Nat, logSlack c (a * M + b) ≤ logSlack C M := by
   refine ⟨ c * ( Nat.log 2 a + Nat.log 2 b + 2 ) + c, fun M ↦ ?_ ⟩; unfold logSlack; ring_nf;
   -- Use the length bound: `(Nat.bits (a*M+b)).length ≤ (Nat.bits M).length + L`.
-  have h_length_bound : (a * M + b).bits.length ≤ M.bits.length + (Nat.log 2 a + Nat.log 2 b + 2) := by
+  have h_length_bound : (a * M + b).bits.length ≤
+      M.bits.length + (Nat.log 2 a + Nat.log 2 b + 2) := by
     by_cases ha : a = 0 <;> by_cases hb : b = 0 <;>
       simp_all +decide only [zero_mul, add_zero, zero_add, Nat.zero_bits, List.length_nil,
-        Nat.size_eq_bits_len, Nat.log_zero_right, le_add_iff_nonneg_left, zero_le];
-    · rw [ Nat.size_le ];
-      exact lt_of_lt_of_le ( Nat.lt_pow_succ_log_self ( by decide ) _ ) ( Nat.pow_le_pow_right ( by decide ) ( by linarith ) );
-    · refine Nat.le_of_lt_succ ( Nat.lt_succ_of_le ( Nat.le_trans ( Nat.size_le.mpr ?_ ) ( Nat.add_le_add_left ( Nat.le_succ _ ) _ ) ) );
-      rw [ pow_add ];
-      nlinarith [ Nat.lt_pow_of_log_lt one_lt_two ( by linarith : Nat.log 2 a < Nat.log 2 a + 1 ), Nat.lt_size_self M, Nat.lt_size_self a ];
-    · rw [ Nat.size_le ];
-      have := Nat.lt_pow_succ_log_self ( by decide : 1 < 2 ) a
-      have := Nat.lt_pow_succ_log_self ( by decide : 1 < 2 ) b
+        Nat.size_eq_bits_len, Nat.log_zero_right, le_add_iff_nonneg_left, zero_le]
+    · rw [Nat.size_le]
+      have h1 := Nat.lt_pow_succ_log_self (by decide : 1 < 2) b
+      exact lt_of_lt_of_le h1 (Nat.pow_le_pow_right (by decide : 0 < 2) (by omega))
+    · refine Nat.le_of_lt_succ (Nat.lt_succ_of_le (Nat.le_trans (Nat.size_le.mpr ?_)
+        (Nat.add_le_add_left (Nat.le_succ _) _)))
+      rw [pow_add]
+      have h1 : a < 2 ^ (Nat.log 2 a + 1) :=
+        Nat.lt_pow_of_log_lt one_lt_two (by linarith : Nat.log 2 a < Nat.log 2 a + 1)
+      have h2 := Nat.lt_size_self M
+      have h3 := Nat.lt_size_self a
+      nlinarith [h1, h2, h3]
+    · rw [Nat.size_le]
+      have := Nat.lt_pow_succ_log_self (by decide : 1 < 2) a
+      have := Nat.lt_pow_succ_log_self (by decide : 1 < 2) b
       have := Nat.lt_size_self M
-      norm_num at *;
-      ring_nf at *;
-      nlinarith [ Nat.zero_le ( a * M ), Nat.zero_le ( b * M ), Nat.zero_le ( a * b ), Nat.zero_le ( a * 2 ^ M.size ), Nat.zero_le ( b * 2 ^ M.size ), Nat.zero_le ( a * 2 ^ Nat.log 2 b ), Nat.zero_le ( b * 2 ^ Nat.log 2 b ), Nat.zero_le ( 2 ^ M.size * 2 ^ Nat.log 2 a ), Nat.zero_le ( 2 ^ M.size * 2 ^ Nat.log 2 b ), Nat.zero_le ( 2 ^ Nat.log 2 a * 2 ^ Nat.log 2 b ) ];
-  nlinarith [ Nat.zero_le ( c * M.bits.length ), Nat.zero_le ( c * Nat.log 2 a ), Nat.zero_le ( c * Nat.log 2 b ) ]
+      norm_num at *
+      ring_nf at *
+      nlinarith [Nat.zero_le (a * M), Nat.zero_le (b * M), Nat.zero_le (a * b),
+                 Nat.zero_le (a * 2 ^ M.size), Nat.zero_le (b * 2 ^ M.size),
+                 Nat.zero_le (a * 2 ^ Nat.log 2 b), Nat.zero_le (b * 2 ^ Nat.log 2 b),
+                 Nat.zero_le (2 ^ M.size * 2 ^ Nat.log 2 a),
+                 Nat.zero_le (2 ^ M.size * 2 ^ Nat.log 2 b),
+                 Nat.zero_le (2 ^ Nat.log 2 a * 2 ^ Nat.log 2 b)]
+  nlinarith [Nat.zero_le (c * M.bits.length), Nat.zero_le (c * Nat.log 2 a),
+             Nat.zero_le (c * Nat.log 2 b)]
 
 /-
 Visible-parameter linear bound for the internal description parameters.
@@ -59,7 +78,8 @@ theorem visible_param_linear_bound (U : Map) (hU : IsOptimalPrefixConditional U)
       x.length = n →
       ((j0 : ENat) + i ≤ KPPlain U x + delta) →
       n + i + j0 ≤ 4 * (n + delta + d) + b := by
-  -- By `KPPlain_le_length_add_log U hU`, obtain `cK` with `∀ x, KPPlain U x ≤ length + 2*log(length) + cK`, then use `b := cK`.
+  -- By `KPPlain_le_length_add_log U hU`, obtain `cK` with
+  -- `∀ x, KPPlain U x ≤ length + 2*log(length) + cK`, then use `b := cK`.
   have ⟨cK, hK⟩ := KPPlain_le_length_add_log U hU;
   use cK
   intro x n i j0 delta d hn hbound
@@ -90,21 +110,42 @@ theorem logSlack_le_add_const (cc : Nat) : ∃ b : Nat, ∀ m : Nat, logSlack cc
   use cc * 2 ^ ( cc + 2 ) + cc;
   intro m
   by_cases hm : m < 2 ^ (cc + 2);
-  · nlinarith [ show m.bits.length ≤ 2 ^ ( cc + 2 ) by
-                  have h_bits_len : ∀ m : ℕ, m < 2 ^ (cc + 2) → (m.bits.length ≤ cc + 2) := by
-                    intro m hm; have := @Nat.size_le m ( cc + 2 ) ; simp_all +decide [ Nat.size_eq_bits_len ] ;
-                  exact le_trans ( h_bits_len m hm ) ( by exact Nat.recOn cc ( by norm_num ) fun n ihn => by norm_num [ Nat.pow_succ' ] at * ; linarith ) ];
+  · nlinarith [show m.bits.length ≤ 2 ^ (cc + 2) by
+                  have h_bits_len : ∀ m : ℕ, m < 2 ^ (cc + 2) → m.bits.length ≤ cc + 2 := by
+                    intro m hm
+                    have := @Nat.size_le m (cc + 2)
+                    simp_all only [Nat.size_eq_bits_len]
+                  have h_trans := h_bits_len m hm
+                  have h_pow_bound : cc + 2 ≤ 2 ^ (cc + 2) := by
+                    exact Nat.recOn cc (by decide) fun n ihn => by
+                      simp only [Nat.pow_succ'] at *
+                      have h_two : 1 ≤ 2 ^ (n + 2) := Nat.one_le_two_pow
+                      nlinarith
+                  exact le_trans h_trans h_pow_bound]
   · have h_log : cc * (Nat.log 2 m + 1) ≤ m := by
       have h_log_growth : ∀ k ≥ cc + 2, cc * (k + 1) ≤ 2 ^ k := by
-        intro k hk;
-        induction hk <;> simp_all +decide [ Nat.pow_succ ];
-        · rcases cc with ( _ | _ | cc ) <;> simp +arith +decide [ Nat.pow_succ ] at *;
-          exact Nat.recOn cc ( by norm_num ) fun n ihn => by norm_num [ Nat.pow_succ' ] at * ; nlinarith;
-        · grind;
-      exact le_trans ( h_log_growth _ ( Nat.le_log_of_pow_le ( by norm_num ) ( by linarith ) ) ) ( Nat.pow_le_of_le_log ( by aesop ) ( by linarith ) );
-    have h_log : (Nat.bits m).length ≤ Nat.log 2 m + 1 := by
-      have := Nat.size_le.mpr ( show m < 2 ^ ( Nat.log 2 m + 1 ) from Nat.lt_pow_succ_log_self ( by decide ) _ ) ; simp_all +decide [ Nat.size_eq_bits_len ] ;
-    nlinarith [ Nat.zero_le ( cc * 2 ^ ( cc + 2 ) ), Nat.zero_le ( cc * ( Nat.log 2 m + 1 ) ) ]
+        intro k hk
+        induction hk with
+        | refl =>
+          rcases cc with ( _ | _ | cc )
+          · decide
+          · decide
+          · exact Nat.recOn cc (by decide) fun n ihn => by
+              simp only [Nat.pow_succ'] at *
+              nlinarith
+        | step h ih => grind
+      have h1 : cc * (Nat.log 2 m + 1) ≤ 2 ^ Nat.log 2 m :=
+        h_log_growth _ (Nat.le_log_of_pow_le (by norm_num) (by linarith))
+      have hm_pos : m ≠ 0 := by
+        have := Nat.two_pow_pos (cc + 2)
+        omega
+      have h2 : 2 ^ Nat.log 2 m ≤ m := Nat.pow_le_of_le_log hm_pos (by linarith)
+      exact le_trans h1 h2
+    have h_log_len : (Nat.bits m).length ≤ Nat.log 2 m + 1 := by
+      have hm_lt : m < 2 ^ (Nat.log 2 m + 1) := Nat.lt_pow_succ_log_self (by decide) _
+      have := Nat.size_le.mpr hm_lt
+      simp_all only [Nat.size_eq_bits_len]
+    nlinarith [Nat.zero_le (cc * 2 ^ (cc + 2)), Nat.zero_le (cc * (Nat.log 2 m + 1))]
 
 /-
 **Level-slack folding.**  If the level `k` is bounded by the visible budget as

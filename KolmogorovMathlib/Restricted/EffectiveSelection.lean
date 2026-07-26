@@ -94,10 +94,14 @@ theorem isFamilyModelCodeBool_primrec (j : ℕ) :
     Primrec (fun w : BitString => isFamilyModelCodeBool j w) := by
       refine Primrec.and.comp ?_ ?_
       · exact isCanonicalUniformCodeBool_primrec
-      · -- The function that checks if the cardinality of the set is less than or equal to 2^j is primitive recursive.
-        have h_card_le : Primrec (fun w => (canonicalFinsetList (((decodeDistributionData w).map CodedDistributionEntry.point).toFinset)).length) := by
-          convert Primrec.list_length.comp ( Kolmogorov.canonicalFinsetList_toFinset_primrec.comp _ ) using 1;
-          exact Primrec.list_map decodeDistributionData_primrec ( entry_point_primrec.comp ( Primrec.snd ) );
+      · -- The function that checks if the cardinality of the set is less than or equal to 2^j
+        -- is primitive recursive.
+        have h_card_le : Primrec (fun w => (canonicalFinsetList
+          (((decodeDistributionData w).map CodedDistributionEntry.point).toFinset)).length) := by
+          convert Primrec.list_length.comp
+            (Kolmogorov.canonicalFinsetList_toFinset_primrec.comp _) using 1;
+          exact Primrec.list_map decodeDistributionData_primrec
+            (entry_point_primrec.comp (Primrec.snd));
         convert Primrec.nat_le.comp h_card_le (Primrec.const (2 ^ j)) using 1
         simp +decide [PrimrecPred]
 
@@ -210,7 +214,9 @@ theorem familyStageModelCodesList_length_le (c : Code) (i : ℕ)
 
 def computableGreedyCover {α β : Type} [DecidableEq α] [DecidableEq β]
     (T : List α) (S : List β) (cover : β → List α) (_m : ℕ) (bound : ℕ) : List β :=
-  match S.sublists.find? (fun C => (T.all (fun x => decide (0 < (C.filter (fun b => decide (x ∈ cover b))).length))) && decide (C.length ≤ bound)) with
+  match S.sublists.find? (fun C =>
+      (T.all (fun x => decide (0 < (C.filter (fun b => decide (x ∈ cover b))).length)))
+      && decide (C.length ≤ bound)) with
   | some C => C
   | none => []
 
@@ -250,9 +256,11 @@ since it is the first sublist examined, the greedy cover returns `[]`.
 theorem computableGreedyCover_eq_nil_of_target_nil {α β : Type} [DecidableEq α] [DecidableEq β]
     (S : List β) (cover : β → List α) (m bound : ℕ) :
     computableGreedyCover ([] : List α) S cover m bound = [] := by
-      -- By definition of computableGreedyCover, when the target list is empty, the predicate is always true.
+      -- By definition of computableGreedyCover, when the target list is empty,
+      -- the predicate is always true.
       simp [computableGreedyCover];
-      cases h : List.find? ( fun C => decide ( C.length ≤ bound ) ) S.sublists <;> simp_all +decide [ List.sublists ];
+      cases h : List.find? (fun C => decide (C.length ≤ bound)) S.sublists
+      <;> simp_all +decide [List.sublists]
       induction S <;> simp_all +decide [ List.foldr ];
       rw [ List.findSome?_eq_some_iff ] at h;
       grind
@@ -299,7 +307,8 @@ theorem computableGreedyCover_covers {α β : Type} [DecidableEq α] [DecidableE
 /-- The `cover` map used inside `blockSelection` is primitive recursive. -/
 theorem cover_primrec :
     Primrec (fun b : BitString =>
-      canonicalFinsetList (((decodeDistributionData b).map CodedDistributionEntry.point).toFinset)) :=
+      canonicalFinsetList (((decodeDistributionData b).map
+        CodedDistributionEntry.point).toFinset)) :=
   canonicalFinsetList_toFinset_primrec.comp
     (Primrec.list_map decodeDistributionData_primrec (entry_point_primrec.comp Primrec.snd))
 
@@ -349,8 +358,10 @@ theorem pow_le_mul_selectionThreshold (i k : ℕ) : 2 ^ k ≤ (i + 1) * selectio
 def blockSelection (n i _j k _s : ℕ) (B : List BitString) : List BitString :=
   let m := selectionThreshold i k
   let bound := B.length * (n + 1) / m
-  let cover w := canonicalFinsetList (((decodeDistributionData w).map CodedDistributionEntry.point).toFinset)
-  let T := (allStrings n).filter (fun x => decide (m ≤ (B.filter (fun b => decide (x ∈ cover b))).length))
+  let cover w := canonicalFinsetList (((decodeDistributionData w).map
+      CodedDistributionEntry.point).toFinset)
+  let T := (allStrings n).filter (fun x =>
+      decide (m ≤ (B.filter (fun b => decide (x ∈ cover b))).length))
   computableGreedyCover T B cover m bound
 
 theorem blockSelection_sublist (n i j k s : ℕ) (B : List BitString) :
@@ -455,10 +466,12 @@ theorem blockSelection_primrec (n i j k s : ℕ) :
       (B.sublists.find? (fun C =>
         ((allStrings n).filter (fun x => decide (m ≤ (B.filter (fun b =>
           decide (x ∈ canonicalFinsetList
-            (((decodeDistributionData b).map CodedDistributionEntry.point).toFinset)))).length))).all
+            (((decodeDistributionData b).map
+              CodedDistributionEntry.point).toFinset)))).length))).all
           (fun x => decide (0 < (C.filter (fun b =>
             decide (x ∈ canonicalFinsetList
-              (((decodeDistributionData b).map CodedDistributionEntry.point).toFinset)))).length)) &&
+              (((decodeDistributionData b).map
+                CodedDistributionEntry.point).toFinset)))).length)) &&
           decide (C.length ≤ B.length * (n + 1) / m))).getD []) :=
     Primrec.option_getD.comp
       (list_find?_primrec (primrec_sublists_gen Primrec.id) hP) (Primrec.const [])
@@ -542,7 +555,8 @@ theorem selectionStrategyOnline_prefix_of_prefix (n i j k : ℕ)
       rw [← List.append_assoc]
       exact List.IsPrefix.trans h1 h2
 
-def familyMarkedCodeStream (c : Code) (i : ℕ) (𝒜 : PreDescriptionFamily) (n j k t : ℕ) : List BitString :=
+def familyMarkedCodeStream (c : Code) (i : ℕ) (𝒜 : PreDescriptionFamily) (n j k t : ℕ) :
+    List BitString :=
   selectionStrategyOnline n i j k (familyStageModelCodesList c i 𝒜 j t)
 
 /-
@@ -553,7 +567,8 @@ theorem familyCandidateModelCodesList_computable (c : Code) (i : ℕ)
     (𝒜 : PreDescriptionFamily) (j : ℕ) :
     Computable (fun t => familyCandidateModelCodesList c i 𝒜 j t) := by
       unfold familyCandidateModelCodesList;
-      have h_filter : Primrec (fun q : List BitString × ℕ => q.1.filter (fun w => decide (w ∈ snapshotCodes c i q.2) && isFamilyModelCodeBool j w)) := by
+      have h_filter : Primrec (fun q : List BitString × ℕ => q.1.filter (fun w =>
+          decide (w ∈ snapshotCodes c i q.2) && isFamilyModelCodeBool j w)) := by
         have h_mem : Primrec (fun a : (List BitString × ℕ) × BitString =>
             decide (a.2 ∈ snapshotCodes c i a.1.2)) :=
           (decide_mem_primrec.comp
@@ -580,18 +595,20 @@ theorem familyStageModelCodesList_computable (c : Code) (i : ℕ)
           ( fun n IH =>
             ( IH ++ familyCandidateModelCodesList c i 𝒜 j ( n + 1 )
               ).eraseDups ) n) ?_ ?_;
-      · convert Computable.nat_rec _ _ _ using 1;
-        rotate_left;
-        exact fun n => n;
-        exact fun _ => ( familyCandidateModelCodesList c i 𝒜 j 0 ).eraseDups;
-        exact fun n p => ( p.2 ++ familyCandidateModelCodesList c i 𝒜 j ( p.1 + 1 ) ).eraseDups;
+      · convert Computable.nat_rec _ _ _ using 1
+        rotate_left
+        · exact fun n => n
+        · exact fun _ => (familyCandidateModelCodesList c i 𝒜 j 0).eraseDups
+        · exact fun n p => (p.2 ++ familyCandidateModelCodesList c i 𝒜 j (p.1 + 1)).eraseDups
         · exact Computable.id;
         · exact Computable.const _;
         · have h_eraseDups : Primrec (fun l : List BitString => l.eraseDups) :=
             eraseDups_bitstring_primrec
           have h_append : Primrec₂ (fun (l1 l2 : List BitString) => l1 ++ l2) :=
             Primrec.list_append
-          exact h_eraseDups.to_comp.comp ( h_append.to_comp.comp ( Computable.snd.comp Computable.snd ) ( ( familyCandidateModelCodesList_computable c i 𝒜 j ).comp ( Computable.succ.comp ( Computable.fst.comp Computable.snd ) ) ) );
+          exact h_eraseDups.to_comp.comp (h_append.to_comp.comp (Computable.snd.comp Computable.snd)
+            ((familyCandidateModelCodesList_computable c i 𝒜 j).comp
+            (Computable.succ.comp (Computable.fst.comp Computable.snd))))
         · rfl;
       · intro n; induction n <;> aesop;
 
@@ -620,7 +637,8 @@ theorem selectionStrategyOnline_primrec (n i j k : ℕ) :
             (primrec_two_pow.comp Primrec.snd)))
   exact key.of_eq (fun S => rfl)
 
-theorem familyMarkedCodeStream_computable (c : Code) (i : ℕ) (𝒜 : PreDescriptionFamily) (n j k : ℕ) :
+theorem familyMarkedCodeStream_computable (c : Code) (i : ℕ) (𝒜 : PreDescriptionFamily)
+    (n j k : ℕ) :
   Computable (fun t => familyMarkedCodeStream c i 𝒜 n j k t) := by
   have h := (selectionStrategyOnline_primrec n i j k).to_comp.comp
     (familyStageModelCodesList_computable c i 𝒜 j)
@@ -670,12 +688,20 @@ theorem online_double_sum_bound {cnt L m0 c : ℕ} (f w : ℕ → ℕ → ℕ)
         (((List.range cnt).filter (fun s => (m + 1) % 2 ^ s == 0)).map
           (fun s => f m s)).sum)).sum) * m0 ≤ cnt * L * c := by
             -- By Fubini's theorem, we can interchange the order of summation.
-            have h_fubini : ∑ m ∈ Finset.range L, ∑ s ∈ Finset.filter (fun s => (m + 1) % 2 ^ s == 0) (Finset.range cnt), w m s ≤ ∑ s ∈ Finset.range cnt, ∑ m ∈ Finset.filter (fun m => (m + 1) % 2 ^ s == 0) (Finset.range L), w m s := by
+            have h_fubini : ∑ m ∈ Finset.range L,
+                ∑ s ∈ Finset.filter (fun s => (m + 1) % 2 ^ s == 0) (Finset.range cnt), w m s ≤
+                ∑ s ∈ Finset.range cnt,
+                ∑ m ∈ Finset.filter (fun m => (m + 1) % 2 ^ s == 0) (Finset.range L), w m s := by
               simp +decide only [Finset.sum_filter];
               rw [ Finset.sum_comm ];
             -- By Fubini's theorem, we can interchange the order of summation in the goal.
-            have h_fubini_goal : ∑ m ∈ Finset.range L, ∑ s ∈ Finset.filter (fun s => (m + 1) % 2 ^ s == 0) (Finset.range cnt), f m s * m0 ≤ ∑ s ∈ Finset.range cnt, ∑ m ∈ Finset.filter (fun m => (m + 1) % 2 ^ s == 0) (Finset.range L), w m s * c := by
-              refine le_trans ( Finset.sum_le_sum fun m hm => Finset.sum_le_sum fun s hs => hfw m s ) ?_;
+            have h_fubini_goal : ∑ m ∈ Finset.range L,
+                ∑ s ∈ Finset.filter (fun s => (m + 1) % 2 ^ s == 0) (Finset.range cnt), f m s * m0 ≤
+                ∑ s ∈ Finset.range cnt,
+                ∑ m ∈ Finset.filter (fun m => (m + 1) % 2 ^ s == 0) (Finset.range L),
+                w m s * c := by
+              refine le_trans (Finset.sum_le_sum fun m hm =>
+                Finset.sum_le_sum fun s hs => hfw m s) ?_
               simpa only [ ← Finset.sum_mul _ _ _ ] using Nat.mul_le_mul_right _ h_fubini;
             -- Normalize the `List.sum` form of the goal into explicit `Finset.range` sums.
             have hrange : ∀ (N : ℕ) (g : ℕ → ℕ),
@@ -706,15 +732,21 @@ theorem online_double_sum_bound {cnt L m0 c : ℕ} (f w : ℕ → ℕ → ℕ)
             rw [Finset.sum_mul]
             simp only [Finset.sum_mul]
             refine h_fubini_goal.trans ?_;
-            · refine le_trans ( Finset.sum_le_sum fun s hs => Finset.sum_le_sum fun m hm => Nat.mul_le_mul_right _ ( hw m s ) ) ?_ ; norm_num [ mul_assoc ];
-              refine le_trans ( Finset.sum_le_sum fun i hi => Nat.mul_le_mul_right _ <| show Finset.card ( Finset.filter ( fun m => ( m + 1 ) % 2 ^ i = 0 ) ( Finset.range L ) ) ≤ L / 2 ^ i from ?_ ) ?_;
+            · refine le_trans (Finset.sum_le_sum fun s hs => Finset.sum_le_sum fun m hm =>
+                Nat.mul_le_mul_right _ (hw m s)) ?_
+              norm_num [mul_assoc]
+              refine le_trans (Finset.sum_le_sum fun i hi => Nat.mul_le_mul_right _ <|
+                show Finset.card (Finset.filter (fun m => (m + 1) % 2 ^ i = 0) (Finset.range L)) ≤
+                L / 2 ^ i from ?_) ?_
               · have hset : Finset.filter (fun m => (m + 1) % 2 ^ i = 0) (Finset.range L)
                     = Finset.filter (fun e => 2 ^ i ∣ e + 1) (Finset.range L) := by
                   ext x
                   simp [Nat.dvd_iff_mod_eq_zero]
                 rw [hset]
                 exact (Nat.card_multiples L (2 ^ i)).le
-              · exact le_trans ( Finset.sum_le_sum fun _ _ => show L / 2 ^ _ * ( 2 ^ _ * c ) ≤ L * c by nlinarith [ Nat.div_mul_le_self L ( 2 ^ ‹_› ), pow_pos ( zero_lt_two' ℕ ) ‹_› ] ) ( by norm_num )
+              · exact le_trans (Finset.sum_le_sum fun _ _ => show L / 2 ^ _ * (2 ^ _ * c) ≤ L * c by
+                  nlinarith [Nat.div_mul_le_self L (2 ^ ‹_›), pow_pos (zero_lt_two' ℕ) ‹_›])
+                  (by norm_num)
 
 theorem selectionStrategyOnline_length_mul_threshold (n i j k : ℕ) (S : List BitString) :
     (selectionStrategyOnline n i j k S).length * selectionThreshold i k ≤
@@ -722,7 +754,8 @@ theorem selectionStrategyOnline_length_mul_threshold (n i j k : ℕ) (S : List B
   have heq : (selectionStrategyOnline n i j k S).length =
       ((List.range S.length).map (fun m =>
         (((List.range (i + 2)).filter (fun s => (m + 1) % 2 ^ s == 0)).map (fun s =>
-          (blockSelection n i j k s ((S.take (m + 1)).drop (m + 1 - 2 ^ s))).length)).sum)).sum := by
+          (blockSelection n i j k s
+            ((S.take (m + 1)).drop (m + 1 - 2 ^ s))).length)).sum)).sum := by
     unfold selectionStrategyOnline
     simp only [List.length_flatMap]
   rw [heq]
@@ -759,19 +792,26 @@ theorem bound_of_mul_pow_le_mul_pow {L C i k : ℕ} (h : L * 2 ^ k ≤ C * 2 ^ (
     have hsub : i + 1 - k = 0 := by omega
     simpa [hsub] using hLC
 
-theorem selectionStrategyOnline_length_bound_of_le (n i j k : ℕ) (S : List BitString) (h : S.length ≤ 2 ^ (i + 1)) :
+theorem selectionStrategyOnline_length_bound_of_le (n i j k : ℕ) (S : List BitString)
+    (h : S.length ≤ 2 ^ (i + 1)) :
     (selectionStrategyOnline n i j k S).length ≤ (i + 2) * (i + 1) * (n + 1) * 2 ^ (i + 1 - k) := by
-  have h1 : (selectionStrategyOnline n i j k S).length * selectionThreshold i k ≤ (i + 2) * S.length * (n + 1) :=
+  have h1 : (selectionStrategyOnline n i j k S).length * selectionThreshold i k ≤
+      (i + 2) * S.length * (n + 1) :=
     selectionStrategyOnline_length_mul_threshold n i j k S
   have h2 : (i + 2) * S.length * (n + 1) ≤ (i + 2) * 2 ^ (i + 1) * (n + 1) := by gcongr
-  have h3 : (selectionStrategyOnline n i j k S).length * 2 ^ k ≤ (selectionStrategyOnline n i j k S).length * ((i + 1) * selectionThreshold i k) := by
+  have h3 : (selectionStrategyOnline n i j k S).length * 2 ^ k ≤
+      (selectionStrategyOnline n i j k S).length * ((i + 1) * selectionThreshold i k) := by
     gcongr
     exact pow_le_mul_selectionThreshold i k
-  have h4 : (selectionStrategyOnline n i j k S).length * ((i + 1) * selectionThreshold i k) = (i + 1) * ((selectionStrategyOnline n i j k S).length * selectionThreshold i k) := by ring
-  have h5 : (i + 1) * ((selectionStrategyOnline n i j k S).length * selectionThreshold i k) ≤ (i + 1) * ((i + 2) * 2 ^ (i + 1) * (n + 1)) :=
+  have h4 : (selectionStrategyOnline n i j k S).length * ((i + 1) * selectionThreshold i k) =
+      (i + 1) * ((selectionStrategyOnline n i j k S).length * selectionThreshold i k) := by ring
+  have h5 : (i + 1) * ((selectionStrategyOnline n i j k S).length * selectionThreshold i k) ≤
+      (i + 1) * ((i + 2) * 2 ^ (i + 1) * (n + 1)) :=
     Nat.mul_le_mul_left (i + 1) (le_trans h1 h2)
-  have h6 : (i + 1) * ((i + 2) * 2 ^ (i + 1) * (n + 1)) = (i + 2) * (i + 1) * (n + 1) * 2 ^ (i + 1) := by ring
-  have h7 : (selectionStrategyOnline n i j k S).length * 2 ^ k ≤ (i + 2) * (i + 1) * (n + 1) * 2 ^ (i + 1) :=
+  have h6 : (i + 1) * ((i + 2) * 2 ^ (i + 1) * (n + 1)) =
+      (i + 2) * (i + 1) * (n + 1) * 2 ^ (i + 1) := by ring
+  have h7 : (selectionStrategyOnline n i j k S).length * 2 ^ k ≤
+      (i + 2) * (i + 1) * (n + 1) * 2 ^ (i + 1) :=
     calc (selectionStrategyOnline n i j k S).length * 2 ^ k
       _ ≤ (selectionStrategyOnline n i j k S).length * ((i + 1) * selectionThreshold i k) := h3
       _ = (i + 1) * ((selectionStrategyOnline n i j k S).length * selectionThreshold i k) := h4
@@ -843,8 +883,10 @@ theorem isFamilyDescriptionCode_of_model_cover (𝒜 : PreDescriptionFamily) (j 
 
 theorem computableGreedyCover_covers_of_exists {α β : Type} [DecidableEq α] [DecidableEq β]
     (T : List α) (S : List β) (cover : β → List α) (m bound : ℕ)
-    (h_exists : ∃ C : List β, C.Sublist S ∧ C.length ≤ bound ∧ ∀ x ∈ T, 0 < (C.filter (fun b => decide (x ∈ cover b))).length) :
-    ∀ x ∈ T, 0 < ((computableGreedyCover T S cover m bound).filter (fun b => decide (x ∈ cover b))).length := by
+    (h_exists : ∃ C : List β, C.Sublist S ∧ C.length ≤ bound ∧
+      ∀ x ∈ T, 0 < (C.filter (fun b => decide (x ∈ cover b))).length) :
+    ∀ x ∈ T, 0 < ((computableGreedyCover T S cover m bound).filter (fun b =>
+      decide (x ∈ cover b))).length := by
   let good : List β → Bool := fun C =>
     (T.all (fun x => decide (0 < (C.filter (fun b => decide (x ∈ cover b))).length))) &&
       decide (C.length ≤ bound)
@@ -906,8 +948,11 @@ theorem zipIdx_filter_mem_map_fst_sublist {α : Type} [DecidableEq α]
   simpa [zipIdx_map_fst] using hmap
 
 theorem blockSelection_covers_of_count (n i j k s : ℕ) (B : List BitString) (x : BitString)
-    (hxlen : x.length = n) (hcount : selectionThreshold i k ≤ (B.filter (fun b => decide (x ∈ canonicalFinsetList (((decodeDistributionData b).map CodedDistributionEntry.point).toFinset)))).length) :
-    0 < ((blockSelection n i j k s B).filter (fun b => decide (x ∈ canonicalFinsetList (((decodeDistributionData b).map CodedDistributionEntry.point).toFinset)))).length := by
+    (hxlen : x.length = n)
+    (hcount : selectionThreshold i k ≤ (B.filter (fun b => decide (x ∈ canonicalFinsetList
+      (((decodeDistributionData b).map CodedDistributionEntry.point).toFinset)))).length) :
+    0 < ((blockSelection n i j k s B).filter (fun b => decide (x ∈ canonicalFinsetList
+      (((decodeDistributionData b).map CodedDistributionEntry.point).toFinset)))).length := by
   classical
   let m := selectionThreshold i k
   let cover : BitString → List BitString := fun b =>
@@ -1010,7 +1055,8 @@ theorem blockSelection_covers_of_count (n i j k s : ℕ) (B : List BitString) (x
   have hgreedy := computableGreedyCover_covers_of_exists T B cover m bound h_exists x hxT
   have hfilter_eq :
       ((computableGreedyCover T B cover m bound).filter targetPred).length =
-        ((computableGreedyCover T B cover m bound).filter (fun b => decide (x ∈ cover b))).length := by
+        ((computableGreedyCover T B cover m bound).filter (fun b =>
+          decide (x ∈ cover b))).length := by
     congr 1
     apply List.filter_congr
     intro b _hb
@@ -1044,40 +1090,60 @@ theorem dyadic_core {α : Type} (b : ℕ) (hb : 1 ≤ b) (L : List α) (P : α �
       (L.filter P).length ≤ b * (((L.take M).drop (M - 2 ^ s)).filter P).length := by
   induction b, Nat.succ_le_iff.mpr hb using Nat.le_induction generalizing L P with
   | base =>
-    simp_all +decide [ pow_succ' ]
-    rcases L with ( _ | ⟨ x, _ | ⟨ y, L ⟩ ⟩ ) <;> simp_all +arith +decide;
-    · exact ⟨ 1, by norm_num, 0, by norm_num, by norm_num, by cases P x <;> simp +decide ⟩;
-    · rw [ List.filter_cons, List.filter_cons ] ; aesop;
+    simp_all +decide only [Nat.succ_eq_add_one, zero_add, pow_succ', pow_zero,
+      mul_one, one_mul, exists_and_left]
+    rcases L with ( _ | ⟨ x, _ | ⟨ y, L ⟩ ⟩ )
+    · exact ⟨0, by simp, 0, by simp, by simp, by simp⟩
+    · exact ⟨1, by simp, 0, by simp, by simp, by cases P x <;> simp⟩
+    · rw [List.filter_cons, List.filter_cons]
+      aesop
   | succ b hb ih =>
-    simp_all +decide [ pow_succ' ]
+    simp_all +decide only [Nat.succ_eq_add_one, zero_add, exists_and_left, forall_const,
+      le_add_iff_nonneg_left, zero_le, pow_succ']
     -- Consider two cases: $L.length \leq 2^b$ and $2^b < L.length \leq 2^{b+1}$.
     by_cases h_case : L.length ≤ 2^b;
-    · obtain ⟨ M, hM₁, x, hx₁, hx₂, hx₃ ⟩ := ih L P h_case; exact ⟨ M, hM₁, x, Nat.le_succ_of_le hx₁, hx₂, by nlinarith ⟩ ;
-    · obtain ⟨M', s', hM's', hs', hM's'_mod, hM's'_bound⟩ : ∃ M' s', M' ≤ L.length - 2^b ∧ s' ≤ b ∧ M' % 2^s' = 0 ∧ ((List.filter P (L.drop (2^b))).length ≤ b * ((List.filter P ((L.drop (2^b)).take M' |>.drop (M' - 2^s'))).length)) := by
+    · obtain ⟨ M, hM₁, x, hx₁, hx₂, hx₃ ⟩ := ih L P h_case
+      exact ⟨ M, hM₁, x, Nat.le_succ_of_le hx₁, hx₂, by nlinarith ⟩
+    · obtain ⟨M', s', hM's', hs', hM's'_mod, hM's'_bound⟩ :
+          ∃ M' s', M' ≤ L.length - 2^b ∧ s' ≤ b ∧ M' % 2^s' = 0 ∧
+          ((List.filter P (L.drop (2^b))).length ≤
+            b * ((List.filter P ((L.drop (2^b)).take M' |>.drop (M' - 2^s'))).length)) := by
         specialize ih (L.drop (2^b)) P (by
         grind);
         aesop;
-      by_cases h_case2 : (b + 1) * ((List.filter P (L.take (2^b))).length) ≥ (List.filter P L).length;
+      by_cases h_case2 : (b + 1) * ((List.filter P (L.take (2^b))).length) ≥
+        (List.filter P L).length
       · refine ⟨ 2 ^ b, ?_, b, ?_, ?_, ?_ ⟩ <;> norm_num;
         · linarith;
         · lia;
       · refine ⟨ 2 ^ b + M', ?_, s', ?_, ?_, ?_ ⟩ <;> try omega;
-        · exact Nat.mod_eq_zero_of_dvd ( dvd_add ( pow_dvd_pow _ hs' ) ( Nat.dvd_of_mod_eq_zero hM's'_mod ) );
-        · rw [ show List.take ( 2 ^ b + M' ) L = List.take ( 2 ^ b ) L ++ List.take M' ( List.drop ( 2 ^ b ) L ) from ?_, show List.drop ( 2 ^ b + M' - 2 ^ s' ) ( List.take ( 2 ^ b ) L ++ List.take M' ( List.drop ( 2 ^ b ) L ) ) = List.drop ( M' - 2 ^ s' ) ( List.take M' ( List.drop ( 2 ^ b ) L ) ) from ?_ ];
-          · rw [ show List.filter P L = List.filter P ( List.take ( 2 ^ b ) L ) ++ List.filter P ( List.drop ( 2 ^ b ) L ) from ?_ ];
-            · rw [ show List.filter P L = List.filter P ( List.take ( 2 ^ b ) L ) ++ List.filter P ( List.drop ( 2 ^ b ) L ) from ?_ ] at h_case2 ; norm_num at * ; nlinarith;
-              rw [ ← List.filter_append, List.take_append_drop ];
-            · rw [ ← List.filter_append, List.take_append_drop ];
-          · rw [ Nat.add_sub_assoc ];
-            · rw [ List.drop_append ];
-              rw [ List.drop_eq_nil_of_le ] <;> norm_num;
-              grind;
-            · by_cases hM'_zero : M' = 0;
-              · rw [ show List.filter P L = List.filter P ( List.take ( 2 ^ b ) L ) from ?_ ] at h_case2;
-                · nlinarith;
-                · rw [ ← List.take_append_drop ( 2 ^ b ) L, List.filter_append ] ; aesop;
-              · exact Nat.le_of_dvd ( Nat.pos_of_ne_zero hM'_zero ) ( Nat.dvd_of_mod_eq_zero hM's'_mod );
-          · rw [ List.take_add ]
+        · exact Nat.mod_eq_zero_of_dvd
+            (dvd_add (pow_dvd_pow _ hs') (Nat.dvd_of_mod_eq_zero hM's'_mod))
+        · have h_take_add : List.take (2 ^ b + M') L =
+              List.take (2 ^ b) L ++ List.take M' (List.drop (2 ^ b) L) := by
+            rw [List.take_add]
+          have h_drop_add : List.drop (2 ^ b + M' - 2 ^ s')
+              (List.take (2 ^ b) L ++ List.take M' (List.drop (2 ^ b) L)) =
+              List.drop (M' - 2 ^ s') (List.take M' (List.drop (2 ^ b) L)) := by
+            rw [ Nat.add_sub_assoc ]
+            · rw [ List.drop_append ]
+              rw [ List.drop_eq_nil_of_le ] <;> norm_num
+              grind
+            · by_cases hM'_zero : M' = 0
+              · have h_eq : List.filter P L = List.filter P ( List.take ( 2 ^ b ) L ) := by
+                  rw [ ← List.take_append_drop ( 2 ^ b ) L, List.filter_append ] ; aesop
+                rw [ h_eq ] at h_case2
+                nlinarith
+              · exact Nat.le_of_dvd (Nat.pos_of_ne_zero hM'_zero)
+                  (Nat.dvd_of_mod_eq_zero hM's'_mod)
+          rw [ h_take_add, h_drop_add ]
+          have h_eq : List.filter P L = List.filter P (List.take (2 ^ b) L) ++
+              List.filter P (List.drop (2 ^ b) L) := by
+            rw [ ← List.filter_append, List.take_append_drop ]
+          rw [ h_eq ]
+          rw [ h_eq ] at h_case2
+          norm_num at *
+          nlinarith
 
 theorem dyadic_block_of_many_positions {α : Type} (L : List α) (P : α → Bool)
     (i k : ℕ) (hL : L.length ≤ 2 ^ (i + 1)) (hP : 2 ^ k ≤ (L.filter P).length) :
@@ -1088,13 +1154,15 @@ theorem dyadic_block_of_many_positions {α : Type} (L : List α) (P : α → Boo
   exact ⟨M, s, hM, hs, hmod,
     selectionThreshold_le_of_pow_le i k _ (le_trans hP hcount)⟩
 
-theorem selectionStrategyOnline_covers_of_list (c : Code) (i : ℕ) (𝒜 : PreDescriptionFamily) (n j k t : ℕ)
+theorem selectionStrategyOnline_covers_of_list (c : Code) (i : ℕ) (𝒜 : PreDescriptionFamily)
+    (n j k t : ℕ)
     (S : List BitString) (hS : S = familyStageModelCodesList c i 𝒜 j t) :
     ∀ x : BitString, x.length = n →
       2 ^ k ≤ (familyStageDescriptionCodes c i 𝒜 j t x).card →
       ∃ w ∈ selectionStrategyOnline n i j k S, IsFamilyDescriptionCode 𝒜 j x w := by
   intro x hxlen hcount
-  let P := fun (w : BitString) => decide (x ∈ canonicalFinsetList (((decodeDistributionData w).map CodedDistributionEntry.point).toFinset))
+  let P := fun (w : BitString) => decide (x ∈ canonicalFinsetList
+      (((decodeDistributionData w).map CodedDistributionEntry.point).toFinset))
   have hSlen : S.length ≤ 2 ^ (i + 1) := by
     rw [hS]
     exact familyStageModelCodesList_length_le c i 𝒜 j t
@@ -1120,9 +1188,11 @@ theorem selectionStrategyOnline_covers_of_list (c : Code) (i : ℕ) (𝒜 : PreD
     omega
   set m_idx := M - 1
   have hM_eq : M = m_idx + 1 := by omega
-  have hthresh2 : selectionThreshold i k ≤ (((S.take (m_idx + 1)).drop ((m_idx + 1) - 2 ^ s)).filter P).length := by
+  have hthresh2 : selectionThreshold i k ≤
+      (((S.take (m_idx + 1)).drop ((m_idx + 1) - 2 ^ s)).filter P).length := by
     rwa [← hM_eq]
-  have hsel : 0 < ((blockSelection n i j k s ((S.take (m_idx + 1)).drop ((m_idx + 1) - 2 ^ s))).filter P).length := by
+  have hsel : 0 < ((blockSelection n i j k s
+      ((S.take (m_idx + 1)).drop ((m_idx + 1) - 2 ^ s))).filter P).length := by
     exact blockSelection_covers_of_count n i j k s _ x hxlen hthresh2
   obtain ⟨w, hw⟩ := List.length_pos_iff_exists_mem.mp hsel
   rw [List.mem_filter] at hw
@@ -1149,8 +1219,10 @@ theorem selectionStrategyOnline_covers_of_list (c : Code) (i : ℕ) (𝒜 : PreD
       exact familyStageModelCodesList_sound c i 𝒜 j t w hwS2
     exact isFamilyDescriptionCode_of_model_cover 𝒜 j x w hmodel (decide_eq_true_eq.mp hw.2)
 
-theorem familyMarkedCodeStream_length_bound (c : Code) (i : ℕ) (𝒜 : PreDescriptionFamily) (n j k t : ℕ) :
-  (familyMarkedCodeStream c i 𝒜 n j k t).length ≤ (i + 2) * (i + 1) * (n + 1) * 2 ^ (i + 1 - k) := by
+theorem familyMarkedCodeStream_length_bound (c : Code) (i : ℕ) (𝒜 : PreDescriptionFamily)
+    (n j k t : ℕ) :
+  (familyMarkedCodeStream c i 𝒜 n j k t).length ≤
+      (i + 2) * (i + 1) * (n + 1) * 2 ^ (i + 1 - k) := by
   unfold familyMarkedCodeStream
   apply selectionStrategyOnline_length_bound_of_le
   exact familyStageModelCodesList_length_le c i 𝒜 j t
@@ -1161,6 +1233,7 @@ theorem familyMarkedCodeStream_covers (c : Code) (i : ℕ) (𝒜 : PreDescriptio
     ∃ w ∈ familyMarkedCodeStream c i 𝒜 n j k t, IsFamilyDescriptionCode 𝒜 j x w := by
   intro x hxlen hmany
   unfold familyMarkedCodeStream
-  exact selectionStrategyOnline_covers_of_list c i 𝒜 n j k t (familyStageModelCodesList c i 𝒜 j t) rfl x hxlen hmany
+  exact selectionStrategyOnline_covers_of_list c i 𝒜 n j k t
+    (familyStageModelCodesList c i 𝒜 j t) rfl x hxlen hmany
 
 end Kolmogorov

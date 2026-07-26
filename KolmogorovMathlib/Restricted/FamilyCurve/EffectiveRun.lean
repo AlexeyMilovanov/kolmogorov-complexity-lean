@@ -397,10 +397,13 @@ noncomputable def restrictedEffectiveSampledRunStepPost (q0 : ℕ)
 
 theorem restrictedEffectiveSampledRunStepPost_primrec (q0 : ℕ) :
     Primrec (restrictedEffectiveSampledRunStepPost q0) := by
-  have h_eq : restrictedEffectiveSampledRunStepPost q0 = fun p : (List ℕ × BitString × BitString) × BitString =>
-    restrictedEffectiveSampledStateCode
-      (restrictedEffectiveDeleteCode (restrictedSelectorField p.1.2.1 0) p.1.2.2)
-      ((decodeListCode (restrictedSelectorField p.1.2.1 1)).take (restrictedEffectiveFirstFailedScale q0 p.1.1 p.1.2.1 p.1.2.2) ++ decodeListCode p.2) := rfl
+  have h_eq : restrictedEffectiveSampledRunStepPost q0 =
+      fun p : (List ℕ × BitString × BitString) × BitString =>
+        restrictedEffectiveSampledStateCode
+          (restrictedEffectiveDeleteCode (restrictedSelectorField p.1.2.1 0) p.1.2.2)
+          ((decodeListCode (restrictedSelectorField p.1.2.1 1)).take
+            (restrictedEffectiveFirstFailedScale q0 p.1.1 p.1.2.1 p.1.2.2) ++
+              decodeListCode p.2) := rfl
   rw [h_eq]
   have hq : Primrec (fun p : (List ℕ × BitString × BitString) × BitString =>
       restrictedEffectiveFirstFailedScale q0 p.1.1 p.1.2.1 p.1.2.2) :=
@@ -413,7 +416,8 @@ theorem restrictedEffectiveSampledRunStepPost_primrec (q0 : ℕ) :
     (decodeListCode_primrec.comp
       (restrictedSelectorField_primrec.comp
         (Primrec.fst.comp (Primrec.snd.comp Primrec.fst))
-        ((Primrec.const 1) : Primrec (fun p : (List ℕ × BitString × BitString) × BitString => 1)))).of_eq
+        ((Primrec.const 1) : Primrec
+          (fun p : (List ℕ × BitString × BitString) × BitString => 1)))).of_eq
       fun _ => rfl
   have hdeleted : Primrec (fun p :
       (List ℕ × BitString × BitString) × BitString =>
@@ -426,7 +430,8 @@ theorem restrictedEffectiveSampledRunStepPost_primrec (q0 : ℕ) :
           ((Primrec.const 0) : Primrec (fun p : (List ℕ × BitString × BitString) × BitString => 0)))
         (Primrec.snd.comp (Primrec.snd.comp Primrec.fst)))).of_eq fun _ => rfl
   have hcodes : Primrec (fun p : (List ℕ × BitString × BitString) × BitString =>
-      (decodeListCode (restrictedSelectorField p.1.2.1 1)).take (restrictedEffectiveFirstFailedScale q0 p.1.1 p.1.2.1 p.1.2.2) ++ decodeListCode p.2) :=
+      (decodeListCode (restrictedSelectorField p.1.2.1 1)).take
+        (restrictedEffectiveFirstFailedScale q0 p.1.1 p.1.2.1 p.1.2.2) ++ decodeListCode p.2) :=
     (Primrec₂.comp Primrec.list_append
       (Primrec₂.comp Primrec.list_take hq hmodels)
       (decodeListCode_primrec.comp Primrec.snd)).of_eq fun _ => rfl
@@ -552,20 +557,27 @@ lemma restrictedEffectiveSampledSizes_computable_uniform
     Computable (fun gridCode : BitString =>
       restrictedEffectiveSampledSizes gridCode gridSteps Δ) := by
   unfold restrictedEffectiveSampledSizes;
-  have h_computable : Computable (fun (p : BitString × ℕ) => 2 ^ ((decode_restrictedCurveGridCode_sample p.1 p.2).2 - (Δ + 1))) := by
-    have h_computable : Computable (fun (p : BitString × ℕ) => (decode_restrictedCurveGridCode_sample p.1 p.2).2 - (Δ + 1)) := by
-      have h_computable : Computable (fun (p : BitString × ℕ) => (decode_restrictedCurveGridCode_sample p.1 p.2).2) := by
+  have h_computable : Computable (fun (p : BitString × ℕ) =>
+    2 ^ ((decode_restrictedCurveGridCode_sample p.1 p.2).2 - (Δ + 1))) := by
+    have h_computable : Computable (fun (p : BitString × ℕ) =>
+      (decode_restrictedCurveGridCode_sample p.1 p.2).2 - (Δ + 1)) := by
+      have h_computable : Computable (fun (p : BitString × ℕ) =>
+        (decode_restrictedCurveGridCode_sample p.1 p.2).2) := by
         exact Computable.snd.comp ( decode_restrictedCurveGridCode_sample_computable );
       have h_computable : Computable (fun (p : ℕ × ℕ) => p.1 - p.2) := Primrec.nat_sub.to_comp
-      exact Computable.of_eq (h_computable.comp ( Computable.pair ‹Computable fun p : BitString × ℕ => ( decode_restrictedCurveGridCode_sample p.1 p.2 ).2› ( Computable.const ( Δ + 1 ) ) )) (by intro x; rfl)
+      exact Computable.of_eq (h_computable.comp
+          ( Computable.pair ‹Computable fun p : BitString × ℕ =>
+        ( decode_restrictedCurveGridCode_sample p.1 p.2 ).2› ( Computable.const
+            ( Δ + 1 ) ) )) (by intro x; rfl)
     exact Computable.pow2.comp h_computable;
   generalize gridSteps + 1 = k
   induction k with
   | zero =>
-      simp_all +decide
+      simp_all +decide only [List.range_zero, List.map_nil]
       exact Computable.const []
   | succ gridSteps ih =>
-      simp_all +decide [ List.range_succ ]
+      simp_all +decide only [List.range_succ, List.map_append, List.map_cons,
+        List.map_nil]
       have h_append : Computable (fun (p : List ℕ × ℕ) => p.1 ++ [p.2]) := by
         exact Computable.of_eq (Computable.list_append.comp ( Computable.fst )
           ( Computable.list_cons.comp ( Computable.snd )
@@ -586,26 +598,43 @@ lemma restrictedEffectiveSampledInitialState_input_computable
     listCode_primrec.to_comp
   have h_bits_primrec : Primrec Nat.bits := primrecNatBits
   have hg : Primrec₂ (fun (_ : List ℕ) b => Nat.bits b) := h_bits_primrec.comp Primrec.snd
-  have h_map_primrec : Primrec (fun (l : List ℕ) => List.map Nat.bits l) := Primrec.of_eq (Primrec.list_map Primrec.id hg) (by intro x; rfl)
-  have h_sizes : Computable (fun gridCode : BitString => restrictedEffectiveSampledSizes gridCode gridSteps Δ) := restrictedEffectiveSampledSizes_computable_uniform gridSteps Δ
-  have h_sizes_bits : Computable (fun gridCode : BitString => List.map Nat.bits (restrictedEffectiveSampledSizes gridCode gridSteps Δ)) := (Primrec.to_comp h_map_primrec).comp h_sizes
-  have h_sizes_code : Computable (fun gridCode : BitString => listCode (List.map Nat.bits (restrictedEffectiveSampledSizes gridCode gridSteps Δ))) := h_listCode_primrec.comp h_sizes_bits
-  have h_Acode : Computable (fun _ : BitString => (codedUniformOn (stringsOfLength ambientLength) (codedStringsOfLength_nonempty ambientLength)).code) := Computable.const _
-  have h_overhead : Computable (fun _ : BitString => (𝒜.overhead ambientLength).bits) := Computable.const _
+  have h_map_primrec : Primrec (fun (l : List ℕ) => List.map Nat.bits l) :=
+    Primrec.of_eq (Primrec.list_map Primrec.id hg) (by intro x; rfl)
+  have h_sizes : Computable (fun gridCode : BitString =>
+    restrictedEffectiveSampledSizes gridCode gridSteps Δ) :=
+        restrictedEffectiveSampledSizes_computable_uniform gridSteps Δ
+  have h_sizes_bits : Computable (fun gridCode : BitString =>
+    List.map Nat.bits (restrictedEffectiveSampledSizes gridCode gridSteps Δ)) :=
+        (Primrec.to_comp h_map_primrec).comp h_sizes
+  have h_sizes_code : Computable (fun gridCode : BitString =>
+    listCode (List.map Nat.bits (restrictedEffectiveSampledSizes gridCode gridSteps Δ))) :=
+        h_listCode_primrec.comp h_sizes_bits
+  have h_Acode : Computable (fun _ : BitString =>
+    (codedUniformOn (stringsOfLength ambientLength)
+        (codedStringsOfLength_nonempty ambientLength)).code) := Computable.const _
+  have h_overhead : Computable (fun _ : BitString =>
+    (𝒜.overhead ambientLength).bits) := Computable.const _
   have h_list : Computable (fun gridCode : BitString => [
-    (codedUniformOn (stringsOfLength ambientLength) (codedStringsOfLength_nonempty ambientLength)).code,
-    (codedUniformOn (stringsOfLength ambientLength) (codedStringsOfLength_nonempty ambientLength)).code,
+    (codedUniformOn (stringsOfLength ambientLength)
+      (codedStringsOfLength_nonempty ambientLength)).code,
+    (codedUniformOn (stringsOfLength ambientLength)
+      (codedStringsOfLength_nonempty ambientLength)).code,
     listCode (List.map Nat.bits (restrictedEffectiveSampledSizes gridCode gridSteps Δ)),
     (𝒜.overhead ambientLength).bits
-  ]) := Computable.list_cons.comp h_Acode (Computable.list_cons.comp h_Acode (Computable.list_cons.comp h_sizes_code (Computable.list_cons.comp h_overhead (Computable.const []))))
+  ]) := Computable.list_cons.comp h_Acode (Computable.list_cons.comp h_Acode
+    (Computable.list_cons.comp h_sizes_code
+      (Computable.list_cons.comp h_overhead (Computable.const []))))
   have h_final : Computable (fun a : BitString =>
     listCode [
-      (codedUniformOn (stringsOfLength ambientLength) (codedStringsOfLength_nonempty ambientLength)).code,
-      (codedUniformOn (stringsOfLength ambientLength) (codedStringsOfLength_nonempty ambientLength)).code,
+      (codedUniformOn (stringsOfLength ambientLength)
+      (codedStringsOfLength_nonempty ambientLength)).code,
+      (codedUniformOn (stringsOfLength ambientLength)
+      (codedStringsOfLength_nonempty ambientLength)).code,
       listCode (List.map Nat.bits (restrictedEffectiveSampledSizes a gridSteps Δ)),
       (𝒜.overhead ambientLength).bits
     ]) := h_listCode_primrec.comp h_list
-  exact Computable.of_eq h_final (by intro gridCode; unfold restrictedEffectiveRebuildSuffixInput; rfl)
+  exact Computable.of_eq h_final
+    (by intro gridCode; unfold restrictedEffectiveRebuildSuffixInput; rfl)
 
 lemma restrictedEffectiveSampledInitialState_post_computable
     (ambientLength : ℕ) :
@@ -616,13 +645,31 @@ lemma restrictedEffectiveSampledInitialState_post_computable
       let rootLiveCode := restrictedLiveIntersectionCode Acode
         (modelCodes.headD [])
       restrictedEffectiveSampledStateCode rootLiveCode modelCodes) := by
-  have h_restrictedLiveIntersectionCode : Primrec (fun (p : BitString × BitString) => restrictedLiveIntersectionCode p.1 p.2) := restrictedLiveIntersectionCode_primrec
-  have h_decodeListCode : Primrec (fun (a : BitString) => decodeListCode a) := decodeListCode_primrec
+  have h_restrictedLiveIntersectionCode : Primrec (fun (p : BitString × BitString) =>
+    restrictedLiveIntersectionCode p.1 p.2) := restrictedLiveIntersectionCode_primrec
+  have h_decodeListCode : Primrec (fun (a : BitString) =>
+    decodeListCode a) := decodeListCode_primrec
   have h_encodeList : Primrec (fun (l : List BitString) => listCode l) := listCode_primrec
-  have h_headD : Primrec (fun (l : List BitString) => l.headD []) := Primrec.of_eq Primrec.list_headI (by intro x; cases x <;> rfl)
-  have h_rootLiveCode : Primrec (fun (l : List BitString) => restrictedLiveIntersectionCode (codedUniformOn (stringsOfLength ambientLength) (codedStringsOfLength_nonempty ambientLength)).code (l.headD [])) := Primrec.of_eq (h_restrictedLiveIntersectionCode.comp (Primrec.pair (Primrec.const _) h_headD)) (by intro x; rfl)
-  have h_stateFields : Primrec (fun (l : List BitString) => [restrictedLiveIntersectionCode (codedUniformOn (stringsOfLength ambientLength) (codedStringsOfLength_nonempty ambientLength)).code (l.headD []), listCode l]) := Primrec.list_cons.comp h_rootLiveCode (Primrec.list_cons.comp h_encodeList (Primrec.const []))
-  have h_final : Computable (fun output : BitString => listCode ([restrictedLiveIntersectionCode (codedUniformOn (stringsOfLength ambientLength) (codedStringsOfLength_nonempty ambientLength)).code ((decodeListCode output).tail.headD []), listCode ((decodeListCode output).tail)])) := listCode_computable.comp (Primrec.to_comp (h_stateFields.comp (Primrec.list_tail.comp h_decodeListCode)))
+  have h_headD : Primrec (fun (l : List BitString) => l.headD []) :=
+    Primrec.of_eq Primrec.list_headI (by intro x; cases x <;> rfl)
+  have h_rootLiveCode : Primrec (fun (l : List BitString) => restrictedLiveIntersectionCode
+    (codedUniformOn (stringsOfLength ambientLength)
+        (codedStringsOfLength_nonempty ambientLength)).code
+    (l.headD [])) :=
+        Primrec.of_eq (h_restrictedLiveIntersectionCode.comp (Primrec.pair
+        (Primrec.const _) h_headD)) (by intro x; rfl)
+  have h_stateFields : Primrec (fun (l : List BitString) => [restrictedLiveIntersectionCode
+    (codedUniformOn (stringsOfLength ambientLength)
+        (codedStringsOfLength_nonempty ambientLength)).code
+    (l.headD []), listCode l]) :=
+        Primrec.list_cons.comp h_rootLiveCode (Primrec.list_cons.comp h_encodeList
+        (Primrec.const []))
+  have h_final : Computable (fun output : BitString => listCode ([restrictedLiveIntersectionCode
+    (codedUniformOn (stringsOfLength ambientLength)
+        (codedStringsOfLength_nonempty ambientLength)).code
+    ((decodeListCode output).tail.headD []), listCode ((decodeListCode output).tail)])) :=
+    listCode_computable.comp (Primrec.to_comp (h_stateFields.comp
+        (Primrec.list_tail.comp h_decodeListCode)))
   exact Computable.of_eq h_final (by intro output; rfl)
 
 lemma restrictedEffectiveSampledInitialState_partrec_uniform
@@ -632,8 +679,11 @@ lemma restrictedEffectiveSampledInitialState_partrec_uniform
         (restrictedEffectiveSampledSizes gridCode gridSteps Δ)) := by
   refine Partrec.map ?_ ?_
   · have := @restrictedEffectiveSampledInitialState_input_computable;
-    exact Partrec.comp ( restrictedEffectiveRebuildSuffix_partrec 𝒜 ) ( this 𝒜 ambientLength gridSteps Δ );
-  · exact Partrec.of_eq (Computable.comp ( restrictedEffectiveSampledInitialState_post_computable ambientLength ) ( Computable.snd )).partrec (by intro x; rfl)
+    exact Partrec.comp ( restrictedEffectiveRebuildSuffix_partrec 𝒜 )
+      ( this 𝒜 ambientLength gridSteps Δ );
+  · exact Partrec.of_eq (Computable.comp
+      ( restrictedEffectiveSampledInitialState_post_computable ambientLength )
+      ( Computable.snd )).partrec (by intro x; rfl)
 
 lemma restrictedSampledBadBatchAt_computable_uniform
     (c : Code) (𝒜 : PreDescriptionFamily) (gridSteps Δ : ℕ) :
@@ -657,16 +707,20 @@ lemma restrictedSampledBadBatchAt_computable_uniform
         exact hdropPrimrec.to_comp
       exact Computable.of_eq (hdrop.comp
         (Computable.fst.pair (Computable.list_length.comp Computable.snd))) (by intro x; rfl)
-    exact Computable.of_eq (hdropLength.comp (Computable.pair hstreamSucc hstream)) (by intro x; rfl)
+    exact Computable.of_eq (hdropLength.comp (Computable.pair hstreamSucc hstream))
+      (by intro x; rfl)
   have h_cases : Computable (fun p : BitString × ℕ =>
       @Nat.casesOn (fun _ => List BitString) p.2
         (restrictedSampledBadCodeStream c p.1 𝒜 gridSteps Δ 0)
         (fun n => List.drop (restrictedSampledBadCodeStream c p.1 𝒜 gridSteps Δ n).length
           (restrictedSampledBadCodeStream c p.1 𝒜 gridSteps Δ (n + 1)))) := by
     exact Computable.nat_casesOn Computable.snd
-      (Computable.of_eq (Computable.comp hstream (Computable.pair Computable.fst (Computable.const 0))) (by intro x; rfl))
-      (Computable.of_eq (hbatch.comp (Computable.pair (Computable.fst.comp Computable.fst) Computable.snd)) (by intro x; rfl))
-  exact Computable.of_eq h_cases (by intro x; unfold restrictedSampledBadBatchAt restrictedSampledNewBadBatch; cases x.2 <;> rfl)
+      (Computable.of_eq (Computable.comp hstream
+        (Computable.pair Computable.fst (Computable.const 0))) (by intro x; rfl))
+      (Computable.of_eq (hbatch.comp
+        (Computable.pair (Computable.fst.comp Computable.fst) Computable.snd)) (by intro x; rfl))
+  exact Computable.of_eq h_cases
+    (by intro x; unfold restrictedSampledBadBatchAt restrictedSampledNewBadBatch; cases x.2 <;> rfl)
 
 lemma restrictedEffectiveSampledRun_partrec_uniform
     (𝒜 : DescriptionFamily) (c : Code)
@@ -1473,7 +1527,8 @@ lemma restrictedEffectiveSampledRun_step_decodes_splice
     (hsteps : ∀ i < (sizes.drop (q + 1)).length, ∃ Bprev Cprev Bnext : Finset BitString,
         decodeCoverCodeList (codes.getD i []) = canonicalFinsetList Bprev ∧
         decodeCoverCodeList ((restrictedEffectiveRebuildLiveCodes
-          ((restrictedEffectiveLiveCodesAfterDelete stateCode badCode).getD q []) codes).getD i []) =
+          ((restrictedEffectiveLiveCodesAfterDelete stateCode badCode).getD q [])
+          codes).getD i []) =
           canonicalFinsetList Cprev ∧
         decodeCoverCodeList (codes.getD (i + 1) []) =
           canonicalFinsetList Bnext ∧
@@ -1777,7 +1832,8 @@ lemma restrictedEffectiveSampledRun_step_contract
     (hsteps : ∀ i < (sizes.drop (q + 1)).length, ∃ Bprev Cprev Bnext : Finset BitString,
         decodeCoverCodeList (codes.getD i []) = canonicalFinsetList Bprev ∧
         decodeCoverCodeList ((restrictedEffectiveRebuildLiveCodes
-          ((restrictedEffectiveLiveCodesAfterDelete stateCode badCode).getD q []) codes).getD i []) =
+          ((restrictedEffectiveLiveCodesAfterDelete stateCode badCode).getD q [])
+          codes).getD i []) =
           canonicalFinsetList Cprev ∧
         decodeCoverCodeList (codes.getD (i + 1) []) =
           canonicalFinsetList Bnext ∧
@@ -1972,7 +2028,8 @@ lemma restrictedEffectiveSampledRun_step_spec
     𝒜 N ambientLength t sizes hlen hpowers hstate hbad
   have hq : q ≤ N := hqspec.1
   have hq_cases : (q = N ∧ ∀ (s : ℕ), s < N → ¬restrictedSampledDensityFails state bad s) ∨
-    q < N ∧ restrictedSampledDensityFails state bad q ∧ ∀ (s : ℕ), s < q → ¬restrictedSampledDensityFails state bad s := hqspec.2
+    q < N ∧ restrictedSampledDensityFails state bad q ∧ ∀ (s : ℕ), s < q →
+      ¬restrictedSampledDensityFails state bad s := hqspec.2
   have hmodelLength : modelCodes.length = N + 1 := hstate.1
   have hAcode : decodeCoverCodeList (modelCodes.getD q []) =
       canonicalFinsetList (state.B q) := (hstate.2 q hq).1
@@ -2118,8 +2175,10 @@ lemma restrictedEffectiveSampledRun_step_spec
       ((sizes, stateCode, badCode), rawOutput), ⟨next, ⟨q, ?_⟩⟩⟩
   refine ⟨?_, ?_, h_contract⟩
   · rw [restrictedEffectiveSampledRunStep]
-    have hinput : restrictedEffectiveSampledRunStepInput (𝒜.overhead ambientLength) (sizes, stateCode, badCode) =
-      restrictedEffectiveRebuildSuffixInput (modelCodes.getD q []) (liveCodes.getD q []) suffixSizes (𝒜.overhead ambientLength) := by
+    have hinput : restrictedEffectiveSampledRunStepInput (𝒜.overhead ambientLength)
+      (sizes, stateCode, badCode) =
+      restrictedEffectiveRebuildSuffixInput (modelCodes.getD q []) (liveCodes.getD q [])
+        suffixSizes (𝒜.overhead ambientLength) := by
       simp [restrictedEffectiveSampledRunStepInput, q, modelCodes, liveCodes, suffixSizes]
     rw [hinput, hrun, Part.map_some]
   · unfold restrictedEffectiveSampledRunStepPost

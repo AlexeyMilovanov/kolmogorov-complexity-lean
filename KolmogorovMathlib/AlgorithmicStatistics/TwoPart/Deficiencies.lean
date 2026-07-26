@@ -42,7 +42,8 @@ def StochasticToOptimalSetGate (U : Map) : Prop :=
     ∃ c : ℕ, ∀ x : BitString, ∀ n alpha beta : ℕ,
       x.length = n →
       IsStochastic U x alpha beta →
-      IsOptimalSetStochastic U x (alpha + logSlack c (n + alpha + beta)) (beta + logSlack c (n + alpha + beta))
+      IsOptimalSetStochastic U x (alpha + logSlack c (n + alpha + beta))
+        (beta + logSlack c (n + alpha + beta))
 
 /-- Theorem 3 exported under its intended name, gated by the real statement that
 later work must prove. -/
@@ -53,7 +54,8 @@ theorem optimal_set_of_stochastic (U : Map)
     ∃ c : ℕ, ∀ x : BitString, ∀ n alpha beta : ℕ,
       x.length = n →
       IsStochastic U x alpha beta →
-      IsOptimalSetStochastic U x (alpha + logSlack c (n + alpha + beta)) (beta + logSlack c (n + alpha + beta)) :=
+      IsOptimalSetStochastic U x (alpha + logSlack c (n + alpha + beta))
+        (beta + logSlack c (n + alpha + beta)) :=
   h_gate h_size h_comp
 
 /-- Theorem 3 specialized to an optimal decompressor, still with the explicit
@@ -65,7 +67,8 @@ theorem optimal_set_of_stochastic_of_optimal (U : Map) (hU : IsOptimalPrefixCond
     ∃ c : ℕ, ∀ x : BitString, ∀ n alpha beta : ℕ,
       x.length = n →
       IsStochastic U x alpha beta →
-      IsOptimalSetStochastic U x (alpha + logSlack c (n + alpha + beta)) (beta + logSlack c (n + alpha + beta)) := by
+      IsOptimalSetStochastic U x (alpha + logSlack c (n + alpha + beta))
+        (beta + logSlack c (n + alpha + beta)) := by
   have h_size := exists_description_smaller_size_of_many_logSlack U hU
   have h_comp := exists_description_smaller_complexity_of_many_logSlack U hU
   exact optimal_set_of_stochastic U h_size h_comp h_gate
@@ -99,7 +102,8 @@ theorem setOptimalityDeficiencyLe_of_profile {U : Map} {B : Finset BitString} {h
   cases hx_comp : KPPlain U x <;> cases hB_comp : setComplexity U B hB <;>
     simp_all only [Nat.cast_le, KPPlain_eq_KP, complexityWeight_top, complexityWeight_coe,
       zero_le, top_le_iff, ENat.coe_ne_top]
-  refine le_trans ?_ (mul_le_mul_right (mul_le_mul_right (show (B.card : ENNReal)⁻¹ ≥ (2^t : ENNReal)⁻¹ from ?_) _) _)
+  refine le_trans ?_ (mul_le_mul_right
+    (mul_le_mul_right (show (B.card : ENNReal)⁻¹ ≥ (2^t : ENNReal)⁻¹ from ?_) _) _)
   · simp_all only [← ENNReal.inv_pow, ne_eq, pow_eq_zero_iff', OfNat.ofNat_ne_zero, false_and,
       not_false_eq_true, ENNReal.pow_eq_top_iff, ENNReal.ofNat_ne_top, or_self, ← ENNReal.mul_inv]
     rw [← ENNReal.toReal_le_toReal] <;> norm_num
@@ -110,9 +114,11 @@ theorem setOptimalityDeficiencyLe_of_profile {U : Map} {B : Finset BitString} {h
     · exact ENNReal.mul_ne_top (by norm_num) (by norm_num)
   · gcongr; norm_cast
 
-theorem ManyIJDescriptions_k_le_i_add_one {U : Map} {x : BitString} {i j k : ℕ} (h : ManyIJDescriptions U x i j k) : k ≤ i + 1 := by
+theorem ManyIJDescriptions_k_le_i_add_one {U : Map} {x : BitString} {i j k : ℕ}
+    (h : ManyIJDescriptions U x i j k) : k ≤ i + 1 := by
   unfold ManyIJDescriptions at h
-  have h_bound : ((descriptionsWithComplexityLeAndSizeLe U i j).filter (fun S ↦ x ∈ S)).card ≤ 2 ^ (i + 1) := by
+  have h_bound : ((descriptionsWithComplexityLeAndSizeLe U i j).filter
+    (fun S ↦ x ∈ S)).card ≤ 2 ^ (i + 1) := by
     exact (Finset.card_filter_le _ _).trans (card_descriptionsWithComplexityLeAndSizeLe U i j)
   have h_pow := h.trans h_bound
   exact (Nat.pow_le_pow_iff_right (by decide)).mp h_pow
@@ -135,32 +141,6 @@ realized gap `RealizedSetOptimalityGap` (pinning `delta = i + j - kx`) and which
 discharged unconditionally by `manyIJDescriptions_of_realizedSetOptimalityGap`. -/
 def GapCountingBridge (U : Map) : Prop :=
   ∃ c : ℕ, ∀ (A : Finset BitString) (hA : A.Nonempty) (x : BitString)
-      (n delta d i j : ℕ),
-    x.length = n →
-    x ∈ A →
-    setComplexity U A hA = (i : ENat) →
-    A.card ≤ 2 ^ j →
-    SetOptimalityDeficiencyLe U A hA x delta →
-    CodedFiniteDistribution.DeficiencyLe U (codedUniformOn A hA) x d →
-    d ≤ delta →
-    ∃ slack : ℕ, slack ≤ logSlack c (n + delta + d) ∧
-      ManyIJDescriptions U x i j (delta - d - slack)
-
-/-- TightGapCountingBridge captures the tight visible-parameter conclusion
-of `manyIJDescriptions_of_realizedSetOptimalityGap`. -/
-def TightGapCountingBridge (U : Map) : Prop :=
-  ∃ c : ℕ, ∀ (A : Finset BitString) (hA : A.Nonempty) (x : BitString)
-      (n delta d i j kx : ℕ),
-    x.length = n →
-    RealizedSetOptimalityGap U A hA x delta i j kx →
-    CodedFiniteDistribution.DeficiencyLe U (codedUniformOn A hA) x d →
-    d ≤ delta →
-    ∃ slack : ℕ, slack ≤ logSlack c (n + delta + d) ∧
-      ManyIJDescriptions U x i j (delta - d - slack)
-
-/-- Compatibility form of `GapCountingBridge` retaining the 4.28 `c_soi` parameter. -/
-def GapCountingBridgeWithSOI (U : Map) : Prop :=
-  ∃ c : ℕ, ∀ (A : Finset BitString) (hA : A.Nonempty) (x : BitString)
       (n delta d i j c_soi : ℕ),
     x.length = n →
     x ∈ A →
@@ -172,8 +152,9 @@ def GapCountingBridgeWithSOI (U : Map) : Prop :=
     ∃ slack : ℕ, slack ≤ logSlack c (n + delta + d) ∧
       ManyIJDescriptions U x i j (delta - d - slack)
 
-/-- Compatibility form of `TightGapCountingBridge` retaining the 4.28 `c_soi` parameter. -/
-def TightGapCountingBridgeWithSOI (U : Map) : Prop :=
+/-- TightGapCountingBridge captures the tight visible-parameter conclusion
+of `manyIJDescriptions_of_realizedSetOptimalityGap`. -/
+def TightGapCountingBridge (U : Map) : Prop :=
   ∃ c : ℕ, ∀ (A : Finset BitString) (hA : A.Nonempty) (x : BitString)
       (n delta d i j kx c_soi : ℕ),
     x.length = n →
@@ -182,6 +163,12 @@ def TightGapCountingBridgeWithSOI (U : Map) : Prop :=
     d ≤ delta + c_soi →
     ∃ slack : ℕ, slack ≤ logSlack c (n + delta + d) ∧
       ManyIJDescriptions U x i j (delta - d - slack)
+
+/-- Backward-compatible target alias for the source `GapCountingBridge`. -/
+def GapCountingBridgeWithSOI (U : Map) : Prop := GapCountingBridge U
+
+/-- Backward-compatible target alias for the source `TightGapCountingBridge`. -/
+def TightGapCountingBridgeWithSOI (U : Map) : Prop := TightGapCountingBridge U
 
 /-- Adding one to the visible slack parameter only costs a constant-factor
 increase in the slack value. -/
@@ -196,7 +183,8 @@ theorem logSlack_add_one (c : ℕ) (n : ℕ) :
     c * (Nat.bits (n + 1)).length + c ≤ c * ((Nat.bits n).length + 2) + c := by gcongr
     _ = c * (Nat.bits n).length + c + c * 2 := by ring
 
-theorem dyadic_bracket_lower_bound {j k : ℕ} (h : (2 : ℝ≥0∞) ^ j / 2 ≤ (2 : ℝ≥0∞) ^ k) : j - 1 ≤ k := by
+theorem dyadic_bracket_lower_bound {j k : ℕ} (h : (2 : ℝ≥0∞) ^ j / 2 ≤ (2 : ℝ≥0∞) ^ k) :
+    j - 1 ≤ k := by
   cases j
   · exact Nat.zero_le _
   · rename_i j
@@ -232,22 +220,27 @@ theorem setOptimalityCardBound {U : Map} {A : Finset BitString} {hA : A.Nonempty
           _ = 2 ^ n * 2 := by ring
     · rw [h]
       exact le_top
-  · obtain ⟨k, hk⟩ : ∃ k : ℕ, KPPlain U x = k := (ENat.ne_top_iff_exists.mp h).imp fun m hm ↦ hm.symm
+  · obtain ⟨k, hk⟩ : ∃ k : ℕ, KPPlain U x = k :=
+      (ENat.ne_top_iff_exists.mp h).imp fun m hm ↦ hm.symm
     refine ⟨k + delta - i, ?_, ?_⟩
     · have h_opt' := h_opt
       rw [setOptimalityDeficiencyLe_iff_of_mem hx] at h_opt'
       simp only [hk, h_comp, complexityWeight_coe] at h_opt'
-      have h_card2 : (A.card : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ k ≤ (2 : ℝ≥0∞) ^ delta * (2 : ℝ≥0∞)⁻¹ ^ i := by
+      have h_card2 : (A.card : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ k ≤
+          (2 : ℝ≥0∞) ^ delta * (2 : ℝ≥0∞)⁻¹ ^ i := by
         calc
           (A.card : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ k
-            ≤ (A.card : ℝ≥0∞) * ((2 : ℝ≥0∞) ^ delta * ((2 : ℝ≥0∞)⁻¹ ^ i * (A.card : ℝ≥0∞)⁻¹)) := by gcongr
-          _ = (2 : ℝ≥0∞) ^ delta * (2 : ℝ≥0∞)⁻¹ ^ i * ((A.card : ℝ≥0∞) * (A.card : ℝ≥0∞)⁻¹) := by ring
+            ≤ (A.card : ℝ≥0∞) * ((2 : ℝ≥0∞) ^ delta * ((2 : ℝ≥0∞)⁻¹ ^ i * (A.card : ℝ≥0∞)⁻¹)) :=
+              by gcongr
+          _ = (2 : ℝ≥0∞) ^ delta * (2 : ℝ≥0∞)⁻¹ ^ i * ((A.card : ℝ≥0∞) * (A.card : ℝ≥0∞)⁻¹) :=
+              by ring
           _ = (2 : ℝ≥0∞) ^ delta * (2 : ℝ≥0∞)⁻¹ ^ i := by
             rw [ENNReal.mul_inv_cancel]
             · exact mul_one _
             · exact_mod_cast hA.card_pos.ne'
             · exact ENNReal.natCast_ne_top A.card
-      have h_card3 : (A.card : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ k * (2 : ℝ≥0∞) ^ k ≤ ((2 : ℝ≥0∞) ^ delta * (2 : ℝ≥0∞)⁻¹ ^ i) * (2 : ℝ≥0∞) ^ k := by
+      have h_card3 : (A.card : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ k * (2 : ℝ≥0∞) ^ k ≤
+          ((2 : ℝ≥0∞) ^ delta * (2 : ℝ≥0∞)⁻¹ ^ i) * (2 : ℝ≥0∞) ^ k := by
         gcongr
       have h_card4 : (A.card : ℝ≥0∞) ≤ (2 : ℝ≥0∞) ^ delta * (2 : ℝ≥0∞)⁻¹ ^ i * (2 : ℝ≥0∞) ^ k := by
         calc
@@ -256,8 +249,10 @@ theorem setOptimalityCardBound {U : Map} {A : Finset BitString} {hA : A.Nonempty
               rw [← mul_pow, ENNReal.inv_mul_cancel (by norm_num) (by norm_num), one_pow, mul_one]
           _ = (A.card : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ k * (2 : ℝ≥0∞) ^ k := by ring
           _ ≤ ((2 : ℝ≥0∞) ^ delta * (2 : ℝ≥0∞)⁻¹ ^ i) * (2 : ℝ≥0∞) ^ k := h_card3
-      have h_card5 : (A.card : ℝ≥0∞) ≤ (2 : ℝ≥0∞) ^ delta * (2 : ℝ≥0∞) ^ k * (2 : ℝ≥0∞)⁻¹ ^ i := by
-        have h_eq : (2 : ℝ≥0∞) ^ delta * (2 : ℝ≥0∞)⁻¹ ^ i * (2 : ℝ≥0∞) ^ k = (2 : ℝ≥0∞) ^ delta * (2 : ℝ≥0∞) ^ k * (2 : ℝ≥0∞)⁻¹ ^ i := by ring
+      have h_card5 : (A.card : ℝ≥0∞) ≤
+          (2 : ℝ≥0∞) ^ delta * (2 : ℝ≥0∞) ^ k * (2 : ℝ≥0∞)⁻¹ ^ i := by
+        have h_eq : (2 : ℝ≥0∞) ^ delta * (2 : ℝ≥0∞)⁻¹ ^ i * (2 : ℝ≥0∞) ^ k =
+            (2 : ℝ≥0∞) ^ delta * (2 : ℝ≥0∞) ^ k * (2 : ℝ≥0∞)⁻¹ ^ i := by ring
         exact h_card4.trans (le_of_eq h_eq)
       have h_card6 : (A.card : ℝ≥0∞) * (2 : ℝ≥0∞) ^ i ≤ (2 : ℝ≥0∞) ^ delta * (2 : ℝ≥0∞) ^ k := by
         calc
@@ -271,7 +266,8 @@ theorem setOptimalityCardBound {U : Map} {A : Finset BitString} {hA : A.Nonempty
           (A.card : ℝ≥0∞) * (2 : ℝ≥0∞) ^ i ≤ (2 : ℝ≥0∞) ^ delta * (2 : ℝ≥0∞) ^ k := h_card6
           _ = (2 : ℝ≥0∞) ^ (delta + k) := by rw [pow_add]
       have h_card9 : A.card * 2 ^ i ≤ 2 ^ (delta + k) := by exact_mod_cast h_card7
-      have hi : setComplexity U A hA ≤ KPPlain U x + (delta : ENat) := setComplexity_le_of_setOptimalityDeficiency hx h_opt
+      have hi : setComplexity U A hA ≤ KPPlain U x + (delta : ENat) :=
+        setComplexity_le_of_setOptimalityDeficiency hx h_opt
       rw [h_comp, hk] at hi
       have h_i_le : i ≤ delta + k := by
         rw [← ENat.coe_add] at hi
@@ -286,7 +282,8 @@ theorem setOptimalityCardBound {U : Map} {A : Finset BitString} {hA : A.Nonempty
         rw [h_eq] at h_card10
         exact h_card10
       exact Nat.le_of_mul_le_mul_right h_card11 h_pos
-    · have hi : setComplexity U A hA ≤ KPPlain U x + (delta : ENat) := setComplexity_le_of_setOptimalityDeficiency hx h_opt
+    · have hi : setComplexity U A hA ≤ KPPlain U x + (delta : ENat) :=
+        setComplexity_le_of_setOptimalityDeficiency hx h_opt
       rw [h_comp, hk] at hi
       rw [← ENat.coe_add] at hi
       have h_i_le : i ≤ k + delta := by
@@ -306,7 +303,7 @@ false `deficiencies_theorem_of_optimal`.  Use `deficiencies_theorem_tight` (gate
 `TightGapCountingBridge`) and its unconditional corollary
 `deficiencies_theorem_tight_of_optimal` instead; those are budgeted by the realized
 gap `RealizedSetOptimalityGap`. -/
-theorem deficiencies_theorem (U : Map) (hU : IsOptimalPrefixConditional U)
+private theorem deficiencies_theorem_of_le (U : Map) (hU : IsOptimalPrefixConditional U)
     (_h_size : ImprovingDescriptionsSizeLogSlack U)
     (h_comp : ImprovingDescriptionsComplexityLogSlack U)
     (h_gap : GapCountingBridge U) :
@@ -333,7 +330,8 @@ theorem deficiencies_theorem (U : Map) (hU : IsOptimalPrefixConditional U)
   -- optimality-deficiency cardinality bound; this keeps the internal budget
   -- `n + i + j0` linearly controlled by the visible budget `n + delta + d`.
   obtain ⟨j0, hj0_card, hj0_bound⟩ := setOptimalityCardBound hxA h_compA h_opt
-  rcases hc1 A hA x n delta d i j0 hn hxA h_compA hj0_card h_opt h_def hd with
+  rcases hc1 A hA x n delta d i j0 0 hn hxA h_compA hj0_card h_opt h_def
+      (by simpa using hd) with
     ⟨slack1, hslack1, h_many⟩
   set k := min (delta - d - slack1) i with hk_def
   have hk_le_i : k ≤ i := Nat.min_le_right _ _
@@ -412,7 +410,7 @@ theorem setOptimalityDeficiencyLe_of_realizedSetOptimalityGap {U : Map}
   refine key.trans ?_
   gcongr
 
-theorem deficiencies_theorem_tight (U : Map) (hU : IsOptimalPrefixConditional U)
+private theorem deficiencies_theorem_tight_of_le (U : Map) (hU : IsOptimalPrefixConditional U)
     (_h_size : ImprovingDescriptionsSizeLogSlack U)
     (h_comp : ImprovingDescriptionsComplexityLogSlack U)
     (h_gap : TightGapCountingBridge U) :
@@ -445,7 +443,7 @@ theorem deficiencies_theorem_tight (U : Map) (hU : IsOptimalPrefixConditional U)
   -- optimality-deficiency cardinality bound; this keeps the internal budget
   -- `n + i + j0` linearly controlled by the visible budget `n + delta + d`.
   obtain ⟨j0, hj0_card, hj0_bound⟩ := setOptimalityCardBound hxA h_compA h_opt
-  rcases hc1 A hA x n delta d i j kx hn h_realized h_def hd with
+  rcases hc1 A hA x n delta d i j kx 0 hn h_realized h_def (by simpa using hd) with
     ⟨slack1, hslack1, h_many⟩
   set k := min (delta - d - slack1) i with hk_def
   have hk_le_i : k ≤ i := Nat.min_le_right _ _
@@ -483,7 +481,8 @@ theorem deficiencies_theorem_tight (U : Map) (hU : IsOptimalPrefixConditional U)
       omega
 
 /-- Unconditional corollary discharging the Theorem 4 tight gate. -/
-theorem deficiencies_theorem_tight_of_optimal (U : Map) (hU : IsOptimalPrefixConditional U) :
+private theorem deficiencies_theorem_tight_of_optimal_of_le
+    (U : Map) (hU : IsOptimalPrefixConditional U) :
     ∃ c : ℕ, ∀ (A : Finset BitString) (hA : A.Nonempty) (x : BitString)
         (n delta d i j kx : ℕ),
       x.length = n →
@@ -497,7 +496,7 @@ theorem deficiencies_theorem_tight_of_optimal (U : Map) (hU : IsOptimalPrefixCon
   have h_size := exists_description_smaller_size_of_many_logSlack U hU
   have h_comp := exists_description_smaller_complexity_of_many_logSlack U hU
   have h_gap : TightGapCountingBridge U := manyIJDescriptions_of_realizedSetOptimalityGap U hU
-  exact deficiencies_theorem_tight U hU h_size h_comp h_gap
+  exact deficiencies_theorem_tight_of_le U hU h_size h_comp h_gap
 theorem isOptimalSetStochastic_imp_profile_of_large_sizeBudget (U : Map) (x : BitString)
     (alpha beta j slack : ℕ)
     (h_opt : IsOptimalSetStochastic U x alpha beta)
@@ -506,8 +505,10 @@ theorem isOptimalSetStochastic_imp_profile_of_large_sizeBudget (U : Map) (x : Bi
   obtain ⟨ S, hS, hx, hc, hdef ⟩ := h_opt;
   refine ⟨ S, hS, hx, ?_, ?_ ⟩;
   · exact le_trans hc ( Nat.cast_le.mpr ( Nat.le_add_right _ _ ) );
-  · -- From `hdef`, we have `complexityWeight (KPPlain U x) ≤ (2:ℝ≥0∞)^beta * (complexityWeight (setComplexity U S hS) * (S.card : ℝ≥0∞)⁻¹)`.
-    have hdef' : complexityWeight (KPPlain U x) ≤ (2 : ENNReal) ^ beta * (1 * (S.card : ENNReal)⁻¹) := by
+  · -- From `hdef`, we have `complexityWeight (KPPlain U x) ≤`
+    -- `(2:ℝ≥0∞)^beta * (complexityWeight (setComplexity U S hS) * (S.card : ℝ≥0∞)⁻¹)`.
+    have hdef' : complexityWeight (KPPlain U x) ≤
+        (2 : ENNReal) ^ beta * (1 * (S.card : ENNReal)⁻¹) := by
       rw [ setOptimalityDeficiencyLe_iff_of_mem hx ] at hdef;
       exact hdef.trans ( mul_le_mul_right ( mul_le_mul_left ( complexityWeight_le_one _ ) _ ) _ );
     -- From `h_arith`, we have `KPPlain U x + beta ≤ j + slack`.
@@ -518,10 +519,12 @@ theorem isOptimalSetStochastic_imp_profile_of_large_sizeBudget (U : Map) (x : Bi
     -- From `hdef'`, we have `2⁻¹ ^ k ≤ 2 ^ beta * (S.card : ℝ≥0∞)⁻¹`.
     -- Multiplying both sides by `2 ^ k * S.card`, we get `S.card ≤ 2 ^ (k + beta)`.
     have h_card : (S.card : ENNReal) ≤ 2 ^ (k + beta) := by
-      convert mul_le_mul_right hdef' ( 2 ^ k * S.card ) using 1; ring_nf
-      · simp +decide only [complexityWeight_coe, mul_assoc];
+      convert mul_le_mul_right hdef' ( 2 ^ k * S.card ) using 1
+      · ring_nf
+        simp +decide only [complexityWeight_coe, mul_assoc];
         rw [ ← mul_pow, ENNReal.inv_mul_cancel ] <;> norm_num;
-      · simp +decide only [pow_add, mul_comm, mul_one, mul_left_comm, mul_assoc];
+      · ring_nf
+        simp +decide only [mul_comm, mul_left_comm, mul_assoc];
         rw [ ← mul_assoc, ENNReal.mul_inv_cancel ] <;> norm_num [ hS.ne_empty ];
     norm_cast at *;
     exact h_card.trans ( pow_le_pow_right₀ ( by decide ) h_arith )
@@ -566,13 +569,17 @@ theorem isOptimalSetStochastic_imp_profile (U : Map) (hU : IsOptimalPrefixCondit
   -- Clearing denominators gives the integer incidence bound `2^{m₀} · |S| ≤ 2^{k+beta}`.
   have h_card : (2 : ENNReal) ^ m₀ * (S.card : ENNReal) ≤ 2 ^ (k + beta) := by
     have h1 := mul_le_mul' hdef2 (le_refl (2 ^ k * 2 ^ m₀ * (S.card : ENNReal)))
-    have heq1 : (2 : ENNReal)⁻¹ ^ k * (2 ^ k * 2 ^ m₀ * (S.card : ENNReal)) = (2 : ENNReal) ^ m₀ * (S.card : ENNReal) := by
+    have heq1 : (2 : ENNReal)⁻¹ ^ k * (2 ^ k * 2 ^ m₀ * (S.card : ENNReal)) =
+        (2 : ENNReal) ^ m₀ * (S.card : ENNReal) := by
       rw [show (2 : ENNReal)⁻¹ ^ k * (2 ^ k * 2 ^ m₀ * (S.card : ENNReal))
             = ((2 : ENNReal)⁻¹ ^ k * 2 ^ k) * (2 ^ m₀ * S.card) by ring,
         ← mul_pow, ENNReal.inv_mul_cancel (by norm_num) (by norm_num), one_pow, one_mul]
-    have heq2 : 2 ^ beta * ((2 : ENNReal)⁻¹ ^ m₀ * (S.card : ENNReal)⁻¹) * (2 ^ k * 2 ^ m₀ * (S.card : ENNReal)) = 2 ^ (k + beta) := by
-      rw [show 2 ^ beta * ((2 : ENNReal)⁻¹ ^ m₀ * (S.card : ENNReal)⁻¹) * (2 ^ k * 2 ^ m₀ * (S.card : ENNReal))
-            = (2 ^ k * 2 ^ beta) * ((2 : ENNReal)⁻¹ ^ m₀ * 2 ^ m₀) * ((S.card : ENNReal)⁻¹ * S.card) by ring,
+    have heq2 : 2 ^ beta * ((2 : ENNReal)⁻¹ ^ m₀ * (S.card : ENNReal)⁻¹) *
+        (2 ^ k * 2 ^ m₀ * (S.card : ENNReal)) = 2 ^ (k + beta) := by
+      rw [show 2 ^ beta * ((2 : ENNReal)⁻¹ ^ m₀ * (S.card : ENNReal)⁻¹) *
+            (2 ^ k * 2 ^ m₀ * (S.card : ENNReal))
+            = (2 ^ k * 2 ^ beta) * ((2 : ENNReal)⁻¹ ^ m₀ * 2 ^ m₀) * ((S.card : ENNReal)⁻¹ * S.card)
+            by ring,
         ← mul_pow, ENNReal.inv_mul_cancel (by norm_num) (by norm_num),
         ENNReal.inv_mul_cancel hcard_ne hcard_top, one_pow, mul_one, mul_one, ← pow_add]
     rwa [heq1, heq2] at h1
@@ -609,7 +616,38 @@ theorem isOptimalSetStochastic_imp_profile (U : Map) (hU : IsOptimalPrefixCondit
   unfold logSlack
   omega
 
-/-- Compatibility form of `deficiencies_theorem` retaining the 4.28 `c_soi` interface. -/
+/-- The source-strength loose Deficiencies Theorem interface. -/
+theorem deficiencies_theorem (U : Map) (hU : IsOptimalPrefixConditional U)
+    (_h_size : ImprovingDescriptionsSizeLogSlack U)
+    (h_comp : ImprovingDescriptionsComplexityLogSlack U)
+    (h_gap : GapCountingBridge U) :
+    ∃ c : ℕ, ∀ (A : Finset BitString) (hA : A.Nonempty) (x : BitString)
+        (n delta d i j c_soi : ℕ),
+      x.length = n →
+      x ∈ A →
+      setComplexity U A hA = (i : ENat) →
+      A.card ≤ 2 ^ j →
+      SetOptimalityDeficiencyLe U A hA x delta →
+      CodedFiniteDistribution.DeficiencyLe U (codedUniformOn A hA) x d →
+      d ≤ delta + c_soi →
+      ∃ (B : Finset BitString) (hB : B.Nonempty), x ∈ B ∧
+        setComplexity U B hB + (delta - d : ℕ) ≤
+          setComplexity U A hA + (logSlack c (n + delta + d) : ENat) ∧
+        SetOptimalityDeficiencyLe U B hB x (d + logSlack c (n + delta + d)) := by
+  obtain ⟨c, hc⟩ := deficiencies_theorem_of_le U hU _h_size h_comp h_gap
+  refine ⟨c, ?_⟩
+  intro A hA x n delta d i j c_soi hn hx hcomp hcard hopt hdef _
+  by_cases hd : d ≤ delta
+  · exact hc A hA x n delta d i j hn hx hcomp hcard hopt hdef hd
+  · refine ⟨A, hA, hx, ?_, ?_⟩
+    · have hsub : delta - d = 0 := Nat.sub_eq_zero_of_le (le_of_not_ge hd)
+      rw [hsub, Nat.cast_zero, add_zero]
+      exact le_add_right le_rfl
+    · refine hopt.mono_beta ?_
+      have : delta ≤ d := le_of_not_ge hd
+      omega
+
+/-- Backward-compatible alias for the source-strength loose theorem. -/
 theorem deficiencies_theorem_with_soi (U : Map) (hU : IsOptimalPrefixConditional U)
     (_h_size : ImprovingDescriptionsSizeLogSlack U)
     (h_comp : ImprovingDescriptionsComplexityLogSlack U)
@@ -626,30 +664,14 @@ theorem deficiencies_theorem_with_soi (U : Map) (hU : IsOptimalPrefixConditional
       ∃ (B : Finset BitString) (hB : B.Nonempty), x ∈ B ∧
         setComplexity U B hB + (delta - d : ℕ) ≤
           setComplexity U A hA + (logSlack c (n + delta + d) : ENat) ∧
-        SetOptimalityDeficiencyLe U B hB x (d + logSlack c (n + delta + d)) := by
-  rcases h_gap with ⟨c_gap, h_gap⟩
-  have h_gap' : GapCountingBridge U := by
-    refine ⟨c_gap, ?_⟩
-    intro A hA x n delta d i j hn hx hcomp hcard hopt hdef hd
-    exact h_gap A hA x n delta d i j 0 hn hx hcomp hcard hopt hdef (by simpa using hd)
-  obtain ⟨c, hc⟩ := deficiencies_theorem U hU _h_size h_comp h_gap'
-  refine ⟨c, ?_⟩
-  intro A hA x n delta d i j c_soi hn hx hcomp hcard hopt hdef _
-  by_cases hd : d ≤ delta
-  · exact hc A hA x n delta d i j hn hx hcomp hcard hopt hdef hd
-  · refine ⟨A, hA, hx, ?_, ?_⟩
-    · have hsub : delta - d = 0 := Nat.sub_eq_zero_of_le (le_of_not_ge hd)
-      rw [hsub, Nat.cast_zero, add_zero]
-      exact le_add_right le_rfl
-    · refine hopt.mono_beta ?_
-      have : delta ≤ d := le_of_not_ge hd
-      omega
+        SetOptimalityDeficiencyLe U B hB x (d + logSlack c (n + delta + d)) :=
+  deficiencies_theorem U hU _h_size h_comp h_gap
 
-/-- Compatibility form of `deficiencies_theorem_tight` retaining the 4.28 `c_soi` interface. -/
-theorem deficiencies_theorem_tight_with_soi (U : Map) (hU : IsOptimalPrefixConditional U)
+/-- The source-strength tight Deficiencies Theorem interface. -/
+theorem deficiencies_theorem_tight (U : Map) (hU : IsOptimalPrefixConditional U)
     (_h_size : ImprovingDescriptionsSizeLogSlack U)
     (h_comp : ImprovingDescriptionsComplexityLogSlack U)
-    (h_gap : TightGapCountingBridgeWithSOI U) :
+    (h_gap : TightGapCountingBridge U) :
     ∃ c : ℕ, ∀ (A : Finset BitString) (hA : A.Nonempty) (x : BitString)
         (n delta d i j kx c_soi : ℕ),
       x.length = n →
@@ -660,12 +682,7 @@ theorem deficiencies_theorem_tight_with_soi (U : Map) (hU : IsOptimalPrefixCondi
         setComplexity U B hB + (delta - d : ℕ) ≤
           setComplexity U A hA + (logSlack c (n + delta + d) : ENat) ∧
         SetOptimalityDeficiencyLe U B hB x (d + logSlack c (n + delta + d)) := by
-  rcases h_gap with ⟨c_gap, h_gap⟩
-  have h_gap' : TightGapCountingBridge U := by
-    refine ⟨c_gap, ?_⟩
-    intro A hA x n delta d i j kx hn hreal hdef hd
-    exact h_gap A hA x n delta d i j kx 0 hn hreal hdef (by simpa using hd)
-  obtain ⟨c, hc⟩ := deficiencies_theorem_tight U hU _h_size h_comp h_gap'
+  obtain ⟨c, hc⟩ := deficiencies_theorem_tight_of_le U hU _h_size h_comp h_gap
   refine ⟨c, ?_⟩
   intro A hA x n delta d i j kx c_soi hn hreal hdef _
   by_cases hd : d ≤ delta
@@ -679,8 +696,25 @@ theorem deficiencies_theorem_tight_with_soi (U : Map) (hU : IsOptimalPrefixCondi
       have : delta ≤ d := le_of_not_ge hd
       omega
 
-/-- Unconditional 4.28-strength tight deficiencies theorem. -/
-theorem deficiencies_theorem_tight_of_optimal_with_soi
+/-- Backward-compatible alias for the source-strength tight theorem. -/
+theorem deficiencies_theorem_tight_with_soi (U : Map) (hU : IsOptimalPrefixConditional U)
+    (_h_size : ImprovingDescriptionsSizeLogSlack U)
+    (h_comp : ImprovingDescriptionsComplexityLogSlack U)
+    (h_gap : TightGapCountingBridgeWithSOI U) :
+    ∃ c : ℕ, ∀ (A : Finset BitString) (hA : A.Nonempty) (x : BitString)
+        (n delta d i j kx c_soi : ℕ),
+      x.length = n →
+      RealizedSetOptimalityGap U A hA x delta i j kx →
+      CodedFiniteDistribution.DeficiencyLe U (codedUniformOn A hA) x d →
+      d ≤ delta + c_soi →
+      ∃ (B : Finset BitString) (hB : B.Nonempty), x ∈ B ∧
+        setComplexity U B hB + (delta - d : ℕ) ≤
+          setComplexity U A hA + (logSlack c (n + delta + d) : ENat) ∧
+        SetOptimalityDeficiencyLe U B hB x (d + logSlack c (n + delta + d)) :=
+  deficiencies_theorem_tight U hU _h_size h_comp h_gap
+
+/-- Unconditional source-strength tight deficiencies theorem. -/
+theorem deficiencies_theorem_tight_of_optimal
     (U : Map) (hU : IsOptimalPrefixConditional U) :
     ∃ c : ℕ, ∀ (A : Finset BitString) (hA : A.Nonempty) (x : BitString)
         (n delta d i j kx c_soi : ℕ),
@@ -694,8 +728,23 @@ theorem deficiencies_theorem_tight_of_optimal_with_soi
         SetOptimalityDeficiencyLe U B hB x (d + logSlack c (n + delta + d)) := by
   have h_size := exists_description_smaller_size_of_many_logSlack U hU
   have h_comp := exists_description_smaller_complexity_of_many_logSlack U hU
-  have h_gap : TightGapCountingBridgeWithSOI U :=
-    manyIJDescriptions_of_realizedSetOptimalityGap_of_le_add U hU
-  exact deficiencies_theorem_tight_with_soi U hU h_size h_comp h_gap
+  have h_gap : TightGapCountingBridge U :=
+    manyIJDescriptions_of_realizedSetOptimalityGap U hU
+  exact deficiencies_theorem_tight U hU h_size h_comp h_gap
+
+/-- Backward-compatible alias for the unconditional source-strength theorem. -/
+theorem deficiencies_theorem_tight_of_optimal_with_soi
+    (U : Map) (hU : IsOptimalPrefixConditional U) :
+    ∃ c : ℕ, ∀ (A : Finset BitString) (hA : A.Nonempty) (x : BitString)
+        (n delta d i j kx c_soi : ℕ),
+      x.length = n →
+      RealizedSetOptimalityGap U A hA x delta i j kx →
+      CodedFiniteDistribution.DeficiencyLe U (codedUniformOn A hA) x d →
+      d ≤ delta + c_soi →
+      ∃ (B : Finset BitString) (hB : B.Nonempty), x ∈ B ∧
+        setComplexity U B hB + (delta - d : ℕ) ≤
+          setComplexity U A hA + (logSlack c (n + delta + d) : ENat) ∧
+        SetOptimalityDeficiencyLe U B hB x (d + logSlack c (n + delta + d)) :=
+  deficiencies_theorem_tight_of_optimal U hU
 
 end Kolmogorov

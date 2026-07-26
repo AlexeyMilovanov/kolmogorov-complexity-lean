@@ -60,7 +60,8 @@ lemma growthLemma (c : ℕ) :
 lemma Computable.findComplex (f : ℕ → ℕ) (h_f_comp : Computable f)
     (h_unb : ∀ M, ∃ n, f n > M) :
     Computable (fun k ↦ Nat.find (h_unb (2^k))) := by
-  exact Computable.searchCore f h_f_comp (fun k ↦ 2^k) Computable.pow2 (fun _ _ ↦ Iff.rfl) (fun k ↦ h_unb (2^k))
+  exact Computable.searchCore f h_f_comp (fun k ↦ 2^k) Computable.pow2
+    (fun _ _ ↦ Iff.rfl) (fun k ↦ h_unb (2^k))
 
 /-- Computable functions on natural numbers do not increase complexity by more than a constant. -/
 lemma plainKNatCompLe (U : Map) (hU : isOptimalConditional U)

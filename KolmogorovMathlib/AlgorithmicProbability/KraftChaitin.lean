@@ -125,13 +125,19 @@ lemma dyadicValue_aprioriApprox (c : Nat.Partrec.Code) (s : ℕ) (x y : BitStrin
   any_goals exact fun p ↦ ( 2 ^ ( s - p.length ) : ℝ≥0∞ ) / ( 2 ^ s : ℝ≥0∞ );
   · unfold dyadicValue aprioriApprox aprioriAcc;
     rw [ List.sum_toFinset ];
-    · induction ( aprioriAcceptedList c s x y ) with
-      | nil => simp only [List.map_nil, List.sum_nil, Nat.cast_zero, ENNReal.zero_div]
-      | cons hd tl ih =>
-        simp_all +decide only [div_eq_mul_inv, mul_comm, List.map_cons, List.sum_cons, Nat.cast_add, Nat.cast_pow, Nat.cast_ofNat, Nat.cast_list_sum, List.map_map, mul_add]
+    · induction (aprioriAcceptedList c s x y) with
+      | nil => simp
+      | cons _ _ ih =>
+        simp_all +decide only [List.map_cons, List.sum_cons, Nat.cast_add, Nat.cast_pow,
+          Nat.cast_ofNat, Nat.cast_list_sum, List.map_map, div_eq_mul_inv, mul_comm]
+        rw [mul_add, mul_comm]
+        aesop
     · exact aprioriAcceptedList_nodup c s x y
   · rw [ ENNReal.div_eq_inv_mul ];
-    rw [ show ( 2 ^ s : ℝ≥0∞ ) = 2 ^ ( s - List.length p ) * 2 ^ List.length p by rw [ ← pow_add, Nat.sub_add_cancel ( show List.length p ≤ s from by simpa using mem_aprioriAcc.mp hp |>.1 ) ] ]; norm_num [ progWeight ];
+    rw [show (2 ^ s : ℝ≥0∞) = 2 ^ (s - p.length) * 2 ^ p.length by
+      rw [← pow_add, Nat.sub_add_cancel (show p.length ≤ s from by
+        simpa using (mem_aprioriAcc.mp hp).1)]]
+    norm_num [progWeight]
     rw [ ENNReal.mul_inv, mul_comm ];
     · rw [ ← mul_assoc, ENNReal.mul_inv_cancel ] <;> norm_num;
       exact ENNReal.inv_pow
@@ -155,27 +161,41 @@ lemma aprioriApprox_iSup {M : Map} (c : Nat.Partrec.Code)
     (x y : BitString) :
     ⨆ s, dyadicValue (aprioriApprox c s x y) s = aprioriMeasure M x y := by
   -- Rewrite the left-hand side using the definition of aprioriApprox.
-  have h_lhs : ⨆ s, dyadicValue (aprioriApprox c s x y) s = ⨆ s, ∑ p ∈ Kolmogorov.aprioriAcc c s x y, Kolmogorov.progWeight p := by
+  have h_lhs :
+      ⨆ s, dyadicValue (aprioriApprox c s x y) s =
+        ⨆ s, ∑ p ∈ Kolmogorov.aprioriAcc c s x y, Kolmogorov.progWeight p := by
     exact iSup_congr fun s ↦ dyadicValue_aprioriApprox c s x y;
   refine le_antisymm ( h_lhs ▸ ?_ ) ( h_lhs ▸ ?_ );
   · refine iSup_le fun s ↦ ?_;
     classical
-    refine le_trans ?_ ( ENNReal.sum_le_tsum (f := fun p ↦ if produces M p y x then Kolmogorov.progWeight p else 0) ( Kolmogorov.aprioriAcc c s x y ) );
+    refine le_trans ?_ (ENNReal.sum_le_tsum
+      (f := fun p ↦ if produces M p y x then Kolmogorov.progWeight p else 0)
+      (Kolmogorov.aprioriAcc c s x y))
     refine Finset.sum_le_sum fun p hp ↦ ?_;
     rw [ if_pos ];
     exact produces_iff_evaln c hc p x y |>.2 ⟨ s, by simpa using mem_aprioriAcc.mp hp |>.2 ⟩;
   · refine ENNReal.tsum_eq_iSup_sum.trans_le ?_;
     refine iSup_le fun S ↦ ?_;
-    -- For each $p \in S$, if $produces M p y x$, then there exists $k_p$ such that $Nat.Partrec.Code.evaln k_p c (Encodable.encode (p, y)) = some (Encodable.encode x)$.
-    obtain ⟨k, hk⟩ : ∃ k : ℕ, ∀ p ∈ S, produces M p y x → Nat.Partrec.Code.evaln k c (Encodable.encode (p, y)) = some (Encodable.encode x) ∧ p.length ≤ k := by
-      have h_finite : ∀ p ∈ S, produces M p y x → ∃ k : ℕ, Nat.Partrec.Code.evaln k c (Encodable.encode (p, y)) = some (Encodable.encode x) ∧ p.length ≤ k := by
+    -- Choose a common fuel bound for the producing programs in `S`.
+    obtain ⟨k, hk⟩ : ∃ k : ℕ, ∀ p ∈ S, produces M p y x →
+        Nat.Partrec.Code.evaln k c (Encodable.encode (p, y)) =
+          some (Encodable.encode x) ∧ p.length ≤ k := by
+      have h_finite : ∀ p ∈ S, produces M p y x → ∃ k : ℕ,
+          Nat.Partrec.Code.evaln k c (Encodable.encode (p, y)) =
+            some (Encodable.encode x) ∧ p.length ≤ k := by
         intro p hp hproduces
-        obtain ⟨k, hk⟩ : ∃ k : ℕ, Nat.Partrec.Code.evaln k c (Encodable.encode (p, y)) = some (Encodable.encode x) :=
+        obtain ⟨k, hk⟩ : ∃ k : ℕ,
+            Nat.Partrec.Code.evaln k c (Encodable.encode (p, y)) =
+              some (Encodable.encode x) :=
           (produces_iff_evaln c hc p x y).mp hproduces
-        exact ⟨ k + p.length, by simpa using Nat.Partrec.Code.evaln_mono ( by linarith ) hk, by linarith ⟩;
+        exact ⟨ k + p.length, by
+          simpa using Nat.Partrec.Code.evaln_mono ( by linarith ) hk, by linarith ⟩;
       choose! k hk₁ hk₂ using h_finite;
       use Finset.sup S k;
-      exact fun p hp hp' ↦ ⟨ Nat.Partrec.Code.evaln_mono ( Finset.le_sup ( f := k ) hp ) ( hk₁ p hp hp' ), le_trans ( hk₂ p hp hp' ) ( Finset.le_sup ( f := k ) hp ) ⟩;
+      exact fun p hp hp' ↦
+        ⟨ Nat.Partrec.Code.evaln_mono ( Finset.le_sup ( f := k ) hp )
+            ( hk₁ p hp hp' ),
+          le_trans ( hk₂ p hp hp' ) ( Finset.le_sup ( f := k ) hp ) ⟩;
     refine le_trans ?_ ( le_iSup _ k );
     rw [ ← Finset.sum_filter ];
     refine Finset.sum_le_sum_of_subset ?_;
@@ -197,8 +217,16 @@ The numerator function is computable in `(s, x, y)`.
 lemma aprioriApprox_computable (c : Nat.Partrec.Code) :
     Computable (fun q : ℕ × BitString × BitString ↦ aprioriApprox c q.1 q.2.1 q.2.2) := by
   -- Prove `Primrec` of the function and finish with `.to_comp`.
-  have h_primrec : Primrec (fun q : ℕ × BitString × BitString ↦ aprioriApprox c q.1 q.2.1 q.2.2) := by
-    convert Primrec.comp ( show Primrec ( fun l : List ℕ ↦ l.sum ) from ?_ ) ( show Primrec ( fun q : ℕ × BitString × BitString ↦ ( boundedPrograms q.1 ).map ( fun p ↦ if Nat.Partrec.Code.evaln q.1 c ( Encodable.encode ( p, q.2.2 ) ) = some ( Encodable.encode q.2.1 ) then 2 ^ ( q.1 - p.length ) else 0 ) ) from ?_ ) using 1;
+  have h_primrec :
+      Primrec (fun q : ℕ × BitString × BitString ↦ aprioriApprox c q.1 q.2.1 q.2.2) := by
+    convert Primrec.comp
+      ( show Primrec ( fun l : List ℕ ↦ l.sum ) from ?_ )
+      ( show Primrec ( fun q : ℕ × BitString × BitString ↦
+        ( boundedPrograms q.1 ).map ( fun p ↦
+          if Nat.Partrec.Code.evaln q.1 c ( Encodable.encode ( p, q.2.2 ) ) =
+              some ( Encodable.encode q.2.1 ) then
+            2 ^ ( q.1 - p.length )
+          else 0 ) ) from ?_ ) using 1;
     · ext ⟨s, ⟨x, y⟩⟩; simp [aprioriApprox, aprioriAcceptedList];
       induction ( boundedPrograms s ) <;> aesop;
     · -- The sum of a list is primitive recursive.
@@ -213,20 +241,35 @@ lemma aprioriApprox_computable (c : Nat.Partrec.Code) :
     · refine Primrec.list_map ?_ ?_;
       · exact Primrec.comp primrec_boundedPrograms ( Primrec.fst );
       · refine Primrec.ite ?_ ?_ ?_;
-        · refine ⟨ ?_, ?_ ⟩;
-          infer_instance;
-          have h_evaln : Primrec (fun p : ℕ × BitString × BitString ↦ Nat.Partrec.Code.evaln p.1 c (Encodable.encode (p.2.1, p.2.2))) := by
-            exact (Nat.Partrec.Code.primrec_evaln.comp
-              (Primrec.pair (Primrec.pair Primrec.fst (Primrec.const c))
-                (Primrec.encode.comp
-                  (Primrec.pair (Primrec.fst.comp Primrec.snd)
-                    (Primrec.snd.comp Primrec.snd))))).of_eq (fun _ ↦ rfl)
-          convert Primrec.eq.comp ( h_evaln.comp ( show Primrec ( fun p : ( ℕ × BitString × BitString ) × BitString ↦ ( p.1.1, p.2, p.1.2.2 ) ) from ?_ ) ) ( show Primrec ( fun p : ( ℕ × BitString × BitString ) × BitString ↦ some ( Encodable.encode p.1.2.1 ) ) from ?_ ) using 1;
-          · exact Iff.symm primrecPred_iff_primrec_decide
-          · exact Primrec.pair ( Primrec.fst.comp ( Primrec.fst ) ) ( Primrec.pair ( Primrec.snd ) ( Primrec.snd.comp ( Primrec.snd.comp ( Primrec.fst ) ) ) );
-          · convert Primrec.option_some.comp ( show Primrec ( fun p : ( ℕ × BitString × BitString ) × BitString ↦ Encodable.encode p.1.2.1 ) from ?_ ) using 1;
-            exact Primrec.encode.comp ( Primrec.fst.comp ( Primrec.snd.comp ( Primrec.fst ) ) );
-        · exact Primrec.comp ( primrec_two_pow ) ( Primrec.nat_sub.comp ( Primrec.fst.comp ( Primrec.fst ) ) ( Primrec.list_length.comp ( Primrec.snd ) ) );
+        · refine ⟨ ?_, ?_ ⟩
+          · infer_instance
+          · have h_evaln : Primrec (fun p : ℕ × BitString × BitString ↦
+                Nat.Partrec.Code.evaln p.1 c
+                  (Encodable.encode (p.2.1, p.2.2))) := by
+              exact (Nat.Partrec.Code.primrec_evaln.comp
+                (Primrec.pair (Primrec.pair Primrec.fst (Primrec.const c))
+                  (Primrec.encode.comp
+                    (Primrec.pair (Primrec.fst.comp Primrec.snd)
+                      (Primrec.snd.comp Primrec.snd))))).of_eq (fun _ ↦ rfl)
+            convert Primrec.eq.comp
+              ( h_evaln.comp ( show Primrec
+                ( fun p : ( ℕ × BitString × BitString ) × BitString ↦
+                  ( p.1.1, p.2, p.1.2.2 ) ) from ?_ ) )
+              ( show Primrec
+                ( fun p : ( ℕ × BitString × BitString ) × BitString ↦
+                  some ( Encodable.encode p.1.2.1 ) ) from ?_ ) using 1;
+            · exact Iff.symm primrecPred_iff_primrec_decide
+            · exact Primrec.pair ( Primrec.fst.comp Primrec.fst )
+                ( Primrec.pair Primrec.snd
+                  ( Primrec.snd.comp ( Primrec.snd.comp Primrec.fst ) ) );
+            · convert Primrec.option_some.comp ( show Primrec
+                  ( fun p : ( ℕ × BitString × BitString ) × BitString ↦
+                    Encodable.encode p.1.2.1 ) from ?_ ) using 1;
+              exact Primrec.encode.comp
+                ( Primrec.fst.comp ( Primrec.snd.comp Primrec.fst ) );
+        · exact Primrec.comp primrec_two_pow
+            ( Primrec.nat_sub.comp ( Primrec.fst.comp Primrec.fst )
+              ( Primrec.list_length.comp Primrec.snd ) );
         · exact Primrec.const 0;
   exact h_primrec.to_comp
 

@@ -74,8 +74,10 @@ prefix complexity of `x` up to logarithmic slack.  Proof: the map
 -/
 theorem singletonSetComplexityGate (U : Map) (hU : IsOptimalPrefixConditional U) :
     SingletonSetComplexityGate U := by
-  obtain ⟨ c, hc ⟩ := KPPlain_map_le U hU ( fun x => canonicalUniformCodeOfList [ x ] ) ( by
-    exact canonicalUniformCodeOfList_computable.comp ( Computable.list_cons.comp Computable.id ( Computable.const [] ) ) );
+  obtain ⟨ c, hc ⟩ := KPPlain_map_le U hU
+    (fun x => canonicalUniformCodeOfList [x]) (by
+      exact canonicalUniformCodeOfList_computable.comp
+        (Computable.list_cons.comp Computable.id (Computable.const [])))
   refine ⟨c, fun x n kx hn hk => le_trans ?_ (le_trans (hc x) ?_)⟩
   · rw [show setComplexity U {x} _
         = KPPlain U (codedUniformOn {x} _ |> CodedFiniteDistribution.code) from rfl]
@@ -95,15 +97,20 @@ Proof: the map `natCode n ↦ canonicalUniformCodeOfList (canonicalFinsetList
 -/
 theorem fullSetComplexityGate (U : Map) (hU : IsOptimalPrefixConditional U) :
     FullSetComplexityGate U := by
-  obtain ⟨c₁, hc₁⟩ :=KPPlain_map_le U hU (fun w => canonicalUniformCodeOfList (canonicalFinsetList (stringsOfLength (decodeNatCode w)))) (by
+  obtain ⟨c₁, hc₁⟩ := KPPlain_map_le U hU (fun w =>
+      canonicalUniformCodeOfList
+        (canonicalFinsetList (stringsOfLength (decodeNatCode w)))) (by
     exact canonicalUniformCodeOfList_computable.comp (by
-      have h1 : (fun w => canonicalFinsetList (stringsOfLength (decodeNatCode w))) = (fun w => canonicalFinsetList (allStrings (decodeNatCode w)).toFinset) := rfl
+      have h1 : (fun w => canonicalFinsetList (stringsOfLength (decodeNatCode w))) =
+          (fun w => canonicalFinsetList (allStrings (decodeNatCode w)).toFinset) := rfl
       rw [h1]
-      exact canonicalFinsetList_toFinset_primrec.comp (allStrings_primrec.comp decodeNatCode_primrec) |> Primrec.to_comp))
-  obtain ⟨c₂, hc₂⟩ :=KPPlain_natCode_le_log U hU
+      exact canonicalFinsetList_toFinset_primrec.comp
+          (allStrings_primrec.comp decodeNatCode_primrec) |>.to_comp))
+  obtain ⟨c₂, hc₂⟩ := KPPlain_natCode_le_log U hU
   use c₁ + c₂ + 2
   intro n hn
-  have hsc : setComplexity U (stringsOfLength n) hn = KPPlain U (canonicalUniformCodeOfList (canonicalFinsetList (stringsOfLength n))) := by
+  have hsc : setComplexity U (stringsOfLength n) hn =
+      KPPlain U (canonicalUniformCodeOfList (canonicalFinsetList (stringsOfLength n))) := by
     rw [setComplexity, ← canonicalUniformCodeOfList_canonicalFinsetList (stringsOfLength n) hn]
   calc setComplexity U (stringsOfLength n) hn
     _ = KPPlain U (canonicalUniformCodeOfList (canonicalFinsetList (stringsOfLength n))) := hsc

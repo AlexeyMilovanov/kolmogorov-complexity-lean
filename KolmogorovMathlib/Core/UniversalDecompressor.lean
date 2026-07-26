@@ -37,7 +37,7 @@ def unaryPrefix (n : ℕ) : List Bool :=
     change ((unaryPrefix n ++ p).takeWhile id).length + 1 = n + 1
     omega
 
-lemma drop_unaryPrefix (n : ℕ) (p : List Bool) :
+@[simp] lemma drop_unaryPrefix (n : ℕ) (p : List Bool) :
     (unaryPrefix n ++ p).drop (n + 1) = p := by
   induction n with
   | zero => rfl

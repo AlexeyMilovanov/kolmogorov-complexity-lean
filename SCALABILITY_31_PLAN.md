@@ -21,9 +21,13 @@ weakening final acceptance.
    the audited source did not change during that review.
 
 The import graph is discovered from source rather than encoded as a fixed list.
-The current project has 118 modules and several maximal build roots, including
-standalone modules not imported by `KolmogorovMathlib.lean`. New modules and new
-maximal roots must therefore enter validation automatically.
+The current project has 118 modules and four maximal build roots:
+`KolmogorovMathlib`,
+`KolmogorovMathlib.AlgorithmicProbability.KraftChaitinOnline`,
+`KolmogorovMathlib.AlgorithmicStatistics.FiniteDistribution`, and
+`KolmogorovMathlib.Prefix.KPPairSwap`. The latter three include standalone
+modules not imported by `KolmogorovMathlib.lean`. New modules and new maximal
+roots must therefore enter validation automatically.
 
 ## Growth Constraints
 

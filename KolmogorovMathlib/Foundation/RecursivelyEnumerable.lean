@@ -76,14 +76,21 @@ private lemma partrecCodeDom {α : Type*} [Primcodable α]
         (fun a ↦ Part.map Encodable.encode (g a)))
     (a : α) :
     (g a).Dom ↔ ∃ k, (Nat.Partrec.Code.evaln k c (Encodable.encode a)).isSome := by
-  have h_eval : (c.eval (Encodable.encode a)).Dom ↔ (g a).Dom := by aesop
+  have h_eval : (c.eval (Encodable.encode a)).Dom ↔ (g a).Dom := by
+    rw [hc]
+    simp only [Encodable.encodek, Part.coe_some, Part.bind_some, Part.map_Dom]
   convert h_eval.symm using 1
   simp only [Part.dom_iff_mem, Nat.Partrec.Code.evaln_complete]
   constructor
   · rintro ⟨k, hk⟩
-    cases h : Nat.Partrec.Code.evaln k c (Encodable.encode a) <;> aesop
+    cases h : Nat.Partrec.Code.evaln k c (Encodable.encode a) with
+    | none =>
+      simp only [h, Option.isSome_none] at hk
+      contradiction
+    | some val =>
+      refine ⟨val, k, Option.mem_def.mpr h⟩
   · rintro ⟨y, k, hk⟩
-    exact ⟨k, by aesop⟩
+    exact ⟨k, by rw [Option.mem_def.mp hk, Option.isSome_some]⟩
 
 /-- Helper 1: Computability of looking up the item in the list -/
 private lemma dovetailLookupComputable {α β : Type*} [Primcodable α] [Primcodable β]
@@ -100,9 +107,11 @@ private lemma evalnCoreComputable (c : Nat.Partrec.Code) :
     Computable (fun p : ℕ × ℕ ↦ Nat.Partrec.Code.evaln p.1 c p.2) := by
   have h_prim : Primrec (fun p : ℕ × ℕ ↦ Nat.Partrec.Code.evaln p.1 c p.2) := by
     convert Nat.Partrec.Code.primrec_evaln using 1
-    constructor <;> intro h
-    · convert Nat.Partrec.Code.primrec_evaln using 1
-    · convert h.comp (show Primrec (fun p : ℕ × ℕ ↦ ((p.1, c), p.2)) from ?_) using 1
+    constructor
+    · intro h
+      convert Nat.Partrec.Code.primrec_evaln using 1
+    · intro h
+      convert h.comp (show Primrec (fun p : ℕ × ℕ ↦ ((p.1, c), p.2)) from ?_) using 1
       exact Primrec.pair (Primrec.pair Primrec.fst (Primrec.const c)) Primrec.snd
   exact Primrec.to_comp h_prim
 
@@ -142,7 +151,9 @@ private lemma dovetailCheckComputable {α β : Type*} [Primcodable α] [Primcoda
   exact Computable.of_eq h_full (by
     intro p
     dsimp only
-    cases h : (bound p.1)[p.2.unpair.1]? <;> rfl)
+    cases h : (bound p.1)[p.2.unpair.1]?
+    · rfl
+    · rfl)
 
 /-- Master Lemma for Bounded Existential Search over RE sets.
 If a two-argument relation `R(a, b)` is RE, and `bound : α → List β` is a computable function
@@ -215,26 +226,33 @@ private lemma exactLengthPrograms_length (n : ℕ) (p : List Bool) :
   induction n generalizing p with
   | zero =>
     intro h
-    have : p = [] := by simpa [exactLengthPrograms] using h
+    have : p = [] := by
+      simp only [exactLengthPrograms, List.mem_singleton] at h
+      exact h
     rw [this]
     rfl
   | succ n ih =>
     intro h
     have : ∃ s ∈ exactLengthPrograms n, p = false :: s ∨ p = true :: s := by
-      simpa [exactLengthPrograms] using h
+      simp only [exactLengthPrograms, List.mem_flatMap, List.mem_cons, List.not_mem_nil,
+        or_false] at h
+      exact h
     rcases this with ⟨s, hs_mem, rfl | rfl⟩
-    · simp [ih s hs_mem]
-    · simp [ih s hs_mem]
+    · rw [List.length_cons, ih s hs_mem]
+    · rw [List.length_cons, ih s hs_mem]
 
 /-- Helper: any list belongs to `exactLengthPrograms` of its own length. -/
 private lemma mem_exactLengthPrograms_self (p : List Bool) :
     p ∈ exactLengthPrograms p.length := by
   induction p with
-  | nil => simp [exactLengthPrograms]
+  | nil =>
+    simp only [exactLengthPrograms, List.length_nil, List.mem_singleton]
   | cons b tail ih =>
     simp only [exactLengthPrograms, List.length_cons, List.mem_flatMap]
     refine ⟨tail, ih, ?_⟩
-    cases b <;> simp
+    cases b
+    · simp only [List.mem_cons, true_or]
+    · simp only [List.mem_cons, true_or, or_true]
 
 /-- Members of `exactLengthPrograms n` all have length `n` (public restatement of the
 private helper). -/
@@ -246,20 +264,26 @@ lemma exactLengthPrograms_length_eq (n : ℕ) (p : List Bool)
 `exactLengthPrograms n` has no duplicates.
 -/
 lemma exactLengthPrograms_nodup (n : ℕ) : (exactLengthPrograms n).Nodup := by
-  refine Nat.recOn n ?_ ?_ <;> simp +decide [ exactLengthPrograms ];
-  grind
+  refine Nat.recOn n ?_ ?_
+  · decide
+  · intro m hm
+    simp only [exactLengthPrograms]
+    grind
 
 /-
 `boundedPrograms N` has no duplicates.
 -/
--- Closes the indexed disjointness goal after extracting exact lengths from both
--- sides, via a squeezed `simp_all only` over the range-index rewrites.
 lemma boundedPrograms_nodup (N : ℕ) : (boundedPrograms N).Nodup := by
-  refine List.nodup_flatMap.mpr ?_;
-  refine ⟨ fun x hx ↦ exactLengthPrograms_nodup x, ?_ ⟩;
-  refine List.pairwise_iff_get.mpr ?_;
-  intros i j hij; rw [ Function.onFun, List.disjoint_left ]; intros x hx hy; have := exactLengthPrograms_length_eq _ _ hx; have := exactLengthPrograms_length_eq _ _ hy; simp_all +decide only [List.get_eq_getElem, List.getElem_range];
-  exact hij.ne ( Fin.ext ‹_› ▸ rfl )
+  refine List.nodup_flatMap.mpr ⟨fun x _ ↦ exactLengthPrograms_nodup x, ?_⟩
+  refine List.pairwise_iff_get.mpr fun i j hij ↦ ?_
+  rw [Function.onFun, List.disjoint_left]
+  intros x hx hy
+  have hxi := exactLengthPrograms_length_eq _ _ hx
+  have hxj := exactLengthPrograms_length_eq _ _ hy
+  have heq : List.get (List.range (N + 1)) i = List.get (List.range (N + 1)) j := by
+    rw [← hxi, ← hxj]
+  simp only [List.get_eq_getElem, List.getElem_range] at heq
+  exact hij.ne (Fin.ext heq)
 
 /-- A bitstring is in `boundedPrograms N` if and only if its length is at most `N`. -/
 lemma mem_boundedPrograms_iff (p : List Bool) (N : ℕ) :

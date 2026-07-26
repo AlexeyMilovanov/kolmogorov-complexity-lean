@@ -54,7 +54,8 @@ theorem familyCandidateCodes_computable (c : Code) (𝒜 : PreDescriptionFamily)
     Computable (fun p : ((ℕ × ℕ) × BitString) × ℕ =>
       familyCandidateCodes c p.1.1.1 𝒜 p.1.1.2 p.1.2 p.2) := by
   -- The function `familyCandidateCodes` is the composition of `candidateCodes` and `filter`.
-  have h_filter : Computable (fun p : List BitString × List BitString => p.1.filter (fun w => decide (w ∈ p.2))) := by
+  have h_filter : Computable (fun p : List BitString × List BitString =>
+      p.1.filter (fun w => decide (w ∈ p.2))) := by
     exact (list_filter_primrec Primrec.fst
       (bitString_mem_primrec.comp Primrec.snd (Primrec.snd.comp Primrec.fst)).to₂).to_comp
   exact (h_filter.comp (Computable.pair (candidateCodes_primrec c).to_comp
@@ -151,12 +152,14 @@ theorem exists_familyCandidate_of_mem_familyAppearanceListCodes
     {c : Code} {i : ℕ} {𝒜 : PreDescriptionFamily} {j : ℕ} {x : BitString} {t : ℕ}
     {w : BitString} (hw : w ∈ familyAppearanceListCodes c i 𝒜 j x t) :
     ∃ t', w ∈ familyCandidateCodes c i 𝒜 j x t' := by
-  -- By definition of `familyAppearanceListCodes`, we can split into cases based on whether `w` is in the `familyCandidateCodes` at `t` or in the `familyAppearanceListCodes` at `t-1`.
+  -- By definition of `familyAppearanceListCodes`, we can split into cases based on
+  -- whether `w` is in the `familyCandidateCodes` at `t` or in the `familyAppearanceListCodes`
+  -- at `t-1`.
   induction t generalizing w with
   | zero => exact ⟨ 0, by simpa using List.mem_eraseDups.mp hw ⟩
   | succ t ih =>
     contrapose! hw;
-    simp +decide [ familyAppearanceListCodes ];
+    simp +decide only [familyAppearanceListCodes, List.mem_eraseDups, List.mem_append, not_or];
     constructor
     · exact fun h => by obtain ⟨ t', ht' ⟩ := ih h; exact hw t' ht'
     · exact hw (t + 1)
@@ -190,28 +193,42 @@ theorem code_mem_familyAppearanceListCodes {U : Map} {c : Code} (hc : IsCodeFor 
     ∃ t₀, (codedUniformOn A hA).code ∈ familyAppearanceListCodes c i 𝒜 j x t₀ := by
   obtain ⟨t₁, ht₁⟩ : ∃ t₁, (codedUniformOn A hA).code ∈ candidateCodes c i j x t₁ := by
     have := exists_max_countHalts c i;
-    obtain ⟨ t₁, ht₁ ⟩ := this; use t₁; simp_all +decide [ candidateCodes ] ;
+    obtain ⟨ t₁, ht₁ ⟩ := this; use t₁; simp_all +decide only [candidateCodes,
+      List.mem_toFinset, List.mem_map, Bool.decide_and, List.filter_filter, List.mem_filter,
+      Bool.and_eq_true, decide_eq_true_eq] ;
     refine ⟨ ?_, ?_, ?_ ⟩;
-    · apply code_mem_snapshot_of_max hc i t₁ ht₁;
-      exact Classical.choose_spec ( exists_halting_program_of_complexity_le U ( codedUniformOn A hA ) i hcomp ) |>.1;
-      grind;
-    · have := dataPoints_codedUniformOn A hA; simp_all +decide;
-      replace this := congr_arg List.toFinset this; rw [ Finset.ext_iff ] at this; specialize this x; simp_all +decide [ canonicalFinsetList ] ;
+    · apply code_mem_snapshot_of_max hc i t₁ ht₁
+      · exact Classical.choose_spec
+          (exists_halting_program_of_complexity_le U (codedUniformOn A hA) i hcomp) |>.1
+      · grind
+    · have := dataPoints_codedUniformOn A hA;
+      simp_all +decide only [canonicalFinsetList_toFinset, and_true];
+      replace this := congr_arg List.toFinset this; rw [ Finset.ext_iff ] at this;
+      specialize this x; simp_all +decide only [canonicalFinsetList, List.mem_toFinset,
+        List.mem_map, Finset.mem_sort];
     · exact isCanonicalUniformCodeBool_iff _ |>.2 ( isCanonicalUniformCode_codedUniformOn A hA );
   obtain ⟨ t₂, ht₂ ⟩ := 𝒜.enumeration.complete A hA hmem;
   use t₂ + t₁;
   -- Since `t₂ + t₁ ≥ t₁`, we have `candidateCodes c i j x (t₂ + t₁) ⊇ candidateCodes c i j x t₁`.
-  have h_candidateCodes_superset : candidateCodes c i j x (t₂ + t₁) ⊇ candidateCodes c i j x t₁ := by
-    simp +decide [ candidateCodes ];
-    intro a ha; simp_all +decide [ List.mem_filter ] ;
-    have h_snapshotCodes_superset : ∀ t₁ t₂, t₁ ≤ t₂ → snapshotCodes c i t₁ ⊆ snapshotCodes c i t₂ := by
+  have h_candidateCodes_superset :
+      candidateCodes c i j x (t₂ + t₁) ⊇ candidateCodes c i j x t₁ := by
+    simp +decide only [candidateCodes, List.mem_toFinset, List.mem_map, Bool.decide_and,
+      List.filter_filter];
+    intro a ha; simp_all +decide only [List.mem_filter, Bool.and_eq_true,
+      decide_eq_true_eq, and_true];
+    have h_snapshotCodes_superset : ∀ t₁ t₂, t₁ ≤ t₂ →
+        snapshotCodes c i t₁ ⊆ snapshotCodes c i t₂ := by
       grind +suggestions;
     exact h_snapshotCodes_superset _ _ ( Nat.le_add_left _ _ ) ha.1;
   -- Since `t₂ + t₁ ≥ t₂`, we have `𝒜.enumeration.enum (t₂ + t₁) ⊇ 𝒜.enumeration.enum t₂`.
   have h_enum_superset : 𝒜.enumeration.enum (t₂ + t₁) ⊇ 𝒜.enumeration.enum t₂ := by
     have := 𝒜.enumeration.mono;
-    exact List.Subset.trans ( List.IsPrefix.subset ( show 𝒜.enumeration.enum t₂ <+: 𝒜.enumeration.enum ( t₂ + t₁ ) from by exact Nat.recOn t₁ ( by simp ) fun n ihn => by simpa [ Nat.add_assoc ] using ihn.trans ( this _ ) ) ) ( by simp +decide );
-  exact mem_familyAppearanceListCodes_of_mem_familyCandidateCodes ( List.mem_filter.mpr ⟨ h_candidateCodes_superset ht₁, by simpa using h_enum_superset ht₂ ⟩ )
+    have h_prefix : 𝒜.enumeration.enum t₂ <+: 𝒜.enumeration.enum (t₂ + t₁) := by
+      exact Nat.recOn t₁ (by simp) fun n ihn =>
+        by simpa [Nat.add_assoc] using ihn.trans (this _)
+    exact List.Subset.trans (List.IsPrefix.subset h_prefix) (by simp +decide);
+  exact mem_familyAppearanceListCodes_of_mem_familyCandidateCodes
+    ( List.mem_filter.mpr ⟨ h_candidateCodes_superset ht₁, by simpa using h_enum_superset ht₂ ⟩ )
 
 /-
 Rank bound: the online family enumeration never grows longer than the number
@@ -223,9 +240,12 @@ theorem familyAppearanceListCodes_length_le {U : Map} {c : Code}
     (hc : IsCodeFor c U) (𝒜 : PreDescriptionFamily) (i j : ℕ) (x : BitString) (t : ℕ) :
     (familyAppearanceListCodes c i 𝒜 j x t).length
       ≤ ((descriptionsWithComplexityLeAndSizeLeIn 𝒜 U i j).filter (fun S => x ∈ S)).card := by
-  -- Let's define the function that maps each code in the familyAppearanceListCodes to its corresponding set.
-  set f : BitString → Finset BitString := fun w => ((decodeDistributionData w).map CodedDistributionEntry.point).toFinset;
-  have h_inj : ∀ w ∈ familyAppearanceListCodes c i 𝒜 j x t, f w ∈ descriptionsWithComplexityLeAndSizeLeIn 𝒜 U i j ∧ x ∈ f w := by
+  -- Let's define the function that maps each code in the familyAppearanceListCodes
+  -- to its corresponding set.
+  set f : BitString → Finset BitString := fun w =>
+    ((decodeDistributionData w).map CodedDistributionEntry.point).toFinset;
+  have h_inj : ∀ w ∈ familyAppearanceListCodes c i 𝒜 j x t,
+      f w ∈ descriptionsWithComplexityLeAndSizeLeIn 𝒜 U i j ∧ x ∈ f w := by
     intro w hw
     obtain ⟨t', ht'⟩ := exists_familyCandidate_of_mem_familyAppearanceListCodes hw
     have hw_cand : w ∈ candidateCodes c i j x t' := by
@@ -235,34 +255,45 @@ theorem familyAppearanceListCodes_length_le {U : Map} {c : Code}
     generalize_proofs at *;
     obtain ⟨S', hS', hmem, hw_eq⟩ := 𝒜.enumeration.sound t' w hw_enum
     have hw_support : f w = S' := by
-      have := eq_codedUniformOn_of_isCanonicalUniformCodeBool ( show isCanonicalUniformCodeBool w = true from by
-                                                                  exact mem_snapshotDescriptionsAndSizeLe_of_mem_candidateCodes hw_cand |>.1 )
+      have := eq_codedUniformOn_of_isCanonicalUniformCodeBool (
+        show isCanonicalUniformCodeBool w = true from by
+          exact mem_snapshotDescriptionsAndSizeLe_of_mem_candidateCodes hw_cand |>.1 )
       generalize_proofs at *;
       obtain ⟨ hne, hw_eq ⟩ := this
       generalize_proofs at *;
-      exact codedUniformOn_code_injective hne hS' ( by simp +decide [ ‹w = ( codedUniformOn S' hS' ).code› ] at hw_eq ⊢; tauto ) ▸ rfl
+      exact codedUniformOn_code_injective hne hS'
+        ( by simp +decide [ ‹w = ( codedUniformOn S' hS' ).code› ] at hw_eq ⊢; tauto ) ▸ rfl
     generalize_proofs at *;
     simp_all +decide [ descriptionsWithComplexityLeAndSizeLeIn ] ;
-    have := mem_snapshotDescriptionsAndSizeLe_of_mem_candidateCodes hw_cand; simp_all +decide [ descriptionsWithComplexityLeAndSizeLe ] ;
-    have := snapshotDescriptionsAndSizeLe_subset_descriptions hc i j t' this.2.2; simp_all +decide [ descriptionsWithComplexityLe ] ;
+    have := mem_snapshotDescriptionsAndSizeLe_of_mem_candidateCodes hw_cand;
+    simp_all +decide [ descriptionsWithComplexityLeAndSizeLe ] ;
+    have := snapshotDescriptionsAndSizeLe_subset_descriptions hc i j t' this.2.2;
+    simp_all +decide [ descriptionsWithComplexityLe ] ;
     simp_all +decide [ descriptionsWithComplexityLeAndSizeLe, descriptionsWithComplexityLe ];
     grind +suggestions;
-  have h_inj : ∀ w1 w2, w1 ∈ familyAppearanceListCodes c i 𝒜 j x t → w2 ∈ familyAppearanceListCodes c i 𝒜 j x t → f w1 = f w2 → w1 = w2 := by
+  have h_inj : ∀ w1 w2, w1 ∈ familyAppearanceListCodes c i 𝒜 j x t →
+      w2 ∈ familyAppearanceListCodes c i 𝒜 j x t → f w1 = f w2 → w1 = w2 := by
     intros w1 w2 hw1 hw2 h_eq
-    have h_eq_code : isCanonicalUniformCodeBool w1 = true ∧ isCanonicalUniformCodeBool w2 = true := by
-      have h_eq_code : ∀ w ∈ familyAppearanceListCodes c i 𝒜 j x t, isCanonicalUniformCodeBool w = true := by
+    have h_eq_code : isCanonicalUniformCodeBool w1 = true ∧
+        isCanonicalUniformCodeBool w2 = true := by
+      have h_eq_code : ∀ w ∈ familyAppearanceListCodes c i 𝒜 j x t,
+          isCanonicalUniformCodeBool w = true := by
         intros w hw
         obtain ⟨t', ht'⟩ := exists_familyCandidate_of_mem_familyAppearanceListCodes hw
         have h_eq_code : isCanonicalUniformCodeBool w = true := by
-          exact mem_snapshotDescriptionsAndSizeLe_of_mem_candidateCodes ( List.mem_filter.mp ht' |>.1 ) |>.1
+          exact mem_snapshotDescriptionsAndSizeLe_of_mem_candidateCodes
+            ( List.mem_filter.mp ht' |>.1 ) |>.1
         exact h_eq_code;
       exact ⟨ h_eq_code w1 hw1, h_eq_code w2 hw2 ⟩;
     obtain ⟨h1, h2⟩ := eq_codedUniformOn_of_isCanonicalUniformCodeBool h_eq_code.left
     obtain ⟨h3, h4⟩ := eq_codedUniformOn_of_isCanonicalUniformCodeBool h_eq_code.right;
     grobner;
-  have h_card : (familyAppearanceListCodes c i 𝒜 j x t).toFinset.card ≤ (descriptionsWithComplexityLeAndSizeLeIn 𝒜 U i j |>.filter (fun S => x ∈ S)).card := by
-    have h_card : (familyAppearanceListCodes c i 𝒜 j x t).toFinset.card ≤ (Finset.image f (familyAppearanceListCodes c i 𝒜 j x t).toFinset).card := by
-      rw [ Finset.card_image_of_injOn fun w hw w' hw' h => h_inj w w' ( by simpa using hw ) ( by simpa using hw' ) h ];
+  have h_card : (familyAppearanceListCodes c i 𝒜 j x t).toFinset.card ≤
+      (descriptionsWithComplexityLeAndSizeLeIn 𝒜 U i j |>.filter (fun S => x ∈ S)).card := by
+    have h_card : (familyAppearanceListCodes c i 𝒜 j x t).toFinset.card ≤
+        (Finset.image f (familyAppearanceListCodes c i 𝒜 j x t).toFinset).card := by
+      rw [ Finset.card_image_of_injOn fun w hw w' hw' h => h_inj w w'
+        ( by simpa using hw ) ( by simpa using hw' ) h ];
     exact h_card.trans ( Finset.card_le_card <| Finset.image_subset_iff.mpr fun w hw => by aesop );
   rwa [ List.toFinset_card_of_nodup ( familyAppearanceListCodes_nodup c i 𝒜 j x t ) ] at h_card
 
@@ -294,7 +325,8 @@ def familyIndexSelectorFn (c : Code) (𝒜 : PreDescriptionFamily) :
   let i := selNat w
   let j := selAlpha w
   let h := selH w
-  (Nat.rfind (fun t => Part.some (decide (h < (familyAppearanceListCodes c i 𝒜 j x t).length)))).bind
+  (Nat.rfind (fun t => Part.some (decide
+    (h < (familyAppearanceListCodes c i 𝒜 j x t).length)))).bind
     (fun t => Part.some (match (familyAppearanceListCodes c i 𝒜 j x t).drop h with
       | [] => []
       | a :: _ => a))
@@ -303,42 +335,64 @@ theorem partrec_familyIndexSelectorFn (c : Code) (𝒜 : PreDescriptionFamily) :
     Partrec (fun p : BitString × BitString => familyIndexSelectorFn c 𝒜 p.2 p.1) := by
   convert Partrec.bind ( Partrec.rfind _ ) _ using 1;
   rotate_left;
-  exact fun p t => Part.some ( ( familyAppearanceListCodes c ( selNat p.1 ) 𝒜 ( selAlpha p.1 ) ( decodeFirst p.2 ) t ).drop ( selH p.1 ) |> List.headI );
-  exact fun p t => Part.some ( decide ( selH p.1 < ( familyAppearanceListCodes c ( selNat p.1 ) 𝒜 ( selAlpha p.1 ) ( decodeFirst p.2 ) t ).length ) );
-  · refine Computable.of_eq (f := fun n => decide ( selH n.1.1 < ( familyAppearanceListCodes c ( selNat n.1.1 ) 𝒜 ( selAlpha n.1.1 ) ( decodeFirst n.1.2 ) n.2 ).length )) ?_ ?_;
+  · exact fun p t => Part.some ( ( familyAppearanceListCodes c ( selNat p.1 ) 𝒜 ( selAlpha p.1 )
+      ( decodeFirst p.2 ) t ).drop ( selH p.1 ) |> List.headI );
+  · exact fun p t => Part.some ( decide ( selH p.1 < ( familyAppearanceListCodes c ( selNat p.1 ) 𝒜
+      ( selAlpha p.1 ) ( decodeFirst p.2 ) t ).length ) );
+  · refine Computable.of_eq (f := fun n => decide ( selH n.1.1 < ( familyAppearanceListCodes c
+      ( selNat n.1.1 ) 𝒜 ( selAlpha n.1.1 ) ( decodeFirst n.1.2 ) n.2 ).length )) ?_ ?_;
     · -- The length of the list is computable.
-      have h_length_computable : Computable (fun (n : ((BitString × BitString) × ℕ)) => (familyAppearanceListCodes c (selNat n.1.1) 𝒜 (selAlpha n.1.1) (decodeFirst n.1.2) n.2).length) := by
-        have h_length_computable : Computable (fun (n : ((BitString × BitString) × ℕ)) => familyAppearanceListCodes c (selNat n.1.1) 𝒜 (selAlpha n.1.1) (decodeFirst n.1.2) n.2) := by
+      have h_length_computable : Computable (fun (n : ((BitString × BitString) × ℕ)) =>
+          (familyAppearanceListCodes c (selNat n.1.1) 𝒜 (selAlpha n.1.1)
+            (decodeFirst n.1.2) n.2).length) := by
+        have h_length_computable : Computable (fun (n : ((BitString × BitString) × ℕ)) =>
+            familyAppearanceListCodes c (selNat n.1.1) 𝒜 (selAlpha n.1.1)
+              (decodeFirst n.1.2) n.2) := by
           have := @familyAppearanceListCodes_computable c 𝒜;
-          convert this.comp ( Computable.pair ( Computable.pair ( selNat_primrec.to_comp.comp ( Computable.fst.comp ( Computable.fst ) ) ) ( selAlpha_primrec.to_comp.comp ( Computable.fst.comp ( Computable.fst ) ) ) ) ( decodeFirst_primrec.to_comp.comp ( Computable.snd.comp ( Computable.fst ) ) ) |> Computable.pair <| Computable.snd ) using 1;
+          convert this.comp ( Computable.pair ( Computable.pair
+            ( selNat_primrec.to_comp.comp ( Computable.fst.comp ( Computable.fst ) ) )
+            ( selAlpha_primrec.to_comp.comp ( Computable.fst.comp ( Computable.fst ) ) ) )
+            ( decodeFirst_primrec.to_comp.comp ( Computable.snd.comp ( Computable.fst ) ) ) |>
+            Computable.pair <| Computable.snd ) using 1;
         exact Computable.list_length.comp h_length_computable;
       have h_selH_computable : Computable (fun (n : BitString × BitString) => selH n.1) := by
         exact Computable.comp ( selH_primrec.to_comp ) ( Computable.fst );
       have h_decide_computable : Computable (fun (n : ℕ × ℕ) => decide (n.1 < n.2)) :=
         (PrimrecPred.decide (Primrec.nat_lt.comp Primrec.fst Primrec.snd)).to_comp
-      convert h_decide_computable.comp ( Computable.pair ( h_selH_computable.comp ( Computable.fst ) ) h_length_computable ) using 1;
+      convert h_decide_computable.comp
+        ( Computable.pair ( h_selH_computable.comp ( Computable.fst ) )
+        h_length_computable ) using 1;
     · exact fun _ => rfl;
-  · refine Computable.of_eq (f := fun p => List.headI ( List.drop ( selH p.1.1 ) ( familyAppearanceListCodes c ( selNat p.1.1 ) 𝒜 ( selAlpha p.1.1 ) ( decodeFirst p.1.2 ) p.2 ) )) ?_ ?_;
-    · -- The function that drops the first `selH p.1.1` elements from the list and then takes the head is computable.
-      have h_drop_head : Computable (fun p : List BitString × ℕ => List.headI (List.drop p.2 p.1)) := by
+  · refine Computable.of_eq (f := fun p => List.headI ( List.drop ( selH p.1.1 )
+      ( familyAppearanceListCodes c ( selNat p.1.1 ) 𝒜 ( selAlpha p.1.1 )
+        ( decodeFirst p.1.2 ) p.2 ) )) ?_ ?_;
+    · -- The function that drops the first `selH p.1.1` elements from the list
+      -- and then takes the head is computable.
+      have h_drop_head : Computable (fun p : List BitString × ℕ =>
+          List.headI (List.drop p.2 p.1)) := by
         have h_drop : Primrec (fun p : List BitString × ℕ => List.drop p.2 p.1) := by
           exact Primrec.list_drop_listFirst
         have h_headI : Primrec (fun l : List BitString => l.headI) := by
           convert Primrec.list_headI using 1;
         exact Computable.comp ( h_headI.to_comp ) ( h_drop.to_comp );
       convert h_drop_head.comp ( Computable.pair _ _ ) using 1;
-      · convert familyAppearanceListCodes_computable c 𝒜 |> Computable.comp <| Computable.pair _ _ using 1;
+      · convert familyAppearanceListCodes_computable c 𝒜 |>
+          Computable.comp <| Computable.pair _ _ using 1;
         rotate_left;
-        exact fun p => ( ( selNat p.1.1, selAlpha p.1.1 ), decodeFirst p.1.2 );
-        exact fun p => p.2;
-        · exact Computable.pair ( Computable.pair ( selNat_primrec.to_comp.comp ( Computable.fst.comp ( Computable.fst ) ) ) ( selAlpha_primrec.to_comp.comp ( Computable.fst.comp ( Computable.fst ) ) ) ) ( decodeFirst_primrec.to_comp.comp ( Computable.snd.comp ( Computable.fst ) ) );
+        · exact fun p => ( ( selNat p.1.1, selAlpha p.1.1 ), decodeFirst p.1.2 );
+        · exact fun p => p.2;
+        · exact Computable.pair ( Computable.pair
+            ( selNat_primrec.to_comp.comp ( Computable.fst.comp ( Computable.fst ) ) )
+            ( selAlpha_primrec.to_comp.comp ( Computable.fst.comp ( Computable.fst ) ) ) )
+            ( decodeFirst_primrec.to_comp.comp ( Computable.snd.comp ( Computable.fst ) ) );
         · exact Computable.snd;
         · grind +revert;
       · exact Computable.comp ( selH_primrec.to_comp ) ( Computable.fst.comp ( Computable.fst ) );
     · exact fun _ => rfl;
-  · funext p; simp [familyIndexSelectorFn];
+  · funext p; simp only [familyIndexSelectorFn];
     congr! 2;
-    cases h : List.drop ( selH p.1 ) ( familyAppearanceListCodes c ( selNat p.1 ) 𝒜 ( selAlpha p.1 ) ( decodeFirst p.2 ) ‹_› ) <;> aesop
+    cases h : List.drop ( selH p.1 ) ( familyAppearanceListCodes c ( selNat p.1 ) 𝒜
+      ( selAlpha p.1 ) ( decodeFirst p.2 ) ‹_› ) <;> aesop
 
 theorem familyIndexSelectorFn_eq_code (c : Code) (i : ℕ) (𝒜 : PreDescriptionFamily) (j : ℕ)
     (x : BitString) (code : BitString) (t0 : ℕ)
@@ -346,21 +400,33 @@ theorem familyIndexSelectorFn_eq_code (c : Code) (i : ℕ) (𝒜 : PreDescriptio
     ∃ r < (familyAppearanceListCodes c i 𝒜 j x t0).length,
       ∀ (y w : BitString), decodeFirst y = x → selNat w = i → selAlpha w = j → selH w = r →
         familyIndexSelectorFn c 𝒜 y w = Part.some code := by
-  obtain ⟨ r, l', hr_lt, hr_drop ⟩ := exists_drop_eq_cons_of_mem ( familyAppearanceListCodes c i 𝒜 j x t0 ) code h_mem;
+  obtain ⟨ r, l', hr_lt, hr_drop ⟩ := exists_drop_eq_cons_of_mem
+    ( familyAppearanceListCodes c i 𝒜 j x t0 ) code h_mem;
   use r;
   unfold familyIndexSelectorFn;
   refine ⟨ hr_lt, fun y w hy hi hj hr => ?_ ⟩;
   convert Part.eq_some_iff.mpr _ using 1;
-  simp +decide [ hy, hi, hj, hr ];
-  refine ⟨ Nat.find ( ⟨ t0, hr_lt ⟩ : ∃ t, r < ( familyAppearanceListCodes c i 𝒜 j x t ).length ), ?_, ?_ ⟩;
-  · exact ⟨ Nat.find_spec ( ⟨ t0, hr_lt ⟩ : ∃ t, r < ( familyAppearanceListCodes c i 𝒜 j x t ).length ), fun { m } hm => not_lt.1 fun contra => hm.not_ge ( Nat.find_min' _ contra ) ⟩;
-  · have h_prefix : familyAppearanceListCodes c i 𝒜 j x (Nat.find (⟨t0, hr_lt⟩ : ∃ t, r < (familyAppearanceListCodes c i 𝒜 j x t).length)) <+: familyAppearanceListCodes c i 𝒜 j x t0 := by
+  simp +decide only [hr, hi, hj, hy, Part.mem_bind_iff, Nat.mem_rfind, Part.mem_some_iff,
+    true_eq_decide_iff, false_eq_decide_iff, not_lt];
+  refine ⟨ Nat.find ( ⟨ t0, hr_lt ⟩ : ∃ t,
+    r < ( familyAppearanceListCodes c i 𝒜 j x t ).length ), ?_, ?_ ⟩;
+  · exact ⟨ Nat.find_spec ( ⟨ t0, hr_lt ⟩ : ∃ t,
+        r < ( familyAppearanceListCodes c i 𝒜 j x t ).length ),
+      fun { m } hm => not_lt.1 fun contra => hm.not_ge ( Nat.find_min' _ contra ) ⟩;
+  · have h_prefix : familyAppearanceListCodes c i 𝒜 j x
+        ( Nat.find ( ⟨ t0, hr_lt ⟩ : ∃ t,
+            r < ( familyAppearanceListCodes c i 𝒜 j x t ).length ) ) <+:
+        familyAppearanceListCodes c i 𝒜 j x t0 := by
       exact prefix_of_le_familyAppearanceListCodes c i 𝒜 j x ( Nat.find_min' _ hr_lt );
     obtain ⟨ k, hk ⟩ := h_prefix;
-    have h_drop : List.drop r (familyAppearanceListCodes c i 𝒜 j x (Nat.find (⟨t0, hr_lt⟩ : ∃ t, r < (familyAppearanceListCodes c i 𝒜 j x t).length)) ++ k) = code :: l' := by
+    have h_drop : List.drop r ( familyAppearanceListCodes c i 𝒜 j x ( Nat.find
+        ( ⟨ t0, hr_lt ⟩ : ∃ t, r < ( familyAppearanceListCodes c i 𝒜 j x t ).length ) ) ++ k ) =
+        code :: l' := by
       rw [hk, hr_drop];
     rw [ List.drop_append ] at h_drop;
-    cases h : List.drop r ( familyAppearanceListCodes c i 𝒜 j x ( Nat.find ( ⟨ t0, hr_lt ⟩ : ∃ t, r < ( familyAppearanceListCodes c i 𝒜 j x t ).length ) ) ) <;> simp_all +decide;
+    cases h : List.drop r ( familyAppearanceListCodes c i 𝒜 j x ( Nat.find
+      ( ⟨ t0, hr_lt ⟩ : ∃ t, r < ( familyAppearanceListCodes c i 𝒜 j x t ).length ) ) ) <;>
+      simp_all +decide;
     grind
 
 /-- The M5 leaf content: the restricted description-count bound. -/
@@ -402,8 +468,10 @@ theorem restricted_description_count_of_conditional_complexity_gap_aux
   have h_in : code ∈ familyIndexSelectorFn c_opt 𝒜 y w := Part.eq_some_iff.mp h_some
   have h_bound1 : KP U code y ≤ KP U w y + (c_kp : ENat) := hkp w code y h_in
   have h_bound2 : KP U w y ≤ KPPlain U w + (c_plain : ENat) := hc_plain w y
-  have h_bound3 : KPPlain U w ≤ (w.length : ENat) + 2 * (Nat.bits w.length).length + c_len := hc_len w
-  have h_w_len_r : w.length ≤ 2 * (Nat.bits i).length + 2 * (Nat.bits j).length + (Nat.bits r).length + 6 := by
+  have h_bound3 : KPPlain U w ≤ (w.length : ENat) + 2 * (Nat.bits w.length).length + c_len :=
+    hc_len w
+  have h_w_len_r : w.length ≤
+      2 * (Nat.bits i).length + 2 * (Nat.bits j).length + (Nat.bits r).length + 6 := by
     unfold w richInput selectorInput pack4
     simp [length_pairCode]
     omega
@@ -419,13 +487,17 @@ theorem restricted_description_count_of_conditional_complexity_gap_aux
       rw [Nat.size_eq_bits_len]
       exact Nat.size_le.mpr hr_lt_2i
     omega
-  have h_slack : c_kp + c_plain + c_len + 2 * (Nat.bits i).length + 2 * (Nat.bits j).length + 6 + 2 * (Nat.bits w.length).length ≤ logSlack C1 M := by
+  have h_slack : c_kp + c_plain + c_len + 2 * (Nat.bits i).length + 2 * (Nat.bits j).length +
+      6 + 2 * (Nat.bits w.length).length ≤ logSlack C1 M := by
     have hw1 : (Nat.bits w.length).length ≤ (Nat.bits (3 * M + 7)).length := by
-      have h : w.length < 2 ^ (Nat.size (3 * M + 7)) := lt_of_le_of_lt h_w_len_M (Nat.lt_size_self _)
+      have h : w.length < 2 ^ (Nat.size ( 3 * M + 7 )) :=
+        lt_of_le_of_lt h_w_len_M ( Nat.lt_size_self _ )
       simpa [← Nat.size_eq_bits_len] using Nat.size_le.mpr h
-    have hw3 : 2 * (Nat.bits (3 * M + 7)).length ≤ logSlack 2 (3 * M + 7) := by unfold logSlack; omega
+    have hw3 : 2 * (Nat.bits (3 * M + 7)).length ≤ logSlack 2 (3 * M + 7) := by
+      unfold logSlack; omega
     have hw5 : logSlack C2 M = C2 * (Nat.bits M).length + C2 := rfl
-    have hw6 : logSlack C1 M = (C2 + c_kp + c_plain + c_len + 6) * (Nat.bits M).length + (C2 + c_kp + c_plain + c_len + 6) := rfl
+    have hw6 : logSlack C1 M = (C2 + c_kp + c_plain + c_len + 6) * (Nat.bits M).length +
+        (C2 + c_kp + c_plain + c_len + 6) := rfl
     have hiM : i ≤ M := by omega
     have hjM : j ≤ M := by omega
     have hi_len : (Nat.bits i).length ≤ (Nat.bits M).length := by
@@ -439,16 +511,24 @@ theorem restricted_description_count_of_conditional_complexity_gap_aux
   calc KP U code y ≤ KP U w y + c_kp := h_bound1
     _ ≤ KPPlain U w + c_plain + c_kp := by gcongr
     _ ≤ (w.length : ENat) + 2 * (Nat.bits w.length).length + c_len + c_plain + c_kp := by gcongr
-    _ ≤ ((2 * (Nat.bits i).length + 2 * (Nat.bits j).length + (Nat.bits r).length + 6 : ℕ) : ENat) + 2 * (Nat.bits w.length).length + c_len + c_plain + c_kp := by
-      have h : w.length + 2 * w.length.bits.length + c_len + c_plain + c_kp ≤ (2 * i.bits.length + 2 * j.bits.length + r.bits.length + 6) + 2 * w.length.bits.length + c_len + c_plain + c_kp := by omega
+    _ ≤ ((2 * (Nat.bits i).length + 2 * (Nat.bits j).length + (Nat.bits r).length + 6 : ℕ) :
+        ENat) + 2 * (Nat.bits w.length).length + c_len + c_plain + c_kp := by
+      have h : w.length + 2 * w.length.bits.length + c_len + c_plain + c_kp ≤
+          (2 * i.bits.length + 2 * j.bits.length + r.bits.length + 6) +
+          2 * w.length.bits.length + c_len + c_plain + c_kp := by omega
       exact_mod_cast h
-    _ ≤ ((2 * (Nat.bits i).length + 2 * (Nat.bits j).length + m + 6 : ℕ) : ENat) + 2 * (Nat.bits w.length).length + c_len + c_plain + c_kp := by
+    _ ≤ ((2 * (Nat.bits i).length + 2 * (Nat.bits j).length + m + 6 : ℕ) : ENat) +
+        2 * (Nat.bits w.length).length + c_len + c_plain + c_kp := by
       have h_r_m : (Nat.bits r).length ≤ m := by
         rw [Nat.size_eq_bits_len]
         exact Nat.size_le.mpr hr_lt_2m
-      have h : (2 * i.bits.length + 2 * j.bits.length + r.bits.length + 6) + 2 * w.length.bits.length + c_len + c_plain + c_kp ≤ (2 * i.bits.length + 2 * j.bits.length + m + 6) + 2 * w.length.bits.length + c_len + c_plain + c_kp := by omega
+      have h : (2 * i.bits.length + 2 * j.bits.length + r.bits.length + 6) +
+          2 * w.length.bits.length + c_len + c_plain + c_kp ≤
+          (2 * i.bits.length + 2 * j.bits.length + m + 6) + 2 * w.length.bits.length +
+          c_len + c_plain + c_kp := by omega
       exact_mod_cast h
-    _ = (m : ENat) + (c_kp + c_plain + c_len + 2 * (Nat.bits i).length + 2 * (Nat.bits j).length + 6 + 2 * (Nat.bits w.length).length : ℕ) := by push_cast; ring
+    _ = (m : ENat) + (c_kp + c_plain + c_len + 2 * (Nat.bits i).length + 2 * (Nat.bits j).length +
+        6 + 2 * (Nat.bits w.length).length : ℕ) := by push_cast; ring
     _ ≤ (m : ENat) + logSlack C1 M := by gcongr
 
 end Kolmogorov

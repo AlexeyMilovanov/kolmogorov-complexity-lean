@@ -237,23 +237,39 @@ the allocated leaf and all right siblings form an antichain.
 -/
 lemma splitNode_antichain (v : BitString) (l : ℕ) :
     IsPrefixFree ↑(((splitNode v l).1 :: (splitNode v l).2).toFinset) := by
-  intro p hp q hq;
-  simp +zetaDelta at *;
-  rcases hp with ( rfl | hp ) <;> rcases hq with ( rfl | hq );
-  · exact fun _ ↦ rfl;
-  · unfold splitNode at *;
-    simp +zetaDelta at *;
-    rcases hq with ⟨ a, ha, rfl ⟩; simp_all +decide [ List.prefix_iff_eq_take ];
-  · unfold splitNode at *;
-    simp +zetaDelta at *;
-    rcases hp with ⟨ a, ha, rfl ⟩;
-    intro h;
-    have := h.getElem ( show a + v.length < List.length ( v ++ ( List.replicate a false ++ [ true ] ) ) from by simp +arith +decide ); simp_all +decide [ List.getElem_append_right ];
-  · intro h;
-    unfold splitNode at hp hq;
-    simp +zetaDelta at *;
-    rcases hp with ⟨ a, ha, rfl ⟩; rcases hq with ⟨ b, hb, rfl ⟩; simp_all +decide [ List.IsPrefix ];
-    rcases h with ⟨ t, ht ⟩; replace ht := congr_arg ( fun x ↦ x.takeWhile ( fun y ↦ y = false ) ) ht; simp_all +decide ;
+  intro p hp q hq hpq
+  unfold splitNode at *
+  simp +zetaDelta only [List.append_assoc, List.toFinset_cons, Finset.coe_insert,
+    List.coe_toFinset, List.mem_map, List.mem_range, Set.mem_insert_iff,
+    Set.mem_setOf_eq] at *
+  rcases hp with (rfl | ⟨a, ha, rfl⟩) <;>
+    rcases hq with (rfl | ⟨b, hb, rfl⟩) <;>
+      simp_all +decide only [List.prefix_append_right_inj, List.append_cancel_left_eq]
+  · have hle : l - v.length ≤ b + 1 := by
+      simpa only [List.length_replicate, List.length_append, List.length_singleton] using
+        hpq.length_le
+    apply hpq.eq_of_length
+    simp only [List.length_replicate, List.length_append, List.length_singleton]
+    omega
+  · have hpq_eq : List.replicate a false ++ [true] =
+        List.take (a + 1) (List.replicate (l - v.length) false) := by
+      simpa only [List.prefix_iff_eq_take, List.length_append, List.length_replicate,
+        List.length_singleton] using hpq
+    replace hpq_eq := congr_arg (fun x ↦ x[a]!) hpq_eq
+    simp_all +decide
+  · have := hpq.length_le
+    have hab : a ≤ b := by
+      simpa only [List.length_append, List.length_replicate, List.length_singleton,
+        Nat.add_le_add_iff_right] using this
+    rcases hab.eq_or_lt with hab | hab
+    · subst b
+      rfl
+    · have hpq_eq : List.replicate a false ++ [true] =
+          List.take (a + 1) (List.replicate b false ++ [true]) := by
+        simpa only [List.prefix_iff_eq_take, List.length_append, List.length_replicate,
+          List.length_singleton] using hpq
+      replace hpq_eq := congr_arg (fun x ↦ x[a]!) hpq_eq
+      simp_all +decide
 
 /-! ## Descendant monotonicity of the free list
 
@@ -308,52 +324,85 @@ lemma allocateOne_alloc_incomp_free' (free : List BitString) (l : ℕ)
     (a : BitString) (free' : List BitString) (h : allocateOne free l = some (a, free'))
     (hpf : IsPrefixFree ↑free.toFinset) (hd : DescLengths free) :
     ∀ w ∈ free', ¬ a <+: w ∧ ¬ w <+: a := by
-  intro w hw;
-  by_cases h_cases : w ∈ (splitNode (free[(free.findIdx? (fun v ↦ v.length ≤ l)).get!]!) l).2.reverse;
-  · have h_antichain : IsPrefixFree ↑(((splitNode (free[(free.findIdx? (fun v ↦ v.length ≤ l)).get!]!) l).1 :: (splitNode (free[(free.findIdx? (fun v ↦ v.length ≤ l)).get!]!) l).2).toFinset) := by
-      convert splitNode_antichain _ _ using 1;
-    have h_a : a = (splitNode (free[(free.findIdx? (fun v ↦ v.length ≤ l)).get!]!) l).1 := by
-      unfold allocateOne at h
-      cases hidx : List.findIdx? (fun v ↦ decide (v.length ≤ l)) free <;> simp_all
-    have h_a_ne_w : a ≠ w := by
-      unfold splitNode at *; simp_all +decide [ List.mem_reverse ];
-      rcases h_cases with ⟨ a, ha, rfl ⟩; simp +decide ;
-      intro H; have := congr_arg List.reverse H; norm_num at this;
-      cases h : l - List.length ( free[(List.findIdx? ( fun v ↦ decide ( List.length v ≤ l ) ) free).get!]?.getD default ) <;> simp_all +decide [ List.replicate ];
-    simp_all +decide [ IsPrefixFree ];
-    grind;
-  · -- Since $w$ is not in the reversed list of new nodes, it must be in the take or drop part of the original free list.
-    have h_take_drop : w ∈ free.take (free.findIdx? (fun v ↦ v.length ≤ l)).get! ∨ w ∈ free.drop ((free.findIdx? (fun v ↦ v.length ≤ l)).get! + 1) := by
-      grind +locals;
-    have h_neq : w ≠ free[(free.findIdx? (fun v ↦ v.length ≤ l)).get!]! := by
-      have h_neq : List.Nodup free := by
-        have h_nodup : List.Nodup (List.map List.length free) := by
-          have h_nodup : List.IsChain (fun a b ↦ b < a) (List.map List.length free) := by
+  unfold allocateOne at h
+  cases hfind : List.findIdx? (fun v ↦ decide (v.length ≤ l)) free with
+  | none => simp only [hfind, reduceCtorEq] at h
+  | some idx =>
+      simp only [hfind, List.getElem!_eq_getElem?_getD, List.append_assoc,
+        Option.some.injEq, Prod.mk.injEq] at h
+      rcases h with ⟨ha, hfree'⟩
+      subst a
+      subst free'
+      have hidx : idx < free.length := by
+        have := List.findIdx?_eq_some_iff_getElem.mp hfind
+        grind
+      have hselected_mem : free[idx]! ∈ free := by
+        rw [getElem!_pos free idx hidx]
+        exact List.getElem_mem hidx
+      have hnodup : List.Nodup free := by
+        have hlen_nodup : List.Nodup (List.map List.length free) := by
+          have hchain : List.IsChain (fun a b ↦ b < a) (List.map List.length free) := by
             rw [List.isChain_iff_getElem]
             intro i hi
             simpa using (List.isChain_iff_getElem.mp hd i (by simpa using hi))
-          exact List.isChain_iff_pairwise.mp h_nodup |> fun h ↦ h.nodup;
-        exact List.Nodup.of_map ( fun x ↦ x.length ) h_nodup;
-      cases h_take_drop <;> simp_all +decide [ List.mem_iff_get ];
-      · cases h : List.findIdx? ( fun v ↦ decide ( List.length v ≤ l ) ) free <;> simp_all +decide;
-        · unfold allocateOne at *; aesop;
-        · grind +suggestions;
-      · obtain ⟨ n, hn ⟩ := ‹_›; simp_all +decide [ add_assoc ];
-        rw [ ← hn ];
-        rw [ List.getElem?_eq_getElem ];
-        exact fun h ↦ by have := List.nodup_iff_injective_get.mp h_neq h; exact absurd this ( by simp +decide [ Fin.ext_iff ] );
-        grind +qlia;
-    have h_not_prefix : ¬(free[(free.findIdx? (fun v ↦ v.length ≤ l)).get!]! <+: w) ∧ ¬(w <+: free[(free.findIdx? (fun v ↦ v.length ≤ l)).get!]!) := by
-      have h_not_prefix : free[(free.findIdx? (fun v ↦ v.length ≤ l)).get!]! ∈ free.toFinset ∧ w ∈ free.toFinset := by
-        cases h : List.findIdx? ( fun v ↦ decide ( List.length v ≤ l ) ) free <;> simp_all +decide;
-        · cases free <;> aesop;
-        · have h_mem : free[‹ℕ›]?.getD default ∈ free := by
-            grind +suggestions;
-          exact ⟨ h_mem, by cases h_take_drop <;> [ exact List.mem_of_mem_take ‹_›; exact List.mem_of_mem_drop ‹_› ] ⟩;
-      exact ⟨ fun h ↦ h_neq <| by have := hpf h_not_prefix.1 h_not_prefix.2 h; tauto, fun h ↦ h_neq <| by have := hpf h_not_prefix.2 h_not_prefix.1 h; tauto ⟩;
-    have h_not_prefix_a : free[(free.findIdx? (fun v ↦ v.length ≤ l)).get!]! <+: a := by
-      grind +locals;
-    grind +suggestions
+          exact (List.isChain_iff_pairwise.mp hchain).nodup
+        exact List.Nodup.of_map (fun x ↦ x.length) hlen_nodup
+      have old_incomp (w : BitString)
+          (hw : w ∈ free.take idx ++ free.drop (idx + 1)) :
+          ¬ (splitNode free[idx]! l).1 <+: w ∧ ¬ w <+: (splitNode free[idx]! l).1 := by
+        have hw_free : w ∈ free := by
+          rcases List.mem_append.mp hw with hw | hw
+          · exact List.mem_of_mem_take hw
+          · exact List.mem_of_mem_drop hw
+        have hne : free[idx]! ≠ w := by
+          rw [← List.eraseIdx_eq_take_drop_succ] at hw
+          obtain ⟨i, hi, hine, hiw⟩ := List.mem_eraseIdx_iff_getElem.mp hw
+          intro heq
+          rw [getElem!_pos free idx hidx] at heq
+          have hfin : (⟨i, hi⟩ : Fin free.length) = ⟨idx, hidx⟩ :=
+            (List.nodup_iff_injective_get.mp hnodup) (by simpa using hiw.trans heq.symm)
+          exact hine (congr_arg Fin.val hfin)
+        have hselected_set : free[idx]! ∈ ↑free.toFinset := by simpa using hselected_mem
+        have hw_set : w ∈ ↑free.toFinset := by simpa using hw_free
+        have hselected_not_prefix : ¬ free[idx]! <+: w := fun hp ↦
+          hne (hpf hselected_set hw_set hp)
+        have hw_not_prefix : ¬ w <+: free[idx]! := fun hp ↦
+          hne (hpf hw_set hselected_set hp).symm
+        have hprefix := splitNode_allocated_prefix free[idx]! l
+        exact ⟨fun hp ↦ hselected_not_prefix (hprefix.trans hp),
+          not_prefix_of_descendant hprefix hw_not_prefix hselected_not_prefix⟩
+      have new_incomp (w : BitString) (hw : w ∈ (splitNode free[idx]! l).2) :
+          ¬ (splitNode free[idx]! l).1 <+: w ∧ ¬ w <+: (splitNode free[idx]! l).1 := by
+        have hne : (splitNode free[idx]! l).1 ≠ w := by
+          unfold splitNode at hw ⊢
+          simp only [List.mem_map, List.mem_range] at hw
+          obtain ⟨i, _, rfl⟩ := hw
+          intro heq
+          rw [List.append_assoc] at heq
+          have heq := List.append_cancel_left heq
+          have htrue : true ∈ List.replicate (l - free[idx]!.length) false := by
+            rw [heq]
+            simp
+          simp at htrue
+        have hanti := splitNode_antichain free[idx]! l
+        have hallocated : (splitNode free[idx]! l).1 ∈
+            ↑(((splitNode free[idx]! l).1 :: (splitNode free[idx]! l).2).toFinset) := by simp
+        have hw_set : w ∈
+            ↑(((splitNode free[idx]! l).1 :: (splitNode free[idx]! l).2).toFinset) := by
+          rw [List.mem_toFinset]
+          exact List.mem_cons.mpr (Or.inr hw)
+        exact ⟨fun hp ↦ hne (hanti hallocated hw_set hp),
+          fun hp ↦ hne (hanti hw_set hallocated hp).symm⟩
+      intro w hw
+      simp only [List.mem_append, List.mem_reverse] at hw
+      rcases hw with hw | hw | hw
+      · simpa only [List.getElem!_eq_getElem?_getD] using
+          old_incomp w (List.mem_append_left _ hw)
+      · have hw' : w ∈ (splitNode free[idx]! l).2 := by
+          simpa only [List.getElem!_eq_getElem?_getD] using hw
+        simpa only [List.getElem!_eq_getElem?_getD] using new_incomp w hw'
+      · simpa only [List.getElem!_eq_getElem?_getD] using
+          old_incomp w (List.mem_append_right _ hw)
 
 /-
 Prefix-freeness of the free list is preserved by one allocation step.
@@ -362,14 +411,33 @@ lemma allocateOne_prefixFree (free : List BitString) (l : ℕ)
     (a : BitString) (free' : List BitString) (h : allocateOne free l = some (a, free'))
     (hpf : IsPrefixFree ↑free.toFinset) (hd : DescLengths free) :
     IsPrefixFree ↑free'.toFinset := by
-  -- Let's unfold the definition of `allocateOne` to understand how `free'` is constructed.
-  obtain ⟨idx, hidx, hv⟩ : ∃ idx, free.findIdx? (fun v ↦ v.length ≤ l) = some idx ∧ free[idx]! ∈ free ∧ free[idx]!.length ≤ l := by
-    unfold allocateOne at h;
-    grind +suggestions;
+  obtain ⟨idx, hidx, -, -⟩ : ∃ idx, free.findIdx? (fun v ↦ v.length ≤ l) = some idx ∧ free[idx]! ∈
+      free ∧ free[idx]!.length ≤ l := by
+    unfold allocateOne at h
+    cases h_idx : free.findIdx? (fun v ↦ v.length ≤ l) with
+    | none =>
+      simp only [h_idx] at h
+      contradiction
+    | some idx =>
+      obtain ⟨h_len, h_pred, -⟩ := List.findIdx?_eq_some_iff_getElem.mp h_idx
+      refine ⟨idx, rfl, ?_, ?_⟩
+      · rw [getElem!_pos free idx h_len]
+        exact List.getElem_mem h_len
+      · rw [getElem!_pos free idx h_len]
+        exact of_decide_eq_true h_pred
+  have h_idx_lt : idx < free.length := (List.findIdx?_eq_some_iff_getElem.mp hidx).1
   have h_new_nodes_antichain' : IsPrefixFree (↑((splitNode free[idx]! l).2.toFinset)) := by
-    have := splitNode_antichain free[idx]! l; simp_all +decide [ IsPrefixFree ];
-    exact fun p hp q hq hpq ↦ this.2 p hp |>.2 q hq hpq;
-  have h_disjoint : ∀ p ∈ free.take idx ++ free.drop (idx + 1), p ≠ free[idx]! ∧ ¬ free[idx]! <+: p ∧ ¬ p <+: free[idx]! := by
+    intro p hp q hq hpq
+    apply splitNode_antichain free[idx]! l
+    · change p ∈ ((splitNode free[idx]! l).1 :: (splitNode free[idx]! l).2).toFinset
+      rw [List.mem_toFinset]
+      exact List.mem_cons.mpr (Or.inr (by simpa using hp))
+    · change q ∈ ((splitNode free[idx]! l).1 :: (splitNode free[idx]! l).2).toFinset
+      rw [List.mem_toFinset]
+      exact List.mem_cons.mpr (Or.inr (by simpa using hq))
+    · exact hpq
+  have h_disjoint : ∀ p ∈ free.take idx ++ free.drop (idx + 1), p ≠ free[idx]! ∧ ¬ free[idx]! <+: p
+      ∧ ¬ p <+: free[idx]! := by
     intro p hp
     have h_distinct : p ≠ free[idx]! := by
       have h_distinct : List.Nodup free := by
@@ -377,44 +445,63 @@ lemma allocateOne_prefixFree (free : List BitString) (l : ℕ)
           have h_chain : List.IsChain (fun a b ↦ b.length < a.length) free := hd
           have h_distinct : List.Pairwise (fun a b ↦ a.length ≠ b.length) free := by
             rw [ List.pairwise_iff_get ];
-              intro i j hij; have := isChain_iff_get_fin.mp h_chain; simp_all +decide ;
-            have h_distinct : ∀ i j : Fin free.length, i < j → List.length free[i] > List.length free[j] := by
-              intro i j hij; obtain ⟨j, hj⟩ := j; obtain ⟨i, hi⟩ := i; simp_all +decide ;
-              induction hij <;> simp_all +decide;
-              · exact this ⟨ i, Nat.lt_pred_iff.mpr hj ⟩;
-              · exact lt_trans ( this ⟨ _, Nat.lt_pred_iff.mpr hj ⟩ ) ( by solve_by_elim [ Nat.lt_of_succ_lt ] );
-            exact ne_of_gt ( h_distinct _ _ hij );
+            intro i j hij
+            exact ne_of_gt (descLengths_getElem_length_lt h_chain hij j.2)
           exact List.Pairwise.imp_of_mem ( by aesop ) h_distinct;
         exact h_distinct;
       intro h_eq
-      have h_contradiction : List.Nodup (List.take idx free ++ free[idx]! :: List.drop (idx + 1) free) := by
+      have h_contradiction : List.Nodup
+          (List.take idx free ++ free[idx]! :: List.drop (idx + 1) free) := by
         convert h_distinct using 1;
-        simp +zetaDelta at *;
-        rw [ List.getElem?_eq_getElem ];
-        swap;
-        grind +suggestions;
-        simp +zetaDelta at *;
+        simp +zetaDelta only [List.coe_toFinset, List.getElem!_eq_getElem?_getD,
+          List.mem_append] at *;
+        rw [ List.getElem?_eq_getElem h_idx_lt ];
+        simp +zetaDelta only [Option.getD_some, List.getElem_cons_drop,
+            List.take_append_drop] at *;
       grind
     have h_incomparable : ¬ free[idx]! <+: p ∧ ¬ p <+: free[idx]! := by
-      have h_incomparable : ∀ p ∈ free, p ≠ free[idx]! → ¬ free[idx]! <+: p ∧ ¬ p <+: free[idx]! := by
+      have h_incomparable : ∀ p ∈ free, p ≠ free[idx]! →
+          ¬ free[idx]! <+: p ∧ ¬ p <+: free[idx]! := by
         intros p hp hp_ne; exact ⟨by
         exact fun h ↦ hp_ne <| hpf ( by aesop ) ( by aesop ) h ▸ rfl, by
           exact fun h ↦ hp_ne <| hpf ( by aesop ) ( by aesop ) h⟩;
       apply h_incomparable p (by
       rw [ List.mem_append ] at hp;
-      exact hp.elim ( fun hp ↦ List.mem_of_mem_take hp ) fun hp ↦ List.mem_of_mem_drop hp) h_distinct
+      exact hp.elim (fun hp ↦ List.mem_of_mem_take hp)
+        (fun hp ↦ List.mem_of_mem_drop hp)) h_distinct
     exact ⟨h_distinct, h_incomparable⟩;
-  have h_disjoint : ∀ p ∈ free.take idx ++ free.drop (idx + 1), ∀ q ∈ (splitNode free[idx]! l).2, ¬ p <+: q ∧ ¬ q <+: p := by
-    grind +suggestions;
-  intro p hp q hq hpq;
-  by_cases hp_take : p ∈ free.take idx ++ free.drop (idx + 1) <;> by_cases hq_take : q ∈ free.take idx ++ free.drop (idx + 1) <;> simp_all +decide [ allocateOne ];
-  · exact hpf ( show p ∈ free from by
-                  exact hp_take.elim ( fun hp_take ↦ List.mem_of_mem_take hp_take ) fun hp_take ↦ List.mem_of_mem_drop hp_take |> fun h ↦ by simpa using h; ) ( show q ∈ free from by
-                                                  exact List.mem_append.mp ( show q ∈ List.take idx free ++ List.drop ( idx + 1 ) free from by aesop ) |> Or.rec ( fun h ↦ List.mem_of_mem_take h ) fun h ↦ List.mem_of_mem_drop h ) hpq;
-  · grind;
-  · grind +splitImp;
-  · simp_all +decide [ ← h.2 ];
-    exact h_new_nodes_antichain' hp hq hpq
+  have h_disjoint : ∀ p ∈ free.take idx ++ free.drop (idx + 1),
+      ∀ q ∈ (splitNode free[idx]! l).2, ¬ p <+: q ∧ ¬ q <+: p := by
+    intro p hp q hq
+    have h_not_prefix_p := h_disjoint p hp
+    have h_q_desc := splitNode_newNodes_prefix free[idx]! l q hq
+    exact ⟨not_prefix_of_descendant h_q_desc h_not_prefix_p.2.2 h_not_prefix_p.2.1,
+      fun h_q_p ↦ h_not_prefix_p.2.1 (h_q_desc.trans h_q_p)⟩
+  have hfree' : free' = free.take idx ++
+      ((splitNode free[idx]! l).2.reverse ++ free.drop (idx + 1)) := by
+    unfold allocateOne at h
+    simp only [hidx, List.getElem!_eq_getElem?_getD, List.append_assoc,
+      Option.some.injEq, Prod.mk.injEq] at h
+    simpa only [List.getElem!_eq_getElem?_getD] using h.2.symm
+  have mem_old_or_new {x : BitString} (hx : x ∈ ↑free'.toFinset) :
+      x ∈ free.take idx ++ free.drop (idx + 1) ∨ x ∈ (splitNode free[idx]! l).2 := by
+    have hx : x ∈ free' := by simpa using hx
+    rw [hfree'] at hx
+    simp only [List.mem_append, List.mem_reverse] at hx ⊢
+    tauto
+  have old_mem_free {x : BitString}
+      (hx : x ∈ free.take idx ++ free.drop (idx + 1)) : x ∈ free := by
+    rcases List.mem_append.mp hx with hx | hx
+    · exact List.mem_of_mem_take hx
+    · exact List.mem_of_mem_drop hx
+  intro p hp q hq hpq
+  rcases mem_old_or_new hp with hp_old | hp_new
+  · rcases mem_old_or_new hq with hq_old | hq_new
+    · exact hpf (by simpa using old_mem_free hp_old) (by simpa using old_mem_free hq_old) hpq
+    · exact False.elim ((h_disjoint p hp_old q hq_new).1 hpq)
+  · rcases mem_old_or_new hq with hq_old | hq_new
+    · exact False.elim ((h_disjoint q hq_old p hp_new).2 hpq)
+    · exact h_new_nodes_antichain' (by simpa using hp_new) (by simpa using hq_new) hpq
 
 /-! ## Length and mass behaviour of one allocation step -/
 
@@ -451,22 +538,28 @@ lemma allocateOne_mass (free : List BitString) (l : ℕ)
     (a : BitString) (free' : List BitString) (h : allocateOne free l = some (a, free')) :
     freeMass free' + nodeMass a = freeMass free := by
   unfold allocateOne at h;
-  rcases h' : List.findIdx? ( fun v ↦ decide ( List.length v ≤ l ) ) free with ( _ | idx ) <;>
-    simp_all +decide only [reduceCtorEq, List.getElem!_eq_getElem?_getD, List.append_assoc,
-      Option.some.injEq, Prod.mk.injEq];
-  -- By definition of `splitNode`, we know that `nodeMass (free[idx]!) = nodeMass a + (List.map nodeMass (splitNode (free[idx]!) l).2).sum`.
-  have h_split : nodeMass (free[idx]!) = nodeMass a + (List.map nodeMass (splitNode (free[idx]!) l).2).sum := by
-    grind +suggestions;
-  have h_freeMass_split : freeMass free = freeMass (free.take idx) + nodeMass (free[idx]!) + freeMass (free.drop (idx + 1)) := by
+  rcases h' : List.findIdx? (fun v ↦ decide (List.length v ≤ l)) free with (_ | idx)
+  · simp_all +decide
+  simp_all +decide only [List.getElem!_eq_getElem?_getD, List.append_assoc,
+    Option.some.injEq, Prod.mk.injEq];
+  have hv : (free[idx]!).length ≤ l := by
+    obtain ⟨hlt, hpred, -⟩ := List.findIdx?_eq_some_iff_getElem.mp h'
+    simpa [List.getElem!_eq_getElem?_getD, List.getElem?_eq_getElem hlt] using hpred
+  have ha : a = (splitNode free[idx]! l).1 := by
+    simpa only [List.getElem!_eq_getElem?_getD] using h.1.symm
+  have h_split : nodeMass (free[idx]!) = nodeMass a +
+      (List.map nodeMass (splitNode (free[idx]!) l).2).sum := by
+    rw [ha]; exact splitNode_mass free[idx]! l hv
+  have h_freeMass_split : freeMass free = freeMass (free.take idx) + nodeMass (free[idx]!) +
+      freeMass (free.drop (idx + 1)) := by
     have h_freeMass_split : free = free.take idx ++ [free[idx]!] ++ free.drop (idx + 1) := by
-      have h_free : idx < free.length := by
-        grind +suggestions;
-      simp +decide [ List.take_append_drop, h_free ];
+      have h_free : idx < free.length := (List.findIdx?_eq_some_iff_getElem.mp h').1
+      simp +decide only [h_free, getElem!_pos, List.take_append_getElem, List.take_append_drop];
     conv_lhs => rw [ h_freeMass_split ];
-    unfold freeMass; simp +decide [ List.sum_append ];
+    unfold freeMass; simp +decide [ List.sum_append ] ;
     ring;
   simp_all +decide only [List.getElem!_eq_getElem?_getD, freeMass, List.map_take, List.map_drop];
-  rw [ ← h.2 ]; simp +decide [ List.map_append, List.sum_append ]; ring;
+  rw [ ← h.2 ] ; simp +decide [ List.map_append, List.sum_append ] ; ring;
 
 /-
 One allocation step preserves descending lengths.
@@ -475,30 +568,40 @@ lemma allocateOne_descLengths (free : List BitString) (l : ℕ)
     (a : BitString) (free' : List BitString) (h : allocateOne free l = some (a, free'))
     (hd : DescLengths free) : DescLengths free' := by
   unfold allocateOne at h;
-  rcases h' : List.findIdx? ( fun v ↦ decide ( List.length v ≤ l ) ) free with ( _ | idx ) <;> simp_all +decide;
-  -- By definition of `DescLengths`, we need to show that the lengths of the elements in `free'` are strictly decreasing.
-  have h_desc : List.IsChain (fun a b ↦ b.length < a.length) (List.take idx free ++ List.reverse (splitNode (free[idx]!) l).2 ++ List.drop (idx + 1) free) := by
+  rcases h' : List.findIdx? (fun v ↦ decide (List.length v ≤ l)) free with (_ | idx)
+  · simp_all +decide
+  simp_all +decide only [List.getElem!_eq_getElem?_getD, List.append_assoc,
+    Option.some.injEq, Prod.mk.injEq];
+  have h_desc : List.IsChain (fun a b ↦ b.length < a.length)
+      (List.take idx free ++ List.reverse (splitNode (free[idx]!) l).2 ++
+        List.drop (idx + 1) free) := by
     apply List.isChain_append.mpr;
     refine ⟨ ?_, ?_, ?_ ⟩;
     · refine List.isChain_append.mpr ⟨ ?_, ?_, ?_ ⟩;
       · apply List.IsChain.take;
         exact hd;
-      · unfold splitNode; simp +decide [ List.isChain_reverse ];
+      · unfold splitNode
+        simp +decide only [List.getElem!_eq_getElem?_getD, List.append_assoc,
+          List.isChain_reverse]
         rw [ isChain_iff_get_fin ];
-        simp +decide;
+        simp +decide ;
       · have h_last_take : ∀ x ∈ List.take idx free, x.length > l := by
-          intro x hx; have := List.mem_iff_getElem.mp hx; simp_all +decide ;
-          obtain ⟨ i, hi, rfl ⟩ := this; have := List.findIdx?_eq_some_iff_getElem.mp h'; simp_all +decide ;
+          intro x hx
+          have := List.mem_iff_getElem.mp hx
+          simp_all +decide only [List.getElem_take, List.length_take, lt_inf_iff,
+            gt_iff_lt]
+          obtain ⟨i, hi, rfl⟩ := this
+          have := List.findIdx?_eq_some_iff_getElem.mp h'
+          simp_all +decide only [decide_eq_true_eq, not_le, gt_iff_lt];
           exact this.choose_spec.2 i hi.1;
         have h_last_take : ∀ y ∈ (splitNode (free[idx]!) l).2, y.length ≤ l := by
           intros y hy; exact (splitNode_newNodes_length (free[idx]!) l y hy).right;
         grind;
     · exact List.IsChain.drop hd (idx + 1)
-    · have h_last : ∀ y ∈ List.drop (idx + 1) free, y.length < (free[idx]!).length := by
+    · have h_after : ∀ y ∈ List.drop (idx + 1) free, y.length < (free[idx]!).length := by
         intro y hy
         obtain ⟨i, hi, rfl⟩ := List.mem_iff_getElem.mp hy
-        have hidx : idx < free.length := by
-          grind +suggestions
+        have hidx : idx < free.length := (List.findIdx?_eq_some_iff_getElem.mp h').1
         have hj : idx + 1 + i < free.length := by
           have hle : idx + 1 ≤ free.length := by omega
           have hlt : i < free.length - (idx + 1) := by
@@ -507,10 +610,27 @@ lemma allocateOne_descLengths (free : List BitString) (l : ℕ)
         rw [getElem!_pos free idx hidx]
         simpa [List.getElem_drop, add_assoc] using
           descLengths_getElem_length_lt hd (i := idx) (j := idx + 1 + i) (by omega) hj
-      have h_last : ∀ x ∈ List.reverse (splitNode (free[idx]!) l).2, x.length ≥ (free[idx]!).length + 1 := by
+      have h_split : ∀ x ∈ List.reverse (splitNode (free[idx]!) l).2, x.length ≥
+          (free[idx]!).length
+          + 1 := by
         simp [splitNode];
-      grind +suggestions;
-  grind +locals
+      have h_before : ∀ x ∈ List.take idx free, (free[idx]!).length < x.length := by
+        intro x hx
+        obtain ⟨i, hi, rfl⟩ := List.mem_iff_getElem.mp hx
+        have hidx : idx < free.length := (List.findIdx?_eq_some_iff_getElem.mp h').1
+        have hi_idx : i < idx := by
+          simpa [List.length_take, Nat.min_eq_left (Nat.le_of_lt hidx)] using hi
+        rw [getElem!_pos free idx hidx]
+        simpa [List.getElem_take] using
+          descLengths_getElem_length_lt hd (i := i) (j := idx) hi_idx hidx
+      intro x hx y hy
+      have hy_after := h_after y (List.mem_of_mem_head? hy)
+      rcases List.mem_append.mp (List.mem_of_mem_getLast? hx) with hx_before | hx_split
+      · exact lt_trans hy_after (h_before x hx_before)
+      · have hx_bound := h_split x hx_split
+        omega
+  rw [← h.2]
+  simpa only [DescLengths, List.getElem!_eq_getElem?_getD, List.append_assoc] using h_desc
 
 /-! ## Serviceability from distinct lengths -/
 
@@ -520,49 +640,70 @@ A free list with strictly descending lengths all `> l` has mass `< 2^{-l}`.
 lemma freeMass_lt_of_all_gt (free : List BitString) (l : ℕ)
     (hd : DescLengths free) (hgt : ∀ v ∈ free, l < v.length) :
     freeMass free < (2 : ℝ≥0∞)⁻¹ ^ l := by
-  -- Since the lengths are strictly decreasing, we can order the elements in the free list by their lengths.
-  have h_order : ∃ (f : ℕ → BitString), (∀ i < free.length, f i ∈ free) ∧ (∀ i j, i < j → i < free.length → j < free.length → f i ≠ f j) ∧ (∀ i < free.length, List.length (f i) > l) ∧ (∀ i j, i < j → i < free.length → j < free.length → List.length (f i) > List.length (f j)) := by
+  -- Since the lengths are strictly decreasing, we can order the elements in the free list by their
+  --   lengths.
+  have h_order : ∃ (f : ℕ → BitString), (∀ i < free.length, f i ∈ free) ∧
+      (∀ i j, i < j → i < free.length → j < free.length → f i ≠ f j) ∧
+      (∀ i < free.length, List.length (f i) > l) ∧
+      (∀ i j, i < j → i < free.length → j < free.length →
+        List.length (f i) > List.length (f j)) := by
     use fun i ↦ if hi : i < free.length then free[i]! else [];
     refine ⟨ ?_, ?_, ?_, ?_ ⟩;
     · grind;
-    · intro i j hij hi hj; have := isChain_iff_get_fin.mp hd; simp_all +decide ;
-      -- By induction on $j - i$, we can show that the lengths of the elements at positions $i$ and $j$ are strictly decreasing.
-      have h_ind : ∀ i j : ℕ, i < j → i < free.length → j < free.length → List.length free[i]! > List.length free[j]! := by
-        intros i j hij hi hj; induction hij <;> simp_all +decide ;
-        · exact this ⟨ i, Nat.lt_pred_iff.mpr hj ⟩;
-        · exact lt_trans ( this ⟨ _, Nat.lt_pred_iff.mpr hj ⟩ ) ( by solve_by_elim [ Nat.lt_of_succ_lt ] );
-      grind;
+    · intro i j hij hi hj
+      simp only [hi, hj, dite_true, getElem!_pos]
+      intro heq
+      have hlen := descLengths_getElem_length_lt hd hij hj
+      exact (ne_of_gt hlen) (congr_arg List.length heq)
     · aesop;
-    · intro i j hij hi hj; have := isChain_iff_get_fin.mp hd; simp_all +decide ;
-      induction hij <;> simp_all +decide [ Nat.succ_eq_add_one ];
-      · exact this ⟨ i, Nat.lt_pred_iff.mpr hj ⟩;
-      · exact lt_trans ( this ⟨ _, Nat.lt_pred_iff.mpr hj ⟩ ) ( by solve_by_elim [ Nat.lt_of_succ_lt ] );
+    · intro i j hij hi hj
+      simp only [hi, hj, dite_true, getElem!_pos]
+      exact descLengths_getElem_length_lt hd hij hj
   obtain ⟨f, hf_mem, hf_distinct, hf_length, hf_order⟩ := h_order;
-  have h_sum : (freeMass free) ≤ ∑ i ∈ Finset.range free.length, (2⁻¹ : ℝ≥0∞) ^ (List.length (f i)) := by
-    have h_sum : (freeMass free) ≤ ∑ i ∈ Finset.image f (Finset.range free.length), (2⁻¹ : ℝ≥0∞) ^ (List.length i) := by
-      have h_sum : (freeMass free) = ∑ i ∈ free.toFinset, (2⁻¹ : ℝ≥0∞) ^ (List.length i) := by
+  have h_sum : freeMass free ≤
+      ∑ i ∈ Finset.range free.length, (2⁻¹ : ℝ≥0∞) ^ List.length (f i) := by
+    have h_sum : freeMass free ≤
+        ∑ i ∈ Finset.image f (Finset.range free.length), (2⁻¹ : ℝ≥0∞) ^ List.length i := by
+      have h_sum : freeMass free =
+          ∑ i ∈ free.toFinset, (2⁻¹ : ℝ≥0∞) ^ List.length i := by
         have h_sum : List.Nodup free := by
-          have h_distinct : ∀ i j, i < j → i < free.length → j < free.length → free[i]! ≠ free[j]! := by
-            have := isChain_iff_get_fin.mp hd;
-            have h_distinct : ∀ i j, i < j → i < free.length → j < free.length → List.length (free[i]!) > List.length (free[j]!) := by
-              intros i j hij hi hj;
-              induction hij <;> simp_all +decide;
-              · exact this ⟨ i, Nat.lt_pred_iff.mpr hj ⟩;
-              · exact lt_trans ( this ⟨ _, Nat.lt_pred_iff.mpr hj ⟩ ) ( by solve_by_elim [ Nat.lt_of_succ_lt ] );
-            grind;
+          have h_distinct : ∀ i j, i < j → i < free.length → j < free.length →
+              free[i]! ≠ free[j]! := by
+            intro i j hij hi hj heq
+            rw [getElem!_pos free i hi, getElem!_pos free j hj] at heq
+            have hlen := descLengths_getElem_length_lt hd hij hj
+            exact (ne_of_gt hlen) (congr_arg List.length heq)
           rw [ List.nodup_iff_injective_get ];
           intros i j hij;
-          exact le_antisymm ( le_of_not_gt fun hi ↦ h_distinct _ _ hi ( by simp ) ( by simp ) <| by simpa [ Fin.cast_val_eq_self ] using hij.symm ) ( le_of_not_gt fun hj ↦ h_distinct _ _ hj ( by simp ) ( by simp ) <| by simpa [ Fin.cast_val_eq_self ] using hij );
+          exact le_antisymm
+            (le_of_not_gt fun hi ↦ h_distinct _ _ hi (by simp) (by simp) <| by
+              simpa [Fin.cast_val_eq_self] using hij.symm)
+            (le_of_not_gt fun hj ↦ h_distinct _ _ hj (by simp) (by simp) <| by
+              simpa [Fin.cast_val_eq_self] using hij);
         rw [ List.sum_toFinset ];
         · rfl;
         · assumption;
       rw [h_sum];
-      rw [ Finset.eq_of_subset_of_card_le ( show Finset.image f ( Finset.range free.length ) ⊆ free.toFinset from Finset.image_subset_iff.mpr fun i hi ↦ by aesop ) ];
-      rw [ Finset.card_image_of_injOn fun i hi j hj hij ↦ le_antisymm ( le_of_not_gt fun hi' ↦ hf_distinct _ _ hi' ( Finset.mem_range.mp hj ) ( Finset.mem_range.mp hi ) hij.symm ) ( le_of_not_gt fun hj' ↦ hf_distinct _ _ hj' ( Finset.mem_range.mp hi ) ( Finset.mem_range.mp hj ) hij ), Finset.card_range ];
+      rw [Finset.eq_of_subset_of_card_le
+        (show Finset.image f (Finset.range free.length) ⊆ free.toFinset from
+          Finset.image_subset_iff.mpr fun i hi ↦ by aesop)];
+      rw [Finset.card_image_of_injOn fun i hi j hj hij ↦ le_antisymm
+        (le_of_not_gt fun hi' ↦
+          hf_distinct _ _ hi' (Finset.mem_range.mp hj) (Finset.mem_range.mp hi) hij.symm)
+        (le_of_not_gt fun hj' ↦
+          hf_distinct _ _ hj' (Finset.mem_range.mp hi) (Finset.mem_range.mp hj) hij),
+        Finset.card_range];
       exact List.toFinset_card_le _;
-    rwa [ Finset.sum_image <| by intros i hi j hj hij; exact le_antisymm ( le_of_not_gt fun hi' ↦ hf_distinct _ _ hi' ( Finset.mem_range.mp hj ) ( Finset.mem_range.mp hi ) hij.symm ) ( le_of_not_gt fun hj' ↦ hf_distinct _ _ hj' ( Finset.mem_range.mp hi ) ( Finset.mem_range.mp hj ) hij ) ] at h_sum;
+    rwa [Finset.sum_image <| by
+      intros i hi j hj hij
+      exact le_antisymm
+        (le_of_not_gt fun hi' ↦
+          hf_distinct _ _ hi' (Finset.mem_range.mp hj) (Finset.mem_range.mp hi) hij.symm)
+        (le_of_not_gt fun hj' ↦
+          hf_distinct _ _ hj' (Finset.mem_range.mp hi) (Finset.mem_range.mp hj) hij)] at h_sum;
   -- Since the lengths are strictly decreasing, we can bound each term in the sum.
-  have h_bound : ∀ i < free.length, (2⁻¹ : ℝ≥0∞) ^ (List.length (f i)) ≤ (2⁻¹ : ℝ≥0∞) ^ (l + 1 + (free.length - 1 - i)) := by
+  have h_bound : ∀ i < free.length, (2⁻¹ : ℝ≥0∞) ^ (List.length (f i)) ≤ (2⁻¹ : ℝ≥0∞) ^
+      (l + 1 + (free.length - 1 - i)) := by
     intros i hi
     have h_length : List.length (f i) ≥ l + 1 + (free.length - 1 - i) := by
       induction hdist : free.length - 1 - i generalizing i with
@@ -576,13 +717,19 @@ lemma freeMass_lt_of_all_gt (free : List BitString) (l : ℕ)
           have hstep := hf_order i (i + 1) (Nat.lt_succ_self i) hi hi_succ
           omega
     exact pow_le_pow_of_le_one ( by norm_num ) ( by norm_num ) h_length;
-  refine lt_of_le_of_lt h_sum <| lt_of_le_of_lt ( Finset.sum_le_sum fun i hi ↦ h_bound i <| Finset.mem_range.mp hi ) ?_;
+  refine lt_of_le_of_lt h_sum <| lt_of_le_of_lt
+    (Finset.sum_le_sum fun i hi ↦ h_bound i <| Finset.mem_range.mp hi) ?_;
   norm_num [ pow_add, Finset.mul_sum _ _ _, Finset.sum_mul ];
   rw [ ← Finset.mul_sum _ _ _, ← Finset.sum_range_reflect ];
-  rw [ Finset.sum_congr rfl fun i hi ↦ by rw [ tsub_tsub_cancel_of_le ( Nat.le_sub_one_of_lt ( Finset.mem_range.mp hi ) ) ] ]; ring_nf;
+  rw [Finset.sum_congr rfl fun i hi ↦ by
+    rw [tsub_tsub_cancel_of_le (Nat.le_sub_one_of_lt (Finset.mem_range.mp hi))]];
+  ring_nf;
   rw [ ← ENNReal.toReal_lt_toReal ] <;> norm_num;
-  · rw [ ENNReal.toReal_sum ]; norm_num [ geom_sum_eq ]; ring_nf; norm_num;
-    exact fun _ _ ↦ ENNReal.pow_ne_top <| by norm_num;
+  · rw [ENNReal.toReal_sum]
+    · norm_num [geom_sum_eq]
+      ring_nf
+      norm_num
+    · exact fun _ _ ↦ ENNReal.pow_ne_top <| by norm_num;
   · norm_num [ ENNReal.mul_eq_top ]
 
 /-- **Serviceability.**  A free list of descending lengths with mass `≥ 2^{-l}`
@@ -604,32 +751,39 @@ The free list is always prefix-free.
 -/
 lemma allocatorState_prefixFree (req : ℕ → Option (BitString × ℕ)) (n : ℕ) (free : List BitString)
     (h : allocatorState req n = some free) : IsPrefixFree ↑free.toFinset := by
-  induction n generalizing free with
-  | zero =>
-    cases h;
-    exact fun p hp q hq hpq ↦ by aesop;
-  | succ n ih =>
-    obtain ⟨free₀, h₀⟩ : ∃ free₀, allocatorState req n = some free₀ ∧ (req n = none → free = free₀) ∧ (req n ≠ none → ∃ a free', allocateOne free₀ (req n).get!.2 = some (a, free') ∧ free = free') := by
-      unfold allocatorState at h; aesop;
-    by_cases h₁ : req n = none <;>
-      simp_all +decide only [Option.some.injEq, List.coe_toFinset, forall_eq', forall_const, ne_eq,
-        ↓existsAndEq, Option.get!_none, and_true, not_isEmpty_of_nonempty, IsEmpty.exists_iff,
-        implies_true, IsEmpty.forall_iff, not_false_eq_true, true_and];
-    have h₂ :DescLengths free₀ := by
-      have h₂ : ∀ n, ∀ free, allocatorState req n = some free → DescLengths free := by
-        intros n free hfree
-        induction n generalizing free with
-        | zero => cases hfree; tauto
-        | succ n ih =>
-          obtain ⟨free₀, h₀⟩ : ∃ free₀, allocatorState req n = some free₀ ∧ (req n = none → free = free₀) ∧ (req n ≠ none → ∃ a free', allocateOne free₀ (req n).get!.2 = some (a, free') ∧ free = free') := by
-            unfold allocatorState at hfree; aesop;
-          by_cases h₁ : req n = none <;>
-            simp_all +decide only [Option.some.injEq, forall_eq', forall_const, ne_eq, ↓existsAndEq,
-              Option.get!_none, and_true, not_isEmpty_of_nonempty, IsEmpty.exists_iff, implies_true,
-              IsEmpty.forall_iff, not_false_eq_true, true_and];
-          exact allocateOne_descLengths _ _ _ _ h₀.2.choose_spec ih;
-      exact h₂ _ _ h₀.1;
-    obtain ⟨ a, ha ⟩ := h₀.2; have := allocateOne_prefixFree free₀ ( req n |>.get!.2 ) a free ha; aesop;
+  have hgood : ∀ k free, allocatorState req k = some free →
+      IsPrefixFree ↑free.toFinset ∧ DescLengths free := by
+    intro k
+    induction k with
+    | zero =>
+        intro free hfree
+        simp only [allocatorState, Option.some.injEq] at hfree
+        subst free
+        constructor <;> simp [IsPrefixFree, DescLengths]
+    | succ k ih =>
+        intro free hfree
+        rw [allocatorState] at hfree
+        cases hstate : allocatorState req k with
+        | none => simp only [hstate, reduceCtorEq] at hfree
+        | some previous =>
+            have hprevious := ih previous hstate
+            cases hreq : req k with
+            | none =>
+                simp only [hstate, hreq, Option.some.injEq] at hfree
+                subst free
+                exact hprevious
+            | some request =>
+                rcases request with ⟨out, length⟩
+                cases halloc : allocateOne previous length with
+                | none => simp only [hstate, hreq, halloc, reduceCtorEq] at hfree
+                | some result =>
+                    rcases result with ⟨allocated, next⟩
+                    simp only [hstate, hreq, halloc, Option.some.injEq] at hfree
+                    subst free
+                    exact ⟨allocateOne_prefixFree previous length allocated next halloc
+                        hprevious.1 hprevious.2,
+                      allocateOne_descLengths previous length allocated next halloc hprevious.2⟩
+  exact (hgood n free h).1
 
 /-
 The free list always has strictly descending lengths.
@@ -637,16 +791,18 @@ The free list always has strictly descending lengths.
 lemma allocatorState_descLengths (req : ℕ → Option (BitString × ℕ)) (n : ℕ) (free : List BitString)
     (h : allocatorState req n = some free) : DescLengths free := by
   induction n generalizing free with
-  | zero => cases h; tauto
+  | zero => cases h ; tauto
   | succ n ih =>
-    -- By definition of `allocatorState`, if `allocatorState req (n + 1) = some free`, then `allocatorState req n = some free₀` for some `free₀`, and `req n = some (_, l)` for some `l`.
     obtain ⟨free₀, h₀⟩ : ∃ free₀, allocatorState req n = some free₀ := by
-      cases h' : allocatorState req n <;>
-        simp_all +decide only [reduceCtorEq, IsEmpty.forall_iff, implies_true, allocatorState,
-          Option.some.injEq, forall_eq', exists_eq'];
-    cases h' : req n <;> simp_all +decide only [Option.some.injEq, forall_eq', allocatorState];
-    cases h'' : allocateOne free₀ ‹BitString × ℕ›.2 <;>
-      simp_all +decide only [reduceCtorEq, Option.some.injEq];
+      cases h' : allocatorState req n
+      · simp_all +decide only [allocatorState, reduceCtorEq]
+      simp_all +decide only [Option.some.injEq, forall_eq', exists_eq', allocatorState]
+    cases h' : req n
+    · simp_all +decide only [allocatorState]
+    simp_all +decide only [Option.some.injEq, forall_eq', allocatorState]
+    cases h'' : allocateOne free₀ ‹BitString × ℕ›.2
+    · simp_all +decide only [reduceCtorEq]
+    simp_all +decide only [Option.some.injEq]
     exact h ▸ allocateOne_descLengths _ _ _ _ h'' ih
 
 /-
@@ -656,7 +812,7 @@ lemma allocatorState_mass (req : ℕ → Option (BitString × ℕ)) (n : ℕ) (f
     (h : allocatorState req n = some free) : freeMass free + usedMass req n = 1 := by
   induction n generalizing free with
   | zero =>
-    cases h; norm_num [ freeMass, usedMass ];
+    cases h ; norm_num [ freeMass, usedMass ];
     unfold nodeMass; norm_num;
   | succ n ih =>
     by_cases h1 : allocatorState req n = none;
@@ -664,13 +820,14 @@ lemma allocatorState_mass (req : ℕ → Option (BitString × ℕ)) (n : ℕ) (f
     · obtain ⟨free₀, hfree₀⟩ : ∃ free₀, allocatorState req n = some free₀ := by
         exact Option.ne_none_iff_exists'.mp h1;
       by_cases h2 : req n = none <;>
-        simp_all +decide only [Option.some.injEq, forall_eq', allocatorState, reduceCtorEq,
-          not_false_eq_true];
-      · unfold usedMass; simp_all +decide only [Finset.sum_range_succ];
+        simp_all +decide only [Option.some.injEq, forall_eq', allocatorState,
+          reduceCtorEq, not_false_eq_true];
+      · unfold usedMass; simp_all +decide only [Finset.sum_range_succ] ;
         unfold reqMass; aesop;
       · obtain ⟨fst, l, hl⟩ : ∃ fst l, req n = some (fst, l) := by
           cases h : req n <;> tauto;
-        obtain ⟨a, free', hallocate⟩ : ∃ a free', allocateOne free₀ l = some (a, free') ∧ free = free' := by
+        obtain ⟨a, free', hallocate⟩ : ∃ a free', allocateOne free₀ l = some (a, free') ∧ free =
+            free' := by
           cases h' : allocateOne free₀ l <;> aesop;
         have h_mass : freeMass free' + nodeMass a = freeMass free₀ := by
           apply allocateOne_mass; exact hallocate.left;
@@ -697,9 +854,10 @@ lemma allocatorState_isSome (req : ℕ → Option (BitString × ℕ)) (n : ℕ)
   induction n with
   | zero => rfl
   | succ n ih =>
-    rcases h : allocatorState req n with ( _ | ⟨ free₀ ⟩ ) <;> simp_all +decide;
+    rcases h : allocatorState req n with ( _ | ⟨ free₀ ⟩ ) <;>
+      simp_all +decide only [Option.isSome_some];
     by_cases hreq : req n = none;
-    · simp +decide [ allocatorState, h, hreq ];
+    · simp +decide only [allocatorState, h, hreq, Option.isSome_some];
     · obtain ⟨o, l⟩ : ∃ o l, req n = some (o, l) := by
         cases h : req n <;> tauto;
       obtain ⟨l, hl⟩ : ∃ l, req n = some (o, l) := l
@@ -714,14 +872,19 @@ lemma allocatorState_isSome (req : ℕ → Option (BitString × ℕ)) (n : ℕ)
           exact le_trans ( usedMass_le_tsum req ( n + 1 ) ) hweight;
         contrapose! h_freeMass;
         rw [ ← h_mass, h_usedMass, h_reqMass ];
-        rw [ add_comm ]; gcongr;
-        exact ne_of_lt ( lt_of_le_of_lt ( usedMass_le_tsum req n ) ( lt_of_le_of_lt hweight ( by norm_num ) ) )
+        rw [ add_comm ] ; gcongr;
+        exact ne_of_lt (lt_of_le_of_lt (usedMass_le_tsum req n)
+          (lt_of_le_of_lt hweight (by norm_num)))
       have h_exists_fit : ∃ v ∈ free₀, v.length ≤ l := by
         apply exists_fit_of_mass_ge free₀ l (allocatorState_descLengths req n free₀ h) h_freeMass
-      have h_allocateOne : (allocateOne free₀ l).isSome := by
-        grind +locals
-      simp [allocatorState, h, hl];
-      cases h : allocateOne free₀ l <;> aesop
+      have h_allocateOne : (allocateOne free₀ l).isSome :=
+        allocateOne_isSome_of_exists free₀ l h_exists_fit
+      simp only [allocatorState, h, hl]
+      cases h' : allocateOne free₀ l with
+      | none =>
+        rw [h'] at h_allocateOne
+        contradiction
+      | some res => exact Option.isSome_some
 
 /-! ## Computability building blocks -/
 
@@ -945,7 +1108,8 @@ unusually slow. -/
 lemma allocatorState_computable (req : BitString → ℕ → Option (BitString × ℕ))
     (hcomp : Computable (fun p : BitString × ℕ ↦ req p.1 p.2)) :
     Computable (fun p : BitString × ℕ ↦ allocatorState (req p.1) p.2) := by
-  refine (Computable.nat_rec Computable.snd (Computable.const (some [[]])) (allocatorState_hstep_computable req hcomp)).of_eq ?_
+  have hstep := allocatorState_hstep_computable req hcomp
+  refine (Computable.nat_rec Computable.snd (Computable.const (some [[]])) hstep).of_eq ?_
   intro p
   exact (allocatorState_eq_rec (req p.1) p.2).symm
 
@@ -994,13 +1158,15 @@ lemma allocFun_hg_computable (req : BitString → ℕ → Option (BitString × �
       ((req p.1 p.2).map (fun pr ↦ (allocateOne free pr.2).map Prod.fst)).getD none) := by
   have hreq : Computable (fun e : (BitString × ℕ) × List BitString ↦ req e.1.1 e.1.2) :=
     hcomp.comp Computable.fst
-  exact Computable.option_getD (Computable.option_map hreq allocFun_hinner_computable) (Computable.const none)
+  exact Computable.option_getD
+    (Computable.option_map hreq allocFun_hinner_computable) (Computable.const none)
 
 /-- The allocation function is computable uniformly in the context. -/
 lemma allocFun_computable (req : BitString → ℕ → Option (BitString × ℕ))
     (hcomp : Computable (fun p : BitString × ℕ ↦ req p.1 p.2)) :
     Computable (fun p : BitString × ℕ ↦ allocFun (req p.1) p.2) := by
-  refine (Computable.option_bind (allocatorState_computable req hcomp) (allocFun_hg_computable req hcomp)).of_eq ?_
+  have hg := allocFun_hg_computable req hcomp
+  refine (Computable.option_bind (allocatorState_computable req hcomp) hg).of_eq ?_
   intro p
   exact (allocFun_eq_bind (req p.1) p.2).symm
 
@@ -1020,16 +1186,24 @@ lemma alloc_incomp_freeNext (req : ℕ → Option (BitString × ℕ)) (n : ℕ) 
     (hn : allocFun req n = some cn) (free' : List BitString)
     (hfree' : allocatorState req (n + 1) = some free') :
     ∀ w ∈ free', ¬ cn <+: w ∧ ¬ w <+: cn := by
-  -- By definition of `allocatorState`, we know that `allocatorState req n = some free` for some `free`.
   obtain ⟨free, hfree⟩ : ∃ free, allocatorState req n = some free := by
-    cases h : allocatorState req n <;>
-      simp_all +decide only [allocFun, reduceCtorEq, Option.some.injEq, exists_eq'];
+    cases h : allocatorState req n
+    · simp_all +decide only [allocFun, reduceCtorEq]
+    simp_all +decide only [allocFun, Option.some.injEq, exists_eq']
   unfold allocFun at hn;
-  rcases h : req n with ( _ | ⟨ fst, l ⟩ ) <;> simp_all +decide only [reduceCtorEq];
-  rcases h' : allocateOne free l with ( _ | ⟨ allocated, snd ⟩ ) <;>
-    simp_all +decide only [reduceCtorEq, Option.some.injEq];
-  rw [ show free' = snd from by { rw [ show allocatorState req ( n + 1 ) = some snd from by { rw [ show allocatorState req ( n + 1 ) = match allocatorState req n with | none => none | some free => match req n with | none => some free | some ( fst, l ) => match allocateOne free l with | none => none | some ( allocated, free' ) => some free' from by rw [allocatorState] ]; aesop } ] at hfree'; aesop } ];
-  apply allocateOne_alloc_incomp_free' free l cn snd h' (allocatorState_prefixFree req n free hfree) (allocatorState_descLengths req n free hfree)
+  rcases h : req n with ( _ | ⟨ fst, l ⟩ )
+  · simp_all +decide only [reduceCtorEq]
+  simp_all +decide only
+  rcases h' : allocateOne free l with ( _ | ⟨ allocated, snd ⟩ )
+  · simp_all +decide only [reduceCtorEq]
+  simp_all +decide only [Option.some.injEq]
+  have h_succ : allocatorState req (n + 1) = some snd := by
+    simp only [allocatorState, hfree, h, h']
+  have h_eq : free' = snd := Option.some.inj (hfree'.symm.trans h_succ)
+  rw [h_eq]
+  apply allocateOne_alloc_incomp_free' free l cn snd h'
+    (allocatorState_prefixFree req n free hfree)
+    (allocatorState_descLengths req n free hfree)
 
 /-
 Descendant monotonicity of the free list: a node free at a later step has a

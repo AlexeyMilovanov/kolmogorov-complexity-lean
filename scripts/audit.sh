@@ -15,20 +15,21 @@ fi
 
 echo "== forbidden constructs and resource overrides =="
 if grep -RInE '\b(axiom|admit|unsafe|implemented_by|native_decide)\b|set_option (maxHeartbeats|maxRecDepth)' \
-    KolmogorovMathlib KolmogorovMathlib.lean 2>/dev/null; then
+    KolmogorovMathlib KolmogorovMathlib.lean scripts/smoke 2>/dev/null; then
   echo "ERROR: forbidden construct or resource override found"
   exit 1
 fi
 
 echo "== sorry-free project =="
-if grep -RInE '\bsorry\b|sorryAx' KolmogorovMathlib KolmogorovMathlib.lean 2>/dev/null; then
+if grep -RInE '\bsorry\b|sorryAx' \
+    KolmogorovMathlib KolmogorovMathlib.lean scripts/smoke 2>/dev/null; then
   echo "ERROR: sorry found in completed project"
   exit 1
 fi
 
 echo "== imports, suppressions, and measurement scaffolding =="
 if grep -RInE '^import Mathlib$|#nolint|set_option linter\.|#count_heartbeats|set_option Elab\.async false|set_option profiler true|trace_state' \
-    KolmogorovMathlib --include='*.lean' 2>/dev/null; then
+    KolmogorovMathlib scripts/smoke --include='*.lean' 2>/dev/null; then
   echo "ERROR: broad import, suppression, or temporary scaffolding found"
   exit 1
 fi
@@ -50,6 +51,7 @@ else
 fi
 
 echo "== migration fidelity =="
+python3 -B scripts/test_migration_fidelity.py
 python3 -B scripts/check_migration_fidelity.py
 
 echo "== lake build, root plus standalone modules =="
@@ -83,6 +85,18 @@ fi
 if [[ -s "$smoke_log" ]]; then
   cat "$smoke_log"
   echo "ERROR: public tactic smoke test emitted output"
+  exit 1
+fi
+
+echo "== compatibility smoke test =="
+if ! lake env lean scripts/smoke/MigrationCompatibility.lean >"$smoke_log" 2>&1; then
+  cat "$smoke_log"
+  echo "ERROR: compatibility smoke test failed"
+  exit 1
+fi
+if [[ -s "$smoke_log" ]]; then
+  cat "$smoke_log"
+  echo "ERROR: compatibility smoke test emitted output"
   exit 1
 fi
 

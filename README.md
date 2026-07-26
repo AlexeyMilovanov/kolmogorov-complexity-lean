@@ -29,6 +29,13 @@ For the default package build, run:
 lake build
 ```
 
+Release validation currently discovers four maximal module roots:
+`KolmogorovMathlib`,
+`KolmogorovMathlib.AlgorithmicProbability.KraftChaitinOnline`,
+`KolmogorovMathlib.AlgorithmicStatistics.FiniteDistribution`, and
+`KolmogorovMathlib.Prefix.KPPairSwap`. This keeps the standalone modules in the
+build even though they are not all reachable from the aggregate root.
+
 The project is currently pinned to Lean `v4.31.0` and the matching Mathlib ecosystem.
 
 ## Branches

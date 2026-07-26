@@ -36,9 +36,11 @@ structure PeanoLikeSystem (U : Map) extends FormalSystem U where
   -- 2. Vocabulary
   /-- Formula asserting the consistency of the system. -/
   exprCon : Formula
-  /-- Formula asserting that there are at least `i` strings of length `<= L+1` with complexity `> L`. -/
+  /-- Formula asserting that there are at least `i` strings of length `<= L+1`
+  with complexity `> L`. -/
   exprMGt : ℕ → ℕ → Formula
-  /-- Formula asserting that there are exactly `i` strings of length `<= L+1` with complexity `> L`. -/
+  /-- Formula asserting that there are exactly `i` strings of length `<= L+1`
+  with complexity `> L`. -/
   exprMEq : ℕ → ℕ → Formula
   /-- Formula asserting that the system proves `K(x) > L` for some `x`. -/
   exprExistsProvKGt : ℕ → Formula

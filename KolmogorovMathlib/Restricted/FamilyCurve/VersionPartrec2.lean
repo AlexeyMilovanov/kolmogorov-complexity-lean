@@ -192,8 +192,8 @@ lemma restrictedSampledBadCodesRaw_codes_packed (c : Code) (𝒜 : PreDescriptio
   induction gs with
   | zero => simp [restrictedSampledBadCodesRaw]
   | succ gs ih =>
-      simp [restrictedSampledBadCodesRaw, List.range_succ,
-        List.flatMap_append] at ih ⊢
+      simp only [listCode_nil, restrictedSampledBadCodesRaw, List.range_succ, List.flatMap_append,
+        List.flatMap_cons, List.flatMap_nil, List.append_nil] at ih ⊢
       rw [ih, decodeListCode_listCode]
 
 /-- Blob raw enumeration with the time split into an explicit component. -/
@@ -295,7 +295,7 @@ lemma restrictedSampledBadCodeStream_codes_packed (c : Code) (𝒜 : PreDescript
   induction t with
   | zero => simp [restrictedSampledBadCodeStream]
   | succ t ih =>
-      simp [restrictedSampledBadCodeStream] at ih ⊢
+      simp only [restrictedSampledBadCodeStream] at ih ⊢
       rw [ih, decodeListCode_listCode]
 
 /-- The chronological bad-code stream is computable jointly in its grid

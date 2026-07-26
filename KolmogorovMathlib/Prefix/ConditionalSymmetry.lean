@@ -115,6 +115,53 @@ theorem KPCondPair_chain_upper (U : Map) (hU : IsOptimalPrefixConditional U) :
       _ = KP U x z + KP U y (prefixCondComplexityContext z x kx) + (0 : ENat) := by
             rw [add_zero]
 
+/-- Removing known short info `z` from the condition. -/
+theorem KP_cond_remove_short_info (U : Map) (hU : IsOptimalPrefixConditional U) :
+    ∃ c : ℕ, ∀ x y z, KP U x y ≤ KP U x (pairCode y z) + KPPlain U z + (c : ENat) := by
+  let ctx : BitString → BitString → Nat → BitString := fun r z _ => pairCode r z
+  have hctx : Computable (fun p : (BitString × BitString) × ℕ => ctx p.1.1 p.1.2 p.2) := by
+    exact pairCode_computable.comp (Computable.pair
+      (Computable.fst.comp Computable.fst) (Computable.snd.comp Computable.fst))
+  have hD_decomp := condTwoStagePairBuilder_isDecompressor hU.isDecompressor hU.isPrefixMachine hctx
+  have hD_prefix := condTwoStagePairBuilder_isPrefixMachine (ctx := ctx) hU.isPrefixMachine
+  let D := condTwoStagePairBuilder U ctx
+  have hD : IsPrefixDecompressor D := ⟨hD_decomp, hD_prefix⟩
+  obtain ⟨c_inv, hc_inv⟩ := hU.invariance hD
+  obtain ⟨c_map, hc_map⟩ := KP_map_le U hU decodeSecond decodeSecond_computable
+  obtain ⟨c_weak, hc_weak⟩ := KP_le_KPPlain U hU
+  use c_inv + c_map + c_weak
+  intro x y z
+  by_cases hpx : KP U x (pairCode y z) = ⊤
+  · rw [hpx]; simp
+  by_cases hpz : KPPlain U z = ⊤
+  · rw [hpz]; simp
+  have hpz' : KP U z y ≠ ⊤ := by
+    have h1 : KP U z y ≤ KPPlain U z + c_weak := hc_weak z y
+    have hpz_lt_top : KPPlain U z < ⊤ := lt_top_iff_ne_top.mpr hpz
+    have hcw_lt_top : (c_weak : ENat) < ⊤ := WithTop.coe_lt_top c_weak
+    have h2 : KPPlain U z + (c_weak : ENat) < ⊤ := WithTop.add_lt_top.mpr ⟨hpz_lt_top, hcw_lt_top⟩
+    exact lt_top_iff_ne_top.mp (h1.trans_lt h2)
+  obtain ⟨q, hq, hqlen⟩ := exists_program_of_KP_ne_top (M := U) (x := x) (y := pairCode y z) hpx
+  obtain ⟨p, hp, hplen⟩ := exists_program_of_KP_ne_top (M := U) (x := z) (y := y) hpz'
+  have h_bound := KP_condTwoStagePairBuilder_le_of_produces
+      (U := U) (ctx := ctx) hU.isPrefixMachine hp hq
+  have h_bound2 : KP D (pairCode z x) y ≤ KP U z y + KP U x (pairCode y z) := by
+    calc KP D (pairCode z x) y ≤ ((p.length + q.length : Nat) : ENat) := h_bound
+      _ = (p.length : ENat) + (q.length : ENat) := by norm_cast
+      _ = KP U z y + KP U x (pairCode y z) := by rw [hplen, hqlen]
+  have h_extract : KP U x y ≤ KP D (pairCode z x) y + c_inv + c_map := by
+    calc KP U x y = KP U (decodeSecond (pairCode z x)) y := by rw [decodeSecond_pairCode]
+      _ ≤ KP U (pairCode z x) y + c_map := hc_map (pairCode z x) y
+      _ ≤ KP D (pairCode z x) y + c_inv + c_map := by gcongr; exact hc_inv (pairCode z x) y
+  calc KP U x y ≤ KP D (pairCode z x) y + c_inv + c_map := h_extract
+    _ ≤ KP U z y + KP U x (pairCode y z) + c_inv + c_map := by gcongr
+    _ ≤ KPPlain U z + c_weak + KP U x (pairCode y z) + c_inv + c_map := by gcongr; exact hc_weak z y
+    _ = KP U x (pairCode y z) + KPPlain U z + (c_inv + c_map + c_weak : ℕ) := by
+      lift (KP U x (pairCode y z)) to ℕ using hpx with kpx
+      lift (KPPlain U z) to ℕ using hpz with kpz
+      push_cast
+      ring_nf
+
 open scoped ENNReal in
 /-- **Reduction of the conditional lower direction to a single conditional coding
 bound.**

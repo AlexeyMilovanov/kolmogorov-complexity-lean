@@ -181,45 +181,64 @@ theorem coverValidBool_computable (𝒜 : DescriptionFamily) :
           (Primrec.fst.comp (Primrec.snd.comp Primrec.snd))))
     have h_all : Primrec (fun (a : BitString × ℕ × ℕ × ℕ × ℕ) =>
         (coverDecode a.2.2.2.2).2.all
-          (fun w => decide ((decodeCoverCodeList w).dedup.length ≤ max 1 ((decodeCoverCodeList a.1).dedup.length / 2 ^ a.2.2.1)))) := by
+          (fun w => decide ((decodeCoverCodeList w).dedup.length ≤
+            max 1 ((decodeCoverCodeList a.1).dedup.length / 2 ^ a.2.2.1)))) := by
       exact @coverSearch_list_all_primrec (BitString × ℕ × ℕ × ℕ × ℕ) BitString _ _
         (fun a => (coverDecode a.2.2.2.2).2)
-        (fun a w => decide ((decodeCoverCodeList w).dedup.length ≤ max 1 ((decodeCoverCodeList a.1).dedup.length / 2 ^ a.2.2.1)))
-        (coverDecode_primrec.comp (Primrec.snd.comp (Primrec.snd.comp (Primrec.snd.comp Primrec.snd))) |> Primrec.comp Primrec.snd)
+        (fun a w => decide ((decodeCoverCodeList w).dedup.length ≤
+          max 1 ((decodeCoverCodeList a.1).dedup.length / 2 ^ a.2.2.1)))
+        (coverDecode_primrec.comp
+            (Primrec.snd.comp (Primrec.snd.comp (Primrec.snd.comp Primrec.snd))) |>
+          Primrec.comp Primrec.snd)
         (PrimrecPred.decide (Primrec.nat_le.comp
-          (dedup_primrec.comp (decodeCoverCodeList_primrec.comp Primrec.snd) |> Primrec.comp Primrec.list_length)
+          (dedup_primrec.comp (decodeCoverCodeList_primrec.comp Primrec.snd) |>
+            Primrec.comp Primrec.list_length)
           (h_primrec.comp Primrec.fst)))
     exact h_all.to_comp
   have h_target : Computable
       (fun a : BitString × ℕ × ℕ × ℕ × ℕ =>
         (decodeCoverCodeList a.1).filter (fun y => decide (y.length = a.2.1)) |>.all
-          (fun y => (coverDecode a.2.2.2.2).2.any (fun w => decide (y ∈ decodeCoverCodeList w)))) := by
+          (fun y => (coverDecode a.2.2.2.2).2.any
+            (fun w => decide (y ∈ decodeCoverCodeList w)))) := by
     have h_any : Primrec₂
-        (fun (a : BitString × ℕ × ℕ × ℕ × ℕ) (y : BitString) => (coverDecode a.2.2.2.2).2.any (fun
-                                                                                                w => decide (y ∈ decodeCoverCodeList w))) := by
-      exact @Kolmogorov.list_any_primrec ((BitString × ℕ × ℕ × ℕ × ℕ) × BitString) BitString _ _
+        (fun (a : BitString × ℕ × ℕ × ℕ × ℕ) (y : BitString) =>
+          (coverDecode a.2.2.2.2).2.any
+            (fun w => decide (y ∈ decodeCoverCodeList w))) := by
+      exact @Kolmogorov.list_any_primrec
+        ((BitString × ℕ × ℕ × ℕ × ℕ) × BitString) BitString _ _
         (fun a => (coverDecode a.1.2.2.2.2).2)
         (fun a w => decide (a.2 ∈ decodeCoverCodeList w))
-        (Primrec.snd.comp (coverDecode_primrec.comp (Primrec.snd.comp (Primrec.snd.comp (Primrec.snd.comp (Primrec.snd.comp Primrec.fst))))))
-        (bitString_mem_primrec.comp (Primrec.snd.comp Primrec.fst) (decodeCoverCodeList_primrec.comp Primrec.snd))
+        (Primrec.snd.comp (coverDecode_primrec.comp
+          (Primrec.snd.comp
+            (Primrec.snd.comp (Primrec.snd.comp (Primrec.snd.comp Primrec.fst))))))
+        (bitString_mem_primrec.comp (Primrec.snd.comp Primrec.fst)
+          (decodeCoverCodeList_primrec.comp Primrec.snd))
     have h_filter : Primrec
-        (fun (a : BitString × ℕ × ℕ × ℕ × ℕ) => (decodeCoverCodeList a.1).filter (fun y => decide (y.length = a.2.1))) := by
+        (fun (a : BitString × ℕ × ℕ × ℕ × ℕ) =>
+          (decodeCoverCodeList a.1).filter (fun y => decide (y.length = a.2.1))) := by
       exact @Kolmogorov.list_filter_primrec (BitString × ℕ × ℕ × ℕ × ℕ) BitString _ _
         (fun a => decodeCoverCodeList a.1)
         (fun a y => decide (y.length = a.2.1))
         (decodeCoverCodeList_primrec.comp Primrec.fst)
-        (PrimrecPred.decide (Primrec.eq.comp (Primrec.list_length.comp Primrec.snd) (Primrec.fst.comp (Primrec.snd.comp Primrec.fst))))
+        (PrimrecPred.decide (Primrec.eq.comp
+          (Primrec.list_length.comp Primrec.snd)
+          (Primrec.fst.comp (Primrec.snd.comp Primrec.fst))))
     have h_primrec : Primrec
-        (fun (a : BitString × ℕ × ℕ × ℕ × ℕ) => (List.filter (fun y => decide (List.length y =
-                                                                                a.2.1))
-                                                                (decodeCoverCodeList a.1)).all (fun
-                                                                                                 y => (coverDecode a.2.2.2.2).2.any (fun w => decide (y ∈ decodeCoverCodeList w)))) := by
+        (fun (a : BitString × ℕ × ℕ × ℕ × ℕ) =>
+          (List.filter (fun y => decide (List.length y = a.2.1))
+              (decodeCoverCodeList a.1)).all (fun y =>
+            (coverDecode a.2.2.2.2).2.any
+              (fun w => decide (y ∈ decodeCoverCodeList w)))) := by
       exact @coverSearch_list_all_primrec (BitString × ℕ × ℕ × ℕ × ℕ) BitString _ _
-        (fun a => (decodeCoverCodeList a.1).filter (fun y => decide (y.length = a.2.1)))
-        (fun a y => (coverDecode a.2.2.2.2).2.any (fun w => decide (y ∈ decodeCoverCodeList w)))
+        (fun a =>
+          (decodeCoverCodeList a.1).filter (fun y => decide (y.length = a.2.1)))
+        (fun a y =>
+          (coverDecode a.2.2.2.2).2.any (fun w => decide (y ∈ decodeCoverCodeList w)))
         h_filter h_any
     exact h_primrec.to_comp
-  exact (andC (andC (andC h_enum h_len) h_size) h_target).of_eq fun _ => by unfold coverValidBool; rfl
+  exact (andC (andC (andC h_enum h_len) h_size) h_target).of_eq fun _ => by
+    unfold coverValidBool
+    rfl
 
 private lemma coverSelectorSearchInput_computable : Computable
     (fun p : BitString × ℕ =>
@@ -252,7 +271,10 @@ theorem coverSelectorFun_partrec (𝒜 : DescriptionFamily) :
     Partrec (coverSelectorFun 𝒜) := by
   refine Partrec.bind ?_ ?_
   · refine Partrec.rfind ?_
-    exact Partrec.of_eq (Partrec.to₂ ((coverValidBool_computable 𝒜).comp coverSelectorSearchInput_computable).partrec) fun p => rfl
+    exact Partrec.of_eq
+      (Partrec.to₂
+        ((coverValidBool_computable 𝒜).comp coverSelectorSearchInput_computable).partrec)
+      fun p => rfl
   · refine Computable.option_getD ?_ ?_
     · refine Computable.list_getElem?.comp ?_ ?_
       · exact Computable.snd.comp (coverDecode_primrec.to_comp.comp Computable.snd)

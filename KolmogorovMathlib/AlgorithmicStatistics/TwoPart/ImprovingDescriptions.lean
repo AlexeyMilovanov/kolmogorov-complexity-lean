@@ -67,15 +67,63 @@ theorem mem_descriptionsWithComplexityLe_of_complexity {U : Map} {i : ℕ} {S : 
     exact codedUniformOn_code_congr hS hS_ne' h_supp.symm
 
 /-
+Gate E2 helper: Any set in the description universe of complexity bound `i`
+actually has canonical uniform-code complexity `≤ i + O(1)`.
+
+Proof idea: membership in `descriptionsWithComplexityLe U i` gives a coded model
+whose support is exactly `S` and whose code has complexity `≤ i`; convert that code
+to the canonical uniform code of `S` by a computable support-normalization map,
+paying only the optimal-machine invariance constant.
+-/
+theorem setComplexity_le_of_mem_descriptionsWithComplexityLe (U : Map) :
+    ∃ c : ℕ, ∀ (i : ℕ) (S : Finset BitString) (hS : S.Nonempty),
+      S ∈ descriptionsWithComplexityLe U i →
+      setComplexity U S hS ≤ (i + c : ENat) := by
+  use 0; intros i S hS h_mem; exact (by
+  have h_code : ∃ c : BitString, c ∈ modelsWithComplexityLe U i ∧ isCanonicalUniformCode c ∧
+    S = (probModelOfCode c).support := by
+    unfold descriptionsWithComplexityLe at h_mem; aesop;
+  obtain ⟨c, hc_mem, hc_canonical, hc_support⟩ := h_code
+  have hc_eq : c = (codedUniformOn S hS).code := by
+    obtain ⟨h, heq⟩ := hc_canonical; convert heq using 1; exact hc_support ▸ rfl
+  have h_complexity : KPPlain U c ≤ i := by
+    have h_code : ∃ p : BitString, p ∈ boundedPrograms i ∧ modelCodeOfProgram U p = c := by
+      unfold modelsWithComplexityLe at hc_mem
+      simpa using hc_mem
+    obtain ⟨p, hp_mem, hp_eq⟩ := h_code
+    have h_produces : produces U p [] c := by
+      unfold modelCodeOfProgram at hp_eq
+      split_ifs at hp_eq
+      · rename_i h_dom
+        exact ⟨h_dom, hp_eq⟩
+      · rename_i h_ndom
+        have hc_eq_symm := hc_eq.symm
+        subst hp_eq
+        revert hc_eq_symm
+        unfold CodedFiniteDistribution.code codedDistributionDataCode
+        cases (codedUniformOn S hS).data <;> intro h_false <;> cases h_false
+    have h_complexity : KPPlain U c ≤ (programLength p : ENat) := by
+      exact KPPlain_eq_KP U c ▸ KP_le_programLength_of_produces h_produces
+    have h_bound : (programLength p : ENat) ≤ i := by
+      exact_mod_cast mem_boundedPrograms_iff p i |>.1 hp_mem
+    exact le_trans h_complexity h_bound
+  have h_setComplexity : setComplexity U S hS = KPPlain U c := by
+    exact hc_eq ▸ rfl
+  rw [h_setComplexity]
+  exact h_complexity.trans (by norm_num))
+
+/-
 The number of descriptions in the universe of complexity `≤ i` is bounded.
 -/
 theorem card_descriptionsWithComplexityLe (U : Map) (i : ℕ) :
     (descriptionsWithComplexityLe U i).card ≤ 2 ^ (i + 1) := by
   refine le_trans ?_ ( card_modelsWithComplexityLe U i );
-  exact Finset.card_biUnion_le.trans ( Finset.sum_le_card_nsmul _ _ _ fun x hx ↦ by aesop ) |> le_trans <| by norm_num;
+  exact Finset.card_biUnion_le.trans ( Finset.sum_le_card_nsmul _ _ _ fun x hx ↦ by aesop ) |>
+    le_trans <| by norm_num;
 
 /-- The subset of descriptions of size `≤ 2 ^ j`. -/
-noncomputable def descriptionsWithComplexityLeAndSizeLe (U : Map) (i j : ℕ) : Finset (Finset BitString) :=
+noncomputable def descriptionsWithComplexityLeAndSizeLe (U : Map) (i j : ℕ) :
+    Finset (Finset BitString) :=
   (descriptionsWithComplexityLe U i).filter (fun S ↦ S.card ≤ 2 ^ j)
 
 theorem card_descriptionsWithComplexityLeAndSizeLe (U : Map) (i j : ℕ) :
@@ -164,7 +212,8 @@ theorem ManyIJDescriptions.mono_i {U : Map} {x : BitString} {i i' j k : ℕ}
     (h : i ≤ i') (hmany : ManyIJDescriptions U x i j k) : ManyIJDescriptions U x i' j k := by
   unfold ManyIJDescriptions at *
   refine hmany.trans (Finset.card_le_card ?_)
-  exact Finset.filter_subset_filter _ (descriptionsWithComplexityLeAndSizeLe_subset_of_le_left U j h)
+  exact Finset.filter_subset_filter _
+    (descriptionsWithComplexityLeAndSizeLe_subset_of_le_left U j h)
 
 /-- Having `2^k` descriptions is monotone (upward) in the size bound `j`:
 enlarging the size budget can only add descriptions. -/
@@ -172,7 +221,8 @@ theorem ManyIJDescriptions.mono_j {U : Map} {x : BitString} {i j j' k : ℕ}
     (h : j ≤ j') (hmany : ManyIJDescriptions U x i j k) : ManyIJDescriptions U x i j' k := by
   unfold ManyIJDescriptions at *
   refine hmany.trans (Finset.card_le_card ?_)
-  exact Finset.filter_subset_filter _ (descriptionsWithComplexityLeAndSizeLe_subset_of_le_right U i h)
+  exact Finset.filter_subset_filter _
+    (descriptionsWithComplexityLeAndSizeLe_subset_of_le_right U i h)
 
 /-- The **rich elements** of the `(i,j)`-description universe: those points that
 belong to at least `2^k` distinct `(i,j)`-descriptions.  This is the combinatorial
@@ -192,7 +242,9 @@ theorem mem_richDescriptionElements_of_many (U : Map) (x : BitString) (i j k : �
     x ∈ richDescriptionElements U i j k := by
   refine Finset.mem_filter.mpr ⟨ ?_, h ⟩;
   contrapose! h;
-  exact fun H ↦ by have := H.trans ( Finset.card_le_card <| show _ ⊆ ∅ from fun S hS ↦ by aesop ); norm_num at this;
+  exact fun H ↦ by
+    have := H.trans ( Finset.card_le_card <| show _ ⊆ ∅ from fun S hS ↦ by aesop )
+    norm_num at this;
 
 /-- Converse of `mem_richDescriptionElements_of_many`: a rich element of the
 `(i,j)`-description universe necessarily has at least `2^k` distinct
@@ -220,10 +272,12 @@ small description of any of its members.
 -/
 theorem card_richDescriptionElements_mul_le (U : Map) (i j k : ℕ) :
     (richDescriptionElements U i j k).card * 2 ^ k ≤ 2 ^ (i + 1) * 2 ^ j := by
-  -- Let `R := richDescriptionElements U i j k` and `F := descriptionsWithComplexityLeAndSizeLe U i j`.
+  -- Let `R := richDescriptionElements U i j k` and
+  -- `F := descriptionsWithComplexityLeAndSizeLe U i j`.
   set R := richDescriptionElements U i j k
   set F := descriptionsWithComplexityLeAndSizeLe U i j;
-  -- By definition of `richDescriptionElements`, we have `R.card * 2^k ≤ ∑ S ∈ F, (R.filter (fun y ↦ y ∈ S)).card`.
+  -- By definition of `richDescriptionElements`, we have
+  -- `R.card * 2^k ≤ ∑ S ∈ F, (R.filter (fun y ↦ y ∈ S)).card`.
   have h_card_le_sum : R.card * 2 ^ k ≤ ∑ S ∈ F, (R.filter (fun y ↦ y ∈ S)).card := by
     have h_le : ∀ y ∈ R, (2 : ℕ) ^ k ≤ ∑ S ∈ F, if y ∈ S then 1 else 0 := by
       simp +zetaDelta only [Finset.sum_boole, Nat.cast_id] at *
@@ -237,7 +291,8 @@ theorem card_richDescriptionElements_mul_le (U : Map) (i j k : ℕ) :
         rw [←Finset.sum_filter]
         simp
   refine le_trans h_card_le_sum ?_;
-  refine le_trans ( Finset.sum_le_sum fun S hS ↦ show Finset.card ( Finset.filter ( fun y ↦ y ∈ S ) R ) ≤ 2 ^ j from ?_ ) ?_;
+  refine le_trans ( Finset.sum_le_sum fun S hS ↦
+    show Finset.card ( Finset.filter ( fun y ↦ y ∈ S ) R ) ≤ 2 ^ j from ?_ ) ?_;
   · exact le_trans ( Finset.card_le_card fun x hx ↦ by aesop ) ( Finset.mem_filter.mp hS |>.2 );
   · norm_num [ mul_comm ];
     rw [ mul_comm ]; gcongr; exact card_descriptionsWithComplexityLeAndSizeLe U i j
@@ -317,16 +372,22 @@ theorem halfRich_card_le (L : List (Finset BitString)) (t j : ℕ)
   -- For each x in R, the sum of indicator variables in L is at least 2^t.
   have h_indicator_x : ∀ x ∈ appearsAtLeast L t, 2^t ≤ List.countP (fun S ↦ x ∈ S) L := by
     unfold appearsAtLeast; aesop;
-  have h_indicator_x_sum : ∑ x ∈ appearsAtLeast L t, List.countP (fun S ↦ x ∈ S) L ≤ ∑ S ∈ L.toFinset, (List.count S L) * S.card := by
-    have h_indicator_x_sum : ∀ x ∈ appearsAtLeast L t, List.countP (fun S ↦ x ∈ S) L = ∑ S ∈ L.toFinset, (if x ∈ S then List.count S L else 0) := by
-      simp +decide only [List.countP_eq_length_filter, Finset.sum_ite, Finset.sum_const_zero, add_zero];
+  have h_indicator_x_sum : ∑ x ∈ appearsAtLeast L t, List.countP (fun S ↦ x ∈ S) L ≤
+      ∑ S ∈ L.toFinset, (List.count S L) * S.card := by
+    have h_indicator_x_sum : ∀ x ∈ appearsAtLeast L t, List.countP (fun S ↦ x ∈ S) L =
+        ∑ S ∈ L.toFinset, (if x ∈ S then List.count S L else 0) := by
+      simp +decide only [List.countP_eq_length_filter, Finset.sum_ite,
+        Finset.sum_const_zero, add_zero];
       intro x hx; rw [ ← Multiset.coe_card ]; rw [ ← Multiset.toFinset_sum_count_eq ];
       refine Finset.sum_bij ( fun y _ ↦ y ) ?_ ?_ ?_ ?_ <;> aesop;
     rw [ Finset.sum_congr rfl h_indicator_x_sum, Finset.sum_comm ];
     simp +decide only [Finset.sum_ite_mem, Finset.sum_const, smul_eq_mul, mul_comm, ge_iff_le];
-    exact Finset.sum_le_sum fun x hx ↦ Nat.mul_le_mul_right _ ( Finset.card_le_card fun y hy ↦ by aesop );
-  have h_indicator_x_sum : ∑ S ∈ L.toFinset, (List.count S L) * S.card ≤ ∑ S ∈ L.toFinset, (List.count S L) * 2 ^ j := by
-    exact Finset.sum_le_sum fun x hx ↦ Nat.mul_le_mul_left _ ( h_size x <| List.mem_toFinset.mp hx );
+    exact Finset.sum_le_sum fun x hx ↦ Nat.mul_le_mul_right _
+      ( Finset.card_le_card fun y hy ↦ by aesop );
+  have h_indicator_x_sum : ∑ S ∈ L.toFinset, (List.count S L) * S.card ≤
+      ∑ S ∈ L.toFinset, (List.count S L) * 2 ^ j := by
+    exact Finset.sum_le_sum fun x hx ↦
+      Nat.mul_le_mul_left _ ( h_size x <| List.mem_toFinset.mp hx );
   have h_indicator_x_sum : ∑ S ∈ L.toFinset, (List.count S L) * 2 ^ j = L.length * 2 ^ j := by
     rw [ ← Finset.sum_mul _ _ _, List.sum_toFinset_count_eq_length ];
   exact le_trans ( by simpa using Finset.sum_le_sum h_indicator_x ) ( by linarith )

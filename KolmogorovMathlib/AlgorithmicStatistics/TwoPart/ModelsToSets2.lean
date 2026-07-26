@@ -112,7 +112,9 @@ theorem list_filter_primrec {α β} [Primcodable α] [Primcodable β] {f : α �
   have H : Primrec (fun a ↦ (f a).foldr (fun b s ↦ h a (b, s)) []) :=
     Primrec.list_foldr (f := f) (g := fun _ ↦ []) (h := h)
       hf (Primrec.const []) (
-      (Primrec.cond (Primrec.comp hp (Primrec.pair Primrec.fst (Primrec.comp Primrec.fst Primrec.snd)))
+      (Primrec.cond
+        (Primrec.comp hp
+          (Primrec.pair Primrec.fst (Primrec.comp Primrec.fst Primrec.snd)))
         (Primrec.comp Primrec.list_cons Primrec.snd)
         (Primrec.comp Primrec.snd Primrec.snd)).of_eq (fun a ↦ by simp [h])
       )
@@ -128,8 +130,11 @@ theorem bitString_mem_primrec :
     exact primrecRel_iff_primrec_decide.mp Primrec.eq
   simp only [Primrec₂]
   apply Primrec.of_eq
-  convert list_any_primrec (show Primrec (fun x : BitString × List BitString ↦ x.2) from Primrec.snd) (show Primrec₂ (fun p : BitString × List BitString ↦ fun b ↦ decide (p.1 = b)) from ?_) using 1;
-  · exact h_eq.comp (Primrec.fst.comp Primrec.fst) Primrec.snd
+  · convert list_any_primrec
+      (show Primrec (fun x : BitString × List BitString ↦ x.2) from Primrec.snd)
+      (show Primrec₂
+        (fun p : BitString × List BitString ↦ fun b ↦ decide (p.1 = b)) from ?_) using 1
+    exact h_eq.comp (Primrec.fst.comp Primrec.fst) Primrec.snd
   · intro x; rcases x with ⟨a, l⟩; induction l <;> simp [List.any_eq]
 
 /-
@@ -141,11 +146,32 @@ theorem orderedInsert_primrec :
       List.orderedInsert bitStringLE a l) := by
   simp only [Primrec₂]
   apply Primrec.of_eq
-  convert Primrec.list_rec (show Primrec (fun x : BitString × List BitString ↦ x.2) from Primrec.snd) (show Primrec (fun x : BitString × List BitString ↦ [x.1]) from Primrec.comp Primrec.list_cons (Primrec.pair Primrec.fst (Primrec.const []))) (show Primrec₂ (fun p : BitString × List BitString ↦ fun b : BitString × List BitString × List BitString ↦ if decide (bitStringLE p.1 b.1) then p.1 :: b.1 :: b.2.1 else b.1 :: b.2.2) from ?_) using 1;
-  · exact (Primrec.ite (c := fun x : (BitString × List BitString) × (BitString × List BitString × List BitString) ↦ bitStringLE x.1.1 x.2.1)
-      (Primrec.nat_le.comp (Primrec.encode.comp (Primrec.fst.comp Primrec.fst)) (Primrec.encode.comp (Primrec.fst.comp Primrec.snd)))
-      (Primrec.comp Primrec.list_cons (Primrec.pair (Primrec.comp Primrec.fst Primrec.fst) (Primrec.comp Primrec.list_cons (Primrec.pair (Primrec.comp Primrec.fst Primrec.snd) (Primrec.comp Primrec.fst (Primrec.comp Primrec.snd Primrec.snd))))))
-      (Primrec.comp Primrec.list_cons (Primrec.pair (Primrec.comp Primrec.fst Primrec.snd) (Primrec.comp Primrec.snd (Primrec.comp Primrec.snd Primrec.snd))))).of_eq (fun ⟨p, b⟩ ↦ by
+  · convert Primrec.list_rec
+      (show Primrec (fun x : BitString × List BitString ↦ x.2) from Primrec.snd)
+      (show Primrec (fun x : BitString × List BitString ↦ [x.1]) from
+        Primrec.comp Primrec.list_cons (Primrec.pair Primrec.fst (Primrec.const [])))
+      (show Primrec₂
+        (fun p : BitString × List BitString ↦
+          fun b : BitString × List BitString × List BitString ↦
+            if decide (bitStringLE p.1 b.1) then
+              p.1 :: b.1 :: b.2.1
+            else
+              b.1 :: b.2.2) from ?_) using 1
+    exact (Primrec.ite
+      (c := fun x : (BitString × List BitString) ×
+        (BitString × List BitString × List BitString) ↦ bitStringLE x.1.1 x.2.1)
+      (Primrec.nat_le.comp
+        (Primrec.encode.comp (Primrec.fst.comp Primrec.fst))
+        (Primrec.encode.comp (Primrec.fst.comp Primrec.snd)))
+      (Primrec.comp Primrec.list_cons
+        (Primrec.pair (Primrec.comp Primrec.fst Primrec.fst)
+          (Primrec.comp Primrec.list_cons
+            (Primrec.pair (Primrec.comp Primrec.fst Primrec.snd)
+              (Primrec.comp Primrec.fst (Primrec.comp Primrec.snd Primrec.snd))))))
+      (Primrec.comp Primrec.list_cons
+        (Primrec.pair (Primrec.comp Primrec.fst Primrec.snd)
+          (Primrec.comp Primrec.snd (Primrec.comp Primrec.snd Primrec.snd))))).of_eq
+      (fun ⟨p, b⟩ ↦ by
         dsimp
         by_cases h : bitStringLE p.1 b.1 <;> simp [h])
   · intro n; induction n.2 <;> simp [List.orderedInsert]; aesop
@@ -157,7 +183,8 @@ theorem insertionSort_primrec :
     Primrec (fun l : List BitString ↦ List.insertionSort bitStringLE l) := by
   let f : List BitString → List BitString := id
   let g : List BitString → List BitString := fun _ ↦ []
-  let h : List BitString → BitString × List BitString → List BitString := fun _ b ↦ List.orderedInsert bitStringLE b.1 b.2
+  let h : List BitString → BitString × List BitString → List BitString := fun _ b ↦
+    List.orderedInsert bitStringLE b.1 b.2
   have H : Primrec (fun a ↦ (f a).foldr (fun b s ↦ h a (b, s)) (g a)) :=
     Primrec.list_foldr (f := f) (g := g) (h := h)
       Primrec.id (Primrec.const [])
@@ -173,11 +200,15 @@ theorem dedup_primrec :
       l.dedup = List.foldr (fun a acc ↦ if a ∈ acc then acc else a :: acc) [] l := by
         intro l; induction l <;> simp +decide [ * ];
         grind +suggestions
-  let h : List BitString → BitString × List BitString → List BitString := fun _ b ↦ if b.1 ∈ b.2 then b.2 else b.1 :: b.2
+  let h : List BitString → BitString × List BitString → List BitString := fun _ b ↦
+    if b.1 ∈ b.2 then b.2 else b.1 :: b.2
   have H : Primrec (fun (l : List BitString) ↦ l.foldr (fun a acc ↦ h l (a, acc)) []) :=
     (Primrec.list_foldr (f := id) (g := fun _ ↦ []) (h := h)
       Primrec.id (Primrec.const []) (
-      (Primrec.cond (Primrec.comp bitString_mem_primrec (Primrec.pair (Primrec.comp Primrec.fst Primrec.snd) (Primrec.comp Primrec.snd Primrec.snd)))
+      (Primrec.cond
+        (Primrec.comp bitString_mem_primrec
+          (Primrec.pair (Primrec.comp Primrec.fst Primrec.snd)
+            (Primrec.comp Primrec.snd Primrec.snd)))
         (Primrec.comp Primrec.snd Primrec.snd)
         (Primrec.comp Primrec.list_cons Primrec.snd)).of_eq (fun a ↦ by
           dsimp [h]
@@ -194,7 +225,8 @@ deduplicated list `l.dedup`.
 -/
 theorem canonicalFinsetList_toFinset_eq (l : List BitString) :
     canonicalFinsetList l.toFinset = List.insertionSort bitStringLE l.dedup := by
-  have h_perm : List.Perm (canonicalFinsetList l.toFinset) (l.dedup) ∧ List.Perm (List.insertionSort bitStringLE l.dedup) (l.dedup) := by
+  have h_perm : List.Perm (canonicalFinsetList l.toFinset) (l.dedup) ∧
+      List.Perm (List.insertionSort bitStringLE l.dedup) (l.dedup) := by
     have h_perm : Multiset.ofList (canonicalFinsetList l.toFinset) = Multiset.ofList l.dedup := by
       rw [canonicalFinsetList, Finset.sort_eq]
       exact l.toFinset_val
@@ -233,16 +265,24 @@ theorem codedUniformEncoder_primrec :
       codedDistributionDataCode (t.map fun x ↦
         ({point := x, mass := ratMassInvNat (max 1 t.length) (by positivity)} :
           CodedDistributionEntry))) := by
-  convert Primrec.list_foldr _ _ _ using 1;
-  rotate_left;
-  exact BitString;
-  infer_instance;
-  exact fun t ↦ t;
-  exact fun _ ↦ [ false ];
-  exact fun t p ↦ true :: pairCode ( pairCode p.1 ( pairCode ( natCode 1 ) ( natCode ( max 1 t.length ) ) ) ) p.2;
-  · exact Primrec.id;
-  · exact Primrec.const [ false ];
-  · apply Primrec.list_cons.comp ( Primrec.const true ) ( pairCode_primrec.comp ( pairCode_primrec.comp ( Primrec.fst.comp ( Primrec.snd ) ) ( pairCode_primrec.comp ( natCode_primrec.comp ( Primrec.const 1 ) ) ( natCode_primrec.comp ( Primrec.nat_max.comp ( Primrec.const 1 ) ( Primrec.list_length.comp ( Primrec.fst ) ) ) ) ) ) ( Primrec.snd.comp ( Primrec.snd ) ) );
+  convert Primrec.list_foldr _ _ _ using 1
+  rotate_left
+  · exact BitString
+  · infer_instance
+  · exact fun t ↦ t
+  · exact fun _ ↦ [false]
+  · exact fun t p ↦ true :: pairCode
+      (pairCode p.1 (pairCode (natCode 1) (natCode (max 1 t.length)))) p.2
+  · exact Primrec.id
+  · exact Primrec.const [false]
+  · apply Primrec.list_cons.comp (Primrec.const true)
+      (pairCode_primrec.comp
+        (pairCode_primrec.comp (Primrec.fst.comp Primrec.snd)
+          (pairCode_primrec.comp (natCode_primrec.comp (Primrec.const 1))
+            (natCode_primrec.comp
+              (Primrec.nat_max.comp (Primrec.const 1)
+                (Primrec.list_length.comp Primrec.fst)))))
+        (Primrec.snd.comp Primrec.snd))
   · exact funext fun t ↦ codedUniform_data_foldr t ( max 1 t.length ) ( by positivity )
 
 /-
@@ -256,13 +296,21 @@ enumeration `canonicalFinsetList` (`Finset.sort`, see
 `codedDistributionDataCode`.
 -/
 theorem levelSetUniformCode_computable : Computable levelSetUniformCode := by
-  convert Primrec.to_comp _;
-  convert Primrec.comp ( codedUniformEncoder_primrec ) ( canonicalFinsetList_toFinset_primrec.comp ( list_filter_primrec _ _ ) ) using 1;
-  rotate_left;
-  exact fun s ↦ ( decodeDistributionData ( decodeFirst s ) ).map CodedDistributionEntry.point;
-  exact fun s x ↦ levelSetMemBool ( decodeFirst s ) ( decodeNatCode ( decodeSecond s ) ) x;
-  · exact Primrec.list_map ( decodeDistributionData_primrec.comp decodeFirst_primrec ) ( entry_point_primrec.comp Primrec.snd );
-  · exact (Primrec.comp levelSetMemBool_primrec ( Primrec.pair ( Primrec.pair ( decodeFirst_primrec.comp ( Primrec.fst ) ) ( decodeNatCode_primrec.comp ( decodeSecond_primrec.comp ( Primrec.fst ) ) ) ) ( Primrec.snd ) ));
+  convert Primrec.to_comp _
+  convert Primrec.comp codedUniformEncoder_primrec
+    (canonicalFinsetList_toFinset_primrec.comp (list_filter_primrec _ _)) using 1
+  rotate_left
+  · exact fun s ↦
+      (decodeDistributionData (decodeFirst s)).map CodedDistributionEntry.point
+  · exact fun s x ↦
+      levelSetMemBool (decodeFirst s) (decodeNatCode (decodeSecond s)) x
+  · exact Primrec.list_map (decodeDistributionData_primrec.comp decodeFirst_primrec)
+      (entry_point_primrec.comp Primrec.snd)
+  · exact Primrec.comp levelSetMemBool_primrec
+      (Primrec.pair
+        (Primrec.pair (decodeFirst_primrec.comp Primrec.fst)
+          (decodeNatCode_primrec.comp (decodeSecond_primrec.comp Primrec.fst)))
+        Primrec.snd)
   · ext; simp [levelSetUniformCode]
 
 /--
@@ -357,45 +405,78 @@ theorem exists_setModel_optimalityDeficiencyLe_of_distribution
       ∃ S hS, x ∈ S ∧
         setComplexity U S hS ≤ P.complexity U + (logSlack c k : ENat) ∧
         SetOptimalityDeficiencyLe U S hS x (beta + logSlack c k + 1) := by
-  obtain ⟨ c, hc ⟩ := levelSetModel_setComplexity_le U hU;
-  refine ⟨ c, fun P x k hP hx hk₁ hk₂ beta hbeta ↦ ?_ ⟩;
-  refine ⟨ levelSet P k, levelSet_nonempty_of_mass_ge P x k hx hk₁, mem_levelSet hx hk₁, hc P k ( levelSet_nonempty_of_mass_ge P x k hx hk₁ ), ?_ ⟩;
-  rw [ setOptimalityDeficiencyLe_iff_of_mem ( mem_levelSet hx hk₁ ) ];
+  obtain ⟨c, hc⟩ := levelSetModel_setComplexity_le U hU
+  refine ⟨c, fun P x k hP hx hk₁ hk₂ beta hbeta ↦ ?_⟩
+  have h_nonempty := levelSet_nonempty_of_mass_ge P x k hx hk₁
+  refine ⟨levelSet P k, h_nonempty, mem_levelSet hx hk₁, hc P k h_nonempty, ?_⟩
+  rw [setOptimalityDeficiencyLe_iff_of_mem (mem_levelSet hx hk₁)]
   -- Apply the bounds from hc and the properties of the level set.
-  have h_complexity_weight : complexityWeight (KPPlain U P.code + (logSlack c k : ENat)) ≤ complexityWeight (setComplexity U (levelSet P k) (levelSet_nonempty_of_mass_ge P x k hx hk₁)) := by
-        exact complexityWeight_le_of_le ( hc P k ( levelSet_nonempty_of_mass_ge P x k hx hk₁ ) );
-  have h2 : complexityWeight (KPPlain U P.code + (logSlack c k : ENat)) * 2 ^ logSlack c k ≤ complexityWeight (setComplexity U (levelSet P k) (levelSet_nonempty_of_mass_ge P x k hx hk₁)) * 2 ^ logSlack c k := by
+  have h_complexity_weight :
+      complexityWeight (KPPlain U P.code + (logSlack c k : ENat)) ≤
+        complexityWeight (setComplexity U (levelSet P k) h_nonempty) := by
+    exact complexityWeight_le_of_le (hc P k h_nonempty)
+  have h2 :
+      complexityWeight (KPPlain U P.code + (logSlack c k : ENat)) *
+          2 ^ logSlack c k ≤
+        complexityWeight (setComplexity U (levelSet P k) h_nonempty) *
+          2 ^ logSlack c k := by
     gcongr
-  have h1 : complexityWeight (KPPlain U P.code) = complexityWeight (KPPlain U P.code + (logSlack c k : ENat)) * 2 ^ logSlack c k := by
-    rw [complexityWeight_add_nat, mul_assoc, ← mul_pow, ENNReal.inv_mul_cancel (by norm_num) (by norm_num), one_pow, mul_one]
-  have h_bounds : complexityWeight (KPPlain U P.code) ≤ complexityWeight (setComplexity U (levelSet P k) (levelSet_nonempty_of_mass_ge P x k hx hk₁)) * (2 : ℝ≥0∞) ^ (logSlack c k) ∧ P.mass x ≤ 2 * (↑(levelSet P k).card)⁻¹ := by
-    constructor;
-    · rw [h1]; exact h2
+  have h1 :
+      complexityWeight (KPPlain U P.code) =
+        complexityWeight (KPPlain U P.code + (logSlack c k : ENat)) *
+          2 ^ logSlack c k := by
+    rw [complexityWeight_add_nat, mul_assoc, ← mul_pow,
+      ENNReal.inv_mul_cancel (by norm_num) (by norm_num), one_pow, mul_one]
+  have h_bounds :
+      complexityWeight (KPPlain U P.code) ≤
+          complexityWeight (setComplexity U (levelSet P k) h_nonempty) *
+            (2 : ℝ≥0∞) ^ logSlack c k ∧
+        P.mass x ≤ 2 * (↑(levelSet P k).card)⁻¹ := by
+    constructor
+    · rw [h1]
+      exact h2
     · refine le_trans hk₂ ?_
       rw [ ← ENNReal.inv_pow ]
       gcongr
       exact levelSet_card_le P k hP
-  have h_prod : complexityWeight (KPPlain U P.code) * P.mass x * 2 ^ beta ≤
-    (complexityWeight (setComplexity U (levelSet P k) (levelSet_nonempty_of_mass_ge P x k hx hk₁)) * 2 ^ logSlack c k) * (2 * (↑(levelSet P k).card)⁻¹) * 2 ^ beta := by
+  have h_prod :
+      complexityWeight (KPPlain U P.code) * P.mass x * 2 ^ beta ≤
+        (complexityWeight (setComplexity U (levelSet P k) h_nonempty) *
+          2 ^ logSlack c k) * (2 * (↑(levelSet P k).card)⁻¹) * 2 ^ beta := by
     gcongr
-    exact h_bounds.1
-    exact h_bounds.2
+    · exact h_bounds.1
+    · exact h_bounds.2
   unfold OptimalityDeficiencyLe at hbeta
-  have hbeta' : complexityWeight (KPPlain U x) ≤ 2 ^ beta * (complexityWeight (P.complexity U) * P.mass x) := hbeta
+  have hbeta' :
+      complexityWeight (KPPlain U x) ≤
+        2 ^ beta * (complexityWeight (P.complexity U) * P.mass x) :=
+    hbeta
   calc complexityWeight (KPPlain U x)
       ≤ 2 ^ beta * (complexityWeight (P.complexity U) * P.mass x) := hbeta'
     _ = complexityWeight (KPPlain U P.code) * P.mass x * 2 ^ beta := by
         dsimp [CodedFiniteDistribution.complexity]
         rw [mul_comm (2 ^ beta)]
-    _ ≤ (complexityWeight (setComplexity U (levelSet P k) (levelSet_nonempty_of_mass_ge P x k hx hk₁)) * 2 ^ logSlack c k) * (2 * (↑(levelSet P k).card)⁻¹) * 2 ^ beta := h_prod
-    _ = 2 ^ (beta + logSlack c k + 1) * (complexityWeight (setComplexity U (levelSet P k) (levelSet_nonempty_of_mass_ge P x k hx hk₁)) * (↑(levelSet P k).card)⁻¹) := by
+    _ ≤ (complexityWeight (setComplexity U (levelSet P k) h_nonempty) *
+          2 ^ logSlack c k) * (2 * (↑(levelSet P k).card)⁻¹) * 2 ^ beta := h_prod
+    _ = 2 ^ (beta + logSlack c k + 1) *
+        (complexityWeight (setComplexity U (levelSet P k) h_nonempty) *
+          (↑(levelSet P k).card)⁻¹) := by
         rw [pow_add, pow_add, pow_one]
-        calc (complexityWeight (setComplexity U (levelSet P k) (levelSet_nonempty_of_mass_ge P x k hx hk₁)) * 2 ^ logSlack c k) * (2 * (↑(levelSet P k).card)⁻¹) * 2 ^ beta
-            = 2 ^ beta * (2 ^ logSlack c k * 2 * (complexityWeight (setComplexity U (levelSet P k) (levelSet_nonempty_of_mass_ge P x k hx hk₁)) * (↑(levelSet P k).card)⁻¹)) := by
+        calc
+          (complexityWeight (setComplexity U (levelSet P k) h_nonempty) *
+                2 ^ logSlack c k) *
+              (2 * (↑(levelSet P k).card)⁻¹) * 2 ^ beta =
+              2 ^ beta * (2 ^ logSlack c k * 2 *
+                (complexityWeight (setComplexity U (levelSet P k) h_nonempty) *
+                  (↑(levelSet P k).card)⁻¹)) := by
               rw [mul_comm]
               congr 1
               rw [mul_assoc, ←mul_assoc (2 ^ logSlack c k)]
-              exact mul_left_comm (complexityWeight _) (2 ^ logSlack c k * 2) (↑(levelSet P k).card)⁻¹
-          _ = 2 ^ beta * 2 ^ logSlack c k * 2 * (complexityWeight (setComplexity U (levelSet P k) (levelSet_nonempty_of_mass_ge P x k hx hk₁)) * (↑(levelSet P k).card)⁻¹) := by ac_rfl
+              exact mul_left_comm (complexityWeight _) (2 ^ logSlack c k * 2)
+                (↑(levelSet P k).card)⁻¹
+          _ = 2 ^ beta * 2 ^ logSlack c k * 2 *
+              (complexityWeight (setComplexity U (levelSet P k) h_nonempty) *
+                (↑(levelSet P k).card)⁻¹) := by
+                ac_rfl
 
 end Kolmogorov

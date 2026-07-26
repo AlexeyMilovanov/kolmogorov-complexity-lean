@@ -558,7 +558,8 @@ theorem KP_cond_drop_left_le (U : Map) (hU : IsOptimalPrefixConditional U) :
 
 /-- The `simpleLenDecompressorOpt` interprets the input bitstring length. -/
 def simpleLenDecompressorOpt (p : List Bool) : Option (List Bool) :=
-  bif (p.length == (p.takeWhile id).length + (p.takeWhile id).length + 1) then some (p.drop ((p.takeWhile id).length + 1)) else none
+  bif (p.length == (p.takeWhile id).length + (p.takeWhile id).length + 1)
+    then some (p.drop ((p.takeWhile id).length + 1)) else none
 
 /-- The `simpleLenDecompressor` map based on `simpleLenDecompressorOpt`. -/
 def simpleLenDecompressor : Map := fun pr ↦ Part.ofOption (simpleLenDecompressorOpt pr.1)
@@ -575,11 +576,14 @@ lemma simpleLenDecompressor_computable : isDecompressor simpleLenDecompressor :=
     have h_len : Computable (fun p : List Bool ↦ p.length) :=
       Computable.list_length
     have h_add : Computable₂ (fun (x y : Nat) ↦ x + y) := Primrec.nat_add.to_comp
-    have h_2n : Computable (fun p : List Bool ↦ (p.takeWhile id).length + (p.takeWhile id).length) :=
+    have h_2n : Computable (fun p : List Bool ↦
+        (p.takeWhile id).length + (p.takeWhile id).length) :=
       h_add.comp h_n h_n
-    have h_2n1 : Computable (fun p : List Bool ↦ (p.takeWhile id).length + (p.takeWhile id).length + 1) :=
+    have h_2n1 : Computable (fun p : List Bool ↦
+        (p.takeWhile id).length + (p.takeWhile id).length + 1) :=
       Computable.succ.comp h_2n
-    have h_beq : Computable (fun p : List Bool ↦ (p.length == (p.takeWhile id).length + (p.takeWhile id).length + 1)) := by
+    have h_beq : Computable (fun p : List Bool ↦
+        (p.length == (p.takeWhile id).length + (p.takeWhile id).length + 1)) := by
       have h1 := (Primrec.beq.comp Primrec.fst Primrec.snd).to_comp.comp (h_len.pair h_2n1)
       exact h1.of_eq (fun p ↦ rfl)
     have h_none : Computable (fun (p : List Bool) ↦ (none : Option (List Bool))) :=
@@ -607,7 +611,8 @@ lemma takeWhile_length_eq_of_prefix {p q : List Bool} (hpre : p <+: q)
     · -- a = true
       subst h_a
       have h1 : (List.takeWhile id (true :: p)).length = (List.takeWhile id p).length + 1 := rfl
-      have h2 : (List.takeWhile id (true :: p ++ t)).length = (List.takeWhile id (p ++ t)).length + 1 := rfl
+      have h2 : (List.takeWhile id (true :: p ++ t)).length =
+          (List.takeWhile id (p ++ t)).length + 1 := rfl
       have h_bounds_p : (List.takeWhile id p).length < p.length := by
         rw [h1] at h_bounds
         have h3 : (true :: p).length = p.length + 1 := rfl
@@ -650,7 +655,8 @@ lemma simpleLenDecompressor_isPrefixMachine : IsPrefixMachine simpleLenDecompres
   subst ht
   exact (List.append_nil p).symm
 
-lemma simpleLenDecompressor_produces (p y : List Bool) (h : p.length = (p.takeWhile id).length + (p.takeWhile id).length + 1) :
+lemma simpleLenDecompressor_produces (p y : List Bool)
+    (h : p.length = (p.takeWhile id).length + (p.takeWhile id).length + 1) :
     produces simpleLenDecompressor p y (p.drop ((p.takeWhile id).length + 1)) := by
   unfold produces simpleLenDecompressor
   have heq : simpleLenDecompressorOpt p = some (p.drop ((p.takeWhile id).length + 1)) := by
@@ -678,7 +684,8 @@ lemma drop_replicate_append (n : Nat) (x : List Bool) :
 /-- Simple length bound: `KPPlain U x ≤ 2 * x.length + O(1)`. -/
 theorem KPPlain_le_two_mul_length (U : Map) (hU : IsOptimalPrefixConditional U) :
     ∃ c : ℕ, ∀ x : BitString, KPPlain U x ≤ 2 * x.length + (c : ENat) := by
-  have hM : IsPrefixDecompressor simpleLenDecompressor := ⟨simpleLenDecompressor_computable, simpleLenDecompressor_isPrefixMachine⟩
+  have hM : IsPrefixDecompressor simpleLenDecompressor :=
+    ⟨simpleLenDecompressor_computable, simpleLenDecompressor_isPrefixMachine⟩
   obtain ⟨c, hc⟩ := hU.invariance hM
   use c + 1
   intro x
@@ -776,14 +783,16 @@ theorem KP_le_length_given_natBits_length (U : Map) (hU : IsOptimalPrefixConditi
     exactLengthContextDecompressor_produces x (Nat.bits x.length) (by simp [decodeBits_natBits])
   calc
     KP U x (Nat.bits x.length)
-        ≤ KP exactLengthContextDecompressor x (Nat.bits x.length) + (c : ENat) := hc x (Nat.bits x.length)
+        ≤ KP exactLengthContextDecompressor x (Nat.bits x.length) + (c : ENat) :=
+      hc x (Nat.bits x.length)
     _ ≤ (x.length : ENat) + (c : ENat) := by
         simpa [add_comm, add_left_comm, add_assoc] using
           add_le_add_right (KP_le_programLength_of_produces hprod) (c : ENat)
 
 /-- Sharper self-delimiting length bound: `KPPlain U x ≤ x.length + 2 * log x.length + O(1)`. -/
 theorem KPPlain_le_length_add_log (U : Map) (hU : IsOptimalPrefixConditional U) :
-    ∃ c : ℕ, ∀ x : BitString, KPPlain U x ≤ x.length + 2 * (Nat.bits x.length).length + (c : ENat) := by
+    ∃ c : ℕ, ∀ x : BitString,
+        KPPlain U x ≤ x.length + 2 * (Nat.bits x.length).length + (c : ENat) := by
   obtain ⟨c_sub, h_sub⟩ := KPPlain_le_KPPlain_add_KP U hU
   obtain ⟨c_cond, h_cond⟩ := KP_le_length_given_natBits_length U hU
   obtain ⟨c_nat, h_nat⟩ := KPPlain_le_two_mul_length U hU
@@ -828,7 +837,8 @@ theorem KPPlain_natCode_le_log (U : Map) (hU : IsOptimalPrefixConditional U) :
 
 /-- SUV Theorem 61: `K(x, K(x)) = K(x) + O(1)`. -/
 theorem KPPair_self_complexity_le (U : Map) (hU : IsOptimalPrefixConditional U) :
-    ∃ c : ℕ, ∀ x kx, HasPrefixComplexityValue U x kx → KPPair U x (natCode kx) ≤ kx + (c : ENat) := by
+    ∃ c : ℕ, ∀ x kx, HasPrefixComplexityValue U x kx →
+        KPPair U x (natCode kx) ≤ kx + (c : ENat) := by
   obtain ⟨c_chain, h_chain⟩ := KPPair_chain_upper U hU
   obtain ⟨c_cond, h_cond⟩ := KP_map_self_le U hU decodeSecond decodeSecond_computable
   refine ⟨c_cond + c_chain, ?_⟩
@@ -850,7 +860,8 @@ theorem KPPair_self_complexity_le (U : Map) (hU : IsOptimalPrefixConditional U) 
         abel
 
 theorem KPPlain_le_KPPair_self_complexity (U : Map) (hU : IsOptimalPrefixConditional U) :
-    ∃ c : ℕ, ∀ x kx, HasPrefixComplexityValue U x kx → (kx : ENat) ≤ KPPair U x (natCode kx) + (c : ENat) := by
+    ∃ c : ℕ, ∀ x kx, HasPrefixComplexityValue U x kx →
+        (kx : ENat) ≤ KPPair U x (natCode kx) + (c : ENat) := by
   obtain ⟨c, h_left⟩ := KPPlain_left_le_KPPair U hU
   refine ⟨c, ?_⟩
   intro x kx hkx
@@ -859,7 +870,8 @@ theorem KPPlain_le_KPPair_self_complexity (U : Map) (hU : IsOptimalPrefixConditi
 
 /-- SUV Theorem 63(a): `K(x) ≤ |x| + K(|x|) + O(1)`. -/
 theorem KPPlain_le_length_add_KPPlain_length (U : Map) (hU : IsOptimalPrefixConditional U) :
-    ∃ c : ℕ, ∀ x : BitString, KPPlain U x ≤ x.length + KPPlain U (Nat.bits x.length) + (c : ENat) := by
+    ∃ c : ℕ, ∀ x : BitString,
+        KPPlain U x ≤ x.length + KPPlain U (Nat.bits x.length) + (c : ENat) := by
   obtain ⟨c_sub, h_sub⟩ := KPPlain_le_KPPlain_add_KP U hU
   obtain ⟨c_cond, h_cond⟩ := KP_le_length_given_natBits_length U hU
   refine ⟨c_cond + c_sub, ?_⟩
@@ -1103,8 +1115,8 @@ theorem takeWhile_id_len_eq_or {p q : List Bool} (h : p <+: q) :
       cases a
       · simp
       · simp only [id_eq, List.takeWhile_cons_of_pos, List.length_cons, Nat.add_right_cancel_iff,
-          List.cons.injEq, List.takeWhile_eq_self_iff, Bool.forall_bool, Bool.false_eq_true, imp_false,
-          implies_true, and_true, true_and, Order.lt_add_one_iff, Order.add_one_le_iff]
+          List.cons.injEq, List.takeWhile_eq_self_iff, Bool.forall_bool, Bool.false_eq_true,
+          imp_false, implies_true, and_true, true_and, Order.lt_add_one_iff, Order.add_one_le_iff]
         rcases ih h2 with h_eq | ⟨hp, hlt⟩
         · left; exact h_eq
         · right
@@ -1161,7 +1173,8 @@ theorem decodeSecond_mono {p q : BitString} (h : p <+: q) : decodeSecond p <+: d
     exact h
   · have h1 : (p.takeWhile id).length = p.length := congrArg List.length hp_take
     have h2 : (p.takeWhile id).length + 1 + (p.takeWhile id).length > p.length := by omega
-    have h3 : p.drop ((p.takeWhile id).length + 1 + (p.takeWhile id).length) = [] := List.drop_eq_nil_of_le (by omega)
+    have h3 : p.drop ((p.takeWhile id).length + 1 + (p.takeWhile id).length) = [] :=
+      List.drop_eq_nil_of_le (by omega)
     simp [h3]
 
 end Kolmogorov

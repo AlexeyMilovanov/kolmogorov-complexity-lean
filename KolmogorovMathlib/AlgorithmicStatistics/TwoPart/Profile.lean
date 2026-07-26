@@ -38,24 +38,31 @@ theorem decodeElement_computable : Computable decodeElement := by
       ((decodeDistributionData (decodeFirst t)).map CodedDistributionEntry.point).drop
         (bitsToNat (decodeSecond t))) := by
     have h_drop : Primrec₂ (fun (l : List BitString) (n : ℕ) => l.drop n) := by
-      have h : (fun (l : List BitString) (n : ℕ) => l.drop n) = fun l n => Nat.rec l (fun _ ih => ih.tail) n := by
+      have h : (fun (l : List BitString) (n : ℕ) => l.drop n) =
+          fun l n => Nat.rec l (fun _ ih => ih.tail) n := by
         funext l n; induction n with | zero => rfl | succ n ih => rw [← List.tail_drop, ih]
-      rw [h]; exact Primrec.nat_rec' Primrec.snd Primrec.fst (Primrec.list_tail.comp (Primrec.snd.comp Primrec.snd)).to₂
-    have h_L : Primrec (fun t : BitString => (decodeDistributionData (decodeFirst t)).map CodedDistributionEntry.point) :=
-      Primrec.list_map (decodeDistributionData_primrec.comp decodeFirst_primrec) (entry_point_primrec.comp Primrec.snd).to₂
+      rw [h]
+      exact Primrec.nat_rec' Primrec.snd Primrec.fst
+        (Primrec.list_tail.comp (Primrec.snd.comp Primrec.snd)).to₂
+    have h_L : Primrec (fun t : BitString =>
+        (decodeDistributionData (decodeFirst t)).map CodedDistributionEntry.point) :=
+      Primrec.list_map (decodeDistributionData_primrec.comp decodeFirst_primrec)
+        (entry_point_primrec.comp Primrec.snd).to₂
     have h_idx : Primrec (fun t : BitString => bitsToNat (decodeSecond t)) :=
       bitsToNat_primrec.comp decodeSecond_primrec
     exact h_drop.comp h_L h_idx
   exact ((Primrec.list_headI.comp hd).of_eq (fun _ => rfl)).to_comp
 
-theorem decodeElement_eq (S : Finset BitString) (hS : S.Nonempty) (x : BitString) (hx : x ∈ S) (j : ℕ) :
+theorem decodeElement_eq (S : Finset BitString) (hS : S.Nonempty) (x : BitString)
+    (hx : x ∈ S) (j : ℕ) :
     let blockIdx := (canonicalFinsetList S).findIdx (· == x)
     let z := chunkAddress blockIdx j
     decodeElement (pairCode (codedUniformOn S hS).code z) = x := by
   intro blockIdx z
   unfold decodeElement
   simp only [decodeFirst_pairCode, decodeSecond_pairCode]
-  have h_data : (decodeDistributionData (codedUniformOn S hS).code).map CodedDistributionEntry.point = canonicalFinsetList S :=
+  have h_data : (decodeDistributionData (codedUniformOn S hS).code).map
+      CodedDistributionEntry.point = canonicalFinsetList S :=
     dataPoints_codedUniformOn S hS
   rw [h_data]
   have h_idx : bitsToNat z = blockIdx := bitsToNat_chunkAddress _ _
@@ -64,7 +71,8 @@ theorem decodeElement_eq (S : Finset BitString) (hS : S.Nonempty) (x : BitString
   have h_idx_val : blockIdx < (canonicalFinsetList S).length := by
     dsimp [blockIdx]
     rw [List.findIdx_lt_length]; exact ⟨x, h_mem, by simp⟩
-  have h_drop : ((canonicalFinsetList S).drop blockIdx) = (canonicalFinsetList S)[blockIdx] :: ((canonicalFinsetList S).drop (blockIdx + 1)) := by
+  have h_drop : ((canonicalFinsetList S).drop blockIdx) =
+      (canonicalFinsetList S)[blockIdx] :: ((canonicalFinsetList S).drop (blockIdx + 1)) := by
     apply List.drop_eq_getElem_cons
   rw [h_drop]
   have h_get : (canonicalFinsetList S)[blockIdx] = x := by
@@ -155,9 +163,12 @@ theorem KPPlain_le_of_inDescriptionProfile (U : Map) (hU : IsOptimalPrefixCondit
     have h := hc_len z
     rw [hz_len] at h
     exact h
-  calc KPPlain U x = KPPlain U (decodeElement (pairCode (codedUniformOn S hS).code z)) := by rw [h_dec]
+  calc
+    KPPlain U x =
+        KPPlain U (decodeElement (pairCode (codedUniformOn S hS).code z)) := by rw [h_dec]
     _ ≤ KPPlain U (pairCode (codedUniformOn S hS).code z) + c_map := hc_map _
-    _ = KPPair U (codedUniformOn S hS).code z + c_map := by rw [KPPlain_eq_KP, KPPair_eq_KP_pairCode]
+    _ = KPPair U (codedUniformOn S hS).code z + c_map := by
+        rw [KPPlain_eq_KP, KPPair_eq_KP_pairCode]
     _ ≤ (KPPlain U (codedUniformOn S hS).code + KPPlain U z + c_pair) + c_map := by
         gcongr
         exact hc_pair _ _
@@ -166,12 +177,15 @@ theorem KPPlain_le_of_inDescriptionProfile (U : Map) (hU : IsOptimalPrefixCondit
         exact hcomp
     _ ≤ ((i : ENat) + ((j : ENat) + 2 * (Nat.bits j).length + c_len) + c_pair) + c_map := by
         gcongr
-    _ = ((i + j + 2 * (Nat.bits j).length + c_len + c_pair + c_map : ℕ) : ENat) := by push_cast; ring
+    _ = ((i + j + 2 * (Nat.bits j).length + c_len + c_pair + c_map : ℕ) : ENat) := by
+        push_cast
+        ring
     _ ≤ (i + j + logSlack c (n + i + j) : ENat) := by
         have h_mono : (Nat.bits j).length ≤ (Nat.bits (n + i + j)).length :=
           length_natBits_mono (by omega)
         have h_c : c = c_map + c_pair + c_len + 2 := rfl
-        have h_le : i + j + 2 * (Nat.bits j).length + c_len + c_pair + c_map ≤ i + j + logSlack c (n + i + j) := by
+        have h_le : i + j + 2 * (Nat.bits j).length + c_len + c_pair + c_map ≤
+            i + j + logSlack c (n + i + j) := by
           unfold logSlack
           nlinarith
         exact_mod_cast h_le

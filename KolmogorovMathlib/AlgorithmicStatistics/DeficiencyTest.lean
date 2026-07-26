@@ -74,8 +74,8 @@ theorem canonicalTest_expectation_le_one (U : Map) (hU : IsOptimalPrefixConditio
   apply le_trans _ ( ENNReal.sum_le_tsum P.support )
   apply Finset.sum_le_sum fun x hx ↦ ?_
   convert mul_le_mul (le_refl ( complexityWeight ( KP U x P.code ) ))
-      ( ENNReal.mul_inv_le_one ( P.mass x ) ) (zero_le) (zero_le) using 1; ring_nf;
-  · unfold canonicalTest; ring_nf;
+      ( ENNReal.mul_inv_le_one ( P.mass x ) ) (zero_le) (zero_le) using 1
+  · unfold canonicalTest; ring_nf
   · rw [ mul_one ]
 
 /-- The canonical test is bounded by `2^beta` exactly when deficiency is bounded,
@@ -115,8 +115,9 @@ theorem weightedTestSemimeasure_le_complexityWeight
     ∃ c : Nat, ∀ x : BitString,
       (2 : ENNReal)⁻¹ ^ c * (P.mass x * t.val x) <=
         complexityWeight (KP U x P.code) := by
-  obtain ⟨M', hM', c₀, hreal⟩ := kraftChaitin_realization_bound_unit hlsc (weightedTestSemimeasure_isConditionalSemimeasure P t);
-  obtain ⟨ c, hc ⟩ := complexityWeight_dominates_of_prefix_realization hU hM' hreal;
+  obtain ⟨M', hM', c₀, hreal⟩ := kraftChaitin_realization_bound_unit hlsc
+    (weightedTestSemimeasure_isConditionalSemimeasure P t)
+  obtain ⟨ c, hc ⟩ := complexityWeight_dominates_of_prefix_realization hU hM' hreal
   exact ⟨ c, fun x ↦ by simpa [ weightedTestSemimeasure ] using hc x P.code ⟩
 
 /-

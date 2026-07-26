@@ -87,7 +87,8 @@ theorem deficiencyLe_levelSetModel (U : Map) (P : CodedFiniteDistribution) (k : 
       complexityWeight (KP U x (levelSetModel P k h_nonempty).code) <=
         (2 : ENNReal) ^ beta * ((levelSet P k).card : ENNReal)⁻¹) :
     DeficiencyLe U (levelSetModel P k h_nonempty) x beta := by
-  -- By definition of `DeficiencyLe`, we need to show that the complexity weight is less than or equal to 2^beta times the mass.
+  -- By definition of `DeficiencyLe`, we need to show that the complexity weight
+  -- is less than or equal to 2^beta times the mass.
   exact h_weight.trans (mul_le_mul_right (le_of_eq (codedUniformOn_mass_of_mem _ _ _ hx).symm) _)
 
 /-- A coded level-set model can witness stochasticity when its canonical model

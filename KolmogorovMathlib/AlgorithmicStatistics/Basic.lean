@@ -42,16 +42,16 @@ theorem pow_two_mono {n m : ℕ} (h : n ≤ m) :
   exact pow_le_pow_right₀ one_le_two h
 
 /-- `2^0 = 1` for `ENNReal`. -/
-theorem pow_two_zero : (2 : ℝ≥0∞) ^ 0 = 1 :=
+@[simp] theorem pow_two_zero : (2 : ℝ≥0∞) ^ 0 = 1 :=
   pow_zero _
 
 /-- Multiplication by zero. -/
-theorem ENNReal_pow_two_mul_zero (beta : ℕ) :
+@[simp] theorem ENNReal_pow_two_mul_zero (beta : ℕ) :
     ((2 : ℝ≥0∞) ^ beta) * 0 = 0 :=
   mul_zero _
 
 /-- Multiplication by one. -/
-theorem ENNReal_pow_two_mul_one (beta : ℕ) :
+@[simp] theorem ENNReal_pow_two_mul_one (beta : ℕ) :
     ((2 : ℝ≥0∞) ^ beta) * 1 = (2 : ℝ≥0∞) ^ beta :=
   mul_one _
 

@@ -310,7 +310,11 @@ theorem twoStageS2_computable (c : Code) (ctx : BitString → Nat → BitString)
     Computable (fun p : BitString × ℕ ↦ twoStageS2 c ctx p.1 p.2) := by
   have h1 : Computable (fun p : BitString × ℕ ↦ twoStageS1 c p.1 p.2) :=
     twoStageS1_computable c
-  have h_comp2 : Computable (fun p : BitString × ℕ ↦ (twoStageS1 c p.1 p.2).bind (fun x ↦ (Code.evaln p.2.unpair.2 c (Encodable.encode (p.1.drop p.2.unpair.1, ctx x p.2.unpair.1))).bind (fun e ↦ (Encodable.decode e : Option BitString)))) := by
+  have h_comp2 : Computable (fun p : BitString × ℕ ↦
+      (twoStageS1 c p.1 p.2).bind (fun x ↦
+        (Code.evaln p.2.unpair.2 c
+          (Encodable.encode (p.1.drop p.2.unpair.1, ctx x p.2.unpair.1))).bind
+            (fun e ↦ (Encodable.decode e : Option BitString)))) := by
     apply Computable.option_bind h1
     apply Computable.option_bind (twoStageS2_eval_computable c ctx hctx)
     exact Computable.decode.comp Computable.snd
@@ -328,20 +332,29 @@ theorem twoStagePairOut_computable (c : Code) (ctx : BitString → Nat → BitSt
     twoStageS1_computable c
   have h_pairCode_computable : Computable₂ (fun (x y : BitString) ↦ pairCode x y) := by
     have h_natCode_computable : Computable (fun (n : ℕ) ↦ natCode n) := by
-      have h_natCode_computable : Computable (fun n ↦ List.replicate n true ++ [false]) := by
-        have h_replicate : Computable (fun n ↦ List.replicate n true) := by
-          apply Computable.of_eq;
-          apply Computable.nat_rec;
-          exact Computable.id;
-          exact Computable.const [ ];
-          rotate_left;
-          exact fun n p ↦ true :: p.2;
-          · intro n; induction n <;> simp +decide only [id_eq, List.replicate, List.cons.injEq, true_and];
-            assumption;
-          · exact Computable.list_cons.comp ( Computable.const true ) ( Computable.snd.comp Computable.snd )
-        exact Computable.comp ( Computable.list_append ) ( h_replicate.pair ( Computable.const [ false ] ) );
-      exact h_natCode_computable
-    exact Computable.comp (Computable.list_append.comp (Computable.list_append.comp (h_natCode_computable.comp (Computable.list_length.comp Computable.fst)) Computable.fst) Computable.snd) (Computable.pair (Computable.fst) (Computable.snd));
+      have hrep : Primrec (fun n : ℕ ↦ List.replicate n true) := by
+        have h : (fun n : ℕ ↦ List.replicate n true) =
+            fun n ↦ Nat.rec ([] : List Bool) (fun _ ih ↦ true :: ih) n := by
+          funext n
+          induction n with
+          | zero => rfl
+          | succ n ih => rw [List.replicate_succ, ih]
+        rw [h]
+        exact Primrec.nat_rec' Primrec.id (Primrec.const [])
+          (Primrec.list_cons.comp
+            (Primrec.const true) (Primrec.snd.comp Primrec.snd)).to₂
+      have hcode : Primrec natCode := by
+        have h : natCode = fun n ↦ List.replicate n true ++ [false] := rfl
+        rw [h]
+        exact Primrec.list_append.comp hrep (Primrec.const [false])
+      exact hcode.to_comp
+    exact Computable.comp
+      (Computable.list_append.comp
+        (Computable.list_append.comp
+          (h_natCode_computable.comp (Computable.list_length.comp Computable.fst))
+          Computable.fst)
+        Computable.snd)
+      (Computable.pair Computable.fst Computable.snd)
   exact Computable.option_bind h_twoStageS1_computable (Computable.option_map
     (h_twoStageS2_computable.comp ( Computable.fst ))
     (h_pairCode_computable.comp ( Computable.snd.comp Computable.fst ) Computable.snd))
@@ -369,7 +382,9 @@ theorem twoStageCheck_computable (c : Code) (ctx : BitString → Nat → BitStri
     Computable.comp (Primrec.to_comp ( Primrec.option_isSome ))
       (twoStagePairOut_computable c ctx hctx)
   have h3 := Computable.cond h1 h2 ( Computable.const false )
-  exact Computable.of_eq h3 (fun p ↦ by unfold twoStageCheck; cases decide (p.2.unpair.1 ≤ p.1.length) <;> rfl)
+  exact Computable.of_eq h3 fun p ↦ by
+    unfold twoStageCheck
+    cases decide (p.2.unpair.1 ≤ p.1.length) <;> rfl
 
 /-
 The explicit two-stage decompressor is partial recursive.
@@ -377,11 +392,14 @@ The explicit two-stage decompressor is partial recursive.
 theorem twoStageMap_partrec (c : Code) (ctx : BitString → Nat → BitString)
     (hctx : Computable (fun p : BitString × ℕ ↦ ctx p.1 p.2)) :
     Partrec (twoStageMap c ctx) := by
-  -- The function that takes a pair (w, r) and returns the result of the two-stage map is partial recursive.
-  have h_twoStageMap : Partrec (fun p : BitString ↦ (Nat.rfind (fun n ↦ Part.some (twoStageCheck c ctx p n))).bind (fun n ↦ (↑(twoStagePairOut c ctx p n) : Part BitString))) := by
+  -- The function on `(w, r)` returning the two-stage result is partial recursive.
+  have h_twoStageMap : Partrec (fun p : BitString ↦
+      (Nat.rfind (fun n ↦ Part.some (twoStageCheck c ctx p n))).bind
+        (fun n ↦ (↑(twoStagePairOut c ctx p n) : Part BitString))) := by
     apply_rules [ Partrec.bind, Partrec.rfind ];
     · exact Computable.to₂ ( twoStageCheck_computable c ctx hctx )
-    · exact Computable.ofOption ( twoStagePairOut_computable c ctx hctx ) |> Partrec.comp <| Computable.fst.pair Computable.snd
+    · exact Computable.ofOption ( twoStagePairOut_computable c ctx hctx )
+        |> Partrec.comp <| Computable.fst.pair Computable.snd
   exact h_twoStageMap.comp ( Computable.fst )
 
 /-
@@ -395,11 +413,16 @@ theorem twoStageMap_mem_imp_spec {U : Map} {ctx : BitString → Nat → BitStrin
         (fun a ↦ Part.map Encodable.encode (U a)))
     {w r z : BitString} (hz : z ∈ twoStageMap c ctx (w, r)) :
     twoStagePairSpec U ctx w z := by
-  obtain ⟨n, hn⟩ : ∃ n, Nat.rfind (fun n ↦ Part.some (twoStageCheck c ctx w n)) = Part.some n ∧ z ∈ (↑(twoStagePairOut c ctx w n) : Part BitString) := by
+  obtain ⟨n, hn⟩ : ∃ n,
+      Nat.rfind (fun n ↦ Part.some (twoStageCheck c ctx w n)) = Part.some n ∧
+        z ∈ (↑(twoStagePairOut c ctx w n) : Part BitString) := by
     unfold twoStageMap at hz;
-    cases h : Nat.rfind ( fun n ↦ Part.some ( twoStageCheck c ctx w n ) ); simp_all +decide [ Part.mem_bind_iff ];
+    cases h : Nat.rfind ( fun n ↦ Part.some ( twoStageCheck c ctx w n ) )
+    simp_all +decide [ Part.mem_bind_iff ];
     aesop;
-  obtain ⟨x, y, hx, hy⟩ : ∃ x y, twoStageS1 c w n = some x ∧ twoStageS2 c ctx w n = some y ∧ z = pairCode x y := by
+  obtain ⟨x, y, hx, hy⟩ : ∃ x y,
+      twoStageS1 c w n = some x ∧ twoStageS2 c ctx w n = some y ∧
+        z = pairCode x y := by
     unfold twoStagePairOut at hn; simp_all +decide;
     cases h : twoStageS1 c w n <;> cases h' : twoStageS2 c ctx w n <;> aesop;
   refine ⟨ w.take n.unpair.1, w.drop n.unpair.1, x, y, ?_, ?_, ?_, ?_ ⟩ <;>
@@ -407,14 +430,18 @@ theorem twoStageMap_mem_imp_spec {U : Map} {ctx : BitString → Nat → BitStrin
       twoStageS1, Encodable.encode_prod_val, Encodable.encode_list_nil, twoStageS2,
       Option.bind_some, List.take_append_drop, List.length_take];
   · rw [ Option.bind_eq_some_iff ] at hx;
-    obtain ⟨ a, ha₁, ha₂ ⟩ := hx; have := Nat.Partrec.Code.evaln_sound ha₁; simp_all +decide [ produces ];
+    obtain ⟨ a, ha₁, ha₂ ⟩ := hx
+    have := Nat.Partrec.Code.evaln_sound ha₁
+    simp_all +decide [ produces ];
     obtain ⟨ b, hb₁, hb₂ ⟩ := this; have := Encodable.encodek ( α := BitString ) b; aesop;
   · rw [ min_eq_left ];
     · rw [ Option.bind_eq_some_iff ] at hy;
       obtain ⟨ ⟨ a, ha₁, ha₂ ⟩, rfl ⟩ := hy; simp_all +decide [ produces ];
       have := Nat.Partrec.Code.evaln_sound ha₁; simp_all +decide;
       obtain ⟨ z, hz₁, hz₂ ⟩ := this; have := Encodable.encodek z; aesop;
-    · have := Nat.mem_rfind.mp ( show n ∈ Nat.rfind ( fun n ↦ Part.some ( twoStageCheck c ctx w n ) ) from by aesop ); simp_all +decide [ twoStageCheck ];
+    · have := Nat.mem_rfind.mp (show n ∈ Nat.rfind
+          (fun n ↦ Part.some (twoStageCheck c ctx w n)) from by aesop)
+      simp_all +decide [ twoStageCheck ];
 
 /-
 Completeness: the explicit decompressor halts whenever the relational spec

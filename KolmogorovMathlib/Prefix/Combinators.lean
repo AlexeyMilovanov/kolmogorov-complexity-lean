@@ -51,7 +51,7 @@ has length exactly `n` (the trailing `false` of `natCode n` stops the run). -/
 
 /-- Dropping the unary tag: discarding the first `n + 1` bits of `natCode n ++ p`
 (the `n` ones plus the terminating `false`) recovers the tail `p`. -/
-theorem drop_natCode_append (n : ℕ) (p : BitString) :
+@[simp] theorem drop_natCode_append (n : ℕ) (p : BitString) :
     (natCode n ++ p).drop (n + 1) = p := by
   induction n with
   | zero => rfl

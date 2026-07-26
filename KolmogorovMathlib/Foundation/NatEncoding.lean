@@ -58,6 +58,7 @@ theorem natBitsInjective : Function.Injective Nat.bits := by
 
 /-! ### Length Bounds -/
 
+@[simp]
 lemma natBits_zero : Nat.bits 0 = [] := by
   simp [Nat.bits]
 

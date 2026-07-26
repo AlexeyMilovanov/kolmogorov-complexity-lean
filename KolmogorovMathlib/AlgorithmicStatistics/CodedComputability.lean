@@ -85,11 +85,13 @@ theorem pairCode_primrec : Primrec₂ pairCode :=
 
 /-- The `num` projection of a rational mass is primitive recursive. -/
 theorem ratMass_num_primrec : Primrec (fun q : RatMass ↦ q.num) :=
-  (Primrec.fst.comp (Primrec.subtype_val.comp (Primrec.of_equiv (e := RatMass.equivSubtype)))).of_eq (fun _ ↦ rfl)
+  (Primrec.fst.comp (Primrec.subtype_val.comp
+    (Primrec.of_equiv (e := RatMass.equivSubtype)))).of_eq (fun _ ↦ rfl)
 
 /-- The `den` projection of a rational mass is primitive recursive. -/
 theorem ratMass_den_primrec : Primrec (fun q : RatMass ↦ q.den) :=
-  (Primrec.snd.comp (Primrec.subtype_val.comp (Primrec.of_equiv (e := RatMass.equivSubtype)))).of_eq (fun _ ↦ rfl)
+  (Primrec.snd.comp (Primrec.subtype_val.comp
+    (Primrec.of_equiv (e := RatMass.equivSubtype)))).of_eq (fun _ ↦ rfl)
 
 /-- The map `k ↦ 2^k` is primitive recursive. -/
 theorem twoPow_primrec : Primrec (fun k : ℕ ↦ 2 ^ k) := by
@@ -146,11 +148,11 @@ theorem codedDistributionDataCode_primrec : Primrec codedDistributionDataCode :=
     (g := codedDistributionDataCode) ?_ ?_
   · convert Primrec.list_rec _ _ _ using 1
     rotate_left
-    exact CodedDistributionEntry
-    exact inferInstance
-    exact fun l ↦ l
-    exact fun _ ↦ [false]
-    exact fun _ p ↦ true :: pairCode p.1.code p.2.2
+    · exact CodedDistributionEntry
+    · exact inferInstance
+    · exact fun l ↦ l
+    · exact fun _ ↦ [false]
+    · exact fun _ p ↦ true :: pairCode p.1.code p.2.2
     · exact Primrec.id
     · exact Primrec.const [false]
     · exact Primrec.list_cons.comp (Primrec.const true)
@@ -165,9 +167,9 @@ The computable enumeration `allStrings` is primitive recursive.
 theorem allStrings_primrec : Primrec allStrings := by
   convert Primrec.nat_rec' _ _ _ using 1;
   rotate_left;
-  exact fun n ↦ n;
-  exact fun n ↦ [ [] ];
-  exact fun n p ↦ ( p.2.map ( List.cons false ) ) ++ ( p.2.map ( List.cons true ) );
+  · exact fun n ↦ n;
+  · exact fun n ↦ [ [] ];
+  · exact fun n p ↦ ( p.2.map ( List.cons false ) ) ++ ( p.2.map ( List.cons true ) );
   · exact Primrec.id;
   · exact Primrec.const [ [] ];
   · apply Primrec₂.comp;
@@ -185,7 +187,7 @@ The rational mass `1 / 2 ^ n` is a primitive-recursive function of `n`.
 -/
 theorem ratMassInvPow2_primrec :
     Primrec (fun n : ℕ ↦ ratMassInvNat (2 ^ n) (pow_pos (by decide) n)) := by
-      have h : Primrec (fun n : ℕ ↦ ⟨(1, 2 ^ n), by simp +decide⟩ : ℕ → {p : ℕ × ℕ // 0 < p.2}) := by
+      have h : Primrec (fun n : ℕ ↦ (⟨(1, 2 ^ n), by simp +decide⟩ : {p : ℕ × ℕ // 0 < p.2})) := by
         -- The constant function 1 is primitive recursive.
         have h_const : Primrec (fun _ : ℕ ↦ 1 : ℕ → ℕ) := by
           exact Primrec.const 1;
@@ -198,9 +200,9 @@ theorem ratMassInvPow2_primrec :
               | succ n ih => simpa +decide [Nat.pow_succ'] using ih
             convert Primrec.nat_rec' _ _ _ using 1;
             rotate_left;
-            exact fun n ↦ n;
-            exact fun _ ↦ 1;
-            exact fun n p ↦ 2 * p.2;
+            · exact fun n ↦ n;
+            · exact fun _ ↦ 1;
+            · exact fun n p ↦ 2 * p.2;
             · exact Primrec.id;
             · exact h_const;
             · exact Primrec.nat_mul.comp ( Primrec.const 2 ) ( Primrec.snd.comp Primrec.snd );

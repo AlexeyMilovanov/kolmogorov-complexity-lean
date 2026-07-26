@@ -51,7 +51,8 @@ largest term, when `2 * r ≤ n`.
 -/
 lemma hammingVol_le_succ_mul_choose {n r : ℕ} (hr : 2 * r ≤ n) :
     hammingVol n r ≤ (r + 1) * n.choose r := by
-  exact le_trans ( Finset.sum_le_sum fun i hi => choose_le_choose_right_of_le ( Finset.mem_range_succ_iff.mp hi ) hr ) ( by norm_num )
+  exact le_trans ( Finset.sum_le_sum fun i hi =>
+      choose_le_choose_right_of_le ( Finset.mem_range_succ_iff.mp hi ) hr ) ( by norm_num )
 
 /-
 Stirling lower bound, specialised: `(r / e) ^ r ≤ r!`.
@@ -61,7 +62,8 @@ lemma pow_div_exp_le_factorial (r : ℕ) :
   rcases r.eq_zero_or_pos with rfl | hr;
   · norm_num;
   · convert Stirling.le_factorial_stirling r |> le_trans _ using 1;
-    exact le_mul_of_one_le_left ( by positivity ) ( Real.le_sqrt_of_sq_le ( by nlinarith [ Real.pi_gt_three, show ( r : ℝ ) ≥ 1 by norm_cast ] ) )
+    exact le_mul_of_one_le_left ( by positivity ) ( Real.le_sqrt_of_sq_le
+        ( by nlinarith [ Real.pi_gt_three, show ( r : ℝ ) ≥ 1 by norm_cast ] ) )
 
 /-
 Single binomial coefficient exponential bound: `C(n, r) ≤ (e * n / r) ^ r`.
@@ -104,16 +106,21 @@ lemma hammingVol_le_two_pow_half (n : ℕ) :
       have h_bound : Real.exp 1 * n / r ≤ 2 ^ 16 := by
         rw [ div_le_iff₀ ] <;> norm_num;
         · have := Real.exp_one_lt_d9.le;
-          norm_num at this ; nlinarith [ show ( n : ℝ ) ≥ 64 by norm_cast; linarith, show ( r : ℝ ) ≥ 1 by norm_cast, show ( n : ℝ ) ≤ 64 * r + 63 by norm_cast; omega ];
+          norm_num at this ; nlinarith [ show ( n : ℝ ) ≥ 64 by norm_cast; linarith, show
+              ( r : ℝ ) ≥ 1 by norm_cast, show ( n : ℝ ) ≤ 64 * r + 63 by norm_cast; omega ];
         · linarith;
       norm_num [ pow_mul ];
-      exact mul_le_mul_of_nonneg_left ( h_combined.trans ( pow_le_pow_left₀ ( by positivity ) h_bound _ ) ) ( by positivity ) |> le_trans <| by norm_num;
+      exact mul_le_mul_of_nonneg_left ( h_combined.trans ( pow_le_pow_left₀
+          ( by positivity ) h_bound _ ) ) ( by positivity ) |> le_trans <| by norm_num;
     -- Since $r \geq 1$, we have $(r + 1) \leq 2^r$.
     have h_r_plus_one : (r + 1 : ℝ) ≤ (2 : ℝ) ^ r := by
-      exact mod_cast Nat.recOn r ( by norm_num ) fun n ihn => by norm_num [ Nat.pow_succ ] at * ; linarith;
+      exact mod_cast Nat.recOn r ( by norm_num ) fun n ihn =>
+          by norm_num [ Nat.pow_succ ] at * ; linarith;
     -- By combining the inequalities, we get the desired result: $(r + 1) * 2^{16r} \leq 2^{17r}$.
     have h_final : (hammingVol n r : ℝ) ≤ (2 : ℝ) ^ (17 * r) := by
-      exact h_combined.trans ( by rw [ show 17 * r = r + 16 * r by ring ] ; rw [ pow_add ] ; exact mul_le_mul_of_nonneg_right h_r_plus_one ( by positivity ) );
+      exact h_combined.trans
+          ( by rw [ show 17 * r = r + 16 * r by ring ] ; rw
+          [ pow_add ] ; exact mul_le_mul_of_nonneg_right h_r_plus_one ( by positivity ) );
     exact_mod_cast h_final.trans ( pow_le_pow_right₀ ( by norm_num ) ( by omega ) )
 
 /-- Combinatorial counting bound: estimating the volume of Hamming balls.
@@ -221,11 +228,14 @@ lemma card_powersetCard_filter_inter_eq_card {α : Type*} [DecidableEq α]
         exact hdiff
   simpa [source] using hcard.trans htarget_card
 
-lemma card_bad_sets {α : Type*} [DecidableEq α] (univ_set A : Finset α) (hA : A ⊆ univ_set) (N n : ℕ) :
+lemma card_bad_sets {α : Type*} [DecidableEq α] (univ_set A : Finset α) (hA : A ⊆ univ_set) (N n :
+    ℕ) :
     ((Finset.powersetCard N univ_set).filter (fun E => (A ∩ E).card > n)).card =
-    ∑ k ∈ Finset.Ico (n + 1) (N + 1), A.card.choose k * (univ_set.card - A.card).choose (N - k) := by
+    ∑ k ∈ Finset.Ico (n + 1) (N + 1),
+        A.card.choose k * (univ_set.card - A.card).choose (N - k) := by
   have h_split : ((Finset.powersetCard N univ_set).filter (fun E => (A ∩ E).card > n)) =
-    (Finset.Ico (n + 1) (N + 1)).biUnion (fun k => (Finset.powersetCard N univ_set).filter (fun E => (A ∩ E).card = k)) := by
+    (Finset.Ico (n + 1) (N + 1)).biUnion (fun k =>
+        (Finset.powersetCard N univ_set).filter (fun E => (A ∩ E).card = k)) := by
     ext E
     rw [Finset.mem_filter, Finset.mem_biUnion]
     constructor
@@ -264,14 +274,17 @@ lemma exists_subset_inter_le_of_counting_bound {α : Type*} [DecidableEq α]
     (univ_set : Finset α) (N n : ℕ)
     (families : Finset (Finset α))
     (h_sub : ∀ A ∈ families, A ⊆ univ_set)
-    (h_bound : (∑ A ∈ families, ∑ k ∈ Finset.Ico (n + 1) (N + 1), A.card.choose k * (univ_set.card - A.card).choose (N - k)) < univ_set.card.choose N) :
+    (h_bound : (∑ A ∈ families, ∑ k ∈ Finset.Ico (n + 1) (N + 1),
+        A.card.choose k * (univ_set.card - A.card).choose (N - k)) < univ_set.card.choose N) :
     ∃ E : Finset α, E ⊆ univ_set ∧ E.card = N ∧ ∀ A ∈ families, (A ∩ E).card ≤ n := by
   let S := Finset.powersetCard N univ_set
   have h_S_card : S.card = univ_set.card.choose N := Finset.card_powersetCard N univ_set
   let Bad := fun A => S.filter (fun E => (A ∩ E).card > n)
   let AllBad := families.biUnion Bad
   have h_AllBad_card : AllBad.card ≤ ∑ A ∈ families, (Bad A).card := Finset.card_biUnion_le
-  have h_sum_eq : (∑ A ∈ families, (Bad A).card) = ∑ A ∈ families, ∑ k ∈ Finset.Ico (n + 1) (N + 1), A.card.choose k * (univ_set.card - A.card).choose (N - k) := by
+  have h_sum_eq : (∑ A ∈ families, (Bad A).card) = ∑ A ∈ families,
+      ∑ k ∈ Finset.Ico (n + 1) (N + 1),
+          A.card.choose k * (univ_set.card - A.card).choose (N - k) := by
     apply Finset.sum_congr rfl
     intro A hA
     exact card_bad_sets univ_set A (h_sub A hA) N n
@@ -309,42 +322,68 @@ lemma per_ball_bad_le (a M N n : ℕ) (haM : a ≤ M) :
     (∑ k ∈ Finset.Ico (n + 1) (N + 1), a.choose k * (M - a).choose (N - k))
       ≤ a.choose (n + 1) * (M - (n + 1)).choose (N - (n + 1)) := by
   by_cases h : n + 1 ≤ a ∧ n + 1 ≤ N;
-  · have h_reindex : ∑ k ∈ Finset.Ico (n + 1) (N + 1), a.choose k * (M - a).choose (N - k) ≤ a.choose (n + 1) * ∑ j ∈ Finset.range (N - n), (a - (n + 1)).choose j * (M - a).choose (N - (n + 1 + j)) := by
-      have h_reindex : ∀ k ∈ Finset.Ico (n + 1) (N + 1), a.choose k * (M - a).choose (N - k) ≤ a.choose (n + 1) * (a - (n + 1)).choose (k - (n + 1)) * (M - a).choose (N - k) := by
+  · have h_reindex : ∑ k ∈ Finset.Ico (n + 1) (N + 1),
+      a.choose k * (M - a).choose (N - k) ≤ a.choose (n + 1) * ∑ j ∈ Finset.range (N - n),
+      (a - (n + 1)).choose j * (M - a).choose (N - (n + 1 + j)) := by
+      have h_reindex : ∀ k ∈ Finset.Ico (n + 1) (N + 1),
+          a.choose k * (M - a).choose (N - k) ≤ a.choose (n + 1) * (a - (n + 1)).choose (k - (n +
+          1)) * (M - a).choose (N - k) := by
         intros k hk
         have h_choose : a.choose k ≤ a.choose (n + 1) * (a - (n + 1)).choose (k - (n + 1)) := by
           rw [ ← Nat.choose_mul ];
-          · exact le_mul_of_one_le_right ( Nat.zero_le _ ) ( Nat.choose_pos ( by linarith [ Finset.mem_Ico.mp hk ] ) );
+          · exact le_mul_of_one_le_right ( Nat.zero_le _ ) ( Nat.choose_pos
+              ( by linarith [ Finset.mem_Ico.mp hk ] ) );
           · linarith [ Finset.mem_Ico.mp hk ];
         exact Nat.mul_le_mul_right _ h_choose;
       calc
         ∑ k ∈ Finset.Ico (n + 1) (N + 1), a.choose k * (M - a).choose (N - k)
-        _ ≤ ∑ k ∈ Finset.Ico (n + 1) (N + 1), a.choose (n + 1) * (a - (n + 1)).choose (k - (n + 1)) * (M - a).choose (N - k) := Finset.sum_le_sum h_reindex
-        _ = a.choose (n + 1) * ∑ k ∈ Finset.Ico (n + 1) (N + 1), (a - (n + 1)).choose (k - (n + 1)) * (M - a).choose (N - k) := by
+        _ ≤ ∑ k ∈ Finset.Ico (n + 1) (N + 1),
+            a.choose (n + 1) * (a - (n + 1)).choose (k - (n + 1)) * (M - a).choose (N - k) :=
+            Finset.sum_le_sum h_reindex
+        _ = a.choose (n + 1) * ∑ k ∈ Finset.Ico (n + 1) (N + 1),
+            (a - (n + 1)).choose (k - (n + 1)) * (M - a).choose (N - k) := by
           simp_rw [mul_assoc]
           rw [← Finset.mul_sum]
-        _ = a.choose (n + 1) * ∑ j ∈ Finset.range (N - n), (a - (n + 1)).choose j * (M - a).choose (N - (n + 1 + j)) := by
+        _ = a.choose (n + 1) * ∑ j ∈ Finset.range (N - n),
+            (a - (n + 1)).choose j * (M - a).choose (N - (n + 1 + j)) := by
           congr 1
           have h_eq : N + 1 - (n + 1) = N - n := by omega
           rw [Finset.sum_Ico_eq_sum_range, h_eq]
           apply Finset.sum_congr rfl
           intro j hj
           rw [Nat.add_sub_cancel_left]
-    have h_vandermonde : ∑ j ∈ Finset.range (N - n), (a - (n + 1)).choose j * (M - a).choose (N - (n + 1 + j)) = ((a - (n + 1)) + (M - a)).choose (N - (n + 1)) := by
+    have h_vandermonde : ∑ j ∈ Finset.range (N - n),
+        (a - (n + 1)).choose j * (M - a).choose (N - (n + 1 + j)) = ((a - (n + 1)) + (M -
+        a)).choose (N - (n + 1)) := by
       rw [ Nat.add_choose_eq ];
       rw [ Finset.Nat.sum_antidiagonal_eq_sum_range_succ_mk ];
       grind;
     grind;
-  · cases le_or_gt ( n + 1 ) a <;> cases le_or_gt ( n + 1 ) N <;> simp_all +decide [ Nat.choose_eq_zero_of_lt ];
-    exact fun i hi₁ hi₂ => Or.inl <| Nat.choose_eq_zero_of_lt <| by linarith;
+  · cases le_or_gt ( n + 1 ) a
+    · cases le_or_gt ( n + 1 ) N
+      · omega
+      · rw [Finset.Ico_eq_empty_of_le (by omega), Finset.sum_empty]
+        exact Nat.zero_le _
+    · cases le_or_gt ( n + 1 ) N
+      · have : ∑ k ∈ Finset.Ico (n + 1) (N + 1),
+            a.choose k * (M - a).choose (N - k) = 0 := by
+          apply Finset.sum_eq_zero
+          intro k hk
+          rw [Finset.mem_Ico] at hk
+          rw [Nat.choose_eq_zero_of_lt (by omega), zero_mul]
+        rw [this]
+        exact Nat.zero_le _
+      · rw [Finset.Ico_eq_empty_of_le (by omega), Finset.sum_empty]
+        exact Nat.zero_le _
 
 /-
 `hammingVol n r = 2 ^ n` as soon as `n ≤ r`.
 -/
 lemma hammingVol_eq_two_pow_of_ge {n r : ℕ} (h : n ≤ r) : hammingVol n r = 2 ^ n := by
-  rw [ ← Nat.sum_range_choose ];
-  rw [ Finset.sum_subset ( Finset.range_mono ( Nat.succ_le_succ h ) ) ] ; aesop;
-  exact fun x hx₁ hx₂ => Nat.choose_eq_zero_of_lt <| by aesop;
+  rw [ ← Nat.sum_range_choose ]
+  rw [ Finset.sum_subset ( Finset.range_mono ( Nat.succ_le_succ h ) ) ]
+  · aesop
+  · exact fun x hx₁ hx₂ => Nat.choose_eq_zero_of_lt <| by aesop
 
 /-
 Descending-factorial comparison used for the union bound: if `V * N ≤ M`
@@ -353,7 +392,8 @@ and `1 ≤ V`, then `V ^ (n+1) * C(N, n+1) ≤ C(M, n+1)`.
 lemma choose_ge_pow_mul_choose {M N V n : ℕ} (hV : 1 ≤ V) (hVN : V * N ≤ M) :
     V ^ (n + 1) * N.choose (n + 1) ≤ M.choose (n + 1) := by
   have h_mul : V ^ (n + 1) * Nat.descFactorial N (n + 1) ≤ Nat.descFactorial M (n + 1) := by
-    have h_mul : ∏ i ∈ Finset.range (n + 1), (V * (N - i)) ≤ ∏ i ∈ Finset.range (n + 1), (M - i) := by
+    have h_mul : ∏ i ∈ Finset.range (n + 1), (V * (N - i)) ≤ ∏ i ∈ Finset.range (n + 1),
+        (M - i) := by
       apply Finset.prod_le_prod';
       intro i hi; by_cases hi' : i ≤ N <;> simp_all +decide [ mul_tsub ] ;
       · nlinarith [ Nat.sub_add_cancel ( show i ≤ M from by nlinarith ) ];
@@ -361,7 +401,8 @@ lemma choose_ge_pow_mul_choose {M N V n : ℕ} (hV : 1 ≤ V) (hVN : V * N ≤ M
     convert h_mul using 2 <;> norm_num [ Finset.prod_mul_distrib, Nat.descFactorial_eq_prod_range ];
     · exact Or.inl ( by rw [ Finset.prod_range_succ_comm ] );
     · rw [ Finset.prod_range_succ_comm ];
-  rw [ Nat.descFactorial_eq_factorial_mul_choose, Nat.descFactorial_eq_factorial_mul_choose ] at h_mul;
+  rw [ Nat.descFactorial_eq_factorial_mul_choose,
+      Nat.descFactorial_eq_factorial_mul_choose ] at h_mul;
   nlinarith [ Nat.factorial_pos ( n + 1 ) ]
 
 /-- `2 ^ n < n !` for `n ≥ 4`. -/
@@ -370,7 +411,11 @@ lemma two_pow_lt_factorial {n : ℕ} (h : 4 ≤ n) : 2 ^ n < n.factorial := by
   | zero => omega
   | succ m ih =>
     rcases Nat.lt_or_ge m 4 with hm | hm
-    · interval_cases m <;> simp_all; decide
+    · interval_cases m
+      · revert h; decide
+      · revert h; decide
+      · revert h; decide
+      · decide
     · have := ih hm
       rw [Nat.factorial_succ, pow_succ]
       calc 2 ^ m * 2 < m.factorial * 2 := by omega
@@ -389,54 +434,74 @@ lemma counting_core_bound {n r : ℕ} (hn : 0 < n)
   · by_cases h : 4 ≤ n;
     · have h_step6 : (r + 1) * 2 ^ n < Nat.factorial (n + 1) := by
         have h_step6 : n * 2 ^ n < Nat.factorial (n + 1) := by
-          exact Nat.le_induction ( by decide ) ( fun k hk ih ↦ by rw [ Nat.factorial_succ, pow_succ' ] ; nlinarith [ Nat.pow_le_pow_right ( show 1 ≤ 2 by decide ) hk ] ) n h;
+          exact Nat.le_induction ( by decide )
+              ( fun k hk ih ↦ by
+                rw [ Nat.factorial_succ, pow_succ' ]
+                nlinarith [ Nat.pow_le_pow_right ( show 1 ≤ 2 by decide ) hk ] ) n h;
         exact lt_of_le_of_lt ( Nat.mul_le_mul_right _ ( Nat.succ_le_of_lt hr ) ) h_step6;
       refine lt_of_lt_of_le ( Nat.mul_lt_mul_of_pos_right h_step6 ( Nat.choose_pos hV ) ) ?_;
       rw [ ← Nat.descFactorial_eq_factorial_mul_choose ];
       exact Nat.descFactorial_le_pow _ _;
     · interval_cases n <;> interval_cases r <;> trivial;
-  · contrapose! hN;
-    rw [ hammingVol_eq_two_pow_of_ge ] <;> norm_num ; linarith;
-    linarith
+  · contrapose! hN
+    rw [ hammingVol_eq_two_pow_of_ge ]
+    · norm_num; linarith
+    · linarith
 
 /-
 The counting bound for the union bound argument.
 -/
 lemma list_decoding_counting_bound (n r N : ℕ) (hn : 0 < n)
     (hN : N = 2 ^ n / hammingVol n r) :
-    let families := (Finset.Iic r).biUnion (fun r' => (stringsOfLength n).image (fun x => hammingBall n x r'))
-    (∑ A ∈ families, ∑ k ∈ Finset.Ico (n + 1) (N + 1), A.card.choose k * (2 ^ n - A.card).choose (N - k)) < (2 ^ n).choose N := by
+    let families := (Finset.Iic r).biUnion (fun r' => (stringsOfLength n).image (fun x =>
+        hammingBall n x r'))
+    (∑ A ∈ families, ∑ k ∈ Finset.Ico (n + 1) (N + 1),
+        A.card.choose k * (2 ^ n - A.card).choose (N - k)) < (2 ^ n).choose N := by
   by_cases hV : hammingVol n r ≤ n;
   · refine lt_of_le_of_lt (Finset.sum_nonpos ?_) ?_;
-    · simp +zetaDelta at *;
+    · simp +zetaDelta only
+        [Finset.mem_biUnion, Finset.mem_Iic, Finset.mem_image, nonpos_iff_eq_zero,
+        Finset.sum_eq_zero_iff, Finset.mem_Ico, Order.add_one_le_iff, Order.lt_add_one_iff,
+        mul_eq_zero, and_imp, forall_exists_index] at *
       intros; subst_vars; rw [ Nat.choose_eq_zero_of_lt ] ;
       · norm_num;
       · rw [ hammingBall_card ];
-        · exact lt_of_le_of_lt ( show hammingVol n _ ≤ hammingVol n r from Finset.sum_le_sum_of_subset ( Finset.range_mono ( by linarith ) ) ) ( by linarith );
+        · exact lt_of_le_of_lt
+            ( show hammingVol n _ ≤ hammingVol n r from Finset.sum_le_sum_of_subset
+            ( Finset.range_mono ( by linarith ) ) ) ( by linarith );
         · unfold stringsOfLength at *; aesop;
     · exact Nat.choose_pos ( hN.symm ▸ Nat.div_le_self _ _ );
   · by_cases hN' : n + 1 ≤ N;
-    · have h_bound : (r + 1) * 2 ^ n * (hammingVol n r).choose (n + 1) * (2 ^ n - (n + 1)).choose (N - (n + 1)) < (2 ^ n).choose N := by
-        have h_bound : (r + 1) * 2 ^ n * (hammingVol n r).choose (n + 1) < (hammingVol n r) ^ (n + 1) := by
+    · have h_bound : (r + 1) * 2 ^ n * (hammingVol n r).choose (n + 1) * (2 ^ n - (n + 1)).choose
+        (N - (n + 1)) < (2 ^ n).choose N := by
+        have h_bound : (r + 1) * 2 ^ n * (hammingVol n r).choose (n + 1) < (hammingVol n r) ^ (n +
+            1) := by
           apply counting_core_bound hn (by linarith) (by
           linarith);
-        have h_bound : (hammingVol n r) ^ (n + 1) * (2 ^ n - (n + 1)).choose (N - (n + 1)) ≤ (2 ^ n).choose N := by
-          have h_bound : (hammingVol n r) ^ (n + 1) * N.choose (n + 1) ≤ (2 ^ n).choose (n + 1) := by
+        have h_bound : (hammingVol n r) ^ (n + 1) * (2 ^ n - (n + 1)).choose (N - (n + 1)) ≤ (2 ^
+            n).choose N := by
+          have h_bound : (hammingVol n r) ^ (n + 1) * N.choose (n + 1) ≤ (2 ^ n).choose (n + 1) :=
+              by
             apply choose_ge_pow_mul_choose;
             · linarith;
             · nlinarith [ Nat.div_mul_le_self ( 2 ^ n ) ( hammingVol n r ) ];
-          have h_bound : (2 ^ n).choose (n + 1) * (2 ^ n - (n + 1)).choose (N - (n + 1)) = (2 ^ n).choose N * N.choose (n + 1) := by
+          have h_bound : (2 ^ n).choose (n + 1) * (2 ^ n - (n + 1)).choose (N - (n + 1)) = (2 ^
+              n).choose N * N.choose (n + 1) := by
             rw [ ← Nat.choose_mul ];
             grind;
           nlinarith [ Nat.choose_pos hN' ];
-        exact lt_of_lt_of_le ( mul_lt_mul_of_pos_right ‹_› ( Nat.choose_pos ( Nat.sub_le_sub_right ( show N ≤ 2 ^ n from hN.symm ▸ Nat.div_le_self _ _ ) _ ) ) ) h_bound;
+        exact lt_of_lt_of_le ( mul_lt_mul_of_pos_right ‹_› ( Nat.choose_pos
+            ( Nat.sub_le_sub_right
+              ( show N ≤ 2 ^ n from hN.symm ▸ Nat.div_le_self _ _ ) _ ) ) ) h_bound;
       refine lt_of_le_of_lt ?_ h_bound;
       refine le_trans (Finset.sum_le_sum (g := fun _ =>
         (hammingVol n r).choose (n + 1) *
           (2 ^ n - (n + 1)).choose (N - (n + 1))) ?_) ?_;
       · intro A hA
         have hA_card : A.card ≤ 2 ^ n := by
-          simp +zetaDelta at *;
+          simp +zetaDelta only
+              [not_le, Order.add_one_le_iff, Finset.mem_biUnion, Finset.mem_Iic,
+              Finset.mem_image] at *
           obtain ⟨ a, ha, b, hb, rfl ⟩ := hA
           exact le_trans (Finset.card_le_card (show hammingBall n b a ⊆
             stringsOfLength n from Finset.filter_subset _ _))
@@ -444,15 +509,21 @@ lemma list_decoding_counting_bound (n r N : ℕ) (hn : 0 < n)
         refine le_trans (per_ball_bad_le A.card (2 ^ n) N n hA_card) ?_;
         apply Nat.mul_le_mul_right
         apply Nat.choose_le_choose
-        simp +zetaDelta at *;
+        simp +zetaDelta only
+            [not_le, Order.add_one_le_iff, Finset.mem_biUnion, Finset.mem_Iic,
+            Finset.mem_image] at *
         obtain ⟨ a, ha, b, hb, rfl ⟩ := hA;
         rw [ hammingBall_card ];
         · exact Finset.sum_le_sum_of_subset ( Finset.range_mono ( by linarith ) );
         · grind +suggestions;
-      · simp +decide [mul_assoc, mul_comm, mul_left_comm];
-        refine le_trans ( mul_le_mul_of_nonneg_left ( mul_le_mul_of_nonneg_left ( Finset.card_biUnion_le.trans <| Finset.sum_le_card_nsmul _ _ _ fun x hx => Finset.card_image_le ) <| Nat.zero_le _ ) <| Nat.zero_le _ ) ?_;
+      · simp +decide only [Finset.sum_const, smul_eq_mul, mul_comm, mul_assoc, mul_left_comm]
+        refine le_trans ( mul_le_mul_of_nonneg_left ( mul_le_mul_of_nonneg_left
+            ( Finset.card_biUnion_le.trans <| Finset.sum_le_card_nsmul _ _ _ fun x hx =>
+            Finset.card_image_le ) <| Nat.zero_le _ ) <| Nat.zero_le _ ) ?_;
         simp +decide [ mul_assoc, mul_comm, mul_left_comm, cardStringsOfLength ];
-    · simp_all +decide;
+    · simp_all +decide only
+        [not_le, Order.add_one_le_iff, not_lt, add_le_add_iff_right, Finset.Ico_eq_empty_of_le,
+        Finset.sum_empty, Finset.sum_const_zero]
       exact Nat.choose_pos ( Nat.div_le_self _ _ )
 
 /-- Probabilistic existence of the list-decoding set E.
@@ -461,7 +532,8 @@ lemma list_decoding_counting_bound (n r N : ℕ) (hn : 0 < n)
 theorem exists_list_decoding_set (n r N : ℕ) (hn : 0 < n)
     (hN : N = 2 ^ n / hammingVol n r) :
     ∃ E : Finset BitString, IsHammingListDecodingSet n r N E := by
-  let families := (Finset.Iic r).biUnion (fun r' => (stringsOfLength n).image (fun x => hammingBall n x r'))
+  let families := (Finset.Iic r).biUnion (fun r' => (stringsOfLength n).image (fun x =>
+      hammingBall n x r'))
   have h_bound := list_decoding_counting_bound n r N hn hN
   have h_sub : ∀ A ∈ families, A ⊆ stringsOfLength n := by
     intro A hA
@@ -471,10 +543,14 @@ theorem exists_list_decoding_set (n r N : ℕ) (hn : 0 < n)
     rw [hammingBall, Finset.mem_filter] at hy
     exact hy.1
   have h_univ_card : (stringsOfLength n).card = 2 ^ n := cardStringsOfLength n
-  have h_bound' : (∑ A ∈ families, ∑ k ∈ Finset.Ico (n + 1) (N + 1), A.card.choose k * ((stringsOfLength n).card - A.card).choose (N - k)) < (stringsOfLength n).card.choose N := by
+  have h_bound' : (∑ A ∈ families, ∑ k ∈ Finset.Ico (n + 1) (N + 1),
+      A.card.choose k * ((stringsOfLength n).card - A.card).choose (N - k)) < (stringsOfLength
+      n).card.choose N := by
     rw [h_univ_card]
     exact h_bound
-  obtain ⟨E, hE_sub, hE_card, hE_inter⟩ := exists_subset_inter_le_of_counting_bound (stringsOfLength n) N n families h_sub h_bound'
+  obtain ⟨E, hE_sub, hE_card,
+      hE_inter⟩ := exists_subset_inter_le_of_counting_bound (stringsOfLength n) N n families h_sub
+      h_bound'
   use E
   unfold IsHammingListDecodingSet
   refine ⟨fun x hx => ?_, hE_card, fun A hA_mem hA_card => ?_⟩
@@ -508,7 +584,8 @@ theorem exists_list_decoding_set (n r N : ℕ) (hn : 0 < n)
         push Not at h_not
         have h_lt : hammingVol n r < hammingVol n (min r' n) := by
           unfold hammingVol
-          have h_split : Finset.range (min r' n + 1) = Finset.range (r + 1) ∪ Finset.Ico (r + 1) (min r' n + 1) := by
+          have h_split : Finset.range (min r' n + 1) = Finset.range (r + 1) ∪ Finset.Ico (r + 1)
+              (min r' n + 1) := by
             ext a
             rw [Finset.mem_union, Finset.mem_range, Finset.mem_range, Finset.mem_Ico]
             omega
@@ -554,14 +631,16 @@ theorem exists_list_decoding_set (n r N : ℕ) (hn : 0 < n)
 lemma IsHammingListDecodingSet_equiv_finite (n r N : ℕ) (E : Finset BitString)
     (hE : ∀ x ∈ E, x.length = n) (hE_card : E.card = N) :
     IsHammingListDecodingSet n r N E ↔
-    ∀ A ∈ (Finset.Iic r).biUnion (fun r' => (stringsOfLength n).image (fun x => hammingBall n x r')),
+    ∀ A ∈ (Finset.Iic r).biUnion (fun r' => (stringsOfLength n).image (fun x =>
+        hammingBall n x r')),
       (A ∩ E).card ≤ n := by
   unfold IsHammingListDecodingSet
   constructor
   · rintro ⟨_, _, h3⟩ A hA
     simp only [Finset.mem_biUnion, Finset.mem_Iic, Finset.mem_image] at hA
     rcases hA with ⟨r', hr', x', hx', rfl⟩
-    have h_mem : hammingFamilyMem (hammingBall n x' r') := ⟨n, x', r', memStringsOfLength _ _ |>.mp hx', rfl⟩
+    have h_mem : hammingFamilyMem (hammingBall n x' r') := ⟨n, x', r',
+        memStringsOfLength _ _ |>.mp hx', rfl⟩
     have h_card : (hammingBall n x' r').card ≤ hammingVol n r := by
       rw [hammingBall_card]
       · exact hammingVol_mono hr'
@@ -587,7 +666,8 @@ lemma IsHammingListDecodingSet_equiv_finite (n r N : ℕ) (E : Finset BitString)
       have hr'_le : min r' n ≤ r := by
         have h_vol_eq : (hammingBall n x' (min r' n)).card = hammingVol n (min r' n) :=
           hammingBall_card n x' (min r' n) hn_eq
-        have h_card_eq : (hammingBall x'.length x' r').card = (hammingBall n x' (min r' n)).card := by
+        have h_card_eq : (hammingBall x'.length x' r').card = (hammingBall n x' (min r' n)).card :=
+            by
           rw [hA_eq]
         rw [h_card_eq] at hA_card
         rw [h_vol_eq] at hA_card
@@ -595,7 +675,8 @@ lemma IsHammingListDecodingSet_equiv_finite (n r N : ℕ) (E : Finset BitString)
         push Not at h_not
         have h_lt : hammingVol n r < hammingVol n (min r' n) := by
           unfold hammingVol
-          have h_split : Finset.range (min r' n + 1) = Finset.range (r + 1) ∪ Finset.Ico (r + 1) (min r' n + 1) := by
+          have h_split : Finset.range (min r' n + 1) = Finset.range (r + 1) ∪ Finset.Ico (r + 1)
+              (min r' n + 1) := by
             ext a
             rw [Finset.mem_union, Finset.mem_range, Finset.mem_range, Finset.mem_Ico]
             omega
@@ -617,7 +698,8 @@ lemma IsHammingListDecodingSet_equiv_finite (n r N : ℕ) (E : Finset BitString)
             rw [Finset.mem_Ico] at ha2
             omega
         omega
-      have hA_in : hammingBall n x' (min r' n) ∈ (Finset.Iic r).biUnion (fun r' => (stringsOfLength n).image (fun x => hammingBall n x r')) := by
+      have hA_in : hammingBall n x' (min r' n) ∈ (Finset.Iic r).biUnion (fun r' =>
+          (stringsOfLength n).image (fun x => hammingBall n x r')) := by
         simp only [Finset.mem_biUnion, Finset.mem_image, Finset.mem_Iic]
         refine ⟨min r' n, hr'_le, x', ?_, rfl⟩
         exact memStringsOfLength n x' |>.mpr hn_eq
@@ -694,7 +776,9 @@ lemma hammingVol_eq_countP (n r : ℕ) :
     hammingVol n r =
       (allStrings n).countP
         (fun y => decide (hammingDist (List.replicate n false) y ≤ r)) := by
-  have h_filter : (stringsOfLength n).filter (fun y => hammingDist (List.replicate n false) y ≤ r) = (allStrings n).toFinset.filter (fun y => hammingDist (List.replicate n false) y ≤ r) := by
+  have h_filter : (stringsOfLength n).filter (fun y =>
+      hammingDist (List.replicate n false) y ≤ r) = (allStrings n).toFinset.filter (fun y =>
+      hammingDist (List.replicate n false) y ≤ r) := by
     unfold stringsOfLength; aesop;
   rw [ ← hammingBall_card n ( List.replicate n false ) r ( List.length_replicate ) ]
   change ((stringsOfLength n).filter (fun y => hammingDist (List.replicate n false) y ≤ r)).card = _
@@ -706,16 +790,23 @@ lemma hammingVol_eq_countP (n r : ℕ) :
   · exact List.Nodup.filter _ ( allStrings_nodup n )
 
 lemma hammingVol_primrec₂ : Primrec₂ (fun n r : ℕ => hammingVol n r) := by
-  -- The Hamming volume function is primitive recursive because it is defined using primitive recursive functions.
-  have h_hammingVol_primrec : Primrec₂ (fun (n r : ℕ) => (allStrings n).countP (fun y => (hammingDist (List.replicate n false) y ≤ r))) := by
+  -- The Hamming volume function is primitive recursive because it is defined using primitive
+  -- recursive functions.
+  have h_hammingVol_primrec : Primrec₂ (fun (n r : ℕ) => (allStrings n).countP (fun y =>
+      (hammingDist (List.replicate n false) y ≤ r))) := by
     have h_hammingDist_primrec : Primrec₂ (fun (x y : BitString) => hammingDist x y) := by
       exact hammingDist_primrec;
-    have h_hammingVol_primrec : Primrec (fun p : ℕ × ℕ => (allStrings p.1).countP (fun y => decide (hammingDist (List.replicate p.1 false) y ≤ p.2))) := by
-      have h_pred : Primrec₂ (fun p : ℕ × ℕ => fun y : BitString => decide (hammingDist (List.replicate p.1 false) y ≤ p.2)) := by
+    have h_hammingVol_primrec : Primrec (fun p : ℕ × ℕ => (allStrings p.1).countP (fun y =>
+        decide (hammingDist (List.replicate p.1 false) y ≤ p.2))) := by
+      have h_pred : Primrec₂ (fun p : ℕ × ℕ => fun y : BitString =>
+          decide (hammingDist (List.replicate p.1 false) y ≤ p.2)) := by
         have h_pred_pair : Primrec (fun p : ℕ × ℕ => (List.replicate p.1 false, p.2)) := by
-          exact Primrec.pair ( Primrec.list_replicate.comp ( Primrec.fst ) ( Primrec.const false ) ) ( Primrec.snd );
-        have h_pred_dist : Primrec (fun p : (BitString × ℕ) × BitString => decide (hammingDist p.1.1 p.2 ≤ p.1.2)) := by
-          exact PrimrecPred.decide (PrimrecRel.comp Primrec.nat_le (h_hammingDist_primrec.comp (Primrec.fst.comp Primrec.fst) Primrec.snd) (Primrec.snd.comp Primrec.fst))
+          exact Primrec.pair ( Primrec.list_replicate.comp ( Primrec.fst )
+              ( Primrec.const false ) ) ( Primrec.snd );
+        have h_pred_dist : Primrec (fun p : (BitString × ℕ) × BitString =>
+            decide (hammingDist p.1.1 p.2 ≤ p.1.2)) := by
+          exact PrimrecPred.decide (PrimrecRel.comp Primrec.nat_le (h_hammingDist_primrec.comp
+              (Primrec.fst.comp Primrec.fst) Primrec.snd) (Primrec.snd.comp Primrec.fst))
         exact h_pred_dist.comp (Primrec.pair (h_pred_pair.comp Primrec.fst) Primrec.snd)
       exact list_countP_primrec (allStrings_primrec.comp Primrec.fst) h_pred
     exact h_hammingVol_primrec;
@@ -761,18 +852,38 @@ lemma hammingListDecodingCheckBool_eq (n : ℕ) (L : List BitString) :
           (2 ^ n / hammingVol n (n / 64)) L.toFinset) := by
   revert L n;
   unfold IsHammingListDecodingSetFinite;
-  intro n L; by_cases h : ∀ x ∈ L, x.length = n <;> simp_all (config := {failIfUnchanged := false}) +decide;
-  · unfold hammingListDecodingCheckBool hammingListDecodingCandidates
-    simp_all (config := {failIfUnchanged := false}) +decide [ Finset.mem_biUnion, Finset.mem_image, List.all_eq, List.countP_eq_length_filter ];
-    congr! 2;
-    constructor <;> intro h <;> simp_all (config := {failIfUnchanged := false}) +decide [ Finset.mem_biUnion, Finset.mem_image ];
-    · rintro A x hx y hy rfl; specialize h x hx y; simp_all (config := {failIfUnchanged := false}) +decide [ hammingBall, stringsOfLength ] ;
-      convert h using 1;
+  intro n L; by_cases h : ∀ x ∈ L, x.length = n
+  · simp_all (config := { failIfUnchanged := false }) +decide only [List.mem_toFinset,
+      implies_true, true_and, Bool.decide_and]
+    unfold hammingListDecodingCheckBool hammingListDecodingCandidates
+    simp_all (config := { failIfUnchanged := false }) +decide only [List.all_eq, decide_true,
+      implies_true, Bool.true_and, List.countP_eq_length_filter, mem_allStrings,
+      decide_eq_true_eq, List.mem_range, Order.lt_add_one_iff, Finset.mem_biUnion, Finset.mem_Iic,
+      Finset.mem_image, forall_exists_index, and_imp]
+    congr! 2
+    constructor
+    · intro h
+      simp_all (config := { failIfUnchanged := false }) +decide only [List.mem_range,
+        Order.lt_add_one_iff, mem_allStrings, decide_eq_true_eq, Finset.mem_biUnion,
+        Finset.mem_Iic, Finset.mem_image, forall_exists_index, and_imp]
+      rintro A x hx y hy rfl
+      specialize h x hx y
+      simp_all (config := { failIfUnchanged := false }) +decide only [stringsOfLength,
+        List.mem_toFinset, mem_allStrings, hammingBall, forall_const]
+      convert h using 1
       exact hammingSlice_card_eq n x y L
-    · intro x hx y hy; specialize h ( hammingBall n y x ) x hx y; simp_all (config := {failIfUnchanged := false}) +decide [ hammingBall ] ;
-      convert h ( by unfold stringsOfLength; aesop ) using 1;
+    · intro h
+      simp_all (config := { failIfUnchanged := false }) +decide only [Finset.mem_biUnion,
+        Finset.mem_Iic, Finset.mem_image, forall_exists_index, and_imp, List.mem_range,
+        Order.lt_add_one_iff, mem_allStrings, decide_eq_true_eq]
+      intro x hx y hy
+      specialize h ( hammingBall n y x ) x hx y
+      simp_all (config := { failIfUnchanged := false }) +decide only [hammingBall, forall_const]
+      convert h ( by unfold stringsOfLength; aesop ) using 1
       exact ( hammingSlice_card_eq n x y L ).symm
-  · grind +locals
+  · simp_all (config := { failIfUnchanged := false }) +decide only [not_forall,
+      List.mem_toFinset, Bool.decide_and]
+    grind +locals
 
 /-
 The Boolean check is primitive recursive jointly in `(n, L)`.
@@ -782,41 +893,71 @@ lemma hammingListDecodingCheckBool_primrec :
   have h_eq : (fun p : ℕ × List BitString => hammingListDecodingCheckBool p.1 p.2) =
       fun p => (p.2.all (fun x => decide (x.length = p.1)) &&
                 decide (p.2.dedup.length = 2 ^ p.1 / hammingVol p.1 (p.1 / 64))) &&
-                ((List.range (p.1 / 64 + 1)).all (fun r' => (allStrings p.1).all (fun x => p.2.dedup.countP (fun y => decide (y.length = p.1) && decide (hammingDist x y ≤ r')) ≤ p.1))) := by
+                ((List.range (p.1 / 64 + 1)).all (fun r' => (allStrings p.1).all (fun x =>
+                    p.2.dedup.countP (fun y => decide (y.length = p.1) &&
+                      decide (hammingDist x y ≤ r')) ≤ p.1))) := by
     ext p; rfl
   rw [h_eq]
-  have h_check_1 : Primrec (fun p : ℕ × List BitString => List.all p.2 (fun x => decide (x.length = p.1))) :=
-    list_all_primrec Primrec.snd (primrec_decide_natEq (Primrec.list_length.comp Primrec.snd) (Primrec.fst.comp Primrec.fst))
+  have h_check_1 : Primrec (fun p : ℕ × List BitString => List.all p.2 (fun x =>
+      decide (x.length = p.1))) :=
+    list_all_primrec Primrec.snd (primrec_decide_natEq (Primrec.list_length.comp Primrec.snd)
+        (Primrec.fst.comp Primrec.fst))
   have h_len : Primrec (fun p : ℕ × List BitString => p.2.dedup.length) :=
     Primrec.list_length.comp (dedup_primrec.comp Primrec.snd)
   have h_vol : Primrec (fun p : ℕ × List BitString => 2 ^ p.1 / hammingVol p.1 (p.1 / 64)) :=
-    Primrec.nat_div.comp (primrec_two_pow.comp Primrec.fst) (hammingVol_primrec₂.comp Primrec.fst (Primrec.nat_div.comp Primrec.fst (Primrec.const 64)))
-  have h_check_2 : Primrec (fun p : ℕ × List BitString => decide (p.2.dedup.length = 2 ^ p.1 / hammingVol p.1 (p.1 / 64))) :=
+    Primrec.nat_div.comp (primrec_two_pow.comp Primrec.fst) (hammingVol_primrec₂.comp Primrec.fst
+        (Primrec.nat_div.comp Primrec.fst (Primrec.const 64)))
+  have h_check_2 : Primrec (fun p : ℕ × List BitString =>
+      decide (p.2.dedup.length = 2 ^ p.1 / hammingVol p.1 (p.1 / 64))) :=
     primrec_decide_natEq h_len h_vol
-  have h_check_3 : Primrec (fun p : ℕ × List BitString => List.all (List.range (p.1 / 64 + 1)) (fun r' => List.all (allStrings p.1) (fun x => p.2.dedup.countP (fun y => decide (y.length = p.1) && decide (hammingDist x y ≤ r')) ≤ p.1))) := by
-    have h_countP : Primrec (fun p : ℕ × List BitString × ℕ × BitString => p.2.1.dedup.countP (fun y => decide (y.length = p.1) && decide (hammingDist p.2.2.2 y ≤ p.2.2.1))) := by
-      have h_countP_inner : Primrec (fun p : ℕ × List BitString × ℕ × BitString => List.countP (fun y => decide (y.length = p.1) && decide (hammingDist p.2.2.2 y ≤ p.2.2.1)) p.2.1) :=
+  have h_check_3 : Primrec (fun p : ℕ × List BitString =>
+      List.all (List.range (p.1 / 64 + 1)) (fun r' => List.all (allStrings p.1) (fun x =>
+      p.2.dedup.countP (fun y => decide (y.length = p.1) &&
+        decide (hammingDist x y ≤ r')) ≤ p.1))) := by
+    have h_countP : Primrec (fun p : ℕ × List BitString × ℕ × BitString =>
+        p.2.1.dedup.countP (fun y =>
+        decide (y.length = p.1) && decide (hammingDist p.2.2.2 y ≤ p.2.2.1))) := by
+      have h_countP_inner : Primrec (fun p : ℕ × List BitString × ℕ × BitString =>
+                    List.countP (fun y => decide (y.length = p.1) &&
+            decide (hammingDist p.2.2.2 y ≤ p.2.2.1)) p.2.1) :=
         list_countP_primrec (Primrec.fst.comp Primrec.snd)
           (Primrec.and.comp
-            (primrec_decide_natEq (Primrec.list_length.comp Primrec.snd) (Primrec.fst.comp Primrec.fst))
-            (primrec_decide_natLe (hammingDist_primrec.comp (Primrec.snd.comp (Primrec.snd.comp (Primrec.snd.comp Primrec.fst))) Primrec.snd)
+            (primrec_decide_natEq (Primrec.list_length.comp Primrec.snd) (Primrec.fst.comp
+                Primrec.fst))
+            (primrec_decide_natLe (hammingDist_primrec.comp (Primrec.snd.comp (Primrec.snd.comp
+                (Primrec.snd.comp Primrec.fst))) Primrec.snd)
               (Primrec.fst.comp (Primrec.snd.comp (Primrec.snd.comp Primrec.fst)))))
-      have h_map : Primrec (fun p : ℕ × List BitString × ℕ × BitString => (p.1, p.2.1.dedup, p.2.2.1, p.2.2.2)) :=
-        Primrec.pair Primrec.fst (Primrec.pair (dedup_primrec.comp (Primrec.fst.comp Primrec.snd)) (Primrec.pair (Primrec.fst.comp (Primrec.snd.comp Primrec.snd)) (Primrec.snd.comp (Primrec.snd.comp Primrec.snd))))
+      have h_map : Primrec (fun p : ℕ × List BitString × ℕ × BitString =>
+          (p.1, p.2.1.dedup, p.2.2.1, p.2.2.2)) :=
+        Primrec.pair Primrec.fst (Primrec.pair (dedup_primrec.comp (Primrec.fst.comp Primrec.snd))
+            (Primrec.pair (Primrec.fst.comp (Primrec.snd.comp Primrec.snd)) (Primrec.snd.comp
+            (Primrec.snd.comp Primrec.snd))))
       exact h_countP_inner.comp h_map
-    have h_all : Primrec (fun p : ℕ × List BitString × ℕ => List.all (allStrings p.1) (fun x => p.2.1.dedup.countP (fun y => decide (y.length = p.1) && decide (hammingDist x y ≤ p.2.2)) ≤ p.1)) := by
+    have h_all : Primrec (fun p : ℕ × List BitString × ℕ => List.all (allStrings p.1) (fun x =>
+        p.2.1.dedup.countP (fun y =>
+        decide (y.length = p.1) && decide (hammingDist x y ≤ p.2.2)) ≤ p.1)) := by
       exact list_all_primrec (allStrings_primrec.comp Primrec.fst)
         (by
-          have h1 : Primrec (fun p : ℕ × ℕ => decide (p.1 ≤ p.2)) := PrimrecPred.decide (PrimrecRel.comp Primrec.nat_le Primrec.fst Primrec.snd)
-          have h2 : Primrec (fun p : (ℕ × List BitString × ℕ) × BitString => (p.1.1, p.1.2.1, p.1.2.2, p.2)) :=
-            Primrec.pair (Primrec.fst.comp Primrec.fst) (Primrec.pair (Primrec.fst.comp (Primrec.snd.comp Primrec.fst)) (Primrec.pair (Primrec.snd.comp (Primrec.snd.comp Primrec.fst)) Primrec.snd))
-          have h3 : Primrec (fun p : (ℕ × List BitString × ℕ) × BitString => p.1.1) := Primrec.fst.comp Primrec.fst
+          have h1 : Primrec (fun p : ℕ × ℕ =>
+              decide (p.1 ≤ p.2)) :=
+            PrimrecPred.decide (PrimrecRel.comp Primrec.nat_le Primrec.fst Primrec.snd)
+          have h2 : Primrec (fun p : (ℕ × List BitString × ℕ) × BitString =>
+              (p.1.1, p.1.2.1, p.1.2.2, p.2)) :=
+            Primrec.pair (Primrec.fst.comp Primrec.fst) (Primrec.pair (Primrec.fst.comp
+                (Primrec.snd.comp Primrec.fst)) (Primrec.pair (Primrec.snd.comp (Primrec.snd.comp
+                Primrec.fst)) Primrec.snd))
+          have h3 : Primrec (fun p : (ℕ × List BitString × ℕ) × BitString =>
+              p.1.1) := Primrec.fst.comp Primrec.fst
           exact Primrec.comp h1 (Primrec.pair (h_countP.comp h2) h3))
     have h_range : Primrec (fun p : ℕ × List BitString => List.range (p.1 / 64 + 1)) :=
-      Primrec.list_range.comp (Primrec.comp Primrec.succ (Primrec.nat_div.comp Primrec.fst (Primrec.const 64)))
-    have h_all_comp : Primrec₂ (fun (p : ℕ × List BitString) r' => List.all (allStrings p.1) (fun x => p.2.dedup.countP (fun y => decide (y.length = p.1) && decide (hammingDist x y ≤ r')) ≤ p.1)) := by
+      Primrec.list_range.comp (Primrec.comp Primrec.succ (Primrec.nat_div.comp Primrec.fst
+          (Primrec.const 64)))
+    have h_all_comp : Primrec₂ (fun (p : ℕ × List BitString) r' =>
+        List.all (allStrings p.1) (fun x => p.2.dedup.countP (fun y =>
+        decide (y.length = p.1) && decide (hammingDist x y ≤ r')) ≤ p.1)) := by
       have hp_comp : Primrec (fun p : (ℕ × List BitString) × ℕ => (p.1.1, p.1.2, p.2)) :=
-        Primrec.pair (Primrec.fst.comp Primrec.fst) (Primrec.pair (Primrec.snd.comp Primrec.fst) Primrec.snd)
+        Primrec.pair (Primrec.fst.comp Primrec.fst) (Primrec.pair (Primrec.snd.comp Primrec.fst)
+            Primrec.snd)
       exact h_all.comp hp_comp
     exact list_all_primrec h_range h_all_comp
   exact Primrec.and.comp ( Primrec.and.comp h_check_1 h_check_2 ) h_check_3
@@ -824,7 +965,9 @@ lemma hammingListDecodingCheckBool_primrec :
 lemma hammingListDecodingSearchList_computable :
     Computable hammingListDecodingSearchList := by
   convert Primrec.to_comp _;
-  convert Primrec.option_getD.comp ( list_find?_primrec ( primrec_sublists_gen allStrings_primrec ) ( show Primrec₂ ( fun n L => hammingListDecodingCheckBool n L ) from ?_ ) ) ( Primrec.const [] ) using 1;
+  convert Primrec.option_getD.comp ( list_find?_primrec
+      ( primrec_sublists_gen allStrings_primrec ) ( show Primrec₂ ( fun n L =>
+      hammingListDecodingCheckBool n L ) from ?_ ) ) ( Primrec.const [] ) using 1;
   · ext n; unfold hammingListDecodingSearchList; simp +decide [ hammingListDecodingCheckBool_eq ] ;
   · -- Apply the lemma that states the function is primitive recursive.
     apply hammingListDecodingCheckBool_primrec
@@ -947,13 +1090,16 @@ lemma exists_list_decoding_set_low_complexity (U : Map) (hU : IsOptimalPrefixCon
   have hc2 := hc_len (Nat.bits n)
   have hlen : (Nat.bits n).length.bits.length ≤ (Nat.bits n).length := by
     exact length_natBits_le_self _
-  have h_bound : (Nat.bits n).length + 2 * (Nat.bits (Nat.bits n).length).length + c_len + c_map ≤ logSlack (3 + c_len + c_map) n := by
+  have h_bound : (Nat.bits n).length + 2 * (Nat.bits (Nat.bits n).length).length + c_len + c_map ≤
+      logSlack (3 + c_len + c_map) n := by
     unfold logSlack
     nlinarith
   calc KPPlain U (f (Nat.bits n))
     ≤ KPPlain U (Nat.bits n) + (c_map : ENat) := hc1
-    _ ≤ ((Nat.bits n).length + 2 * (Nat.bits (Nat.bits n).length).length + c_len : ℕ) + (c_map : ENat) := by exact add_le_add hc2 le_rfl
-    _ = (((Nat.bits n).length + 2 * (Nat.bits (Nat.bits n).length).length + c_len + c_map : ℕ) : ENat) := by push_cast; ring
+    _ ≤ ((Nat.bits n).length + 2 * (Nat.bits (Nat.bits n).length).length + c_len : ℕ) + (c_map :
+        ENat) := by exact add_le_add hc2 le_rfl
+    _ = (((Nat.bits n).length + 2 * (Nat.bits (Nat.bits n).length).length + c_len + c_map : ℕ) :
+        ENat) := by push_cast; ring
     _ ≤ logSlack (3 + c_len + c_map) n := by exact_mod_cast h_bound
 
 /--
@@ -1195,28 +1341,33 @@ theorem setIndexDecompressor_computable : isDecompressor setIndexDecompressor :=
     Primrec.list_map (decodeDistributionData_primrec.comp Primrec.snd)
       (entry_point_primrec.comp Primrec.snd).to₂
   have hs : Primrec (fun pr : BitString × BitString =>
-        (Nat.bits ((decodeDistributionData pr.2).map CodedDistributionEntry.point).length).length) :=
+        (Nat.bits ((decodeDistributionData pr.2).map CodedDistributionEntry.point).length).length)
+            :=
     Primrec.list_length.comp (primrecNatBits.comp (Primrec.list_length.comp hL))
   have hlen : Primrec (fun pr : BitString × BitString => pr.1.length) :=
     Primrec.list_length.comp Primrec.fst
   have h_beq : Primrec (fun pr : BitString × BitString =>
       (pr.1.length ==
-        (Nat.bits ((decodeDistributionData pr.2).map CodedDistributionEntry.point).length).length)) :=
+        (Nat.bits ((decodeDistributionData pr.2).map CodedDistributionEntry.point).length).length))
+            :=
     Primrec.beq.comp hlen hs
   have hcond : PrimrecPred (fun pr : BitString × BitString =>
       (pr.1.length ==
-        (Nat.bits ((decodeDistributionData pr.2).map CodedDistributionEntry.point).length).length) = true) :=
+        (Nat.bits ((decodeDistributionData pr.2).map CodedDistributionEntry.point).length).length)
+            = true) :=
     Primrec.eq.comp h_beq (Primrec.const true)
   have hidx : Primrec (fun pr : BitString × BitString => bitsToNat pr.1) :=
     bitsToNat_primrec.comp Primrec.fst
   have hout : Primrec (fun pr : BitString × BitString =>
-        ((decodeDistributionData pr.2).map CodedDistributionEntry.point).getD (bitsToNat pr.1) []) :=
+        ((decodeDistributionData pr.2).map CodedDistributionEntry.point).getD (bitsToNat pr.1) [])
+            :=
     (Primrec.list_getD []).comp hL hidx
   have h_opt : Primrec setIndexDecompressorOpt := by
     refine (Primrec.ite hcond (Primrec.option_some.comp hout)
       (Primrec.const none)).of_eq (fun pr => ?_)
     cases h : (pr.1.length ==
-        (Nat.bits ((decodeDistributionData pr.2).map CodedDistributionEntry.point).length).length) <;>
+        (Nat.bits ((decodeDistributionData pr.2).map CodedDistributionEntry.point).length).length)
+            <;>
       simp only [setIndexDecompressorOpt, h, cond_true, cond_false,
         Bool.false_eq_true, eq_self, if_true, if_false]
   exact Computable.ofOption h_opt.to_comp
@@ -1227,7 +1378,8 @@ theorem setIndexDecompressor_isPrefixMachine : IsPrefixMachine setIndexDecompres
         (Nat.bits ((decodeDistributionData y).map CodedDistributionEntry.point).length).length := by
     intro y r hr
     by_cases h : (r.length ==
-        (Nat.bits ((decodeDistributionData y).map CodedDistributionEntry.point).length).length) = true
+        (Nat.bits ((decodeDistributionData y).map CodedDistributionEntry.point).length).length) =
+            true
     · exact beq_iff_eq.mp h
     · exfalso
       rw [Bool.not_eq_true] at h
@@ -1336,7 +1488,8 @@ lemma hammingVol_ge_two_pow_lin (n : ℕ) :
   rw [ pow_mul ];
   -- Let's prove the required bound by induction on $n$.
   suffices h_ind : ∀ r : ℕ, ∀ n : ℕ, 64 * r ≤ n → 32 ^ r ≤ Nat.choose n r by
-    exact le_trans ( h_ind _ _ ( by omega ) ) ( Finset.single_le_sum ( fun x _ => Nat.zero_le ( Nat.choose n x ) ) ( Finset.mem_range.mpr ( Nat.lt_succ_self _ ) ) );
+    exact le_trans ( h_ind _ _ ( by omega ) ) ( Finset.single_le_sum ( fun x _ =>
+        Nat.zero_le ( Nat.choose n x ) ) ( Finset.mem_range.mpr ( Nat.lt_succ_self _ ) ) );
   intro r n hn
   induction r generalizing n with
   | zero => norm_num [ Nat.pow_succ', Nat.choose ] at *
@@ -1353,24 +1506,29 @@ gap argument, where a linear-in-`n` volume term beats the `O(log n)` slack.
 -/
 lemma exists_bits_linear_domination (K A B : ℕ) :
     ∃ M : ℕ, ∀ n : ℕ, M ≤ n → K * (A * (Nat.bits n).length + B) ≤ n := by
-  -- By induction on $m$, we can show that there exists $m_0$ such that for all $m \geq m_0$, $K * (A * m + B) \leq 2^{m-1}$.
+  -- Beyond a fixed threshold, the exponential `2 ^ (m - 1)` dominates the
+  -- linear expression in `m`.
   obtain ⟨m₀, hm₀⟩ : ∃ m₀ : ℕ, ∀ m ≥ m₀, K * (A * m + B) ≤ 2^(m-1) := by
     use 8 * K * ( A + B + 1 ) + 8;
     intro m hm;
     -- We'll use that $2^{m-1} \geq m^2$ for $m \geq 8$.
     have h_exp : 2 ^ (m - 1) ≥ m ^ 2 := by
-      rcases m with ( _ | _ | _ | _ | _ | _ | _ | _ | m ) <;> simp +arith +decide [ Nat.pow_succ ] at *;
+      rcases m with ( _ | _ | _ | _ | _ | _ | _ | _ | m ) <;>
+        simp +arith +decide only [
+          ge_iff_le, add_le_add_iff_right, Nat.add_one_sub_one, Nat.pow_succ, pow_one
+        ] at *;
       exact Nat.recOn m ( by norm_num ) fun n ihn => by norm_num [ Nat.pow_succ' ] at * ; nlinarith;
-    nlinarith [ mul_nonneg ( Nat.zero_le K ) ( Nat.zero_le A ), mul_nonneg ( Nat.zero_le K ) ( Nat.zero_le B ) ];
+    nlinarith [mul_nonneg (Nat.zero_le K) (Nat.zero_le A),
+      mul_nonneg (Nat.zero_le K) (Nat.zero_le B)]
   refine ⟨ 2 ^ m₀, fun n hn => le_trans ( hm₀ _ ?_ ) ?_ ⟩;
   · rw [ Nat.size_eq_bits_len ];
     exact Nat.le_of_not_lt fun h => by linarith [ Nat.size_le.mp h.le ] ;
-  · convert Nat.pow_le_of_le_log ( by linarith [ Nat.one_le_pow m₀ 2 zero_lt_two ] ) _ using 1;
-    rw [ Nat.le_iff_lt_or_eq ];
-    refine lt_or_eq_of_le ( Nat.sub_le_of_le_add <| ?_ );
-    convert Nat.size_le.2 _;
-    convert Nat.size_eq_bits_len n;
-    exact Nat.lt_pow_succ_log_self ( by decide ) _
+  · convert Nat.pow_le_of_le_log ( by linarith [ Nat.one_le_pow m₀ 2 zero_lt_two ] ) _ using 1
+    rw [ Nat.le_iff_lt_or_eq ]
+    refine lt_or_eq_of_le ( Nat.sub_le_of_le_add <| ?_ )
+    convert Nat.size_le.2 _
+    · convert Nat.size_eq_bits_len n
+    · exact Nat.lt_pow_succ_log_self (by decide) _
 
 /-
 Bits-length bound for the list-decoding intersection.  If `V ≥ 2 ^ v` and the
@@ -1390,17 +1548,30 @@ lemma bits_intersection_bound (n Bcard V W t v : ℕ)
       have h_div : (n + 1) ^ 7 * Bcard / V ≤ (n + 1) ^ 7 * 2 ^ (t - v) := by
         by_cases h : t ≥ v;
         · refine Nat.div_le_of_le_mul ?_;
-          rw [ show 2 ^ t = 2 ^ ( t - v ) * 2 ^ v by rw [ ← pow_add, Nat.sub_add_cancel h ] ] at hBcard ; nlinarith [ show 0 < ( n + 1 ) ^ 7 by positivity, show 0 < 2 ^ v by positivity, show 0 < 2 ^ ( t - v ) by positivity, mul_le_mul_right hv ( ( n + 1 ) ^ 7 ) ];
-        · simp_all +decide [ Nat.sub_eq_zero_of_le ( le_of_not_ge h ) ];
-          exact Nat.div_le_of_le_mul <| by nlinarith [ pow_pos ( Nat.succ_pos n ) 7, pow_pos ( zero_lt_two' ℕ ) t, pow_le_pow_right₀ ( by decide : 1 ≤ 2 ) h.le ] ;
+          rw [ show 2 ^ t = 2 ^
+              ( t - v ) * 2 ^ v by rw [ ← pow_add,
+              Nat.sub_add_cancel h ] ] at hBcard ; nlinarith [ show 0 <
+              ( n + 1 ) ^ 7 by positivity, show 0 < 2 ^ v by positivity, show 0 < 2 ^
+              ( t - v ) by positivity, mul_le_mul_right hv ( ( n + 1 ) ^ 7 ) ];
+        · simp_all +decide only [ge_iff_le, not_le, Nat.sub_eq_zero_of_le
+            (le_of_not_ge h), pow_zero, mul_one]
+          exact Nat.div_le_of_le_mul <|
+              by
+                nlinarith [ pow_pos ( Nat.succ_pos n ) 7, pow_pos ( zero_lt_two' ℕ ) t,
+                  pow_le_pow_right₀ ( by decide : 1 ≤ 2 ) h.le ] ;
       by_cases h : t - v ≥ 0 <;> simp_all +decide [ Nat.pow_succ' ];
-      nlinarith [ pow_pos ( Nat.succ_pos n ) 2, pow_pos ( Nat.succ_pos n ) 3, pow_pos ( Nat.succ_pos n ) 4, pow_pos ( Nat.succ_pos n ) 5, pow_pos ( Nat.succ_pos n ) 6, pow_pos ( Nat.succ_pos n ) 7, pow_pos ( Nat.succ_pos n ) 8, pow_pos ( zero_lt_two' ℕ ) ( t - v ) ];
+      nlinarith [ pow_pos ( Nat.succ_pos n ) 2, pow_pos ( Nat.succ_pos n ) 3, pow_pos
+          ( Nat.succ_pos n ) 4, pow_pos ( Nat.succ_pos n ) 5, pow_pos
+          ( Nat.succ_pos n ) 6, pow_pos ( Nat.succ_pos n ) 7, pow_pos
+          ( Nat.succ_pos n ) 8, pow_pos ( zero_lt_two' ℕ ) ( t - v ) ];
     exact Nat.le_trans hW h_simp;
   -- Apply the size bound to W and simplify
   have hW_size_simplified : W < 2 ^ (8 * (n + 1).size + (t - v) + 1) := by
     refine lt_of_le_of_lt hW_size ?_;
     rw [ pow_add, pow_add, pow_mul' ];
-    exact lt_of_le_of_lt ( Nat.mul_le_mul_right _ ( Nat.pow_le_pow_left ( Nat.lt_size_self _ |> Nat.le_of_lt ) _ ) ) ( lt_mul_of_one_lt_right ( by positivity ) ( by norm_num ) );
+    exact lt_of_le_of_lt ( Nat.mul_le_mul_right _ ( Nat.pow_le_pow_left
+        ( Nat.lt_size_self _ |> Nat.le_of_lt ) _ ) ) ( lt_mul_of_one_lt_right ( by positivity )
+        ( by norm_num ) );
   rw [ Nat.size_eq_bits_len ] at *;
   convert Nat.size_le.mpr hW_size_simplified using 1;
   rw [ Nat.size_eq_bits_len ]
@@ -1419,8 +1590,10 @@ lemma hamming_gap_exclusion (U : Map) (hU : IsOptimalPrefixConditional U) (c : �
     ∀ x ∈ E, (Nat.bits N).length ≤ KPPlain U x + (c : ENat) →
     ∃ i j : ℕ, InDescriptionProfile U x i j ∧
       ¬ InDescriptionProfileIn hammingFamily U x (i + n / c_gap) (j + n / c_gap) := by
-  obtain ⟨ c_int, hc_int ⟩ := KPPlain_le_intersection U hU; simp +decide [ InDescriptionProfile, InDescriptionProfileIn ] ;
-  obtain ⟨M, hM⟩ : ∃ M : ℕ, ∀ n ≥ M, 64 * ((2 * c + 8) * (Nat.bits n).length + (3 * c + 9 + c_int)) ≤ n := by
+  obtain ⟨ c_int, hc_int ⟩ := KPPlain_le_intersection U hU
+  simp +decide only [gt_iff_lt, ge_iff_le, KPPlain_eq_KP] ;
+  obtain ⟨M, hM⟩ : ∃ M : ℕ, ∀ n ≥ M,
+      64 * ((2 * c + 8) * (Nat.bits n).length + (3 * c + 9 + c_int)) ≤ n := by
     exact exists_bits_linear_domination 64 ( 2 * c + 8 ) ( 3 * c + 9 + c_int );
   refine ⟨ 128, by norm_num, Max.max M 64, ?_ ⟩;
   intro n N E hE h_list hN hEcomp hn x hxE hxK
@@ -1428,8 +1601,11 @@ lemma hamming_gap_exclusion (U : Map) (hU : IsOptimalPrefixConditional U) (c : �
   constructor;
   · refine ⟨ E, hE, hxE, hEcomp, ?_ ⟩;
     rw [ h_list.2.1, Nat.le_iff_lt_or_eq ];
-    exact lt_or_eq_of_le ( Nat.le_of_lt ( Nat.lt_size_self N ) |> le_trans <| by rw [ Nat.size_eq_bits_len ] );
-  · intro B hB hBdesc
+    exact lt_or_eq_of_le ( Nat.le_of_lt ( Nat.lt_size_self N ) |> le_trans <|
+        by rw [ Nat.size_eq_bits_len ] );
+  · intro h_in
+    unfold InDescriptionProfileIn at h_in
+    obtain ⟨B, hB, hBdesc⟩ := h_in
     obtain ⟨hBmem, hBdesc⟩ := hBdesc
     obtain ⟨m, z, r', hzlen, hBeq⟩ := hBmem
     have hz : z.length = n := by
@@ -1439,22 +1615,33 @@ lemma hamming_gap_exclusion (U : Map) (hU : IsOptimalPrefixConditional U) (c : �
       have := hBdesc.2.2; aesop;
     have hW : (E ∩ B).card ≤ n * ((n + 1)^7 * B.card / hammingVol n (n / 64) + 1) := by
       have := hamming_list_decoding_intersection n ( n / 64 ) N r' E z h_list hz; aesop;
-    have hbits : (Nat.bits (E ∩ B).card).length ≤ 8 * (Nat.bits (n + 1)).length + ((N.bits.length + n / 128) - 5 * (n / 64)) + 1 := by
-      apply bits_intersection_bound n B.card (hammingVol n (n / 64)) (E ∩ B).card (N.bits.length + n / 128) (5 * (n / 64)) (hammingVol_ge_two_pow_lin n) hBcard hW
-    have hkey : N.bits.length ≤ (logSlack c n + (logSlack c n + n / 128) + (8 * (Nat.bits (n + 1)).length + ((N.bits.length + n / 128) - 5 * (n / 64)) + 1) + c_int : ℕ) + c := by
-      have hkey : KPPlain U x ≤ setComplexity U E hE + setComplexity U B hB + (Nat.bits (E ∩ B).card).length + c_int := by
+    have hbits : (Nat.bits (E ∩ B).card).length ≤ 8 * (Nat.bits (n + 1)).length + ((N.bits.length +
+        n / 128) - 5 * (n / 64)) + 1 := by
+      apply bits_intersection_bound n B.card (hammingVol n (n / 64)) (E ∩ B).card (N.bits.length +
+          n / 128) (5 * (n / 64)) (hammingVol_ge_two_pow_lin n) hBcard hW
+    have hkey : N.bits.length ≤ (logSlack c n + (logSlack c n + n / 128) + (8 * (Nat.bits (n +
+        1)).length + ((N.bits.length + n / 128) - 5 * (n / 64)) + 1) + c_int : ℕ) + c := by
+      have hkey : KPPlain U x ≤ setComplexity U E hE + setComplexity U B hB + (Nat.bits (E ∩
+          B).card).length + c_int := by
         exact hc_int E B hE hB x ( Finset.mem_inter.mpr ⟨ hxE, hBdesc.1 ⟩ );
-      have hkey : KPPlain U x ≤ (logSlack c n + (logSlack c n + n / 128) + (8 * (Nat.bits (n + 1)).length + ((N.bits.length + n / 128) - 5 * (n / 64)) + 1) + c_int : ℕ) := by
+      have hkey : KPPlain U x ≤ (logSlack c n + (logSlack c n + n / 128) + (8 * (Nat.bits (n +
+          1)).length + ((N.bits.length + n / 128) - 5 * (n / 64)) + 1) + c_int : ℕ) := by
         refine le_trans hkey ?_;
         norm_num +zetaDelta at *;
         gcongr;
         · exact_mod_cast hBdesc.2.1;
         · norm_cast;
       contrapose! hxK;
-      have hkey3 : (KPPlain U x : ENat) + c ≤ ((logSlack c n + (logSlack c n + n / 128) + (8 * (Nat.bits (n + 1)).length + ((N.bits.length + n / 128) - 5 * (n / 64)) + 1) + c_int + c : ℕ) : ENat) := by
+      have hkey3 : (KPPlain U x : ENat) + c ≤ ((logSlack c n + (logSlack c n + n / 128) + (8 *
+          (Nat.bits (n + 1)).length + ((N.bits.length + n / 128) - 5 * (n / 64)) + 1) + c_int + c :
+          ℕ) : ENat) := by
         calc
-          (KPPlain U x : ENat) + c ≤ ((logSlack c n + (logSlack c n + n / 128) + (8 * (Nat.bits (n + 1)).length + ((N.bits.length + n / 128) - 5 * (n / 64)) + 1) + c_int : ℕ) : ENat) + c := add_le_add hkey le_rfl
-          _ = ((logSlack c n + (logSlack c n + n / 128) + (8 * (Nat.bits (n + 1)).length + ((N.bits.length + n / 128) - 5 * (n / 64)) + 1) + c_int + c : ℕ) : ENat) := by norm_cast
+          (KPPlain U x : ENat) + c ≤ ((logSlack c n + (logSlack c n + n / 128) + (8 * (Nat.bits (n
+              + 1)).length + ((N.bits.length + n / 128) - 5 * (n / 64)) + 1) + c_int : ℕ) : ENat) +
+              c := add_le_add hkey le_rfl
+          _ = ((logSlack c n + (logSlack c n + n / 128) + (8 * (Nat.bits (n + 1)).length +
+              ((N.bits.length + n / 128) - 5 * (n / 64)) + 1) + c_int + c : ℕ) : ENat) :=
+                by norm_cast
       exact lt_of_le_of_lt hkey3 ( Nat.cast_lt.mpr hxK );
     have hlog : 2 ^ (5 * (n / 64)) ≤ N := by
       rw [ hN ];
@@ -1465,7 +1652,9 @@ lemma hamming_gap_exclusion (U : Map) (hU : IsOptimalPrefixConditional U) (c : �
     have hlog : 5 * (n / 64) ≤ N.bits.length := by
       rw [ Nat.le_iff_lt_or_eq ];
       refine lt_or_eq_of_le ( Nat.le_of_not_lt fun h => ?_ );
-      have := Nat.lt_size_self N; simp_all +decide [ Nat.size_eq_bits_len ] ;
+      have :=
+          Nat.lt_size_self N; simp_all +decide only
+          [Finset.mem_inter, KPPlain_eq_KP, Nat.size_eq_bits_len, and_imp, ge_iff_le, sup_le_iff]
       exact not_le_of_gt this ( Nat.le_trans ( pow_le_pow_right₀ ( by decide ) h.le ) hlog );
     unfold logSlack at *;
     grind

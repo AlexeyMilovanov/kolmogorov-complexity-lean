@@ -134,8 +134,10 @@ theorem exists_cover_codes_in_stage (𝒜 : DescriptionFamily) {A : Finset BitSt
       (∃ B ∈ 𝒞, x ∈ B) ∧
       𝒞.length ≤ 𝒜.overhead n * 2 ^ (k + 1) := by
   obtain ⟨𝒞, h𝒞⟩ := exists_family_cover 𝒜 hA n j k hcard hk;
-  obtain ⟨T, hT⟩ : ∃ T : ℕ, ∀ B ∈ 𝒞, ∃ hB : B.Nonempty, (codedUniformOn B hB).code ∈ 𝒜.enumeration.enum T := by
-    have hT : ∀ B ∈ 𝒞, ∃ t : ℕ, ∃ hB : B.Nonempty, (codedUniformOn B hB).code ∈ 𝒜.enumeration.enum t := by
+  obtain ⟨T, hT⟩ : ∃ T : ℕ, ∀ B ∈ 𝒞, ∃ hB : B.Nonempty,
+      (codedUniformOn B hB).code ∈ 𝒜.enumeration.enum T := by
+    have hT : ∀ B ∈ 𝒞, ∃ t : ℕ, ∃ hB : B.Nonempty,
+        (codedUniformOn B hB).code ∈ 𝒜.enumeration.enum t := by
       intros B hB
       obtain ⟨hB_mem, hB_card⟩ := h𝒞.left B hB
       have hB_nonempty : B.Nonempty := 𝒜.nonempty_of_mem hB_mem
@@ -147,9 +149,12 @@ theorem exists_cover_codes_in_stage (𝒜 : DescriptionFamily) {A : Finset BitSt
     obtain ⟨hB_nonempty, hB_mem⟩ := ht B hB
     use hB_nonempty;
     have h_mono : ∀ t1 t2 : ℕ, t1 ≤ t2 → 𝒜.enumeration.enum t1 <+: 𝒜.enumeration.enum t2 := by
-      intro t1 t2 ht; induction ht <;> simp_all +decide;
-      exact List.IsPrefix.trans ‹_› (𝒜.enumeration.mono _)
-    exact h_mono _ _ ( Finset.le_sup ( f := t ) ( List.mem_toFinset.mpr hB ) ) |> fun h => h.subset hB_mem;
+      intro t1 t2 ht
+      induction ht with
+      | refl => exact List.prefix_rfl
+      | step _ ih => exact ih.trans (𝒜.enumeration.mono _)
+    exact h_mono _ _
+        (Finset.le_sup (f := t) (List.mem_toFinset.mpr hB)) |>.subset hB_mem
   exact ⟨ T, 𝒞, h𝒞.1, hT, h𝒞.2.1 x hxA hxn, h𝒞.2.2 ⟩
 
 /-
@@ -166,14 +171,19 @@ theorem exists_valid_coverAddress (𝒜 : DescriptionFamily) {A : Finset BitStri
   positivity) (by
   exact max_le ( by linarith [ Finset.card_pos.mpr hA ] ) ( Nat.div_le_self _ _ ))
   generalize_proofs at *; (
-  obtain ⟨T, hT⟩ : ∃ T : ℕ, ∀ B ∈ 𝒞, ∃ (hB : B.Nonempty), (codedUniformOn B hB).code ∈ 𝒜.enumeration.enum T := by
-    have hT : ∀ B ∈ 𝒞, ∃ T : ℕ, ∃ (hB : B.Nonempty), (codedUniformOn B hB).code ∈ 𝒜.enumeration.enum T := by
+  obtain ⟨T, hT⟩ : ∃ T : ℕ, ∀ B ∈ 𝒞, ∃ (hB : B.Nonempty),
+      (codedUniformOn B hB).code ∈ 𝒜.enumeration.enum T := by
+    have hT : ∀ B ∈ 𝒞, ∃ T : ℕ, ∃ (hB : B.Nonempty),
+        (codedUniformOn B hB).code ∈ 𝒜.enumeration.enum T := by
       intro B hB
       obtain ⟨hB_mem, hB_card⟩ := h𝒞.left B hB
       generalize_proofs at *; (
-      exact ⟨ _, _, 𝒜.enumeration.complete B ( 𝒜.nonempty_of_mem hB_mem ) hB_mem |> Classical.choose_spec ⟩)
+      exact ⟨_, _,
+        𝒜.enumeration.complete B (𝒜.nonempty_of_mem hB_mem) hB_mem |>
+          Classical.choose_spec⟩)
     generalize_proofs at *; (
-    have hT : ∀ B ∈ 𝒞, ∃ T : ℕ, ∀ t ≥ T, ∃ (hB : B.Nonempty), (codedUniformOn B hB).code ∈ 𝒜.enumeration.enum t := by
+    have hT : ∀ B ∈ 𝒞, ∃ T : ℕ, ∀ t ≥ T, ∃ (hB : B.Nonempty),
+        (codedUniformOn B hB).code ∈ 𝒜.enumeration.enum t := by
       intro B hB
       obtain ⟨T, hT⟩ := hT B hB
       use T
@@ -184,7 +194,10 @@ theorem exists_valid_coverAddress (𝒜 : DescriptionFamily) {A : Finset BitStri
           intro t ht
           have hB_code_t : (codedUniformOn B hB).code ∈ 𝒜.enumeration.enum T := hB_code
           have hB_code_t_mono : ∀ t ≥ T, 𝒜.enumeration.enum T <+: 𝒜.enumeration.enum t := by
-            exact fun t ht => by induction ht <;> [ tauto; exact List.IsPrefix.trans ‹_› ( 𝒜.enumeration.mono _ ) ] ;
+            exact fun t ht => by
+              induction ht with
+              | refl => exact List.prefix_rfl
+              | step _ ih => exact ih.trans (𝒜.enumeration.mono _)
           exact List.IsPrefix.subset ( hB_code_t_mono t ht ) hB_code_t
         generalize_proofs at *; (
         exact hB_code_t t ht)
@@ -193,20 +206,42 @@ theorem exists_valid_coverAddress (𝒜 : DescriptionFamily) {A : Finset BitStri
     generalize_proofs at *; (
     choose! T hT using hT
     generalize_proofs at *; (
-    exact ⟨ Finset.sup (𝒞.toFinset) T, fun B hB => hT B hB _ ( Finset.le_sup ( f := T ) ( List.mem_toFinset.mpr hB ) ) ⟩)))
+    exact ⟨Finset.sup (𝒞.toFinset) T, fun B hB =>
+      hT B hB _ (Finset.le_sup (f := T) (List.mem_toFinset.mpr hB))⟩)))
   generalize_proofs at *; (
-  refine ⟨ Encodable.encode ( T, ( List.pmap ( fun B hB => ( codedUniformOn B hB ).code ) 𝒞 ( fun B hB => hT B hB |> Classical.choose ) ) ), ?_ ⟩ ; simp +decide [ coverValidBool ] ;
-  refine ⟨ ⟨ ⟨ ?_, ?_ ⟩, ?_ ⟩, ?_ ⟩ <;> simp +decide [ coverDecode, decodeCoverCodeList_code ] at *; (
-  grind +qlia);
-  · have h_card_bound : A.card < 2 ^ k * (A.card / 2 ^ k + 1) ∧ A.card / 2 ^ k + 1 ≤ 2 * max 1 (A.card / 2 ^ k) := by
-      exact ⟨ by linarith [ Nat.div_add_mod A.card ( 2 ^ k ), Nat.mod_lt A.card ( pow_pos ( by decide : 0 < 2 ) k ) ], by cases max_cases 1 ( A.card / 2 ^ k ) <;> linarith ⟩
+  refine ⟨Encodable.encode
+    (T, List.pmap (fun B hB => (codedUniformOn B hB).code) 𝒞
+      (fun B hB => hT B hB |> Classical.choose)), ?_⟩
+  simp +decide only [coverValidBool, Encodable.encode_prod_val, Encodable.encode_nat,
+    le_sup_iff, Bool.decide_or, List.all_filter, Bool.and_eq_true, List.all_eq_true,
+    decide_eq_true_eq, Bool.or_eq_true, Bool.not_eq_eq_eq_not, Bool.not_true,
+    decide_eq_false_iff_not, List.any_eq_true]
+  refine ⟨⟨⟨?_, ?_⟩, ?_⟩, ?_⟩ <;>
+    simp +decide only [le_sup_iff, coverDecode, decodeCoverCodeList_code,
+      mem_canonicalFinsetList, Encodable.decode_prod_val, Nat.unpair_pair,
+      Encodable.decode_nat, Encodable.encodek, Option.map_some, Option.bind_some,
+      Option.getD_some, List.mem_pmap, List.length_pmap, forall_exists_index,
+      ↓existsAndEq, true_and, exists_prop] at *
+  · grind +qlia
+  · have h_card_bound :
+        A.card < 2 ^ k * (A.card / 2 ^ k + 1) ∧
+          A.card / 2 ^ k + 1 ≤ 2 * max 1 (A.card / 2 ^ k) := by
+      exact ⟨by
+          linarith [Nat.div_add_mod A.card (2 ^ k),
+            Nat.mod_lt A.card (pow_pos (by decide : 0 < 2) k)], by
+          cases max_cases 1 (A.card / 2 ^ k) <;> linarith⟩
     generalize_proofs at *; (
-    rw [ pow_succ' ] ; nlinarith [ Nat.zero_le ( 𝒜.overhead n ), Nat.zero_le ( A.card / 2 ^ k ), Nat.zero_le ( max 1 ( A.card / 2 ^ k ) ) ] ;);
-  · intro x B hB hx; subst hx; simp +decide [ decodeCoverCodeList_code ] ;
+    rw [pow_succ']
+    nlinarith [Nat.zero_le (𝒜.overhead n), Nat.zero_le (A.card / 2 ^ k),
+      Nat.zero_le (max 1 (A.card / 2 ^ k))])
+  · intro x B hB hx
+    subst hx
+    simp +decide only [decodeCoverCodeList_code]
     rw [ List.dedup_eq_self.mpr, List.dedup_eq_self.mpr ] <;> norm_num [ h𝒞.1 B hB ];
     · exact Finset.sort_nodup _ _;
     · exact canonicalFinsetList_nodup B;
-  · exact fun x hx => Classical.or_iff_not_imp_left.2 fun hx' => h𝒞.2.1 x hx <| by simpa using hx';))
+  · exact fun x hx => Classical.or_iff_not_imp_left.2 fun hx' =>
+      h𝒞.2.1 x hx <| by simpa using hx'))
 
 /-
 **The computable cover-selector (M2(a3) computable core).**
@@ -250,12 +285,12 @@ theorem exists_coverSelector (𝒜 : DescriptionFamily) :
           z.length ≤ k + c₀ * ((Nat.bits n).length + (Nat.bits k).length
             + (Nat.bits (𝒜.overhead n)).length + 1) ∧
           (codedUniformOn B hB).code ∈ f (pairCode (codedUniformOn A hA).code z) := by
-  refine ⟨ ?_, ?_, 4, ?_ ⟩;
-  exact Kolmogorov.coverSelectorFun 𝒜;
-  · exact coverSelectorFun_partrec 𝒜;
+  refine ⟨Kolmogorov.coverSelectorFun 𝒜, ?_, 4, ?_⟩
+  · exact coverSelectorFun_partrec 𝒜
   · intro A hA x n j k hA_mem hA_card hk hxA hx_len
     obtain ⟨p, hp⟩ := exists_valid_coverAddress 𝒜 hA hA_mem n k
-    set p' := Nat.find (⟨p, hp⟩ : ∃ p, coverValidBool 𝒜 (codedUniformOn A hA).code n k (𝒜.overhead n) p) with hp'
+    set p' := Nat.find (⟨p, hp⟩ : ∃ p,
+      coverValidBool 𝒜 (codedUniformOn A hA).code n k (𝒜.overhead n) p) with hp'
     set stage := (coverDecode p').1 with hstage
     set cover := (coverDecode p').2 with hcover
     set idx := cover.findIdx (fun w => decide (x ∈ decodeCoverCodeList w)) with hidx
@@ -313,24 +348,31 @@ theorem exists_coverSelector (𝒜 : DescriptionFamily) :
           rw [← pow_add, Nat.add_sub_of_le hk]
           exact hA_card
       have h_trans := (hvalid_card (cover.getD idx []) hselected_mem).trans h_max
-      have h_card : (decodeCoverCodeList (cover.getD idx [])).toFinset.card = (decodeCoverCodeList (cover.getD idx [])).dedup.length := by
+      have h_card : (decodeCoverCodeList (cover.getD idx [])).toFinset.card =
+          (decodeCoverCodeList (cover.getD idx [])).dedup.length := by
         exact List.card_toFinset _
       rw [h_card]
       exact h_trans
-    · rw [ hz, coverAddress ];
-      rw [ length_pairCode, length_pairCode, length_pairCode, chunkAddress_length ] ; omega;
-      have hidx_lt_cover_length : (𝒜.overhead n) < 2 ^ (Nat.bits (𝒜.overhead n)).length := by
-        exact lt_two_pow_length_natBits (𝒜.overhead n);
-      rw [ hs, pow_add ];
-      nlinarith [ hidx_lt, hvalid_length,
-        pow_pos ( zero_lt_two' ℕ ) ( k + 1 ) ];
-    · convert Kolmogorov.coverSelectorFun_getD_mem 𝒜 ( codedUniformOn A hA ).code n k ( 𝒜.overhead n ) idx s p' _ _ using 1
+    · rw [hz, coverAddress]
+      rw [length_pairCode, length_pairCode, length_pairCode, chunkAddress_length]
+      · omega
+      · have hidx_lt_cover_length :
+            (𝒜.overhead n) < 2 ^ (Nat.bits (𝒜.overhead n)).length := by
+          exact lt_two_pow_length_natBits (𝒜.overhead n)
+        rw [hs, pow_add]
+        nlinarith [hidx_lt, hvalid_length,
+          pow_pos (zero_lt_two' ℕ) (k + 1)]
+    · convert Kolmogorov.coverSelectorFun_getD_mem 𝒜
+          (codedUniformOn A hA).code n k (𝒜.overhead n) idx s p' _ _ using 1
       all_goals generalize_proofs at *;
       · obtain ⟨S, hS, hS_mem, hS_eq⟩ :=
           hcover_members (cover.getD idx []) hselected_mem
         simp_all +decide [decodeCoverCodeList_code]
       · exact hvalid;
-      · exact fun m mn => by simpa using Nat.find_min ‹∃ p, coverValidBool 𝒜 ( codedUniformOn A hA ).code n k ( 𝒜.overhead n ) p = true› mn;
+      · exact fun m mn => by
+          simpa using Nat.find_min ‹∃ p,
+            coverValidBool 𝒜 (codedUniformOn A hA).code n k
+              (𝒜.overhead n) p = true› mn
 
 /-- **M2(a3): restricted description shift** (paper Prop. `prop:a-family`(a3);
 analogue of `inDescriptionProfile_portion`).  If `(i, j) ∈ P_x^𝒜` and `k ≤ j`,

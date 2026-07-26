@@ -74,8 +74,11 @@ theorem scaledSection_eq (U : Map) (z x y : BitString) (k : ℕ) :
   apply le_antisymm
   · -- Every valid decoding `(x', k')` of `pairCode x (natCode k)` equals `(x, k)`.
     refine iSup_le fun z' ↦ iSup_le fun x' ↦ iSup_le fun k' ↦ iSup_le fun hzxk ↦ ?_
-    have hz : z = z' := (Prod.ext_iff.mp (@pairCode_injective (z, pairCode x (natCode k)) (z', pairCode x' (natCode k')) hzxk)).1
-    have hxk : pairCode x (natCode k) = pairCode x' (natCode k') := (Prod.ext_iff.mp (@pairCode_injective (z, pairCode x (natCode k)) (z', pairCode x' (natCode k')) hzxk)).2
+    have hpairs : (z, pairCode x (natCode k)) = (z', pairCode x' (natCode k')) :=
+      pairCode_injective hzxk
+    have hz : z = z' := congrArg Prod.fst hpairs
+    have hxk : pairCode x (natCode k) = pairCode x' (natCode k') :=
+      congrArg Prod.snd hpairs
     have hxx : (x, natCode k) = (x', natCode k') := pairCode_injective hxk
     obtain ⟨hx, hnat⟩ := Prod.mk.injEq .. ▸ hxx
     have hk : k = k' := natCode_injective hnat
@@ -104,7 +107,8 @@ The decoder recovers the second index of a faithful pair-context.
 -/
 lemma decodeNat_pairCode (x : BitString) (k : ℕ) :
     decodeNat (pairCode x (natCode k)) = k := by
-  -- Unfold `decodeNat` and `pairCode` to express `decodeNat (pairCode x (natCode k))` in terms of `takeWhile` and `drop`.
+  -- Unfold `decodeNat` and `pairCode` to express the decoder in terms of
+  -- `takeWhile` and `drop`.
   simp [decodeNat, pairCode];
   simp +decide [ two_mul, List.drop_append ];
   simp +decide [ List.drop_eq_nil_of_le, natCode ]
@@ -142,23 +146,33 @@ lemma len_takeWhile_eq_findIdx (z : BitString) :
 lemma decodeNat_computable : Computable decodeNat := by
   apply Primrec.to_comp
   have h_len : Primrec (fun (z : BitString) ↦ (z.takeWhile id).length) := by
-    have h_takeWhile_id_length : Primrec (fun z : BitString ↦ (List.findIdx (fun b ↦ !b) z)) := by
-      exact @Primrec.list_findIdx BitString Bool (@Primcodable.list Bool Primcodable.bool) Primcodable.bool
+    have h_takeWhile_id_length :
+        Primrec (fun z : BitString ↦ (List.findIdx (fun b ↦ !b) z)) := by
+      exact @Primrec.list_findIdx BitString Bool
+        (@Primcodable.list Bool Primcodable.bool) Primcodable.bool
         (@id BitString) (fun a b ↦ !(a, b).snd)
         (@Primrec.id BitString (@Primcodable.list Bool Primcodable.bool))
-        (@Primrec.to₂ BitString Bool Bool (@Primcodable.list Bool Primcodable.bool) Primcodable.bool Primcodable.bool
+        (@Primrec.to₂ BitString Bool Bool
+          (@Primcodable.list Bool Primcodable.bool) Primcodable.bool Primcodable.bool
           (fun a ↦ !a.snd)
-          (@Primrec.comp (BitString × Bool) Bool Bool (@Primcodable.prod BitString Bool (@Primcodable.list Bool Primcodable.bool) Primcodable.bool) Primcodable.bool Primcodable.bool
+          (@Primrec.comp (BitString × Bool) Bool Bool
+            (@Primcodable.prod BitString Bool
+              (@Primcodable.list Bool Primcodable.bool) Primcodable.bool)
+            Primcodable.bool Primcodable.bool
             Bool.not (@Prod.snd BitString Bool) Primrec.not
-            (@Primrec.snd BitString Bool (@Primcodable.list Bool Primcodable.bool) Primcodable.bool)))
-    have eq : (fun z : BitString ↦ (z.takeWhile id).length) = (fun z : BitString ↦ (List.findIdx (fun b ↦ !b) z)) := by
+            (@Primrec.snd BitString Bool
+              (@Primcodable.list Bool Primcodable.bool) Primcodable.bool)))
+    have eq : (fun z : BitString ↦ (z.takeWhile id).length) =
+        (fun z : BitString ↦ (List.findIdx (fun b ↦ !b) z)) := by
       funext z; exact len_takeWhile_eq_findIdx z
     rw [eq]
     exact h_takeWhile_id_length
   have h1 := primrec_list_drop
   have h2 : Primrec (fun ctx : BitString ↦ 2 * (List.takeWhile id ctx).length + 1) := by
-    exact Primrec.nat_add.comp (Primrec.nat_mul.comp (Primrec.const 2) h_len) (Primrec.const 1)
-  have h3 : Primrec (fun ctx : BitString ↦ List.drop (2 * (List.takeWhile id ctx).length + 1) ctx) := by
+    exact Primrec.nat_add.comp
+      (Primrec.nat_mul.comp (Primrec.const 2) h_len) (Primrec.const 1)
+  have h3 : Primrec (fun ctx : BitString ↦
+      List.drop (2 * (List.takeWhile id ctx).length + 1) ctx) := by
     exact h1.comp Primrec.id h2
   exact h_len.comp h3
 
@@ -167,11 +181,13 @@ A context decodes back to itself under `(decodeFirst, decodeNat)` exactly when
 it is a genuine pair code.
 -/
 lemma pairCode_decode_eq_iff (ctx : BitString) :
-    pairCode (decodeFirst ctx) (pairCode (decodeFirst (decodeSecond ctx)) (natCode (decodeNat (decodeSecond ctx)))) = ctx
+    pairCode (decodeFirst ctx)
+        (pairCode (decodeFirst (decodeSecond ctx)) (natCode (decodeNat (decodeSecond ctx)))) = ctx
       ↔ ∃ z x k, ctx = pairCode z (pairCode x (natCode k)) := by
-  constructor <;> intro h;
-  · exact ⟨ _, _, _, h.symm ⟩;
-  · obtain ⟨ z, x, k, rfl ⟩ := h; simp +decide [ decodeFirst_pairCode, decodeSecond_pairCode, decodeNat_pairCode ];
+  constructor <;> intro h
+  · exact ⟨_, _, _, h.symm⟩
+  · obtain ⟨z, x, k, rfl⟩ := h
+    simp +decide [decodeFirst_pairCode, decodeSecond_pairCode, decodeNat_pairCode]
 
 /-
 The scaled section vanishes on contexts that are not genuine pair codes.
@@ -184,8 +200,11 @@ lemma scaledSection_eq_zero_of_not_pairCode (U : Map) (out ctx : BitString)
 /-- The staged numerator for the scaled section: the a priori numerator on the
 decoded first component, scaled by `2^{k}`, guarded by the decode-validity check. -/
 def scaledApprox (c : Nat.Partrec.Code) (s : ℕ) (out ctx : BitString) : ℕ :=
-  if pairCode (decodeFirst ctx) (pairCode (decodeFirst (decodeSecond ctx)) (natCode (decodeNat (decodeSecond ctx)))) = ctx then
-    aprioriApprox c s (pairCode (decodeFirst (decodeSecond ctx)) out) (decodeFirst ctx) * 2 ^ (decodeNat (decodeSecond ctx))
+  if pairCode (decodeFirst ctx)
+      (pairCode (decodeFirst (decodeSecond ctx)) (natCode (decodeNat (decodeSecond ctx)))) =
+      ctx then
+    aprioriApprox c s (pairCode (decodeFirst (decodeSecond ctx)) out) (decodeFirst ctx) *
+      2 ^ (decodeNat (decodeSecond ctx))
   else 0
 
 /-
@@ -219,7 +238,8 @@ lemma scaledApprox_iSup {U : Map} (c : Nat.Partrec.Code)
   · simp_rw [dyadicValue_mul_pow]
     rw [← ENNReal.iSup_mul]
     rw [aprioriApprox_iSup c hc]
-    convert (scaledSection_eq U (decodeFirst ctx) (decodeFirst (decodeSecond ctx)) out (decodeNat (decodeSecond ctx))).symm using 1
+    convert (scaledSection_eq U (decodeFirst ctx) (decodeFirst (decodeSecond ctx)) out
+      (decodeNat (decodeSecond ctx))).symm using 1
     congr 1
     exact h.symm
   · have h_not : ∀ z x k, ctx ≠ pairCode z (pairCode x (natCode k)) := by
@@ -227,7 +247,8 @@ lemma scaledApprox_iSup {U : Map} (c : Nat.Partrec.Code)
       apply h
       rw [contra]
       simp +decide [decodeFirst_pairCode, decodeSecond_pairCode, decodeNat_pairCode]
-    have h_sec : scaledSection U out ctx = 0 := scaledSection_eq_zero_of_not_pairCode U out ctx h_not
+    have h_sec : scaledSection U out ctx = 0 :=
+      scaledSection_eq_zero_of_not_pairCode U out ctx h_not
     rw [h_sec]
     simp [dyadicValue]
 
@@ -247,14 +268,27 @@ The (unguarded) scaled numerator value is computable.
 -/
 lemma scaledApproxVal_computable (c : Nat.Partrec.Code) :
     Computable (fun q : ℕ × BitString × BitString ↦
-      aprioriApprox c q.1 (pairCode (decodeFirst (decodeSecond q.2.2)) q.2.1) (decodeFirst q.2.2) * 2 ^ (decodeNat (decodeSecond q.2.2))) := by
-  have h_comp : Computable (fun q : ℕ × BitString × BitString ↦ aprioriApprox c q.1 (pairCode (decodeFirst (decodeSecond q.2.2)) q.2.1) (decodeFirst q.2.2)) := by
+      aprioriApprox c q.1 (pairCode (decodeFirst (decodeSecond q.2.2)) q.2.1)
+        (decodeFirst q.2.2) * 2 ^ (decodeNat (decodeSecond q.2.2))) := by
+  have h_comp : Computable (fun q : ℕ × BitString × BitString ↦
+      aprioriApprox c q.1 (pairCode (decodeFirst (decodeSecond q.2.2)) q.2.1)
+        (decodeFirst q.2.2)) := by
     convert aprioriApprox_computable c |> Computable.comp <| _ using 1;
     rotate_left;
-    exact fun q ↦ ( q.1, pairCode ( decodeFirst (decodeSecond q.2.2) ) q.2.1, decodeFirst q.2.2 );
-    · convert Computable.pair ( Computable.fst ) ( Computable.pair ( Computable.comp ( pairCode_computable ) ( Computable.pair ( decodeFirst_computable.comp ( decodeSecond_computable.comp ( Computable.snd.comp Computable.snd ) ) ) ( Computable.fst.comp Computable.snd ) ) ) ( decodeFirst_computable.comp ( Computable.snd.comp Computable.snd ) ) ) using 1;
+    · exact fun q ↦
+        (q.1, pairCode (decodeFirst (decodeSecond q.2.2)) q.2.1, decodeFirst q.2.2)
+    · convert Computable.pair Computable.fst
+          (Computable.pair
+            (pairCode_computable.comp
+              (Computable.pair
+                (decodeFirst_computable.comp
+                  (decodeSecond_computable.comp (Computable.snd.comp Computable.snd)))
+                (Computable.fst.comp Computable.snd)))
+            (decodeFirst_computable.comp (Computable.snd.comp Computable.snd))) using 1
     · rfl;
-  convert Computable.comp ( _ : Computable fun q : ℕ × ℕ ↦ q.1 * 2 ^ q.2 ) ( h_comp.pair ( _ : Computable fun q : ℕ × BitString × BitString ↦ decodeNat (decodeSecond q.2.2) ) ) using 1;
+  convert Computable.comp (_ : Computable fun q : ℕ × ℕ ↦ q.1 * 2 ^ q.2)
+    (h_comp.pair (_ : Computable fun q : ℕ × BitString × BitString ↦
+      decodeNat (decodeSecond q.2.2))) using 1;
   · have h_mul : Computable (fun q : ℕ × ℕ ↦ q.1 * 2 ^ q.2) := by
       have h_exp : Computable (fun n : ℕ ↦ 2 ^ n) := primrec_two_pow.to_comp
       have h_mul : Computable (fun q : ℕ × ℕ ↦ q.1 * q.2) := by
@@ -262,30 +296,45 @@ lemma scaledApproxVal_computable (c : Nat.Partrec.Code) :
         exact Primrec.nat_mul.comp ( Primrec.fst ) ( Primrec.snd );
       convert h_mul.comp ( Computable.fst.pair ( h_exp.comp Computable.snd ) ) using 1;
     exact h_mul;
-  · exact decodeNat_computable.comp ( decodeSecond_computable.comp ( Computable.snd.comp Computable.snd ) )
+  · exact decodeNat_computable.comp
+      (decodeSecond_computable.comp (Computable.snd.comp Computable.snd))
 
 /-
 The scaled-section numerator is computable.
 -/
 lemma scaledApprox_computable (c : Nat.Partrec.Code) :
     Computable (fun q : ℕ × BitString × BitString ↦ scaledApprox c q.1 q.2.1 q.2.2) := by
-  apply Computable.of_eq;
-  convert Computable.cond _ _ _;
-  exact fun q ↦ decide ( pairCode ( decodeFirst q.2.2 ) ( pairCode ( decodeFirst ( decodeSecond q.2.2 ) ) ( natCode ( decodeNat ( decodeSecond q.2.2 ) ) ) ) = q.2.2 );
-  exact fun q ↦ aprioriApprox c q.1 (pairCode (decodeFirst (decodeSecond q.2.2)) q.2.1) (decodeFirst q.2.2) * 2 ^ (decodeNat (decodeSecond q.2.2));
-  exact fun _ ↦ 0;
-  · have h_reencode_computable :
-        Computable (fun q : BitString ↦ pairCode (decodeFirst q) (pairCode (decodeFirst (decodeSecond q)) (natCode (decodeNat (decodeSecond q))))) := by
-      convert pairCode_computable.comp ( Computable.pair decodeFirst_computable ( pairCode_computable.comp ( Computable.pair ( decodeFirst_computable.comp decodeSecond_computable ) ( natCode_computable.comp ( decodeNat_computable.comp decodeSecond_computable ) ) ) ) ) using 1;
-    have h_eq_computable : Computable (fun q : BitString × BitString ↦ decide (q.1 = q.2)) := by
-      have h_eq_primrec : Primrec (fun q : BitString × BitString ↦ decide (q.1 = q.2)) := by
-        convert Primrec.eq.comp Primrec.fst Primrec.snd using 1
-        exact Iff.symm primrecPred_iff_primrec_decide
-      exact Primrec.to_comp h_eq_primrec
-    convert h_eq_computable.comp ( h_reencode_computable.comp ( Computable.snd.comp Computable.snd ) |> Computable.pair <| Computable.snd.comp Computable.snd ) using 1;
-  · convert scaledApproxVal_computable c using 1;
-  · exact Computable.const 0;
-  · unfold scaledApprox; aesop;
+  have h_reencode_computable :
+      Computable (fun q : BitString ↦ pairCode (decodeFirst q)
+        (pairCode (decodeFirst (decodeSecond q))
+          (natCode (decodeNat (decodeSecond q))))) := by
+    convert pairCode_computable.comp
+      (Computable.pair decodeFirst_computable
+        (pairCode_computable.comp
+          (Computable.pair (decodeFirst_computable.comp decodeSecond_computable)
+            (natCode_computable.comp
+              (decodeNat_computable.comp decodeSecond_computable))))) using 1
+  have h_eq_computable :
+      Computable (fun q : BitString × BitString ↦ decide (q.1 = q.2)) := by
+    have h_eq_primrec :
+        Primrec (fun q : BitString × BitString ↦ decide (q.1 = q.2)) := by
+      convert Primrec.eq.comp Primrec.fst Primrec.snd using 1
+      exact Iff.symm primrecPred_iff_primrec_decide
+    exact Primrec.to_comp h_eq_primrec
+  have h_guard : Computable (fun q : ℕ × BitString × BitString ↦
+      decide (pairCode (decodeFirst q.2.2)
+        (pairCode (decodeFirst (decodeSecond q.2.2))
+          (natCode (decodeNat (decodeSecond q.2.2)))) = q.2.2)) := by
+    convert h_eq_computable.comp
+      (h_reencode_computable.comp (Computable.snd.comp Computable.snd) |>
+        Computable.pair <| Computable.snd.comp Computable.snd) using 1
+  have h_zero : Computable (fun _ : ℕ × BitString × BitString ↦ 0) :=
+    Computable.const 0
+  have h_cond := Computable.cond h_guard (scaledApproxVal_computable c) h_zero
+  exact h_cond.of_eq (by
+    intro q
+    unfold scaledApprox
+    aesop)
 
 end ScaledLSC
 

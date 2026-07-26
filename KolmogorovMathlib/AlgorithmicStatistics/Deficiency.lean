@@ -32,7 +32,8 @@ noncomputable def DeficiencyLe (U : Map) (P : CodedFiniteDistribution)
     (x : BitString) (beta : ℕ) : Prop :=
   P.DeficiencyLe U x beta
 
-/-- Monotonicity in `beta`: if deficiency is bounded by `beta`, it is bounded by any larger `beta'`. -/
+/-- Monotonicity in `beta`: if deficiency is bounded by `beta`,
+it is bounded by any larger `beta'`. -/
 theorem DeficiencyLe.mono_beta {U : Map} {P : CodedFiniteDistribution} {x : BitString}
     {beta beta' : ℕ} (h : beta ≤ beta') (hdef : DeficiencyLe U P x beta) :
     DeficiencyLe U P x beta' := by
@@ -50,9 +51,10 @@ theorem deficiencyLe_zero_of_mass_one (U : Map) (P : CodedFiniteDistribution) (x
   exact complexityWeight_KP_le_one U x P.code
 
 /-- If `DeficiencyLe U P x beta`, then `P.mass x` cannot be zero unless the complexity is `⊤`.
-Since `KP U x P.code` is `⊤` iff the string is unreachable, for an optimal machine this only happens if `x` is impossible. -/
-theorem mass_pos_of_deficiencyLe_of_KP_ne_top {U : Map} {P : CodedFiniteDistribution} {x : BitString}
-    {beta : ℕ} (hdef : DeficiencyLe U P x beta) (hKP : KP U x P.code ≠ ⊤) :
+Since `KP U x P.code` is `⊤` iff the string is unreachable, for an optimal machine this only happens
+if `x` is impossible. -/
+theorem mass_pos_of_deficiencyLe_of_KP_ne_top {U : Map} {P : CodedFiniteDistribution}
+    {x : BitString} {beta : ℕ} (hdef : DeficiencyLe U P x beta) (hKP : KP U x P.code ≠ ⊤) :
     0 < P.mass x := by
   by_contra hzero
   push Not at hzero
