@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the Lean 4.28 -> 4.31 migration and polishing loop.
+"""Run the Lean 4.31 -> 4.32.1 migration and polishing loop.
 
 Each migration iteration has two local stages:
 
@@ -9,7 +9,7 @@ Strategy iterations are selected by ``--strategy-first`` and
 ``--strategy-every``.  With ``--strategy-first 1 --strategy-every 5`` they are
 1, 6, 11, ...; every agent plans on those iterations and no source is edited.
 
-The Lean 4.28 snapshot is read-only reference material.  The Lean 4.31
+The Lean 4.31 snapshot is read-only reference material.  The Lean 4.32.1
 worktree is the only editable project and the merge gate accepts a batch only
 after its full audit succeeds.
 """
@@ -47,8 +47,8 @@ CODEX_EFFORT = os.environ.get("KOLMOGOROV_CODEX_EFFORT", "xhigh")
 RELEASE_CANDIDATE_RE = re.compile(r"(?m)^STATUS:\s*RELEASE_CANDIDATE\s*$")
 MIGRATION_SOURCE_ROOT = Path(
     os.environ.get(
-        "KOLMOGOROV_MIGRATION_SOURCE_28",
-        "/home/lesha/kolmogorov-complexity-lean-28-migration-source",
+        "KOLMOGOROV_MIGRATION_SOURCE_31",
+        "/home/lesha/kolmogorov-complexity-lean-31-migration-source-final-20260726T154201Z",
     )
 )
 DEFAULT_STABILITY_LAB_ROOT = Path(
@@ -187,21 +187,21 @@ def collect_context(section: dict[str, Any], root: Path) -> str:
         return f"""
 # Migration Context
 
-Editable Lean 4.31 worktree: `{root}`
-Read-only final Lean 4.28 snapshot: `{MIGRATION_SOURCE_ROOT}`
+Editable Lean 4.32.1 worktree: `{root}`
+Read-only final Lean 4.31 snapshot: `{MIGRATION_SOURCE_ROOT}`
 
 The source snapshot is evidence and reference material, never an editable
-worktree. Existing Lean 4.31 files contain deliberate API and proof changes;
-do not overwrite a shared file wholesale with its Lean 4.28 counterpart.
+worktree. Existing Lean 4.32.1 files contain deliberate API and proof changes;
+do not overwrite a shared file wholesale with its Lean 4.31 counterpart.
 
-## Source files not yet present by path in this initial 4.31 worktree
+## Source files not yet present by path in this initial 4.32.1 worktree
 
 {missing or "(none)"}
 
 ## Migration plan
 
 ```markdown
-{read_text(root / "MIGRATION_28_TO_31.md", 30000).strip()}
+{read_text(root / "MIGRATION_31_TO_32.md", 30000).strip()}
 ```
 
 ## Migration status
@@ -213,7 +213,7 @@ do not overwrite a shared file wholesale with its Lean 4.28 counterpart.
 ## Scalability plan
 
 ```markdown
-{read_text(root / "SCALABILITY_31_PLAN.md", 20000).strip()}
+{read_text(root / "SCALABILITY_32_PLAN.md", 20000).strip()}
 ```
 
 ## Machine fidelity check (exit {fidelity_rc})
@@ -359,11 +359,11 @@ def migration_reference_args() -> list[str]:
 
 
 def migration_source_provenance() -> dict[str, Any]:
-    """Fail closed unless migration uses a recorded, read-only final 4.28 tree."""
-    configured = os.environ.get("KOLMOGOROV_MIGRATION_SOURCE_28")
+    """Fail closed unless migration uses a recorded, read-only final 4.31 tree."""
+    configured = os.environ.get("KOLMOGOROV_MIGRATION_SOURCE_31")
     if not configured:
         raise RuntimeError(
-            "KOLMOGOROV_MIGRATION_SOURCE_28 must name the final polished 4.28 snapshot"
+            "KOLMOGOROV_MIGRATION_SOURCE_31 must name the final polished 4.31 snapshot"
         )
     source = MIGRATION_SOURCE_ROOT.resolve()
     if not source.is_dir():
@@ -385,7 +385,7 @@ def migration_source_provenance() -> dict[str, Any]:
     ]
     if writable:
         sample = ", ".join(str(path) for path in writable[:5])
-        raise RuntimeError(f"final 4.28 source is not read-only: {sample}")
+        raise RuntimeError(f"final 4.31 source is not read-only: {sample}")
     return {
         "root": str(source),
         "metadata": str(metadata_path),
@@ -622,14 +622,14 @@ def migration_ordinary_prompt(
             "Take one bounded dependency-ready unit from the first unfinished "
             "strategy batch. Prefer one substantial Lean file; use multiple files "
             "only when they form one inseparable interface change and their known "
-            "strict debt totals at most about 80 warnings. Compare final 4.28 and "
-            "4.31, make the smallest coherent repair, run strict direct checks for "
+            "strict debt totals at most about 80 warnings. Compare final 4.31 and "
+            "4.32.1, make the smallest coherent repair, run strict direct checks for "
             "only those files, report, and stop."
         ),
         "02_codex": (
             "Adversarially inspect Gemini's complete diff and build output. Compare touched "
-            "public declarations and proof quality with the final 4.28 source, revert unsafe "
-            "or wholesale overwrites, repair every 4.31 API or proof error, and finish the "
+            "public declarations and proof quality with the final 4.31 source, revert unsafe "
+            "or wholesale overwrites, repair every 4.32.1 API or proof error, and finish the "
             "coherent batch. Continue into the next dependency-ready work when it can be "
             "strictly checked in this iteration. Run `scripts/check_affected.py --direct-only` "
             "for every touched Lean file; the merge gate owns the repository-wide audit. "
@@ -659,18 +659,18 @@ def migration_ordinary_prompt(
   experiment, preserve a concise checkpoint diagnosis, and stop for Codex.
 """
     return f"""
-You are {role} in a Lean 4.28 to Lean 4.31 migration iteration.
+You are {role} in a Lean 4.31 to Lean 4.32.1 migration iteration.
 
 Iteration: {iteration}. This is an ordinary editing iteration.
 Editable worktree: `{work_root}`
-Read-only 4.28 source: `{MIGRATION_SOURCE_ROOT}`
+Read-only 4.31 source: `{MIGRATION_SOURCE_ROOT}`
 
 GLOBAL GOAL, in order:
-1. Treat the final polished 4.28 snapshot as the sole authority for source
+1. Treat the final polished 4.31 snapshot as the sole authority for source
    results, reusable interfaces, and proof quality. Compare every one of the
-   118 corresponding 4.31 modules with it, including files already touched by
+   118 corresponding 4.32.1 modules with it, including files already touched by
    an older migration.
-2. Preserve intentional 4.31 API adaptations only through the machine-readable
+2. Preserve intentional 4.32.1 API adaptations only through the machine-readable
    compatibility ledger; restore every other missing public source declaration.
 3. Remove all warnings, `sorry`, heartbeat overrides, broad imports, linter
    suppressions, temporary proof scaffolding, and avoidable proof debt.
@@ -710,13 +710,13 @@ GLOBAL GOAL, in order:
 {gemini_policy}
 
 Hard constraints:
-- Edit only the Lean 4.31 worktree. The 4.28 snapshot is read-only.
-- Previous migration output is provisional: never let an older 4.28 snapshot
+- Edit only the Lean 4.32.1 worktree. The 4.31 snapshot is read-only.
+- Previous migration output is provisional: never let an older 4.31 snapshot
   override or substitute for the final source named above.
-- Never replace an existing shared 4.31 module wholesale with the 4.28 file.
+- Never replace an existing shared 4.32.1 module wholesale with the 4.31 file.
 - No `sorry`, `sorryAx`, `axiom`, `admit`, `unsafe`, `implemented_by`, or
   `native_decide`; do not weaken theorem statements or assumptions.
-- Preserve the mathematical API of newly migrated 4.28 results. If a 4.31 API
+- Preserve the mathematical API of newly migrated 4.31 results. If a 4.32.1 API
   adaptation changes a statement syntactically, record target evidence in the
   protected compatibility ledger through a human-controlled change; do not
   silently declare a missing source name obsolete.
@@ -976,7 +976,7 @@ def migration_strategy_prompt(
         ),
         "02_codex": (
             "Independently verify Gemini's complete 118-module inventory, public API "
-            "coverage, strict-linter state, dependency order, and Lean 4.31 adaptations. "
+            "coverage, strict-linter state, dependency order, and Lean 4.32.1 adaptations. "
             "Correct omissions and freeze the next executable batches. Emit exactly "
             "`STATUS: RELEASE_CANDIDATE` as the first line only if the release audit is "
             "already expected to pass with no known actionable mathematical, style, or "
@@ -984,20 +984,20 @@ def migration_strategy_prompt(
         ),
     }[stage]
     return f"""
-You are {role} in strategy iteration {iteration} of a Lean 4.28 to 4.31 migration.
+You are {role} in strategy iteration {iteration} of a Lean 4.31 to 4.32.1 migration.
 Do not edit either tree. Plan the next {span} ordinary iterations.
 
 Editable target worktree: `{work_root}`
 Read-only source snapshot: `{MIGRATION_SOURCE_ROOT}`
 
-The objective is a full-fidelity 4.31 release: all mathematics and reusable API
-from all 118 final-28 modules, strict warning-free Mathlib style without project
+The objective is a full-fidelity 4.32.1 release: all mathematics and reusable API
+from all 118 final-31 modules, strict warning-free Mathlib style without project
 suppressions, and validation/module architecture ready for 10x-100x growth.
 
-The named final polished 4.28 snapshot is the sole source authority. Inventory
+The named final polished 4.31 snapshot is the sole source authority. Inventory
 and compare all corresponding modules, including paths already migrated from an
-older snapshot; preserve deliberate 4.31 API adaptations while reconciling every
-source result and relevant final-28 proof cleanup.
+older snapshot; preserve deliberate 4.32.1 API adaptations while reconciling every
+source result and relevant final-31 proof cleanup.
 
 {section_header(section)}
 
@@ -1018,11 +1018,11 @@ Required first line:
   above, `STATUS: RELEASE_CANDIDATE`
 
 ## Current Migration State
-State which 4.28 results/files are present, building, blocked, or still absent.
+State which 4.31 results/files are present, building, blocked, or still absent.
 
 ## Plan For The Next Four Ordinary Iterations
 For each iteration name exact source and target files, dependency order,
-expected 4.31 adaptations, targeted build, full-build criterion, and rollback rule.
+expected 4.32.1 adaptations, targeted build, full-build criterion, and rollback rule.
 
 ## Completion Audit
 Report the actual output of `scripts/check_migration_fidelity.py`, remaining
@@ -1034,7 +1034,7 @@ Flag shared files that differ and must not be copied wholesale.
 
 Hard constraints: planning only; no edits, no `sorry`, no theorem weakening,
 no claim that the original 39-file port is complete migration, and no use of
-the 4.28 project as an editable worktree.
+the 4.31 project as an editable worktree.
 
 {context}
 """

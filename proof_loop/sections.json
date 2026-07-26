@@ -1,28 +1,29 @@
 [
   {
-    "id": "migration_28_to_31",
-    "title": "Full-fidelity migration of the final polished Lean 4.28 development to Lean 4.31",
-    "module": "KolmogorovMathlib",
-    "workflow": "migration",
-    "files": [],
     "allowed_prefixes": [
       "KolmogorovMathlib/",
       "KolmogorovMathlib.lean",
-      "MIGRATION_28_TO_31.md",
+      "MIGRATION_31_TO_32.md",
       "MIGRATION_STATUS.md",
-      "SCALABILITY_31_PLAN.md",
+      "SCALABILITY_32_PLAN.md",
       "COVERAGE.md",
       "README.md",
-      "lakefile.toml"
+      "lakefile.toml",
+      "lean-toolchain"
     ],
+    "files": [],
+    "id": "migration_31_to_32",
+    "module": "KolmogorovMathlib",
+    "notes": "The immutable final Lean 4.31 snapshot is the sole source authority. Ordinary iterations are Gemini implementation followed by Codex review, repair, and continuation. Strategy iterations are 1, 6, 11, ... and plan without editing. Validators and proof-loop configuration remain protected.",
     "targets": [
-      "Preserve every mathematical result and public interface from all 118 modules of the immutable final Lean 4.28 snapshot",
-      "Keep intentional Lean 4.31 API adaptations only when documented in the machine-checked compatibility ledger",
-      "Make every touched Lean module pass strict direct elaboration and ultimately validate all 118 modules without linter suppressions",
-      "Remove all warnings, dirty hacks, broad imports, heartbeat overrides, stale scaffolding, and avoidable proof or architectural debt",
-      "Retain dependency-aware validation and prepare module boundaries, imports, and feedback workflows for 10x-100x project growth",
+      "Preserve every mathematical result and public interface from all 118 modules of the immutable final Lean 4.31 snapshot",
+      "Document only genuine Lean 4.32.1 API adaptations in the machine-checked compatibility ledger",
+      "Make every module pass strict direct elaboration and all dependency-aware build roots",
+      "Remove every warning, dirty hack, broad import, heartbeat override, stale scaffold, and avoidable proof-style debt",
+      "Keep validation and module architecture suitable for planned 10x-100x growth",
       "Stop only after the deterministic release audit and independent final review both pass"
     ],
-    "notes": "The final Lean 4.28 snapshot is the read-only mathematical and quality authority; path presence or completion of the original 39-file port is not completion. Existing Lean 4.31 implementations should be adapted rather than overwritten wholesale, but every result and reusable source interface must survive. Validators and proof_loop configuration are protected from agents. Ordinary iterations are Gemini implementation followed by Codex review, repair, and continuation. Strategy iterations are 1, 6, 11, ...; both agents plan without editing and Codex may request the final release gate only when scripts/audit.sh --release is already expected to pass."
+    "title": "Full-fidelity migration of the final polished Lean 4.31 development to Lean 4.32.1",
+    "workflow": "migration"
   }
 ]

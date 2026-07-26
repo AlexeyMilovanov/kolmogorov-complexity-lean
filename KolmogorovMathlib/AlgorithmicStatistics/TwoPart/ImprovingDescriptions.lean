@@ -240,11 +240,14 @@ An element with at least `2^k` descriptions is a rich element.
 theorem mem_richDescriptionElements_of_many (U : Map) (x : BitString) (i j k : ℕ)
     (h : ManyIJDescriptions U x i j k) :
     x ∈ richDescriptionElements U i j k := by
-  refine Finset.mem_filter.mpr ⟨ ?_, h ⟩;
-  contrapose! h;
-  exact fun H ↦ by
-    have := H.trans ( Finset.card_le_card <| show _ ⊆ ∅ from fun S hS ↦ by aesop )
-    norm_num at this;
+  refine Finset.mem_filter.mpr ⟨?_, h⟩
+  unfold ManyIJDescriptions at h
+  have h_card_pos :
+      0 < ((descriptionsWithComplexityLeAndSizeLe U i j).filter (fun S ↦ x ∈ S)).card :=
+    lt_of_lt_of_le (by positivity) h
+  obtain ⟨S, hS⟩ := Finset.card_pos.mp h_card_pos
+  rw [Finset.mem_biUnion]
+  exact ⟨S, (Finset.mem_filter.mp hS).1, (Finset.mem_filter.mp hS).2⟩
 
 /-- Converse of `mem_richDescriptionElements_of_many`: a rich element of the
 `(i,j)`-description universe necessarily has at least `2^k` distinct

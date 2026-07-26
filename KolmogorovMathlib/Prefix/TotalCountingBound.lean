@@ -298,14 +298,9 @@ lemma countingApprox_computable (c : Nat.Partrec.Code) :
             Encodable.encode ( q, [] ) ) from ?_ ) Primrec.snd ) using 1;
           exact Primrec.encode.comp ( Primrec.pair ( Primrec.id ) ( Primrec.const [] ) );
         exact Primrec.option_isSome.comp h_evaln_computable;
-      have h_if_computable : Primrec (fun q : Bool ↦ if q then 1 else 0) := by
-        convert Primrec.cond _ _ _;
-        rotate_left;
-        · exact fun x ↦ x;
-        · exact Primrec.id;
-        · exact Primrec.const 1;
-        · exact Primrec.const 0;
-        · cases ‹_› <;> rfl;
+      have h_if_computable : Primrec (fun q : Bool ↦ if q then 1 else 0) :=
+        (Primrec.cond Primrec.id (Primrec.const 1) (Primrec.const 0)).of_eq
+          (fun q ↦ by cases q <;> rfl)
       exact h_if_computable.comp ( h_evaln_computable.comp ( Primrec.fst.comp ( Primrec.fst ) |>
         Primrec.pair <| Primrec.snd ) );
   convert Primrec.comp ( show Primrec ( fun l : List ℕ ↦ List.sum l ) from ?_ )
@@ -386,11 +381,9 @@ The staged numerator is computable in `(s, out, ctx)`.
 lemma countingNum_computable (c : Nat.Partrec.Code) :
     Computable (fun q : ℕ × BitString × BitString ↦ countingNum c q.1 q.2.1 q.2.2) := by
   unfold countingNum;
-  convert Computable.cond _ _ _;
-  rotate_left;
-  · exact fun q ↦ q.2.2 = [] ∧ Nat.bits ( decodeBits q.2.1 ) = q.2.1 ∧ decodeBits q.2.1 ≤ q.1;
-  · convert countingNum_guard_computable using 1;
-  · convert Computable.comp
+  have h_true : Computable (fun q : ℕ × BitString × BitString ↦
+      countingApprox c q.1 (decodeBits q.2.1) * 2 ^ (q.1 - decodeBits q.2.1)) := by
+    convert Computable.comp
       ( show Computable ( fun q : ℕ × ℕ ↦ countingApprox c q.1 q.2 * 2 ^ ( q.1 - q.2 ) ) from ?_ )
       ( show Computable ( fun q : ℕ × BitString × BitString ↦
         ( q.1, decodeBits q.2.1 ) ) from ?_ ) using 1;
@@ -409,8 +402,8 @@ lemma countingNum_computable (c : Nat.Partrec.Code) :
       exact Primrec.nat_mul.comp ( Primrec.fst ) ( Primrec.snd );
     · exact Computable.pair ( Computable.fst )
         ( decodeBitsComputable.comp ( Computable.fst.comp ( Computable.snd ) ) );
-  · exact Computable.const 0;
-  · grind
+  exact (Computable.cond countingNum_guard_computable h_true (Computable.const 0)).of_eq
+    (fun _ ↦ by rw [Bool.cond_decide])
 
 /-- The counting function is lower-semicomputable. -/
 lemma countingF_isLSC (c : Nat.Partrec.Code) : IsLSC (countingF c) :=

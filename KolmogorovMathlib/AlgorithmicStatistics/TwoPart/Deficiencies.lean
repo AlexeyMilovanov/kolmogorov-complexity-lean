@@ -513,8 +513,9 @@ theorem isOptimalSetStochastic_imp_profile_of_large_sizeBudget (U : Map) (x : Bi
       exact hdef.trans ( mul_le_mul_right ( mul_le_mul_left ( complexityWeight_le_one _ ) _ ) _ );
     -- From `h_arith`, we have `KPPlain U x + beta ≤ j + slack`.
     obtain ⟨k, hk⟩ : ∃ k : ℕ, KPPlain U x = k := by
-      cases h : KPPlain U x <;> simp_all +decide;
-      cases h_arith;
+      cases h : KPPlain U x
+      · simp_all
+      · exact ⟨_, rfl⟩
     simp_all +decide only [ge_iff_le];
     -- From `hdef'`, we have `2⁻¹ ^ k ≤ 2 ^ beta * (S.card : ℝ≥0∞)⁻¹`.
     -- Multiplying both sides by `2 ^ k * S.card`, we get `S.card ≤ 2 ^ (k + beta)`.
@@ -555,8 +556,9 @@ theorem isOptimalSetStochastic_imp_profile (U : Map) (hU : IsOptimalPrefixCondit
   have hm₀_le : m₀ ≤ alpha := by rw [hm₀_eq] at hcomp; exact_mod_cast hcomp
   -- The plain complexity `k = KP(x)` is finite (`≤ alpha + j`).
   obtain ⟨k, hk⟩ : ∃ k : ℕ, KPPlain U x = k := by
-    cases h : KPPlain U x <;> simp_all +decide
-    cases h_arith
+    cases h : KPPlain U x
+    · simp_all
+    · exact ⟨_, rfl⟩
   have h_arith_nat : k + beta ≤ alpha + j := by
     rw [hk] at h_arith; exact_mod_cast h_arith
   -- The sharp deficiency bound (keeping the `KP(S)` factor): `2⁻¹^k ≤ 2^beta · 2⁻¹^{m₀} · |S|⁻¹`.

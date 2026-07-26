@@ -1,23 +1,22 @@
 #!/usr/bin/env python3
-"""Freeze Lean 4.31 only after deterministic and Codex release-readiness gates."""
+"""Freeze Lean 4.32.1 only after deterministic and Codex release-readiness gates."""
 
 from __future__ import annotations
 
 import argparse
 import datetime as dt
-import hashlib
 import json
 import os
 from pathlib import Path
-import re
 import subprocess
 import sys
+import tempfile
 
 
 ROOT = Path(__file__).resolve().parent.parent
 SOURCE_CONFIG = ROOT / "proof_loop" / "migration_source.json"
 CODEX = Path("/home/lesha/.npm-global/bin/codex")
-READY = re.compile(r"(?im)^STATUS:\s*RELEASE_READY_31\s*$")
+READY_STATUS = "STATUS: RELEASE_READY_32"
 COMMIT_PATHS = (
     "KolmogorovMathlib",
     "KolmogorovMathlib.lean",
@@ -26,8 +25,10 @@ COMMIT_PATHS = (
     "lake-manifest.json",
     "COVERAGE.md",
     "README.md",
-    "MIGRATION_28_TO_31.md",
+    "MIGRATION_31_TO_32.md",
     "MIGRATION_STATUS.md",
+    "SCALABILITY_32_PLAN.md",
+    "MIGRATION_28_TO_31.md",
     "SCALABILITY_31_PLAN.md",
     "scripts",
     "proof_loop/sections.json",
@@ -53,15 +54,20 @@ def run(
     *,
     timeout: int,
     check: bool = True,
+    cwd: Path = ROOT,
+    extra_env: dict[str, str] | None = None,
 ) -> subprocess.CompletedProcess[str]:
+    env = {**os.environ, "PYTHONDONTWRITEBYTECODE": "1"}
+    if extra_env:
+        env.update(extra_env)
     result = subprocess.run(
         command,
-        cwd=ROOT,
+        cwd=cwd,
         text=True,
         stdout=subprocess.PIPE,
         stderr=subprocess.STDOUT,
         timeout=timeout,
-        env={**os.environ, "PYTHONDONTWRITEBYTECODE": "1"},
+        env=env,
     )
     if check and result.returncode:
         raise RuntimeError(
@@ -71,34 +77,33 @@ def run(
     return result
 
 
-def release_files() -> list[Path]:
-    files = [
-        ROOT / "KolmogorovMathlib.lean",
-        ROOT / "lakefile.toml",
-        ROOT / "lean-toolchain",
-        ROOT / "lake-manifest.json",
-        ROOT / "COVERAGE.md",
-        ROOT / "README.md",
-        ROOT / "MIGRATION_28_TO_31.md",
-        ROOT / "MIGRATION_STATUS.md",
-        ROOT / "SCALABILITY_31_PLAN.md",
-        ROOT / "proof_loop" / "sections.json",
-        ROOT / "proof_loop" / "migration_compatibility.json",
-        ROOT / "proof_loop" / "migration_source.json",
-    ]
-    files.extend(sorted((ROOT / "KolmogorovMathlib").rglob("*.lean")))
-    files.extend(sorted((ROOT / "scripts").rglob("*")))
-    return [path for path in files if path.is_file() and "__pycache__" not in path.parts]
+def candidate_tree(
+    root: Path = ROOT,
+    commit_paths: tuple[str, ...] = COMMIT_PATHS,
+) -> str:
+    """Return the exact Git tree that commit_release would create."""
+    with tempfile.TemporaryDirectory(prefix="kolmogorov-release-index-") as tmp:
+        index = Path(tmp) / "index"
+        env = {"GIT_INDEX_FILE": str(index)}
+        run(["git", "read-tree", "HEAD"], timeout=60, cwd=root, extra_env=env)
+        run(
+            ["git", "add", "-A", "--", *commit_paths],
+            timeout=120,
+            cwd=root,
+            extra_env=env,
+        )
+        return run(
+            ["git", "write-tree"],
+            timeout=60,
+            cwd=root,
+            extra_env=env,
+        ).stdout.strip()
 
 
-def fingerprint() -> str:
-    digest = hashlib.sha256()
-    for path in release_files():
-        digest.update(path.relative_to(ROOT).as_posix().encode())
-        digest.update(b"\0")
-        digest.update(path.read_bytes())
-        digest.update(b"\0")
-    return digest.hexdigest()
+def is_release_ready(report: str) -> bool:
+    lines = [line.strip() for line in report.splitlines()]
+    status_lines = [line for line in lines if line.startswith("STATUS:")]
+    return bool(lines) and lines[0] == READY_STATUS and status_lines == [READY_STATUS]
 
 
 def source_info() -> dict[str, object]:
@@ -107,7 +112,7 @@ def source_info() -> dict[str, object]:
         raise RuntimeError("invalid migration source configuration")
     source = Path(str(value.get("root", ""))).resolve()
     if not source.is_dir():
-        raise RuntimeError(f"final Lean 4.28 snapshot is unavailable: {source}")
+        raise RuntimeError(f"final Lean 4.31 snapshot is unavailable: {source}")
     value["root"] = str(source)
     return value
 
@@ -120,20 +125,20 @@ def codex_prompt(source: dict[str, object], strategy_report: Path | None) -> str
     )
     return f"""
 You are the final read-only release reviewer for KolmogorovMathlib on Lean
-4.31.0. The deterministic release audit has already passed.
+4.32.1. The deterministic release audit has already passed.
 
 Target repository: `{ROOT}`
-Final polished Lean 4.28 authority: `{source['root']}`
-Final 4.28 commit: `{source.get('commit')}`
+Final polished Lean 4.31 authority: `{source['root']}`
+Final 4.31 commit: `{source.get('commit')}`
 
 This is not a request for metaphysical perfection. Approve only if the Lean
-4.31 tree is excellent, complete for the formalized scope, at least as polished
-as final Lean 4.28, and engineered for planned 10x-100x growth.
+4.32.1 tree is excellent, complete for the formalized scope, at least as polished
+as final Lean 4.31, and engineered for planned 10x-100x growth.
 
 Verify directly:
 
-- all 118 final-4.28 modules and public declaration names are represented;
-- every documented 4.31 API adaptation preserves or strengthens the source;
+- all 118 final-4.31 modules and public declaration names are represented;
+- every documented 4.32.1 API adaptation preserves or strengthens the source;
 - no theorem, assumption, public name, attribute, executable semantics,
   encoding order, or quantitative constant was lost;
 - zero `sorry`, warnings, forbidden constructs, resource overrides, broad
@@ -147,7 +152,16 @@ Verify directly:
   and value justify delaying release.
 
 Optional future proof golf or speculative module splitting is not a blocker.
-Do not edit files and do not start another process.
+The completion marker is deliberately written only after this review approves,
+the second deterministic audit passes, and the release commit is created.
+Therefore a missing or stale `proof_loop/MIGRATION_COMPLETE.json` is expected
+pre-release state and is not a review blocker. Review the candidate release
+files and audit evidence themselves; do not require a pre-existing completion
+marker or release commit.
+
+Do not edit files or launch background agents. You may run ordinary read-only
+shell commands to inspect the target, the immutable source, and existing audit
+artifacts.
 
 Latest migration strategy report:
 
@@ -157,9 +171,9 @@ Latest migration strategy report:
 
 First line exactly:
 
-STATUS: RELEASE_READY_31
+STATUS: RELEASE_READY_32
 or
-STATUS: NOT_RELEASE_READY_31
+STATUS: NOT_RELEASE_READY_32
 
 Then provide `Evidence`, `Blocking Issues`, `Non-Blocking Improvements`, and
 `Growth Readiness`.
@@ -219,7 +233,7 @@ def run_codex(
     return report
 
 
-def commit_release() -> str:
+def commit_release(expected_tree: str) -> str:
     run(["git", "add", "-A", "--", *COMMIT_PATHS], timeout=120)
     staged = run(
         ["git", "diff", "--cached", "--quiet"],
@@ -228,12 +242,29 @@ def commit_release() -> str:
     )
     if staged.returncode == 1:
         run(
-            ["git", "commit", "-m", "Finalize full-fidelity Lean 4.31 release"],
+            ["git", "commit", "-m", "Finalize full-fidelity Lean 4.32.1 release"],
             timeout=120,
         )
     elif staged.returncode != 0:
         raise RuntimeError("git diff --cached --quiet failed")
-    return run(["git", "rev-parse", "HEAD"], timeout=60).stdout.strip()
+    if candidate_tree() != expected_tree:
+        raise RuntimeError("candidate Git tree changed while committing")
+    status = run(
+        ["git", "status", "--porcelain=v1", "--untracked-files=all"],
+        timeout=60,
+    ).stdout.strip()
+    if status:
+        raise RuntimeError(f"release worktree is dirty after commit:\n{status}")
+    commit = run(["git", "rev-parse", "HEAD"], timeout=60).stdout.strip()
+    committed_tree = run(
+        ["git", "rev-parse", f"{commit}^{{tree}}"],
+        timeout=60,
+    ).stdout.strip()
+    if committed_tree != expected_tree:
+        raise RuntimeError(
+            f"committed tree {committed_tree} differs from reviewed tree {expected_tree}"
+        )
+    return commit
 
 
 def build_parser() -> argparse.ArgumentParser:
@@ -251,7 +282,7 @@ def main() -> int:
     state_path = output_dir / "final_release_gate.json"
     try:
         source = source_info()
-        before = fingerprint()
+        before = candidate_tree()
         audit = run(
             ["bash", "scripts/audit.sh", "--release"],
             timeout=args.timeout_seconds,
@@ -263,9 +294,9 @@ def main() -> int:
             output_dir,
             args.timeout_seconds,
         )
-        if before != fingerprint():
-            raise RuntimeError("release files changed during read-only final review")
-        if not READY.search(report):
+        if before != candidate_tree():
+            raise RuntimeError("candidate Git tree changed during read-only final review")
+        if not is_release_ready(report):
             write_json(
                 state_path,
                 {
@@ -283,12 +314,14 @@ def main() -> int:
             second_audit.stdout,
             encoding="utf-8",
         )
-        commit = commit_release()
+        if before != candidate_tree():
+            raise RuntimeError("candidate Git tree changed during the second audit")
+        commit = commit_release(before)
         result = {
             "status": "release_complete",
             "finished_at": utc_now(),
-            "commit_31": commit,
-            "source_28": source,
+            "commit_32": commit,
+            "source_31": source,
             "report": str(output_dir / "final_codex.md"),
         }
         write_json(state_path, result)

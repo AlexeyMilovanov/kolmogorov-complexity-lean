@@ -352,9 +352,10 @@ theorem stochastic_mem_levelSet_of_KPPlain_bound
   refine ⟨ KP U x P.code |> ENat.toNat |> (· + beta), ?_, ?_, ?_ ⟩;
   · have hKP_le : KP U x P.code ≤ (kxBound + c : ENat) := by
       exact le_trans ( hc _ _ ) ( by gcongr );
-    cases h : KP U x P.code <;> simp_all +arith +decide;
-    · norm_cast at hKP_le;
-    · norm_cast at *; linarith;
+    cases h : KP U x P.code
+    · simp_all
+    · simp_all
+      norm_cast at *; omega
   · contrapose! hdef; simp_all +decide only [DeficiencyLe];
     simp_all +decide only [CodedFiniteDistribution.DeficiencyLe, not_false_eq_true,
       CodedFiniteDistribution.mass_eq_zero_of_not_mem_support, mul_zero, nonpos_iff_eq_zero];
@@ -371,8 +372,6 @@ theorem stochastic_mem_levelSet_of_KPPlain_bound
       simp_all +decide only [complexityWeight_top, complexityWeight_coe, zero_le, ENat.toNat_top,
         ENat.toNat_coe, zero_add, pow_add, ge_iff_le];
     · have := hc x P.code; simp_all +decide;
-      cases h : KP U x [] <;> simp_all +decide;
-      cases this;
     · calc
         _ ≤ ((2 : ENNReal) ^ beta * P.mass x) * (2 : ENNReal)⁻¹ ^ beta := by gcongr
         _ = P.mass x := by

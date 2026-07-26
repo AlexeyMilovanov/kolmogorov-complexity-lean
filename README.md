@@ -36,11 +36,15 @@ Release validation currently discovers four maximal module roots:
 `KolmogorovMathlib.Prefix.KPPairSwap`. This keeps the standalone modules in the
 build even though they are not all reachable from the aggregate root.
 
-The project is currently pinned to Lean `v4.31.0` and the matching Mathlib ecosystem.
+The project is currently pinned to Lean `v4.32.1` and the matching Mathlib ecosystem.
 
 ## Branches
 
-The `main` branch contains the current Lean `v4.31.0` version. A Lean `v4.28` version is preserved on the [`lean-4.28-aristotle`](https://github.com/AlexeyMilovanov/kolmogorov-complexity-lean/tree/lean-4.28-aristotle) branch as a stable reference point for the earlier Mathlib ecosystem and for comparison with the Lean 4.31 migration.
+The `main` branch contains the current Lean `v4.32.1` version. A Lean `v4.28`
+version is preserved on the
+[`lean-4.28-aristotle`](https://github.com/AlexeyMilovanov/kolmogorov-complexity-lean/tree/lean-4.28-aristotle)
+branch as a stable reference point for the earlier Mathlib ecosystem and
+historical comparison.
 
 ## Project Layout
 
@@ -59,4 +63,6 @@ The top-level module `KolmogorovMathlib.lean` imports the library development.
 
 ## Lake Metadata
 
-The Lake package is named `kolmogorov_complexity`; the Lean library target is `KolmogorovMathlib`. The Mathlib dependency is pinned in `lakefile.toml` and `lake-manifest.json` to the Lean `v4.31.0` ecosystem.
+The Lake package is named `kolmogorov_complexity`; the Lean library target is
+`KolmogorovMathlib`. The Mathlib dependency is pinned in `lakefile.toml` and
+`lake-manifest.json` to the Lean `v4.32.1` ecosystem.

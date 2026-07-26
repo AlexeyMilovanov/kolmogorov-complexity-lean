@@ -879,66 +879,100 @@ lemma truncGTerm_computable_uniform (b : ℕ → ℕ → BitString → BitString
           ∧ evOut q.2 = some q.1.2.2.1 then
         evNum (b q.1.1) q.2 q.1.2.2.2 * 2 ^ (q.1.2.1 - evK q.2)
       else 0) := by
-  convert Computable.cond _ _ _;
-  rotate_left;
-  · exact fun q =>
-      decide ( cumNum ( b q.1.1 ) q.1.2.1 ( q.2 + 1 ) q.1.2.2.2 ≤ 2 ^ ( d + q.1.2.1 )
-        ∧ evOut q.2 = some q.1.2.2.1 );
-  · convert Computable.cond _ _ _ using 1;
-    rotate_left;
-    · exact fun q ↦ cumNum ( b q.1.1 ) q.1.2.1 ( q.2 + 1 ) q.1.2.2.2 ≤ 2 ^ ( d + q.1.2.1 );
-    · exact fun q ↦ evOut q.2 = some q.1.2.2.1;
-    · exact fun _ ↦ Bool.false;
-    · have h_cumNum_computable : Computable
-        (fun q : (ℕ × ℕ × BitString × BitString) × ℕ =>
-          cumNum (b q.1.1) q.1.2.1 (q.2 + 1) q.1.2.2.2) := by
-        convert cumNum_computable_uniform b hb |> Computable.comp <| _ using 1;
-        rotate_left;
-        · exact fun q ↦ ( q.1.1, q.1.2.1, q.2 + 1, q.1.2.2.2 );
-        · exact Computable.pair ( Computable.fst.comp Computable.fst )
-            ( Computable.pair ( Computable.fst.comp ( Computable.snd.comp Computable.fst ) )
-              ( Computable.pair ( Computable.succ.comp Computable.snd )
-                ( Computable.snd.comp
-                  ( Computable.snd.comp ( Computable.snd.comp Computable.fst ) ) ) ) );
-        · rfl;
-      have h_exp_computable : Computable
-          (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => 2 ^ (d + q.1.2.1)) := by
-        have h_exp_computable : Computable (fun q : ℕ ↦ 2 ^ q) := by
-          exact Primrec.to_comp primrec_two_pow_aux;
-        convert h_exp_computable.comp _ using 1;
-        have h_add_computable : Computable (fun q : ℕ ↦ d + q) :=
-          (Primrec.nat_add.comp (Primrec.const d) Primrec.id).to_comp
-        exact h_add_computable.comp ( Computable.fst.comp ( Computable.snd.comp Computable.fst ) );
-      have h_decide_computable : Computable (fun q : ℕ × ℕ ↦ decide (q.1 ≤ q.2)) := by
-        convert Primrec.nat_le using 1;
-        constructor <;> intro h <;> simp_all only [PrimrecRel];
-        · exact Primrec.nat_le;
-        · obtain ⟨ x, hx ⟩ := h;
-          convert hx.to_comp using 1;
-          convert rfl;
-      convert h_decide_computable.comp
-        ( Computable.pair h_cumNum_computable h_exp_computable ) using 1;
-    · convert evOutEq_decide_computable.comp _ using 1;
-      rotate_left;
-      · exact fun q ↦ ( q.2, q.1.2.2.1 );
-      · exact Computable.pair ( Computable.snd )
-          ( Computable.fst.comp
-            ( Computable.snd.comp ( Computable.snd.comp ( Computable.fst ) ) ) );
-      · rfl;
-    · exact Computable.const false;
-    · grind;
-  · convert Computable.comp ( Primrec.nat_mul.to_comp ) ( Computable.pair _ _ ) using 1;
-    · convert evNum_computable_uniform b hb |> Computable.comp
-        <| Computable.pair ( Computable.fst.comp Computable.fst )
-            ( Computable.pair Computable.snd
-              ( Computable.snd.comp
-                ( Computable.snd.comp ( Computable.snd.comp Computable.fst ) ) ) ) using 1;
-    · convert ( primrec_two_pow_aux.to_comp.comp _ ) using 1;
-      convert Computable.comp ( Primrec.nat_sub.to_comp ) ( Computable.pair _ _ ) using 1;
-      · exact Computable.fst.comp ( Computable.snd.comp Computable.fst );
-      · exact evK_computable.comp ( Computable.snd );
-  · exact Computable.const 0;
-  · grind
+  have h_cumNum : Computable
+      (fun q : (ℕ × ℕ × BitString × BitString) × ℕ =>
+        cumNum (b q.1.1) q.1.2.1 (q.2 + 1) q.1.2.2.2) :=
+    Computable.comp
+      (f := fun p : ℕ × ℕ × ℕ × BitString ↦ cumNum (b p.1) p.2.1 p.2.2.1 p.2.2.2)
+      (g := fun q : (ℕ × ℕ × BitString × BitString) × ℕ ↦ (q.1.1, q.1.2.1, q.2 + 1, q.1.2.2.2))
+      (cumNum_computable_uniform b hb)
+      (Computable.pair (Computable.fst.comp Computable.fst)
+        (Computable.pair (Computable.fst.comp (Computable.snd.comp Computable.fst))
+          (Computable.pair (Computable.succ.comp Computable.snd)
+            (Computable.snd.comp
+              (Computable.snd.comp (Computable.snd.comp Computable.fst))))))
+  have h_exp : Computable
+      (fun q : (ℕ × ℕ × BitString × BitString) × ℕ => 2 ^ (d + q.1.2.1)) :=
+    Computable.comp
+      (f := fun q : ℕ ↦ 2 ^ q)
+      (g := fun q : (ℕ × ℕ × BitString × BitString) × ℕ ↦ d + q.1.2.1)
+      (Primrec.to_comp primrec_two_pow_aux)
+      (Computable.comp
+        (f := fun q : ℕ × ℕ ↦ q.1 + q.2)
+        (g := fun q : (ℕ × ℕ × BitString × BitString) × ℕ ↦ (d, q.1.2.1))
+        (Primrec.nat_add.to_comp)
+        (Computable.pair (Computable.const d)
+          (Computable.fst.comp (Computable.snd.comp Computable.fst))))
+  have h_decide_le : Computable (fun q : ℕ × ℕ ↦ decide (q.1 ≤ q.2)) :=
+    (Primrec.nat_le.decide.comp Primrec.fst Primrec.snd).to_comp
+  have h_le : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ ↦
+      decide (cumNum (b q.1.1) q.1.2.1 (q.2 + 1) q.1.2.2.2 ≤ 2 ^ (d + q.1.2.1))) :=
+    Computable.comp
+      (f := fun q : ℕ × ℕ ↦ decide (q.1 ≤ q.2))
+      (g := fun q : (ℕ × ℕ × BitString × BitString) × ℕ ↦
+        (cumNum (b q.1.1) q.1.2.1 (q.2 + 1) q.1.2.2.2, 2 ^ (d + q.1.2.1)))
+      h_decide_le
+      (h_cumNum.pair h_exp)
+  have h_evOut : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ ↦
+      decide (evOut q.2 = some q.1.2.2.1)) :=
+    Computable.comp
+      (f := fun q : ℕ × BitString ↦ decide (evOut q.1 = some q.2))
+      (g := fun q : (ℕ × ℕ × BitString × BitString) × ℕ ↦ (q.2, q.1.2.2.1))
+      evOutEq_decide_computable
+      (Computable.pair Computable.snd
+        (Computable.fst.comp (Computable.snd.comp (Computable.snd.comp Computable.fst))))
+  have h_band : Computable (fun q : Bool × Bool ↦ q.1 && q.2) :=
+    (Primrec.and.comp Primrec.fst Primrec.snd).to_comp
+  have h_cond : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ ↦
+      decide (cumNum (b q.1.1) q.1.2.1 (q.2 + 1) q.1.2.2.2 ≤ 2 ^ (d + q.1.2.1)
+        ∧ evOut q.2 = some q.1.2.2.1)) :=
+    (Computable.comp
+        (f := fun q : Bool × Bool ↦ q.1 && q.2)
+        (g := fun q : (ℕ × ℕ × BitString × BitString) × ℕ ↦
+          (decide (cumNum (b q.1.1) q.1.2.1 (q.2 + 1) q.1.2.2.2 ≤ 2 ^ (d + q.1.2.1)),
+           decide (evOut q.2 = some q.1.2.2.1)))
+        h_band
+        (h_le.pair h_evOut)).of_eq
+      (fun _ ↦ (Bool.decide_and _ _).symm)
+  have h_term1 : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ ↦
+      evNum (b q.1.1) q.2 q.1.2.2.2) :=
+    Computable.comp
+      (f := fun p : ℕ × ℕ × BitString ↦ evNum (b p.1) p.2.1 p.2.2)
+      (g := fun q : (ℕ × ℕ × BitString × BitString) × ℕ ↦ (q.1.1, q.2, q.1.2.2.2))
+      (evNum_computable_uniform b hb)
+      (Computable.pair (Computable.fst.comp Computable.fst)
+        (Computable.pair Computable.snd
+          (Computable.snd.comp
+            (Computable.snd.comp (Computable.snd.comp Computable.fst)))))
+  have h_term2 : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ ↦
+      2 ^ (q.1.2.1 - evK q.2)) :=
+    Computable.comp
+      (f := fun q : ℕ ↦ 2 ^ q)
+      (g := fun q : (ℕ × ℕ × BitString × BitString) × ℕ ↦ q.1.2.1 - evK q.2)
+      (Primrec.to_comp primrec_two_pow_aux)
+      (Computable.comp
+        (f := fun q : ℕ × ℕ ↦ q.1 - q.2)
+        (g := fun q : (ℕ × ℕ × BitString × BitString) × ℕ ↦ (q.1.2.1, evK q.2))
+        (Primrec.nat_sub.to_comp)
+        (Computable.pair (Computable.fst.comp (Computable.snd.comp Computable.fst))
+          (Computable.comp
+            (f := fun q : ℕ ↦ evK q)
+            (g := fun q : (ℕ × ℕ × BitString × BitString) × ℕ ↦ q.2)
+            evK_computable
+            Computable.snd)))
+  have h_true_branch : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ ↦
+      evNum (b q.1.1) q.2 q.1.2.2.2 * 2 ^ (q.1.2.1 - evK q.2)) :=
+    Computable.comp
+      (f := fun q : ℕ × ℕ ↦ q.1 * q.2)
+      (g := fun q : (ℕ × ℕ × BitString × BitString) × ℕ ↦
+        (evNum (b q.1.1) q.2 q.1.2.2.2, 2 ^ (q.1.2.1 - evK q.2)))
+      (Primrec.nat_mul.to_comp)
+      (h_term1.pair h_term2)
+  have h_false_branch : Computable (fun q : (ℕ × ℕ × BitString × BitString) × ℕ ↦ 0) :=
+    Computable.const 0
+  exact (Computable.cond h_cond h_true_branch h_false_branch).of_eq
+    (fun _ ↦ by rw [Bool.cond_decide])
+
 
 lemma truncGapprox_computable_uniform (b : ℕ → ℕ → BitString → BitString → ℕ)
     (hb : Computable (fun p : ℕ × ℕ × BitString × BitString ↦ b p.1 p.2.1 p.2.2.1 p.2.2.2))

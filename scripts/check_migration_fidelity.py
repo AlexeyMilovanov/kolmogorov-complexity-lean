@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fail closed when the Lean 4.31 tree loses final Lean 4.28 public surface."""
+"""Fail closed when the Lean 4.32.1 tree loses final Lean 4.31 public surface."""
 
 from __future__ import annotations
 
@@ -43,7 +43,7 @@ REQUIRED_INFRASTRUCTURE = (
     "scripts/smoke/PrimrecAuto.lean",
     "scripts/strict_lint_sweep.sh",
     "scripts/test_migration_fidelity.py",
-    "SCALABILITY_31_PLAN.md",
+    "SCALABILITY_32_PLAN.md",
 )
 
 
@@ -83,10 +83,10 @@ def source_root() -> tuple[Path, dict[str, object]]:
     raw = load_json(SOURCE_CONFIG)
     if not isinstance(raw, dict):
         raise FidelityError("proof_loop/migration_source.json is not an object")
-    configured = os.environ.get("KOLMOGOROV_MIGRATION_SOURCE_28")
+    configured = os.environ.get("KOLMOGOROV_MIGRATION_SOURCE_31")
     source = Path(configured or str(raw.get("root", ""))).resolve()
     if not source.is_dir():
-        raise FidelityError(f"final Lean 4.28 source is unavailable: {source}")
+        raise FidelityError(f"final Lean 4.31 source is unavailable: {source}")
     metadata_path = Path(str(raw.get("metadata", "")))
     metadata = load_json(metadata_path)
     if not isinstance(metadata, dict):
@@ -380,7 +380,7 @@ def main() -> int:
         stale_sources = sorted(name for name in ledger if name not in source_by_raw)
         if stale_sources:
             raise FidelityError(
-                "compatibility ledger names absent from final Lean 4.28: "
+                "compatibility ledger names absent from final Lean 4.31: "
                 + ", ".join(stale_sources)
             )
         ambiguous_sources = {
@@ -438,8 +438,8 @@ def main() -> int:
             "FIDELITY OK: "
             f"{len(source_modules)} modules, "
             f"{unique_source} unique / {len(source_decls)} occurrence-qualified "
-            "final-4.28 declarations, "
-            f"{len(missing_decls)} documented 4.31 adaptations, "
+            "final-4.31 declarations, "
+            f"{len(missing_decls)} documented 4.32.1 adaptations, "
             f"source commit {source_info.get('commit')}"
         )
         return 0

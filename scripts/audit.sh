@@ -29,7 +29,7 @@ fi
 
 echo "== imports, suppressions, and measurement scaffolding =="
 if grep -RInE '^import Mathlib$|#nolint|set_option linter\.|#count_heartbeats|set_option Elab\.async false|set_option profiler true|trace_state' \
-    KolmogorovMathlib scripts/smoke --include='*.lean' 2>/dev/null; then
+    KolmogorovMathlib KolmogorovMathlib.lean scripts/smoke --include='*.lean' 2>/dev/null; then
   echo "ERROR: broad import, suppression, or temporary scaffolding found"
   exit 1
 fi
@@ -52,6 +52,7 @@ fi
 
 echo "== migration fidelity =="
 python3 -B scripts/test_migration_fidelity.py
+python3 -B scripts/test_final_release_gate.py
 python3 -B scripts/check_migration_fidelity.py
 
 echo "== lake build, root plus standalone modules =="

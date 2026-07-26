@@ -1,6 +1,6 @@
-# Lean 4.31 Scalability and Validation Plan
+# Lean 4.32.1 Scalability and Validation Plan
 
-The Lean 4.31 tree is intended to grow by one or two orders of magnitude. Its
+The Lean 4.32.1 tree is intended to grow by one or two orders of magnitude. Its
 normal development workflow therefore needs fast local feedback without
 weakening final acceptance.
 
@@ -49,14 +49,14 @@ roots must therefore enter validation automatically.
 
 ## Release Baseline
 
-The Lean 4.31 migration is complete only when:
+The Lean 4.32.1 migration is complete only when:
 
-- all final Lean 4.28 mathematics and public interfaces are represented;
+- all final Lean 4.31 mathematics and public interfaces are represented;
 - every module is strictly warning-free without project suppressions;
 - the dependency-aware build covers every maximal root;
 - validation scripts remain checked in and usable for future changes;
 - no known architectural or proof-style debt is deferred merely because the
   current project still builds quickly.
 
-This baseline is deliberately reusable for the later Lean 4.31 to newer stable
+This baseline is deliberately reusable for the later Lean 4.32.1 to newer stable
 Lean migration.
