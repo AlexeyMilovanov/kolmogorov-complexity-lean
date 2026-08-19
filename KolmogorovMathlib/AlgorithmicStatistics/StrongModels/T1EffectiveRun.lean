@@ -2341,13 +2341,16 @@ theorem t1RunStep_dString_history
       s'.totalD =
         s.totalD + (if x ∈ s.current then 1 else 0) := by
   simp only [t1RunStep, t1RunStepDStringFn]
-  split <;>
-    simp_all [t1RunStepDSaturated,
-      t1RunSaturationRebuildFinal, t1RunStepDRebuilt,
-      t1RunRebuildTuple, t1RunRebuild, t1RunReplaceCurrent,
-      t1RunStepDCharged, t1RunChargeD, t1RunAppendD,
-      t1RunStepDValidPoints, t1RunStepDHitCount,
-      t1RunStepParamsState, t1RunStepParamsN] <;>
+  split
+  · simp_all only [t1RunStepDSaturated, t1RunSaturationRebuildFinal, t1RunStepDRebuilt,
+      t1RunRebuildTuple, t1RunRebuild, t1RunReplaceCurrent, t1RunStepParamsN,
+      t1RunStepDCharged, t1RunChargeD, t1RunAppendD, t1RunStepParamsState,
+      t1RunStepDValidPoints, t1RunStepDHitCount, List.append_cancel_left_eq,
+      Nat.add_left_cancel_iff]
+    try exact ⟨rfl, rfl⟩
+  · simp_all only [Bool.not_eq_true, t1RunStepDCharged, t1RunChargeD, t1RunAppendD,
+      t1RunStepParamsState, t1RunStepDValidPoints, t1RunStepParamsN, t1RunStepDHitCount,
+      List.append_cancel_left_eq, Nat.add_left_cancel_iff]
     try exact ⟨rfl, rfl⟩
 
 /-- A `D` event changes only the `D` marks, `D` charge, and possibly the

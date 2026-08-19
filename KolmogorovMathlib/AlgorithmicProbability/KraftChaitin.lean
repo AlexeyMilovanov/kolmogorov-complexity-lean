@@ -79,7 +79,8 @@ lemma mem_aprioriAcc {c : Nat.Partrec.Code} {s : ℕ} {x y p : BitString} :
       p.length ≤ s ∧
         Nat.Partrec.Code.evaln s c (Encodable.encode (p, y)) = some (Encodable.encode x) := by
   unfold aprioriAcc;
-  simp +decide [ aprioriAcceptedList, mem_boundedPrograms_iff ]
+  simp +decide only [aprioriAcceptedList, Encodable.encode_prod_val, List.toFinset_filter,
+    Finset.mem_filter, List.mem_toFinset, mem_boundedPrograms_iff, and_congr_right_iff]
   exact fun _ ↦ ⟨of_decide_eq_true, fun h ↦ decide_eq_true h⟩
 
 /-
@@ -233,7 +234,7 @@ lemma aprioriApprox_computable (c : Nat.Partrec.Code) :
               some (Encodable.encode q.2.1) then
             2 ^ (q.1 - p.length)
           else 0)) from ?_) using 1
-    · ext ⟨s, ⟨x, y⟩⟩; simp [aprioriApprox, aprioriAcceptedList];
+    · ext ⟨s, ⟨x, y⟩⟩; simp only [aprioriApprox, aprioriAcceptedList, Encodable.encode_prod_val];
       induction ( boundedPrograms s ) with
       | nil => simp
       | cons head tail tail_ih =>
