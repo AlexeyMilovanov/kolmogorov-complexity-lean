@@ -1,9 +1,3 @@
-/-
-Copyright (c) 2024 Alexey Milovanov. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey Milovanov
--/
-
 import KolmogorovMathlib.Prefix.CondTwoStage
 import KolmogorovMathlib.Prefix.Properties
 import KolmogorovMathlib.Prefix.Symmetry
@@ -39,7 +33,7 @@ def HasCondPrefixComplexityValue (U : Map) (x z : BitString) (kx : Nat) : Prop :
 /-- The conditional `(z, x, K(x | z))` context encoder is computable. -/
 theorem prefixCondComplexityContext_computable :
     Computable
-      (fun p : (BitString × BitString) × ℕ ↦
+      (fun p : (BitString × BitString) × ℕ =>
         prefixCondComplexityContext p.1.1 p.1.2 p.2) := by
   apply Computable.of_eq
     (pairCode_computable.comp
@@ -120,8 +114,8 @@ theorem KP_cond_remove_short_info (U : Map) (hU : IsOptimalPrefixConditional U) 
     ∃ c : ℕ, ∀ x y z, KP U x y ≤ KP U x (pairCode y z) + KPPlain U z + (c : ENat) := by
   let ctx : BitString → BitString → Nat → BitString := fun r z _ => pairCode r z
   have hctx : Computable (fun p : (BitString × BitString) × ℕ => ctx p.1.1 p.1.2 p.2) := by
-    exact pairCode_computable.comp (Computable.pair
-      (Computable.fst.comp Computable.fst) (Computable.snd.comp Computable.fst))
+    exact pairCode_computable.comp
+        (Computable.pair (Computable.fst.comp Computable.fst) (Computable.snd.comp Computable.fst))
   have hD_decomp := condTwoStagePairBuilder_isDecompressor hU.isDecompressor hU.isPrefixMachine hctx
   have hD_prefix := condTwoStagePairBuilder_isPrefixMachine (ctx := ctx) hU.isPrefixMachine
   let D := condTwoStagePairBuilder U ctx
@@ -141,14 +135,16 @@ theorem KP_cond_remove_short_info (U : Map) (hU : IsOptimalPrefixConditional U) 
     have hcw_lt_top : (c_weak : ENat) < ⊤ := WithTop.coe_lt_top c_weak
     have h2 : KPPlain U z + (c_weak : ENat) < ⊤ := WithTop.add_lt_top.mpr ⟨hpz_lt_top, hcw_lt_top⟩
     exact lt_top_iff_ne_top.mp (h1.trans_lt h2)
-  obtain ⟨q, hq, hqlen⟩ := exists_program_of_KP_ne_top (M := U) (x := x) (y := pairCode y z) hpx
-  obtain ⟨p, hp, hplen⟩ := exists_program_of_KP_ne_top (M := U) (x := z) (y := y) hpz'
-  have h_bound := KP_condTwoStagePairBuilder_le_of_produces
-      (U := U) (ctx := ctx) hU.isPrefixMachine hp hq
+  obtain ⟨q, hq, _⟩ := exists_program_of_KP_ne_top (M := U) (x := x) (y := pairCode y z) hpx
+  obtain ⟨p, hp, _⟩ := exists_program_of_KP_ne_top (M := U) (x := z) (y := y) hpz'
+  have h_bound :=
+      KP_condTwoStagePairBuilder_le_of_produces (U := U) (ctx := ctx) hU.isPrefixMachine hp hq
   have h_bound2 : KP D (pairCode z x) y ≤ KP U z y + KP U x (pairCode y z) := by
     calc KP D (pairCode z x) y ≤ ((p.length + q.length : Nat) : ENat) := h_bound
       _ = (p.length : ENat) + (q.length : ENat) := by norm_cast
-      _ = KP U z y + KP U x (pairCode y z) := by rw [hplen, hqlen]
+      _ = KP U z y + KP U x (pairCode y z) :=
+          by rw [KP_le_programLength_of_produces hp |>.antisymm (by aesop),
+                  KP_le_programLength_of_produces hq |>.antisymm (by aesop)]
   have h_extract : KP U x y ≤ KP D (pairCode z x) y + c_inv + c_map := by
     calc KP U x y = KP U (decodeSecond (pairCode z x)) y := by rw [decodeSecond_pairCode]
       _ ≤ KP U (pairCode z x) y + c_map := hc_map (pairCode z x) y
@@ -242,7 +238,7 @@ theorem KPCondPair_symmetryOfInformation_staged (U : Map) (hU : IsOptimalPrefixC
               ≤ KPCondPair U x y z + (cLower : ENat) := by
   obtain ⟨cUpper, hUpper⟩ := KPCondPair_chain_upper U hU
   obtain ⟨cLower, hLower⟩ := KPCondPair_chain_lower U hU
-  exact ⟨cUpper, cLower, fun x y z kx hkx ↦ ⟨hUpper x y z kx hkx, hLower x y z kx hkx⟩⟩
+  exact ⟨cUpper, cLower, fun x y z kx hkx => ⟨hUpper x y z kx hkx, hLower x y z kx hkx⟩⟩
 
 /-- The ordinary lower direction, recovered from the conditional lower direction
 at empty external condition. -/
@@ -252,7 +248,7 @@ theorem KPPair_chain_lower (U : Map) (hU : IsOptimalPrefixConditional U) :
         KPPlain U x + KP U y (prefixComplexityContext x kx)
           ≤ KPPair U x y + (c : ENat) := by
   obtain ⟨cCond, hCond⟩ := KPCondPair_chain_lower U hU
-  let addEmptyCondition : BitString → BitString := fun ctx ↦ pairCode [] ctx
+  let addEmptyCondition : BitString → BitString := fun ctx => pairCode [] ctx
   have hAdd : Computable addEmptyCondition :=
     pairCode_computable.comp ((Computable.const []).pair Computable.id)
   obtain ⟨cMap, hMap⟩ := KP_cond_map_le U hU addEmptyCondition hAdd
@@ -294,6 +290,6 @@ theorem KPPair_symmetryOfInformation_staged (U : Map) (hU : IsOptimalPrefixCondi
               ≤ KPPair U x y + (cLower : ENat) := by
   obtain ⟨cUpper, hUpper⟩ := KPPair_chain_upper U hU
   obtain ⟨cLower, hLower⟩ := KPPair_chain_lower U hU
-  exact ⟨cUpper, cLower, fun x y kx hkx ↦ ⟨hUpper x y kx hkx, hLower x y kx hkx⟩⟩
+  exact ⟨cUpper, cLower, fun x y kx hkx => ⟨hUpper x y kx hkx, hLower x y kx hkx⟩⟩
 
 end Kolmogorov

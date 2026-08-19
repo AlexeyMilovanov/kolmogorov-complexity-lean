@@ -1,12 +1,6 @@
-/-
-Copyright (c) 2024 Alexey Milovanov. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey Milovanov
--/
-
+import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.Basic
 import KolmogorovMathlib.AlgorithmicStatistics.FiniteSetModel
 import KolmogorovMathlib.AlgorithmicStatistics.Selector
-import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.Basic
 import KolmogorovMathlib.Prefix.TwoStage
 
 /-!
@@ -39,9 +33,9 @@ def levelSetUniformCode (s : BitString) : BitString :=
   let w := decodeFirst s
   let k := decodeNatCode (decodeSecond s)
   let pts := ((decodeDistributionData w).map CodedDistributionEntry.point).filter
-      (fun x ↦ levelSetMemBool w k x)
+      (fun x => levelSetMemBool w k x)
   let S := pts.toFinset
-  codedDistributionDataCode ((canonicalFinsetList S).map fun x ↦
+  codedDistributionDataCode ((canonicalFinsetList S).map fun x =>
     { point := x, mass := ratMassInvNat (max 1 S.card) (by positivity) })
 
 /-- `decodeDistributionData` is a left inverse of the canonical code. -/
@@ -54,7 +48,7 @@ theorem decodeDistributionData_of_code (P : CodedFiniteDistribution) :
 /-- The computable level-set filter on `P.code` recovers exactly `levelSet P k`. -/
 theorem levelSetFilter_toFinset (P : CodedFiniteDistribution) (k : ℕ) :
     (((decodeDistributionData P.code).map CodedDistributionEntry.point).filter
-      (fun x ↦ levelSetMemBool P.code k x)).toFinset = levelSet P k := by
+      (fun x => levelSetMemBool P.code k x)).toFinset = levelSet P k := by
   ext x
   simp only [List.mem_toFinset, List.mem_filter, List.mem_map]
   rw [decodeDistributionData_of_code]
@@ -77,19 +71,19 @@ theorem levelSetUniformCode_eq (P : CodedFiniteDistribution) (k : ℕ)
     levelSetUniformCode (pairCode P.code (natCode k)) = (codedUniformOn (levelSet P k) h).code := by
   have hSeq := levelSetFilter_toFinset P k
   have hSne : (((decodeDistributionData P.code).map CodedDistributionEntry.point).filter
-      (fun x ↦ levelSetMemBool P.code k x)).toFinset.Nonempty := hSeq ▸ h
+      (fun x => levelSetMemBool P.code k x)).toFinset.Nonempty := hSeq ▸ h
   unfold levelSetUniformCode
   simp only [decodeFirst_pairCode, decodeSecond_pairCode, decodeNatCode_natCode]
   rw [← codedUniformOn_code_congr hSne h hSeq, codedUniformOn_code_eq]
   have hc : max 1 (((decodeDistributionData P.code).map CodedDistributionEntry.point).filter
-      (fun x ↦ levelSetMemBool P.code k x)).toFinset.card
+      (fun x => levelSetMemBool P.code k x)).toFinset.card
       = (((decodeDistributionData P.code).map CodedDistributionEntry.point).filter
-      (fun x ↦ levelSetMemBool P.code k x)).toFinset.card :=
+      (fun x => levelSetMemBool P.code k x)).toFinset.card :=
     max_eq_right (Nat.one_le_iff_ne_zero.mpr (Finset.card_ne_zero.mpr hSne))
   refine congrArg codedDistributionDataCode ?_
   apply List.map_congr_left
   intro x _
-  refine congrArg (fun m ↦ ({point := x, mass := m} : CodedDistributionEntry)) ?_
+  refine congrArg (fun m => ({point := x, mass := m} : CodedDistributionEntry)) ?_
   apply RatMass.code_injective
   simp only [RatMass.code, ratMassInvNat, hc]
 
@@ -107,117 +101,90 @@ A general `filter` combinator is primitive recursive.
 -/
 theorem list_filter_primrec {α β} [Primcodable α] [Primcodable β] {f : α → List β}
     {p : α → β → Bool} (hf : Primrec f) (hp : Primrec₂ p) :
-    Primrec (fun a ↦ (f a).filter (p a)) := by
-  let h : α → β × List β → List β := fun a b ↦ if p a b.1 then b.1 :: b.2 else b.2
-  have H : Primrec (fun a ↦ (f a).foldr (fun b s ↦ h a (b, s)) []) :=
-    Primrec.list_foldr (f := f) (g := fun _ ↦ []) (h := h)
-      hf (Primrec.const []) (
-      (Primrec.cond
-        (Primrec.comp hp
-          (Primrec.pair Primrec.fst (Primrec.comp Primrec.fst Primrec.snd)))
-        (Primrec.comp Primrec.list_cons Primrec.snd)
-        (Primrec.comp Primrec.snd Primrec.snd)).of_eq (fun a ↦ by simp [h])
-      )
-  exact H.of_eq (fun a ↦ by induction (f a) <;> aesop)
+    Primrec (fun a => (f a).filter (p a)) := by
+  refine (Primrec.list_foldr hf (Primrec.const List.nil)
+    (h := fun a b => if p a b.1 then b.1 :: b.2 else b.2) ?_).of_eq (fun a => ?_)
+  · exact Primrec.ite
+      (Primrec.eq.comp (hp.comp Primrec.fst (Primrec.fst.comp Primrec.snd)) (Primrec.const true))
+      (Primrec.list_cons.comp (Primrec.fst.comp Primrec.snd) (Primrec.snd.comp Primrec.snd))
+      (Primrec.snd.comp Primrec.snd)
+  · induction f a <;> simp_all [List.filter_cons]
 
 /-
 Membership of a `BitString` in a `BitString` list is a primitive recursive
 predicate.
 -/
 theorem bitString_mem_primrec :
-    Primrec₂ (fun (a : BitString) (l : List BitString) ↦ decide (a ∈ l)) := by
-  have h_eq : Primrec₂ (fun (a b : BitString) ↦ decide (a = b)) := by
-    exact primrecRel_iff_primrec_decide.mp Primrec.eq
-  simp only [Primrec₂]
-  apply Primrec.of_eq
-  · convert list_any_primrec
-      (show Primrec (fun x : BitString × List BitString ↦ x.2) from Primrec.snd)
-      (show Primrec₂
-        (fun p : BitString × List BitString ↦ fun b ↦ decide (p.1 = b)) from ?_) using 1
-    exact h_eq.comp (Primrec.fst.comp Primrec.fst) Primrec.snd
-  · intro x; rcases x with ⟨a, l⟩; induction l <;> simp [List.any_eq]
+    Primrec₂ (fun (a : BitString) (l : List BitString) => decide (a ∈ l)) := by
+  have h_eq : Primrec₂ (fun (a b : BitString) => decide (a = b)) := by
+    obtain ⟨_, hx⟩ := (Primrec.eq : PrimrecRel (α := BitString) Eq)
+    exact Primrec.of_eq hx (fun a => by by_cases h : a.1 = a.2 <;> simp [h])
+  refine (list_any_primrec (f := fun q : BitString × List BitString => q.2)
+    (p := fun (q : BitString × List BitString) (b : BitString) => decide (q.1 = b))
+    Primrec.snd
+    (h_eq.comp (Primrec.fst.comp Primrec.fst) Primrec.snd).to₂).of_eq (fun q => ?_)
+  obtain ⟨a, l⟩ := q
+  induction l with
+  | nil => simp
+  | cons hd tl ih => simp [List.any_cons, List.mem_cons, ih]
 
 /-
 Ordered insertion at the canonical (`Encodable`-code) order is primitive
 recursive in the inserted element and the list.
 -/
 theorem orderedInsert_primrec :
-    Primrec₂ (fun (a : BitString) (l : List BitString) ↦
+    Primrec₂ (fun (a : BitString) (l : List BitString) =>
       List.orderedInsert bitStringLE a l) := by
-  simp only [Primrec₂]
-  apply Primrec.of_eq
-  · convert Primrec.list_rec
-      (show Primrec (fun x : BitString × List BitString ↦ x.2) from Primrec.snd)
-      (show Primrec (fun x : BitString × List BitString ↦ [x.1]) from
-        Primrec.comp Primrec.list_cons (Primrec.pair Primrec.fst (Primrec.const [])))
-      (show Primrec₂
-        (fun p : BitString × List BitString ↦
-          fun b : BitString × List BitString × List BitString ↦
-            if decide (bitStringLE p.1 b.1) then
-              p.1 :: b.1 :: b.2.1
-            else
-              b.1 :: b.2.2) from ?_) using 1
-    exact (Primrec.ite
-      (c := fun x : (BitString × List BitString) ×
-        (BitString × List BitString × List BitString) ↦ bitStringLE x.1.1 x.2.1)
-      (Primrec.nat_le.comp
-        (Primrec.encode.comp (Primrec.fst.comp Primrec.fst))
+  refine (Primrec.list_rec (f := fun x : BitString × List BitString => x.2)
+    (g := fun x : BitString × List BitString => [x.1])
+    (h := fun p b => if Encodable.encode p.1 ≤ Encodable.encode b.1 then p.1 :: b.1 :: b.2.1
+      else b.1 :: b.2.2)
+    Primrec.snd (Primrec.list_cons.comp Primrec.fst (Primrec.const [])) ?_).of_eq ?_
+  · exact Primrec.ite
+      (c := fun q : (BitString × List BitString) × BitString × List BitString × List BitString =>
+        Encodable.encode q.1.1 ≤ Encodable.encode q.2.1)
+      (Primrec.nat_le.comp (Primrec.encode.comp (Primrec.fst.comp Primrec.fst))
         (Primrec.encode.comp (Primrec.fst.comp Primrec.snd)))
-      (Primrec.comp Primrec.list_cons
-        (Primrec.pair (Primrec.comp Primrec.fst Primrec.fst)
-          (Primrec.comp Primrec.list_cons
-            (Primrec.pair (Primrec.comp Primrec.fst Primrec.snd)
-              (Primrec.comp Primrec.fst (Primrec.comp Primrec.snd Primrec.snd))))))
-      (Primrec.comp Primrec.list_cons
-        (Primrec.pair (Primrec.comp Primrec.fst Primrec.snd)
-          (Primrec.comp Primrec.snd (Primrec.comp Primrec.snd Primrec.snd))))).of_eq
-      (fun ⟨p, b⟩ ↦ by
-        dsimp
-        by_cases h : bitStringLE p.1 b.1 <;> simp [h])
-  · intro n; induction n.2 <;> simp [List.orderedInsert]; aesop
+      (Primrec.list_cons.comp (Primrec.fst.comp Primrec.fst)
+        (Primrec.list_cons.comp (Primrec.fst.comp Primrec.snd)
+          (Primrec.fst.comp (Primrec.snd.comp Primrec.snd))))
+      (Primrec.list_cons.comp (Primrec.fst.comp Primrec.snd)
+        (Primrec.snd.comp (Primrec.snd.comp Primrec.snd)))
+  · intro n
+    induction n.2 <;> simp_all [List.orderedInsert, bitStringLE]
 
 /-
 Insertion sort by the canonical order is primitive recursive.
 -/
 theorem insertionSort_primrec :
-    Primrec (fun l : List BitString ↦ List.insertionSort bitStringLE l) := by
-  let f : List BitString → List BitString := id
-  let g : List BitString → List BitString := fun _ ↦ []
-  let h : List BitString → BitString × List BitString → List BitString := fun _ b ↦
-    List.orderedInsert bitStringLE b.1 b.2
-  have H : Primrec (fun a ↦ (f a).foldr (fun b s ↦ h a (b, s)) (g a)) :=
-    Primrec.list_foldr (f := f) (g := g) (h := h)
-      Primrec.id (Primrec.const [])
-      (Primrec.comp orderedInsert_primrec Primrec.snd)
-  exact H
+    Primrec (fun l : List BitString => List.insertionSort bitStringLE l) := by
+  refine (Primrec.list_foldr (f := fun l : List BitString => l) (g := fun _ => [])
+    (h := fun _ b => List.orderedInsert bitStringLE b.1 b.2) Primrec.id (Primrec.const []) ?_).of_eq
+    (fun _ => rfl)
+  exact orderedInsert_primrec.comp (Primrec.fst.comp Primrec.snd) (Primrec.snd.comp Primrec.snd)
 
 /-
 Deduplication of a `BitString` list is primitive recursive.
 -/
 theorem dedup_primrec :
-    Primrec (fun l : List BitString ↦ l.dedup) := by
+    Primrec (fun l : List BitString => l.dedup) := by
   have h_foldr : ∀ l : List BitString,
-      l.dedup = List.foldr (fun a acc ↦ if a ∈ acc then acc else a :: acc) [] l := by
-        intro l; induction l <;> simp +decide [ * ];
-        grind +suggestions
-  let h : List BitString → BitString × List BitString → List BitString := fun _ b ↦
-    if b.1 ∈ b.2 then b.2 else b.1 :: b.2
-  have H : Primrec (fun (l : List BitString) ↦ l.foldr (fun a acc ↦ h l (a, acc)) []) :=
-    (Primrec.list_foldr (f := id) (g := fun _ ↦ []) (h := h)
-      Primrec.id (Primrec.const []) (
-      (Primrec.cond
-        (Primrec.comp bitString_mem_primrec
-          (Primrec.pair (Primrec.comp Primrec.fst Primrec.snd)
-            (Primrec.comp Primrec.snd Primrec.snd)))
-        (Primrec.comp Primrec.snd Primrec.snd)
-        (Primrec.comp Primrec.list_cons Primrec.snd)).of_eq (fun a ↦ by
-          dsimp [h]
-          by_cases hmem : a.2.1 ∈ a.2.2
-          · simp [hmem]
-          · simp [hmem]
-        )
-      )).of_eq (fun _ ↦ rfl)
-  exact H.of_eq (fun a ↦ (h_foldr a).symm)
+      l.dedup = List.foldr (fun a acc => if a ∈ acc then acc else a :: acc) [] l := by
+        intro l; induction l <;> simp +decide [ * ] ;
+        grind +suggestions;
+  refine (Primrec.list_foldr (f := fun l : List BitString => l)
+    (g := fun _ => ([] : List BitString))
+    (h := fun (_ : List BitString) (b : BitString × List BitString) =>
+      if b.1 ∈ b.2 then b.2 else b.1 :: b.2) Primrec.id
+    (Primrec.const ([] : List BitString)) ?_).of_eq
+    (fun l => (h_foldr l).symm)
+  have hsnd : Primrec (fun q : List BitString × BitString × List BitString => q.2) := Primrec.snd
+  have hc : PrimrecPred (fun q : List BitString × BitString × List BitString => q.2.1 ∈ q.2.2) :=
+    ⟨inferInstance, bitString_mem_primrec.comp (Primrec.fst.comp hsnd) (Primrec.snd.comp hsnd)⟩
+  exact Primrec.ite
+    (c := fun q : List BitString × BitString × List BitString => q.2.1 ∈ q.2.2) hc
+    (Primrec.snd.comp hsnd)
+    (Primrec.list_cons.comp (Primrec.fst.comp hsnd) (Primrec.snd.comp hsnd))
 
 /-
 The canonical sorted enumeration of `l.toFinset` is the insertion sort of the
@@ -225,25 +192,26 @@ deduplicated list `l.dedup`.
 -/
 theorem canonicalFinsetList_toFinset_eq (l : List BitString) :
     canonicalFinsetList l.toFinset = List.insertionSort bitStringLE l.dedup := by
-  have h_perm : List.Perm (canonicalFinsetList l.toFinset) (l.dedup) ∧
-      List.Perm (List.insertionSort bitStringLE l.dedup) (l.dedup) := by
+  have h_perm : List.Perm (canonicalFinsetList l.toFinset) (l.dedup) ∧ List.Perm
+      (List.insertionSort bitStringLE l.dedup) (l.dedup) := by
     have h_perm : Multiset.ofList (canonicalFinsetList l.toFinset) = Multiset.ofList l.dedup := by
-      rw [canonicalFinsetList, Finset.sort_eq]
-      exact l.toFinset_val
-    exact ⟨Multiset.coe_eq_coe.mp h_perm, List.perm_insertionSort _ _⟩
-  apply List.Perm.eq_of_pairwise
-  case le => exact fun a b ↦ bitStringLE a b
-  · exact fun a b ha hb hab hba ↦ Std.Antisymm.antisymm _ _ hab hba
-  · exact Finset.pairwise_sort _ _
-  · apply List.pairwise_insertionSort
+      have h1 : Multiset.ofList (canonicalFinsetList l.toFinset) = l.toFinset.val :=
+        Finset.sort_eq (s := l.toFinset) (r := bitStringLE)
+      rw [h1]; rfl
+    exact ⟨ Multiset.coe_eq_coe.mp h_perm, List.perm_insertionSort _ _ ⟩;
+  apply List.Perm.eq_of_pairwise;
+  case le => exact fun a b => bitStringLE a b;
+  · exact fun a b ha hb hab hba => Std.Antisymm.antisymm _ _ hab hba;
+  · exact Finset.pairwise_sort _ _;
+  · apply List.pairwise_insertionSort;
   · exact h_perm.1.trans h_perm.2.symm
 
 /-- The canonical sorted enumeration of `l.toFinset` is a primitive recursive
 function of `l`. -/
 theorem canonicalFinsetList_toFinset_primrec :
-    Primrec (fun l : List BitString ↦ canonicalFinsetList l.toFinset) :=
+    Primrec (fun l : List BitString => canonicalFinsetList l.toFinset) :=
   (insertionSort_primrec.comp dedup_primrec).of_eq
-    (fun l ↦ (canonicalFinsetList_toFinset_eq l).symm)
+    (fun l => (canonicalFinsetList_toFinset_eq l).symm)
 
 /-
 `codedDistributionDataCode` of the uniform map on a list, as a `foldr` that
@@ -251,8 +219,8 @@ only ever builds `BitString`s (convenient for the computability proof).
 -/
 theorem codedUniform_data_foldr (l : List BitString) (n : ℕ) (hn : 0 < n) :
     codedDistributionDataCode
-        (l.map (fun x ↦ ({point := x, mass := ratMassInvNat n hn} : CodedDistributionEntry)))
-      = l.foldr (fun x acc ↦
+        (l.map (fun x => ({point := x, mass := ratMassInvNat n hn} : CodedDistributionEntry)))
+      = l.foldr (fun x acc =>
           true :: pairCode (pairCode x (pairCode (natCode 1) (natCode n))) acc) [false] := by
   induction l <;> simp +decide [ *, codedDistributionDataCode ];
   congr
@@ -261,29 +229,22 @@ theorem codedUniform_data_foldr (l : List BitString) (n : ℕ) (hn : 0 < n) :
 The uniform-distribution encoder on a list of points is primitive recursive.
 -/
 theorem codedUniformEncoder_primrec :
-    Primrec (fun t : List BitString ↦
-      codedDistributionDataCode (t.map fun x ↦
+    Primrec (fun t : List BitString =>
+      codedDistributionDataCode (t.map fun x =>
         ({point := x, mass := ratMassInvNat (max 1 t.length) (by positivity)} :
           CodedDistributionEntry))) := by
-  convert Primrec.list_foldr _ _ _ using 1
-  rotate_left
-  · exact BitString
-  · infer_instance
-  · exact fun t ↦ t
-  · exact fun _ ↦ [false]
-  · exact fun t p ↦ true :: pairCode
-      (pairCode p.1 (pairCode (natCode 1) (natCode (max 1 t.length)))) p.2
-  · exact Primrec.id
-  · exact Primrec.const [false]
-  · apply Primrec.list_cons.comp (Primrec.const true)
+  refine (Primrec.list_foldr (f := fun t : List BitString => t) (g := fun _ => [false])
+    (h := fun t p => true :: pairCode (pairCode p.1 (pairCode (natCode 1)
+      (natCode (max 1 t.length)))) p.2) Primrec.id (Primrec.const [false]) ?_).of_eq ?_
+  · exact Primrec.list_cons.comp (Primrec.const true)
       (pairCode_primrec.comp
         (pairCode_primrec.comp (Primrec.fst.comp Primrec.snd)
           (pairCode_primrec.comp (natCode_primrec.comp (Primrec.const 1))
-            (natCode_primrec.comp
-              (Primrec.nat_max.comp (Primrec.const 1)
-                (Primrec.list_length.comp Primrec.fst)))))
+            (natCode_primrec.comp (Primrec.nat_max.comp (Primrec.const 1)
+              (Primrec.list_length.comp Primrec.fst)))))
         (Primrec.snd.comp Primrec.snd))
-  · exact funext fun t ↦ codedUniform_data_foldr t ( max 1 t.length ) ( by positivity )
+  · intro t
+    exact (codedUniform_data_foldr t (max 1 t.length) (by positivity)).symm
 
 /-
 The remaining genuine computability content of P-MS2, isolated as a single local
@@ -296,22 +257,21 @@ enumeration `canonicalFinsetList` (`Finset.sort`, see
 `codedDistributionDataCode`.
 -/
 theorem levelSetUniformCode_computable : Computable levelSetUniformCode := by
-  convert Primrec.to_comp _
-  convert Primrec.comp codedUniformEncoder_primrec
-    (canonicalFinsetList_toFinset_primrec.comp (list_filter_primrec _ _)) using 1
-  rotate_left
-  · exact fun s ↦
-      (decodeDistributionData (decodeFirst s)).map CodedDistributionEntry.point
-  · exact fun s x ↦
-      levelSetMemBool (decodeFirst s) (decodeNatCode (decodeSecond s)) x
-  · exact Primrec.list_map (decodeDistributionData_primrec.comp decodeFirst_primrec)
-      (entry_point_primrec.comp Primrec.snd)
-  · exact Primrec.comp levelSetMemBool_primrec
-      (Primrec.pair
-        (Primrec.pair (decodeFirst_primrec.comp Primrec.fst)
-          (decodeNatCode_primrec.comp (decodeSecond_primrec.comp Primrec.fst)))
+  apply Primrec.to_comp
+  refine (codedUniformEncoder_primrec.comp
+    (canonicalFinsetList_toFinset_primrec.comp
+      (list_filter_primrec
+        (f := fun s => (decodeDistributionData (decodeFirst s)).map CodedDistributionEntry.point)
+        (p := fun s x => levelSetMemBool (decodeFirst s) (decodeNatCode (decodeSecond s)) x)
+        (Primrec.list_map (decodeDistributionData_primrec.comp decodeFirst_primrec)
+          (entry_point_primrec.comp Primrec.snd).to₂)
+        ?_))).of_eq ?_
+  · exact levelSetMemBool_primrec.comp
+      (Primrec.pair (Primrec.pair (decodeFirst_primrec.comp Primrec.fst)
+        (decodeNatCode_primrec.comp (decodeSecond_primrec.comp Primrec.fst)))
         Primrec.snd)
-  · ext; simp [levelSetUniformCode]
+  · intro s
+    simp only [levelSetUniformCode, length_canonicalFinsetList]
 
 /--
 P-MS2 computable-encoder existence: there is a fixed computable map sending
@@ -346,27 +306,34 @@ theorem levelSetModel_setComplexity_le (U : Map) (hU : IsOptimalPrefixConditiona
   intro P k h_nonempty
   have hpair_eq : KPPlain U (pairCode P.code (natCode k)) = KPPair U P.code (natCode k) := by
     rw [KPPair_eq_KP_pairCode, KPPlain_eq_KP]
-  have h_bound : KPPlain U (f (pairCode P.code (natCode k))) ≤
+  have h_complexity : KPPlain U (f (pairCode P.code (natCode k))) ≤
       KPPlain U P.code + 2 * (Nat.bits k).length + c_nat + c_pair + c_map := by
     refine le_trans (h_map _) ?_
     rw [hpair_eq]
-    calc KPPair U P.code (natCode k) + c_map
-      _ ≤ (KPPlain U P.code + KPPlain U (natCode k) + c_pair) + c_map := by
+    calc KPPair U P.code (natCode k) + (c_map : ENat)
+        ≤ (KPPlain U P.code + KPPlain U (natCode k) + c_pair) + c_map := by
           gcongr
           exact h_pair P.code (natCode k)
       _ ≤ (KPPlain U P.code + (2 * (Nat.bits k).length + c_nat) + c_pair) + c_map := by
           gcongr
           exact h_nat k
       _ = KPPlain U P.code + 2 * (Nat.bits k).length + c_nat + c_pair + c_map := by abel
-  have h_bound2 : KPPlain U ((codedUniformOn (levelSet P k) h_nonempty).code) ≤
-      KPPlain U P.code + 2 * (Nat.bits k).length + c_nat + c_pair + c_map := by
-    rw [← hf_eq P k h_nonempty]
-    exact h_bound
-  refine h_bound2.trans ?_
-  unfold logSlack
-  norm_cast
-  simp +decide only [KPPlain_eq_KP, Nat.cast_mul, Nat.cast_ofNat, add_assoc, Nat.cast_add]
-  exact add_le_add (by rfl) (by norm_cast; nlinarith)
+  have hlhs : setComplexity U (levelSet P k) h_nonempty
+      = KPPlain U (f (pairCode P.code (natCode k))) := by
+    simp only [setComplexity, hf_eq P k h_nonempty]
+  rw [hlhs, complexity]
+  refine h_complexity.trans ?_
+  have hle : 2 * (Nat.bits k).length + c_nat + c_pair + c_map
+      ≤ logSlack (c_nat + c_pair + c_map + 2) k := by
+    unfold logSlack; nlinarith [Nat.zero_le ((c_nat + c_pair + c_map) * (Nat.bits k).length)]
+  calc KPPlain U P.code + 2 * ((Nat.bits k).length : ENat) + (c_nat : ENat) + (c_pair : ENat)
+        + (c_map : ENat)
+      = KPPlain U P.code + ((2 * (Nat.bits k).length + c_nat + c_pair + c_map : ℕ) : ENat) := by
+        push_cast; ring
+    _ ≤ KPPlain U P.code + ((logSlack (c_nat + c_pair + c_map + 2) k : ℕ) : ENat) := by
+        have hcast : ((2 * (Nat.bits k).length + c_nat + c_pair + c_map : ℕ) : ENat)
+            ≤ ((logSlack (c_nat + c_pair + c_map + 2) k : ℕ) : ENat) := by exact_mod_cast hle
+        gcongr
 
 /-
 The original P-MS2 assembly statement quantified `k` only with the *lower*
@@ -405,78 +372,34 @@ theorem exists_setModel_optimalityDeficiencyLe_of_distribution
       ∃ S hS, x ∈ S ∧
         setComplexity U S hS ≤ P.complexity U + (logSlack c k : ENat) ∧
         SetOptimalityDeficiencyLe U S hS x (beta + logSlack c k + 1) := by
-  obtain ⟨c, hc⟩ := levelSetModel_setComplexity_le U hU
-  refine ⟨c, fun P x k hP hx hk₁ hk₂ beta hbeta ↦ ?_⟩
-  have h_nonempty := levelSet_nonempty_of_mass_ge P x k hx hk₁
-  refine ⟨levelSet P k, h_nonempty, mem_levelSet hx hk₁, hc P k h_nonempty, ?_⟩
-  rw [setOptimalityDeficiencyLe_iff_of_mem (mem_levelSet hx hk₁)]
+  obtain ⟨ c, hc ⟩ := levelSetModel_setComplexity_le U hU;
+  refine ⟨ c, fun P x k hP hx hk₁ hk₂ beta hbeta => ?_ ⟩;
+  refine ⟨ levelSet P k, levelSet_nonempty_of_mass_ge P x k hx hk₁, mem_levelSet hx hk₁,
+           hc P k ( levelSet_nonempty_of_mass_ge P x k hx hk₁ ), ?_ ⟩;
+  rw [ setOptimalityDeficiencyLe_iff_of_mem ( mem_levelSet hx hk₁ ) ];
+  refine le_trans hbeta ?_;
   -- Apply the bounds from hc and the properties of the level set.
-  have h_complexity_weight :
-      complexityWeight (KPPlain U P.code + (logSlack c k : ENat)) ≤
-        complexityWeight (setComplexity U (levelSet P k) h_nonempty) := by
-    exact complexityWeight_le_of_le (hc P k h_nonempty)
-  have h2 :
-      complexityWeight (KPPlain U P.code + (logSlack c k : ENat)) *
-          2 ^ logSlack c k ≤
-        complexityWeight (setComplexity U (levelSet P k) h_nonempty) *
-          2 ^ logSlack c k := by
-    gcongr
-  have h1 :
-      complexityWeight (KPPlain U P.code) =
-        complexityWeight (KPPlain U P.code + (logSlack c k : ENat)) *
-          2 ^ logSlack c k := by
-    rw [complexityWeight_add_nat, mul_assoc, ← mul_pow,
-      ENNReal.inv_mul_cancel (by norm_num) (by norm_num), one_pow, mul_one]
-  have h_bounds :
-      complexityWeight (KPPlain U P.code) ≤
-          complexityWeight (setComplexity U (levelSet P k) h_nonempty) *
-            (2 : ℝ≥0∞) ^ logSlack c k ∧
-        P.mass x ≤ 2 * (↑(levelSet P k).card)⁻¹ := by
-    constructor
-    · rw [h1]
-      exact h2
+  have h_bounds : complexityWeight (KPPlain U P.code) ≤ complexityWeight
+      (setComplexity U (levelSet P k) (levelSet_nonempty_of_mass_ge P x k hx hk₁)) * (2 : ℝ≥0∞) ^
+          (logSlack c k) ∧ P.mass x ≤ 2 * (↑(levelSet P k).card)⁻¹ := by
+    constructor;
+    · have h_complexity_weight : complexityWeight (KPPlain U P.code + (logSlack c k : ENat)) ≤
+        complexityWeight
+            (setComplexity U (levelSet P k) (levelSet_nonempty_of_mass_ge P x k hx hk₁)) := by
+        exact complexityWeight_le_of_le ( hc P k ( levelSet_nonempty_of_mass_ge P x k hx hk₁ ) );
+      have hcw : complexityWeight (KPPlain U P.code)
+          = complexityWeight (KPPlain U P.code + (logSlack c k : ENat))
+            * (2 : ℝ≥0∞) ^ logSlack c k := by
+        rw [complexityWeight_add_nat, mul_assoc, ← mul_pow, ENNReal.inv_mul_cancel] <;> norm_num
+      rw [hcw]
+      exact mul_le_mul' h_complexity_weight (le_refl _)
     · refine le_trans hk₂ ?_
       rw [ ← ENNReal.inv_pow ]
       gcongr
-      exact levelSet_card_le P k hP
-  have h_prod :
-      complexityWeight (KPPlain U P.code) * P.mass x * 2 ^ beta ≤
-        (complexityWeight (setComplexity U (levelSet P k) h_nonempty) *
-          2 ^ logSlack c k) * (2 * (↑(levelSet P k).card)⁻¹) * 2 ^ beta := by
-    gcongr
-    · exact h_bounds.1
-    · exact h_bounds.2
-  unfold OptimalityDeficiencyLe at hbeta
-  have hbeta' :
-      complexityWeight (KPPlain U x) ≤
-        2 ^ beta * (complexityWeight (P.complexity U) * P.mass x) :=
-    hbeta
-  calc complexityWeight (KPPlain U x)
-      ≤ 2 ^ beta * (complexityWeight (P.complexity U) * P.mass x) := hbeta'
-    _ = complexityWeight (KPPlain U P.code) * P.mass x * 2 ^ beta := by
-        dsimp [CodedFiniteDistribution.complexity]
-        rw [mul_comm (2 ^ beta)]
-    _ ≤ (complexityWeight (setComplexity U (levelSet P k) h_nonempty) *
-          2 ^ logSlack c k) * (2 * (↑(levelSet P k).card)⁻¹) * 2 ^ beta := h_prod
-    _ = 2 ^ (beta + logSlack c k + 1) *
-        (complexityWeight (setComplexity U (levelSet P k) h_nonempty) *
-          (↑(levelSet P k).card)⁻¹) := by
-        rw [pow_add, pow_add, pow_one]
-        calc
-          (complexityWeight (setComplexity U (levelSet P k) h_nonempty) *
-                2 ^ logSlack c k) *
-              (2 * (↑(levelSet P k).card)⁻¹) * 2 ^ beta =
-              2 ^ beta * (2 ^ logSlack c k * 2 *
-                (complexityWeight (setComplexity U (levelSet P k) h_nonempty) *
-                  (↑(levelSet P k).card)⁻¹)) := by
-              rw [mul_comm]
-              congr 1
-              rw [mul_assoc, ←mul_assoc (2 ^ logSlack c k)]
-              exact mul_left_comm (complexityWeight _) (2 ^ logSlack c k * 2)
-                (↑(levelSet P k).card)⁻¹
-          _ = 2 ^ beta * 2 ^ logSlack c k * 2 *
-              (complexityWeight (setComplexity U (levelSet P k) h_nonempty) *
-                (↑(levelSet P k).card)⁻¹) := by
-                ac_rfl
+      convert levelSet_card_le P k hP using 1
+  simp only [complexity]
+  refine le_trans (le_of_eq ?_)
+    (le_trans (mul_le_mul' (le_refl ((2 : ℝ≥0∞) ^ beta)) (mul_le_mul' h_bounds.1 h_bounds.2))
+      (le_of_eq ?_)) <;> ring
 
 end Kolmogorov

@@ -1,9 +1,8 @@
 /-
-Copyright (c) 2024 Alexey Milovanov. All rights reserved.
+Copyright (c) 2026 Alexey Milovanov. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Alexey Milovanov
 -/
-
 import KolmogorovMathlib.Restricted.Improving
 import KolmogorovMathlib.Restricted.GapCountingIn
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.Deficiencies
@@ -18,6 +17,7 @@ namespace Kolmogorov
 open scoped ENNReal
 open Kolmogorov.CodedFiniteDistribution
 open Nat.Partrec (Code)
+
 
 /-
 From a *given* family member `A ∋ x` (with `setComplexity ≤ alpha` and randomness
@@ -42,8 +42,8 @@ theorem restricted_exists_realizedGap_of_member (U : Map) (hU : IsOptimalPrefixC
   intro A hA x n alpha beta hn hcompA hdefA
   obtain ⟨i, hi⟩ : ∃ i : ℕ, setComplexity U A hA = (i : ENat) ∧ i ≤ alpha := by
     cases h : setComplexity U A hA <;> aesop
-  obtain ⟨j, hj_lower, hj_upper⟩ : ∃ j : ℕ, (2 : ℝ≥0∞) ^ j / 2 ≤ (A.card : ℝ≥0∞) ∧
-      A.card ≤ 2 ^ j := by
+  obtain ⟨j, hj_lower, hj_upper⟩ : ∃ j : ℕ,
+      (2 : ℝ≥0∞) ^ j / 2 ≤ (A.card : ℝ≥0∞) ∧ A.card ≤ 2 ^ j := by
     convert exists_card_dyadic_bracket A hA using 1
   set kx := (KPPlain U x).toNat
   have hkx_eq : (kx : ENat) = KPPlain U x := by
@@ -53,8 +53,8 @@ theorem restricted_exists_realizedGap_of_member (U : Map) (hU : IsOptimalPrefixC
     have h_mass_pos : (codedUniformOn A hA).mass x > 0 := by
       apply mass_pos_of_deficiencyLe_of_KP_ne_top hdefA (KP_ne_top_of_optimal U hU x
           (codedUniformOn A hA).code);
-    exact ⟨ by contrapose! h_mass_pos; rw
-        [ codedUniformOn_mass_of_not_mem ] ; aesop, hi.1, hj_upper, hj_lower, hkx_eq, rfl ⟩
+    exact ⟨ by contrapose! h_mass_pos; rw [ codedUniformOn_mass_of_not_mem ] ; aesop, hi.1,
+        hj_upper, hj_lower, hkx_eq, rfl ⟩
   have h_def_soi : CodedFiniteDistribution.DeficiencyLe U (codedUniformOn A hA) x (delta +
       (KPPlain_toNat_le_setComplexity_add_condKP U hU).choose) := by
     have := Exists.choose_spec (KPPlain_toNat_le_setComplexity_add_condKP U hU) A hA x (by
@@ -63,16 +63,16 @@ theorem restricted_exists_realizedGap_of_member (U : Map) (hU : IsOptimalPrefixC
     unfold CodedFiniteDistribution.DeficiencyLe;
     rw [ codedUniformOn_mass_of_mem A hA x h_realized.1 ];
     rw [ ← ENat.coe_toNat (KP_ne_top_of_optimal U hU x (codedUniformOn A hA).code) ];
-    refine le_trans ?_ ( mul_le_mul_right ( show ( A.card : ENNReal ) ⁻¹ ≥
-        ( 2 ^ j : ENNReal ) ⁻¹ from ?_ ) _ );
+    refine le_trans ?_ ( mul_le_mul_right ( show ( A.card : ENNReal ) ⁻¹ ≥ ( 2 ^ j : ENNReal )
+        ⁻¹ from ?_ ) _ );
     · rw [ show delta = i + j - kx from rfl,
         show kx = ( KPPlain U x ).toNat from rfl ] at * ; norm_cast at *
       simp_all +decide only [Nat.cast_le, KPPlain_eq_KP, ENat.coe_toNat_eq_self, ne_eq,
         ENat.toNat_coe, Nat.cast_pow, Nat.cast_ofNat, complexityWeight_coe]
       rw [ ← ENNReal.toReal_le_toReal ] <;> norm_num;
       · field_simp;
-        rw [ div_pow, div_mul_eq_mul_div, div_le_iff₀ ] <;> norm_cast <;> norm_num
-            [ pow_add, pow_mul ];
+        rw [ div_pow, div_mul_eq_mul_div, div_le_iff₀ ] <;> norm_cast <;> norm_num [ pow_add,
+            pow_mul ];
         rw [ ← pow_add, ← pow_add ];
         exact pow_le_pow_right₀ ( by decide ) ( by omega );
       · exact ENNReal.mul_ne_top ( by norm_num ) ( by norm_num );
@@ -81,8 +81,8 @@ theorem restricted_exists_realizedGap_of_member (U : Map) (hU : IsOptimalPrefixC
   have h_def_d : CodedFiniteDistribution.DeficiencyLe U (codedUniformOn A hA) x d := by
     grind;
   have h_j_bound : j ≤ (KP U x (codedUniformOn A hA).code).toNat + beta + 1 := by
-    obtain ⟨j', hj'_card, hj'_le⟩ : ∃ j' : ℕ, A.card ≤ 2 ^ j' ∧
-        (j' : ENat) ≤ KP U x (codedUniformOn A hA).code + beta := by
+    obtain ⟨j', hj'_card, hj'_le⟩ : ∃ j' : ℕ,
+        A.card ≤ 2 ^ j' ∧ (j' : ENat) ≤ KP U x (codedUniformOn A hA).code + beta := by
       apply card_le_of_deficiency h_realized.left hdefA;
     have h_bound_j : j - 1 ≤ j' := by
       have h_bound_j : (2 : ℝ≥0∞) ^ j / 2 ≤ (2 : ℝ≥0∞) ^ j' := by
@@ -95,8 +95,8 @@ theorem restricted_exists_realizedGap_of_member (U : Map) (hU : IsOptimalPrefixC
     · norm_cast at * ; linarith;
   have h_kc_bound : (KP U x (codedUniformOn A hA).code).toNat ≤ n + 2 * (Nat.bits n).length +
       (KPPlain_le_length_add_log U hU).choose + (KP_le_KPPlain U hU).choose := by
-    have hKP_le : KP U x (codedUniformOn A hA).code ≤ KPPlain U x +
-        ((KP_le_KPPlain U hU).choose : ENat) := by
+    have hKP_le : KP U x (codedUniformOn A hA).code ≤ KPPlain U x + ((KP_le_KPPlain U
+        hU).choose : ENat) := by
       grind
     have hKPP_le : KPPlain U x ≤ (n : ENat) + 2 * (Nat.bits n).length +
         ((KPPlain_le_length_add_log U hU).choose : ENat) := by
@@ -204,8 +204,8 @@ def programmedEnum (p : BitString) (t : ℕ) : List BitString :=
   | some r => (Encodable.decode r).getD []
   | none => []
 
-theorem programmedEnum_computable : Computable
-    (fun p_t : BitString × ℕ => programmedEnum p_t.1 p_t.2) := by
+theorem programmedEnum_computable : Computable (fun p_t : BitString × ℕ =>
+    programmedEnum p_t.1 p_t.2) := by
   unfold programmedEnum
   have h_eval : Computable (fun p_t : BitString × ℕ =>
       Code.evaln p_t.2
@@ -258,13 +258,13 @@ attribute [irreducible] programmedEnum
 
 structure IsProgramForFamily (p : BitString) (mem : Finset BitString → Prop) : Prop where
   mono : ∀ t, programmedEnum p t <+: programmedEnum p (t + 1)
-  sound : ∀ t, ∀ w ∈ programmedEnum p t, ∃ (S : Finset BitString) (hS : S.Nonempty), mem S ∧
-      w = (codedUniformOn S hS).code
-  complete : ∀ (S : Finset BitString) (hS : S.Nonempty), mem S →
-      ∃ t, (codedUniformOn S hS).code ∈ programmedEnum p t
+  sound : ∀ t, ∀ w ∈ programmedEnum p t, ∃ (S : Finset BitString) (hS : S.Nonempty),
+      mem S ∧ w = (codedUniformOn S hS).code
+  complete : ∀ (S : Finset BitString) (hS : S.Nonempty), mem S → ∃ t,
+      (codedUniformOn S hS).code ∈ programmedEnum p t
 
-noncomputable def programmedFamily (p : BitString) (mem : Finset BitString →
-    Prop) (hp : IsProgramForFamily p mem) : PreDescriptionFamily :=
+noncomputable def programmedFamily (p : BitString) (mem : Finset BitString → Prop)
+    (hp : IsProgramForFamily p mem) : PreDescriptionFamily :=
   uniformPreFamily p mem programmedEnum programmedEnum_computable hp.mono hp.sound hp.complete
 
 /-!
@@ -301,8 +301,8 @@ def progAppearanceListCodes (c : Code) (i : ℕ) (p : BitString) (j : ℕ) (x : 
 induced `programmedFamily`, for any membership predicate and witness. -/
 theorem progAppearanceListCodes_eq_family (c : Code) (i : ℕ) (p : BitString)
     (mem : Finset BitString → Prop) (hp : IsProgramForFamily p mem) (j : ℕ) (x : BitString) :
-    progAppearanceListCodes c i p j x =
-        familyAppearanceListCodes c i (programmedFamily p mem hp) j x := by
+    progAppearanceListCodes c i p j x = familyAppearanceListCodes c i (programmedFamily p mem
+        hp) j x := by
   funext t
   induction t with
   | zero => rfl
@@ -339,23 +339,28 @@ def univSelectorFn (c : Code) : BitString → BitString →. BitString := fun y 
 theorem progCandidateCodes_computable (c : Code) :
     Computable (fun q : (((ℕ × ℕ) × BitString) × BitString) × ℕ =>
       progCandidateCodes c q.1.1.1.1 q.1.2 q.1.1.1.2 q.1.1.2 q.2) := by
-  have h_filter : Computable (fun p : List BitString × List BitString => p.1.filter
-      (fun w => decide (w ∈ p.2))) :=
-    (list_filter_primrec (f := fun (p : List BitString × List BitString) => p.1) (p :=
-        fun p w => decide (w ∈ p.2)) Primrec.fst (bitString_mem_primrec.comp Primrec.snd
-        (Primrec.snd.comp Primrec.fst))).to_comp
+  have h_filter : Computable (fun p : List BitString × List BitString =>
+      p.1.filter (fun w => decide (w ∈ p.2))) := by
+    exact (@list_filter_primrec (List BitString × List BitString) BitString _ _
+      (fun a => a.1) (fun a w => decide (w ∈ a.2)) Primrec.fst
+      (bitString_mem_primrec.comp Primrec.snd (Primrec.snd.comp Primrec.fst))).to_comp.of_eq
+      (fun _ => rfl)
   have hcand : Computable (fun q : (((ℕ × ℕ) × BitString) × BitString) × ℕ =>
-      candidateCodes c q.1.1.1.1 q.1.1.1.2 q.1.1.2 q.2) :=
-    ((candidateCodes_primrec c).to_comp.comp (Computable.pair (Computable.pair
-        (Computable.pair (Computable.fst.comp (Computable.fst.comp
-        (Computable.fst.comp Computable.fst))) (Computable.snd.comp (Computable.fst.comp
-        (Computable.fst.comp Computable.fst)))) (Computable.snd.comp
-        (Computable.fst.comp Computable.fst))) Computable.snd)).of_eq (by intro _; rfl)
+      candidateCodes c q.1.1.1.1 q.1.1.1.2 q.1.1.2 q.2) := by
+    refine ((candidateCodes_primrec c).to_comp.comp (Computable.pair
+      (Computable.pair (Computable.pair
+        (Computable.fst.comp (Computable.fst.comp (Computable.fst.comp Computable.fst)))
+        (Computable.snd.comp (Computable.fst.comp (Computable.fst.comp Computable.fst))))
+        (Computable.snd.comp (Computable.fst.comp Computable.fst)))
+      Computable.snd)).of_eq ?_
+    intro q; rfl
   have henum : Computable (fun q : (((ℕ × ℕ) × BitString) × BitString) × ℕ =>
-      programmedEnum q.1.2 q.2) :=
-    (programmedEnum_computable.comp (Computable.pair
-        (Computable.snd.comp Computable.fst) Computable.snd)).of_eq (by intro _; rfl)
-  exact (h_filter.comp (Computable.pair hcand henum)).of_eq (by intro _; rfl)
+      programmedEnum q.1.2 q.2) := by
+    refine (programmedEnum_computable.comp
+      (Computable.pair (Computable.snd.comp Computable.fst) Computable.snd)).of_eq ?_
+    intro q; rfl
+  refine (h_filter.comp (Computable.pair hcand henum)).of_eq ?_
+  intro q; rfl
 
 /-- Joint computability of the program-indexed appearance list. -/
 theorem progAppearanceListCodes_computable (c : Code) :
@@ -364,17 +369,20 @@ theorem progAppearanceListCodes_computable (c : Code) :
   have h_eraseDups : Computable (fun l : List BitString => l.eraseDups) :=
     eraseDups_bitstring_primrec.to_comp
   have hg : Computable (fun q : (((ℕ × ℕ) × BitString) × BitString) × ℕ =>
-      (progCandidateCodes c q.1.1.1.1 q.1.2 q.1.1.1.2 q.1.1.2 0).eraseDups) :=
-    (h_eraseDups.comp ((progCandidateCodes_computable c).comp
-      (Computable.pair Computable.fst (Computable.const 0)))).of_eq (by intro _; rfl)
-  have hh : Computable₂
-      (fun (q : (((ℕ × ℕ) × BitString) × BitString) × ℕ) (r : ℕ × List BitString) =>
-      (r.2 ++ progCandidateCodes c q.1.1.1.1 q.1.2 q.1.1.1.2 q.1.1.2 (r.1 + 1)).eraseDups) :=
-    (h_eraseDups.comp (Computable.list_append.comp
-      (Computable.snd.comp Computable.snd)
+      (progCandidateCodes c q.1.1.1.1 q.1.2 q.1.1.1.2 q.1.1.2 0).eraseDups) := by
+    refine (h_eraseDups.comp ((progCandidateCodes_computable c).comp
+      (Computable.pair Computable.fst (Computable.const 0)))).of_eq ?_
+    intro q; rfl
+  have hh : Computable₂ (fun (q : (((ℕ × ℕ) × BitString) × BitString) × ℕ)
+      (r : ℕ × List BitString) =>
+      (r.2 ++ progCandidateCodes c q.1.1.1.1 q.1.2 q.1.1.1.2 q.1.1.2 (r.1 + 1)).eraseDups) := by
+    refine (h_eraseDups.comp (Computable.list_append.comp
+      (Computable.snd.comp (Computable.snd
+        (α := (((ℕ × ℕ) × BitString) × BitString) × ℕ) (β := ℕ × List BitString)))
       ((progCandidateCodes_computable c).comp
         (Computable.pair (Computable.fst.comp Computable.fst)
-          (Computable.succ.comp (Computable.fst.comp Computable.snd)))))).of_eq (by intro _; rfl)
+          (Computable.succ.comp (Computable.fst.comp Computable.snd)))))).of_eq ?_
+    intro q; rfl
   refine (Computable.nat_rec (f := fun q : (((ℕ × ℕ) × BitString) × BitString) × ℕ => q.2)
     Computable.snd hg hh).of_eq ?_
   intro q
@@ -388,42 +396,53 @@ theorem progAppearanceListCodes_computable (c : Code) :
 theorem partrec_univSelectorFn (c : Code) :
     Partrec (fun q : BitString × BitString => univSelectorFn c q.2 q.1) := by
   unfold univSelectorFn progIndexSelectorFn;
+  have h_appearance : Computable (fun n : (BitString × BitString) × ℕ =>
+      progAppearanceListCodes c (selNat (decodeSecond n.1.1)) (decodeFirst n.1.1)
+        (selAlpha (decodeSecond n.1.1)) (decodeFirst n.1.2) n.2) :=
+    ((progAppearanceListCodes_computable c).comp
+      (Computable.pair
+        (Computable.pair
+          (Computable.pair
+            (Computable.pair
+              (selNat_primrec.to_comp.comp
+                (decodeSecond_primrec.to_comp.comp (Computable.fst.comp Computable.fst)))
+              (selAlpha_primrec.to_comp.comp
+                (decodeSecond_primrec.to_comp.comp (Computable.fst.comp Computable.fst))))
+            (decodeFirst_primrec.to_comp.comp (Computable.snd.comp Computable.fst)))
+          (decodeFirst_primrec.to_comp.comp (Computable.fst.comp Computable.fst)))
+        Computable.snd)).of_eq fun _ => rfl
   refine Partrec.bind ?_ ?_;
   · refine Partrec.of_eq
       (f := fun n : BitString × BitString => Nat.rfind fun t => Part.some
         (decide (selH (decodeSecond n.1) <
           (progAppearanceListCodes c (selNat (decodeSecond n.1))
             (decodeFirst n.1) (selAlpha (decodeSecond n.1))
-            (decodeFirst n.2) t).length))) ?_ (by intro _; rfl);
+            (decodeFirst n.2) t).length))) ?_ ?_;
     · refine Partrec.rfind ?_;
       refine Computable.of_eq
         (f := fun n : (BitString × BitString) × ℕ =>
           decide (selH (decodeSecond n.1.1) <
             (progAppearanceListCodes c (selNat (decodeSecond n.1.1))
               (decodeFirst n.1.1) (selAlpha (decodeSecond n.1.1))
-              (decodeFirst n.1.2) n.2).length)) ?_ (by intro _; rfl);
-      · have h_app : Computable
-          (fun (n : ((BitString × BitString) × ℕ)) => progAppearanceListCodes c (selNat
-          (decodeSecond n.1.1)) (decodeFirst n.1.1) (selAlpha (decodeSecond n.1.1))
-          (decodeFirst n.1.2) n.2) :=
-          ((progAppearanceListCodes_computable c).comp (Computable.pair (Computable.pair
-              (Computable.pair (Computable.pair (selNat_primrec.to_comp.comp
-              (decodeSecond_primrec.to_comp.comp (Computable.fst.comp Computable.fst)))
-              (selAlpha_primrec.to_comp.comp (decodeSecond_primrec.to_comp.comp
-              (Computable.fst.comp Computable.fst)))) (decodeFirst_primrec.to_comp.comp
-              (Computable.snd.comp Computable.fst))) (decodeFirst_primrec.to_comp.comp
-              (Computable.fst.comp Computable.fst))) Computable.snd)).of_eq (by intro _; rfl)
-        have h_len : Computable
-            (fun (n : ((BitString × BitString) × ℕ)) => (progAppearanceListCodes c (selNat
-            (decodeSecond n.1.1)) (decodeFirst n.1.1) (selAlpha (decodeSecond n.1.1))
-            (decodeFirst n.1.2) n.2).length) :=
-          Computable.list_length.comp h_app
-        have h_sel : Computable
-            (fun (n : ((BitString × BitString) × ℕ)) => selH (decodeSecond n.1.1)) :=
-          selH_primrec.to_comp.comp (decodeSecond_primrec.to_comp.comp
-              (Computable.fst.comp Computable.fst))
-        exact ((PrimrecPred.decide Primrec.nat_lt).to_comp.comp
-            (Computable.pair h_sel h_len)).of_eq (by intro _; rfl)
+              (decodeFirst n.1.2) n.2).length)) ?_ ?_;
+      · have h_len : Computable (fun (n : ((BitString × BitString) × ℕ)) =>
+          (progAppearanceListCodes c (selNat (decodeSecond n.1.1)) (decodeFirst n.1.1)
+            (selAlpha (decodeSecond n.1.1)) (decodeFirst n.1.2) n.2).length) :=
+          Computable.list_length.comp h_appearance
+        have h_selH : Computable (fun (n : ((BitString × BitString) × ℕ)) =>
+            selH (decodeSecond n.1.1)) := by
+          exact selH_primrec.to_comp.comp ( decodeSecond_primrec.to_comp.comp (
+              Computable.fst.comp ( Computable.fst ) ) );
+        have h_pair : Computable (fun (n : ((BitString × BitString) × ℕ)) =>
+            (selH (decodeSecond n.1.1), (progAppearanceListCodes c
+              (selNat (decodeSecond n.1.1)) (decodeFirst n.1.1)
+              (selAlpha (decodeSecond n.1.1)) (decodeFirst n.1.2) n.2).length)) :=
+          Computable.pair h_selH h_len
+        have h_lt : Computable (fun (n : ℕ × ℕ) => decide (n.1 < n.2)) :=
+          (PrimrecPred.decide (PrimrecRel.comp Primrec.nat_lt Primrec.fst Primrec.snd)).to_comp
+        convert h_lt.comp h_pair using 1;
+      · exact fun _ => rfl;
+    · exact fun _ => rfl;
   · refine Partrec.comp ?_ ?_;
     · exact Computable.id;
     · refine Computable.of_eq
@@ -433,21 +452,13 @@ theorem partrec_univSelectorFn (c : Code) :
               (decodeFirst n.1.1) (selAlpha (decodeSecond n.1.1))
               (decodeFirst n.1.2) n.2))) ?_ ?_;
       · have h_drop : Computable (fun (n : ℕ × List BitString) => List.drop n.1 n.2) :=
-          Primrec.list_drop.to_comp
-        have h_head : Computable (fun (l : List BitString) => l.headI) :=
-          Primrec.list_headI.to_comp
+          Primrec.list_drop.to_comp.comp Computable.fst Computable.snd
+        have h_head : Computable (fun (l : List BitString) => l.headI) := by
+          convert Primrec.list_headI.to_comp using 1;
         convert h_head.comp ( h_drop.comp ( Computable.pair _ _ ) ) using 1;
-        · exact selH_primrec.to_comp.comp ( decodeSecond_primrec.to_comp.comp
-            ( Computable.fst.comp ( Computable.fst.comp Computable.id ) ) );
-        · exact ((progAppearanceListCodes_computable c).comp (Computable.pair
-            (Computable.pair (Computable.pair (Computable.pair (selNat_primrec.to_comp.comp
-            (decodeSecond_primrec.to_comp.comp (Computable.fst.comp
-            (Computable.fst.comp Computable.id)))) (selAlpha_primrec.to_comp.comp
-            (decodeSecond_primrec.to_comp.comp (Computable.fst.comp
-            (Computable.fst.comp Computable.id))))) (decodeFirst_primrec.to_comp.comp
-            (Computable.snd.comp (Computable.fst.comp Computable.id))))
-            (decodeFirst_primrec.to_comp.comp (Computable.fst.comp
-            (Computable.fst.comp Computable.id)))) Computable.snd)).of_eq (by intro _; rfl)
+        · exact selH_primrec.to_comp.comp ( decodeSecond_primrec.to_comp.comp (
+            Computable.fst.comp ( Computable.fst.comp Computable.id ) ) );
+        · exact h_appearance
       · intro n
         cases h : List.drop (selH (decodeSecond n.1.1))
             (progAppearanceListCodes c (selNat (decodeSecond n.1.1))
@@ -471,8 +482,8 @@ theorem uniform_description_count_of_conditional_complexity_gap (U : Map)
       A.card ≤ 2 ^ j →
       HasPrefixComplexityValue U x kx →
       ¬ ManyIJDescriptionsMem mem U x i j m →
-      KP U (codedUniformOn A hA).code (prefixComplexityContext x kx) ≤ (m + logSlack c
-          (n + i + j) + KPPlain U p : ENat) := by
+      KP U (codedUniformOn A hA).code (prefixComplexityContext x kx) ≤ (m + logSlack c (n + i
+          + j) + KPPlain U p : ENat) := by
   obtain ⟨c_opt, hc_opt⟩ : ∃ c_opt : Code, IsCodeFor c_opt U :=
     Nat.Partrec.Code.exists_code.mp hU.isDecompressor
   obtain ⟨c_kp, hkp⟩ := KP_partrec_cond_first_map_le U hU (univSelectorFn c_opt)
@@ -512,10 +523,10 @@ theorem uniform_description_count_of_conditional_complexity_gap (U : Map)
     hc_plain (pairCode p w) y
   have h_bound3 : KPPlain U (pairCode p w) ≤ KPPlain U p + KPPlain U w + (c_pair : ENat) :=
     hc_pair p w
-  have h_bound4 : KPPlain U w ≤ (w.length : ENat) + 2 *
-      (Nat.bits w.length).length + c_len := hc_len w
-  have h_w_len_r : w.length ≤ 2 * (Nat.bits i).length + 2 * (Nat.bits j).length +
-      (Nat.bits r).length + 6 := by
+  have h_bound4 : KPPlain U w ≤ (w.length : ENat) + 2 * (Nat.bits w.length).length + c_len :=
+      hc_len w
+  have h_w_len_r : w.length ≤ 2 * (Nat.bits i).length + 2 * (Nat.bits j).length + (Nat.bits
+      r).length + 6 := by
     unfold w richInput selectorInput pack4
     simp [length_pairCode]
     omega
@@ -534,8 +545,8 @@ theorem uniform_description_count_of_conditional_complexity_gap (U : Map)
   have h_r_m : (Nat.bits r).length ≤ m := by
     rw [Nat.size_eq_bits_len]
     exact Nat.size_le.mpr hr_lt_2m
-  have h_slack : c_kp + c_plain + c_pair + c_len + 2 * (Nat.bits i).length + 2 *
-      (Nat.bits j).length + 6 + 2 * (Nat.bits w.length).length ≤ logSlack C1 M := by
+  have h_slack : c_kp + c_plain + c_pair + c_len + 2 * (Nat.bits i).length + 2 * (Nat.bits
+      j).length + 6 + 2 * (Nat.bits w.length).length ≤ logSlack C1 M := by
     have hw1 : (Nat.bits w.length).length ≤ (Nat.bits (3 * M + 7)).length := by
       have h : w.length < 2 ^ (Nat.size (3 * M + 7)) :=
           lt_of_le_of_lt h_w_len_M (Nat.lt_size_self _)
@@ -543,9 +554,8 @@ theorem uniform_description_count_of_conditional_complexity_gap (U : Map)
     have hw3 : 2 * (Nat.bits (3 * M + 7)).length ≤ logSlack 2 (3 * M + 7) :=
         by unfold logSlack; omega
     have hw5 : logSlack C2 M = C2 * (Nat.bits M).length + C2 := rfl
-    have hw6 : logSlack C1 M =
-        (C2 + c_kp + c_plain + c_pair + c_len + 6) * (Nat.bits M).length +
-        (C2 + c_kp + c_plain + c_pair + c_len + 6) := rfl
+    have hw6 : logSlack C1 M = (C2 + c_kp + c_plain + c_pair + c_len + 6) * (Nat.bits
+        M).length + (C2 + c_kp + c_plain + c_pair + c_len + 6) := rfl
     have hiM : i ≤ M := by omega
     have hjM : j ≤ M := by omega
     have hi_len : (Nat.bits i).length ≤ (Nat.bits M).length := by
@@ -555,7 +565,14 @@ theorem uniform_description_count_of_conditional_complexity_gap (U : Map)
       have h : j < 2 ^ (Nat.size M) := lt_of_le_of_lt hjM (Nat.lt_size_self _)
       simpa [← Nat.size_eq_bits_len] using Nat.size_le.mpr h
     have hC2_M := hC2 M
-    nlinarith
+    have h_ring : (C2 + c_kp + c_plain + c_pair + c_len + 6) * (Nat.bits M).length +
+        (C2 + c_kp + c_plain + c_pair + c_len + 6) =
+        (C2 * (Nat.bits M).length + C2) + c_kp * (Nat.bits M).length +
+        c_plain * (Nat.bits M).length + c_pair * (Nat.bits M).length +
+        c_len * (Nat.bits M).length + 6 * (Nat.bits M).length +
+        (c_kp + c_plain + c_pair + c_len + 6) := by ring
+    rw [hw6, h_ring, ← hw5]
+    omega
   have hnat : w.length + 2 * (Nat.bits w.length).length + c_len + (c_pair + c_plain + c_kp)
       ≤ m + logSlack C1 M := by omega
   calc KP U code y ≤ KP U (pairCode p w) y + c_kp := h_bound1
@@ -564,9 +581,8 @@ theorem uniform_description_count_of_conditional_complexity_gap (U : Map)
     _ = KPPlain U p + (KPPlain U w + (c_pair + c_plain + c_kp : ℕ)) := by push_cast; ring
     _ ≤ KPPlain U p + (((w.length : ENat) + 2 * (Nat.bits w.length).length + c_len)
           + (c_pair + c_plain + c_kp : ℕ)) := by gcongr
-    _ =
-        KPPlain U p + ((w.length + 2 * (Nat.bits w.length).length + c_len +
-        (c_pair + c_plain + c_kp) : ℕ) : ENat) := by
+    _ = KPPlain U p + ((w.length + 2 * (Nat.bits w.length).length + c_len + (c_pair + c_plain
+        + c_kp) : ℕ) : ENat) := by
           push_cast; ring
     _ ≤ KPPlain U p + ((m + logSlack C1 M : ℕ) : ENat) := by
           gcongr
@@ -589,8 +605,8 @@ def progCandidateModelCodesList (c : Code) (i : ℕ) (p : BitString) (j t : ℕ)
 /-- Program-indexed staged model-code list, using `programmedEnum p`. -/
 def progStageModelCodesList (c : Code) (i : ℕ) (p : BitString) (j : ℕ) : ℕ → List BitString
   | 0 => (progCandidateModelCodesList c i p j 0).eraseDups
-  | t + 1 => (progStageModelCodesList c i p j t ++ progCandidateModelCodesList c i p j
-      (t + 1)).eraseDups
+  | t + 1 =>
+      (progStageModelCodesList c i p j t ++ progCandidateModelCodesList c i p j (t + 1)).eraseDups
 
 /-- Program-indexed marked-code stream, using `programmedEnum p`. -/
 def progMarkedCodeStream (c : Code) (i : ℕ) (p : BitString) (n j k t : ℕ) : List BitString :=
@@ -598,8 +614,8 @@ def progMarkedCodeStream (c : Code) (i : ℕ) (p : BitString) (n j k t : ℕ) : 
 
 theorem progStageModelCodesList_eq_family (c : Code) (i : ℕ) (p : BitString)
     (mem : Finset BitString → Prop) (hp : IsProgramForFamily p mem) (j : ℕ) :
-    progStageModelCodesList c i p j =
-        familyStageModelCodesList c i (programmedFamily p mem hp) j := by
+    progStageModelCodesList c i p j = familyStageModelCodesList c i (programmedFamily p mem
+        hp) j := by
   funext t
   induction t with
   | zero => rfl
@@ -607,8 +623,8 @@ theorem progStageModelCodesList_eq_family (c : Code) (i : ℕ) (p : BitString)
 
 theorem progMarkedCodeStream_eq_family (c : Code) (i : ℕ) (p : BitString)
     (mem : Finset BitString → Prop) (hp : IsProgramForFamily p mem) (n j k t : ℕ) :
-    progMarkedCodeStream c i p n j k t =
-        familyMarkedCodeStream c i (programmedFamily p mem hp) n j k t := by
+    progMarkedCodeStream c i p n j k t = familyMarkedCodeStream c i (programmedFamily p mem
+        hp) n j k t := by
   unfold progMarkedCodeStream familyMarkedCodeStream
   rw [progStageModelCodesList_eq_family c i p mem hp j]
 
@@ -618,32 +634,29 @@ Joint computability of the program-indexed candidate model-code slice.
 theorem progCandidateModelCodesList_computable (c : Code) :
     Computable (fun q : ((ℕ × BitString) × ℕ) × ℕ =>
       progCandidateModelCodesList c q.1.1.1 q.1.1.2 q.1.2 q.2) := by
-  have h_filter : Computable
-      (fun (p : List BitString × List BitString × ℕ) => p.1.filter
-      (fun w => decide (w ∈ p.2.1) && isFamilyModelCodeBool p.2.2 w)) := by
-    have hp : Primrec₂
-        (fun (p : List BitString × List BitString × ℕ) (w : BitString) => decide
-        (w ∈ p.2.1) && isFamilyModelCodeBool p.2.2 w) :=
-      Primrec.of_eq
-        (Primrec.and.comp
-          (bitString_mem_primrec.comp Primrec.snd (Primrec.fst.comp (Primrec.snd.comp Primrec.fst)))
-          (isFamilyModelCodeBool_primrec_uniform.comp
-            (Primrec.pair Primrec.snd (Primrec.snd.comp (Primrec.snd.comp Primrec.fst)))))
-        (by intro a; dsimp only [Function.comp_apply, Prod.fst, Prod.snd])
-    exact (list_filter_primrec (f :=
-        fun (p : List BitString × List BitString × ℕ) => p.1) (p :=
-        fun p w => decide (w ∈ p.2.1) && isFamilyModelCodeBool p.2.2 w) Primrec.fst hp).to_comp
-  have hcand : Computable
-      (fun q : ((ℕ × BitString) × ℕ) × ℕ =>
-      (programmedEnum q.1.1.2 q.2, snapshotCodes c q.1.1.1 q.2, q.1.2)) :=
-    (Computable.pair
-      (programmedEnum_computable.comp (Computable.pair (Computable.snd.comp
-          (Computable.fst.comp Computable.fst)) Computable.snd))
-      (Computable.pair
-        ((snapshotCodes_primrec c |> Primrec.to_comp).comp (Computable.pair
-            (Computable.fst.comp (Computable.fst.comp Computable.fst)) Computable.snd))
-        (Computable.snd.comp Computable.fst))).of_eq (by intro _; rfl)
-  exact (h_filter.comp hcand).of_eq (by intro _; rfl)
+  have h_filter : Computable (fun (p : List BitString × List BitString × ℕ) =>
+      p.1.filter (fun w => decide (w ∈ p.2.1) && isFamilyModelCodeBool p.2.2 w)) := by
+    have hp : Primrec₂ (fun (p : List BitString × List BitString × ℕ) w =>
+        decide (w ∈ p.2.1) && isFamilyModelCodeBool p.2.2 w) :=
+      (Primrec.and.comp
+        (bitString_mem_primrec.comp Primrec.snd (Primrec.fst.comp (Primrec.snd.comp Primrec.fst)))
+        (isFamilyModelCodeBool_primrec_uniform.comp
+          (Primrec.pair Primrec.snd (Primrec.snd.comp (Primrec.snd.comp Primrec.fst))))).to₂
+    exact (@list_filter_primrec (List BitString × List BitString × ℕ) BitString _ _
+      (fun a => a.1) (fun a w => decide (w ∈ a.2.1) && isFamilyModelCodeBool a.2.2 w)
+      Primrec.fst hp).to_comp.of_eq (fun _ => rfl)
+  have hcand : Computable (fun q : ((ℕ × BitString) × ℕ) × ℕ =>
+      (programmedEnum q.1.1.2 q.2, snapshotCodes c q.1.1.1 q.2, q.1.2)) := by
+    apply Computable.pair;
+    · exact (programmedEnum_computable.comp ( Computable.pair
+        (Computable.snd.comp ( Computable.fst.comp ( Computable.fst ) ))
+        (Computable.snd) )).of_eq (fun _ => rfl)
+    · apply Computable.pair;
+      · exact (Computable.comp ( snapshotCodes_primrec c |> Primrec.to_comp )
+          ( Computable.pair ( Computable.fst.comp ( Computable.fst.comp Computable.fst ) )
+            ( Computable.snd ) )).of_eq (fun _ => rfl)
+      · exact Computable.snd.comp ( Computable.fst );
+  exact (h_filter.comp hcand).of_eq (fun _ => rfl)
 
 /-
 Joint computability of the program-indexed staged model-code list.
@@ -651,22 +664,21 @@ Joint computability of the program-indexed staged model-code list.
 theorem progStageModelCodesList_computable (c : Code) :
     Computable (fun q : ((ℕ × BitString) × ℕ) × ℕ =>
       progStageModelCodesList c q.1.1.1 q.1.1.2 q.1.2 q.2) := by
-  have h_eraseDups : Computable (fun l : List BitString => l.eraseDups) :=
-    eraseDups_bitstring_primrec.to_comp
-  have hg : Computable
-      (fun q : ((ℕ × BitString) × ℕ) × ℕ =>
-      (progCandidateModelCodesList c q.1.1.1 q.1.1.2 q.1.2 0).eraseDups) :=
-    (h_eraseDups.comp ((progCandidateModelCodesList_computable c).comp
-        (Computable.pair Computable.fst (Computable.const 0)))).of_eq (by intro _; rfl)
-  have hh : Computable₂
-      (fun (q : ((ℕ × BitString) × ℕ) × ℕ) (r : ℕ × List BitString) =>
-      (r.2 ++ progCandidateModelCodesList c q.1.1.1 q.1.1.2 q.1.2 (r.1 + 1)).eraseDups) :=
-    (h_eraseDups.comp (Computable.list_append.comp (Computable.snd.comp Computable.snd)
-        ((progCandidateModelCodesList_computable c).comp (Computable.pair
-        (Computable.fst.comp Computable.fst) (Computable.succ.comp
-        (Computable.fst.comp Computable.snd)))))).of_eq (by intro _; rfl)
-  convert Computable.nat_rec (f := fun q => q.2) Computable.snd hg hh using 1;
-  exact funext fun q => by induction q.2 <;> simp +decide [ *, progStageModelCodesList ] ;
+  have h_eraseDups : Computable (fun l : List BitString => l.eraseDups) := by
+    exact eraseDups_bitstring_primrec.to_comp;
+  have hg : Computable (fun q : ((ℕ × BitString) × ℕ) × ℕ =>
+      (progCandidateModelCodesList c q.1.1.1 q.1.1.2 q.1.2 0).eraseDups) := by
+    exact (h_eraseDups.comp ( progCandidateModelCodesList_computable c |> Computable.comp
+        <| Computable.pair Computable.fst (Computable.const 0) )).of_eq (fun _ => rfl);
+  have hh : Computable₂ (fun (q : ((ℕ × BitString) × ℕ) × ℕ) (r : ℕ × List BitString) =>
+      (r.2 ++ progCandidateModelCodesList c q.1.1.1 q.1.1.2 q.1.2 (r.1 + 1)).eraseDups) := by
+    exact (h_eraseDups.comp ( Computable.list_append.comp (Computable.snd.comp Computable.snd)
+      (progCandidateModelCodesList_computable c |> Computable.comp
+        <| Computable.pair (Computable.fst.comp Computable.fst)
+          (Computable.succ.comp (Computable.fst.comp Computable.snd))) )).of_eq (fun _ => rfl)
+  exact (Computable.nat_rec (f := fun q => q.2) Computable.snd hg hh).of_eq (
+    fun q : ((ℕ × BitString) × ℕ) × ℕ => by
+      induction q.2 <;> simp +decide [*, progStageModelCodesList])
 
 /-
 Joint computability of the program-indexed marked-code stream.
@@ -677,15 +689,30 @@ theorem progMarkedCodeStream_computable (c : Code) :
   revert c;
   intro c
   unfold progMarkedCodeStream
-  exact (selectionStrategyOnline_primrec_uniform.to_comp.comp (Computable.pair
-      (Computable.pair (Computable.snd.comp (Computable.fst.comp
-      (Computable.fst.comp Computable.fst))) (Computable.pair (Computable.fst.comp
-      (Computable.fst.comp (Computable.fst.comp (Computable.fst.comp Computable.fst))))
-      (Computable.pair (Computable.snd.comp (Computable.fst.comp Computable.fst))
-      (Computable.snd.comp Computable.fst)))) ((progStageModelCodesList_computable c).comp
-      (Computable.pair (Computable.pair (Computable.fst.comp (Computable.fst.comp
-      (Computable.fst.comp Computable.fst))) (Computable.snd.comp
-      (Computable.fst.comp Computable.fst))) Computable.snd)))).of_eq (by intro _; rfl)
+  apply ( selectionStrategyOnline_primrec_uniform.to_comp.comp ?_ ).of_eq ?_;
+  · exact fun n =>
+      ( ( n.1.1.1.2, n.1.1.1.1.1, n.1.1.2, n.1.2 ),
+        progStageModelCodesList c n.1.1.1.1.1 n.1.1.1.1.2 n.1.1.2 n.2 );
+  · refine Computable.pair ?_ ?_;
+    · apply Computable.pair;
+      · exact Computable.snd.comp ( Computable.fst.comp ( Computable.fst.comp ( Computable.fst
+          ) ) );
+      · apply Computable.pair;
+        · exact Computable.fst.comp ( Computable.fst.comp ( Computable.fst.comp (
+            Computable.fst.comp Computable.fst ) ) );
+        · exact Computable.pair ( Computable.snd.comp ( Computable.fst.comp ( Computable.fst )
+            ) ) ( Computable.snd.comp ( Computable.fst ) );
+    · convert progStageModelCodesList_computable c |> Computable.comp
+        <| Computable.pair _ _ using 1;
+      rotate_left;
+      · exact fun n => ( n.1.1.1.1, n.1.1.2 );
+      · exact fun n => n.2;
+      · exact Computable.pair ( Computable.fst.comp ( Computable.fst.comp (
+          Computable.fst.comp ( Computable.fst ) ) ) ) ( Computable.snd.comp (
+            Computable.fst.comp ( Computable.fst ) ) );
+      · exact Computable.snd;
+      · rfl;
+  · grind
 
 /-- Program-indexed marked-code selector, using `progMarkedCodeStream`. -/
 noncomputable def progMarkedCodeSelectorFn (c : Code) (p : BitString) : BitString →. BitString :=
@@ -695,17 +722,16 @@ noncomputable def progMarkedCodeSelectorFn (c : Code) (p : BitString) : BitStrin
     let j := selJ s
     let k := selK s
     let r := selR s
-    (Nat.rfind
-        (fun t => Part.some (decide (r <
-        (progMarkedCodeStream c i p n j k t).eraseDups.length)))).bind
+    (Nat.rfind (fun t =>
+        Part.some (decide (r < (progMarkedCodeStream c i p n j k t).eraseDups.length)))).bind
       (fun t =>
         let stream := (progMarkedCodeStream c i p n j k t).eraseDups
         Part.some (stream.getD r []))
 
 theorem progMarkedCodeSelectorFn_eq_family (c : Code) (p : BitString)
     (mem : Finset BitString → Prop) (hp : IsProgramForFamily p mem) (s : BitString) :
-    progMarkedCodeSelectorFn c p s =
-        familyMarkedCodeSelectorFn c (programmedFamily p mem hp) s := by
+    progMarkedCodeSelectorFn c p s = familyMarkedCodeSelectorFn c (programmedFamily p mem hp)
+        s := by
   simp only [progMarkedCodeSelectorFn, familyMarkedCodeSelectorFn,
     progMarkedCodeStream_eq_family c (selI s) p mem hp (selN s) (selJ s) (selK s)]
 
@@ -727,8 +753,8 @@ theorem univMarkedCodeSelectorFn_partrec (c : Code) : Partrec (univMarkedCodeSel
   have dF : Computable (fun st : BitString × ℕ => decodeFirst st.1) :=
     decodeFirst_computable.comp Computable.fst
   have h_stream : Computable (fun st : BitString × ℕ =>
-      (progMarkedCodeStream c (selI (decodeSecond st.1)) (decodeFirst st.1) (selN
-          (decodeSecond st.1))
+      (progMarkedCodeStream c (selI (decodeSecond st.1)) (decodeFirst st.1)
+          (selN (decodeSecond st.1))
         (selJ (decodeSecond st.1)) (selK (decodeSecond st.1)) st.2).eraseDups) :=
     eraseDups_bitstring_primrec.to_comp.comp
       ((progMarkedCodeStream_computable c).comp
@@ -739,13 +765,13 @@ theorem univMarkedCodeSelectorFn_partrec (c : Code) : Partrec (univMarkedCodeSel
     convert h.to_comp
   have h_check : Computable (fun st : BitString × ℕ =>
       decide (selR (decodeSecond st.1) <
-        (progMarkedCodeStream c (selI (decodeSecond st.1)) (decodeFirst st.1) (selN
-            (decodeSecond st.1))
+        (progMarkedCodeStream c (selI (decodeSecond st.1)) (decodeFirst st.1)
+            (selN (decodeSecond st.1))
           (selJ (decodeSecond st.1)) (selK (decodeSecond st.1)) st.2).eraseDups.length)) :=
     h_lt.comp ((selR_computable.comp dS).pair (Computable.list_length.comp h_stream))
   have h_post : Computable (fun st : BitString × ℕ =>
-      (progMarkedCodeStream c (selI (decodeSecond st.1)) (decodeFirst st.1) (selN
-          (decodeSecond st.1))
+      (progMarkedCodeStream c (selI (decodeSecond st.1)) (decodeFirst st.1)
+          (selN (decodeSecond st.1))
         (selJ (decodeSecond st.1)) (selK (decodeSecond st.1)) st.2).eraseDups.getD
         (selR (decodeSecond st.1)) []) :=
     ((Primrec.list_getD ([] : BitString)).to_comp).comp h_stream (selR_computable.comp dS)
@@ -829,20 +855,19 @@ theorem uniform_selected_code_setComplexity_bound (U : Map) (hU : IsOptimalPrefi
     exact hsel_eq
   have hw_sel : w ∈ univMarkedCodeSelectorFn c (pairCode p (familyMarkedInput n i j k r)) :=
     Part.eq_some_iff.mp huniv
-  have hcomp1 : KPPlain U w ≤ KPPlain U (pairCode p (familyMarkedInput n i j k r)) +
-      (c_map : ENat) :=
+  have hcomp1 : KPPlain U w ≤ KPPlain U (pairCode p (familyMarkedInput n i j k r)) + (c_map :
+      ENat) :=
     hc_map (pairCode p (familyMarkedInput n i j k r)) w hw_sel
   have hchain : KPPlain U w ≤
       KPPlain U p + (KPPlain U (familyMarkedInput n i j k r) + ((c_pair + c_map : ℕ) : ENat)) := by
-    calc KPPlain U w ≤ KPPlain U (pairCode p (familyMarkedInput n i j k r)) +
-        (c_map : ENat) := hcomp1
-      _ ≤ (KPPlain U p + KPPlain U (familyMarkedInput n i j k r) + (c_pair : ENat)) +
-          (c_map : ENat) := by
+    calc KPPlain U w ≤ KPPlain U (pairCode p (familyMarkedInput n i j k r)) + (c_map : ENat)
+        := hcomp1
+      _ ≤ (KPPlain U p + KPPlain U (familyMarkedInput n i j k r) + (c_pair : ENat)) + (c_map :
+          ENat) := by
             gcongr
             exact hc_pair p (familyMarkedInput n i j k r)
-      _ =
-          KPPlain U p + (KPPlain U (familyMarkedInput n i j k r) +
-          ((c_pair + c_map : ℕ) : ENat)) := by
+      _ = KPPlain U p + (KPPlain U (familyMarkedInput n i j k r) + ((c_pair + c_map : ℕ) :
+          ENat)) := by
             push_cast; ring
   have hcomp2 : KPPlain U (familyMarkedInput n i j k r) + ((c_pair + c_map : ℕ) : ENat) ≤
       ((m : ENat) + 1) + logSlack c_input (n + i + j + k + m) :=
@@ -857,8 +882,10 @@ theorem uniform_selected_code_setComplexity_bound (U : Map) (hU : IsOptimalPrefi
     exact (logSlack_mono (c := c_input) hbudget).trans (hc_fold M)
   have hqslack : 3 * (Nat.bits M).length + 11 + logSlack c_fold M ≤
       logSlack (c_fold + 20) M := by
-    unfold logSlack
-    nlinarith [Nat.zero_le (17 * (Nat.bits M).length)]
+    have e : logSlack (c_fold + 20) M
+        = logSlack c_fold M + (20 * (Nat.bits M).length + 20) := by
+      unfold logSlack; ring
+    omega
   have htotal : ((m : ENat) + 1) + logSlack c_input (n + i + j + k + m) ≤
       (i - k : ENat) + logSlack (c_fold + 20) M := by
     have hm_le : m + 1 ≤ (i - k) + (3 * (Nat.bits M).length + 11) := by
@@ -980,8 +1007,8 @@ theorem uniform_familyComplexityRefinedSet_ofEnum
       U x i j k).mp hmany) hk
   exact ⟨S, hS, hmemS.1, hxS, hcomp, hcard⟩
 
-theorem manyIJDescriptionsMem_zero_of_mem {mem : Finset BitString →
-    Prop} {U : Map} {x : BitString} {A : Finset BitString} {i j : ℕ}
+theorem manyIJDescriptionsMem_zero_of_mem {mem : Finset BitString → Prop} {U : Map} {x :
+    BitString} {A : Finset BitString} {i j : ℕ}
     (hA : A.Nonempty) (hx : x ∈ A) (hmem : mem A) (hi : setComplexity U A hA ≤ (i : ENat))
     (hj : A.card ≤ 2 ^ j) :
     ManyIJDescriptionsMem mem U x i j 0 := by
@@ -999,8 +1026,8 @@ theorem manyIJDescriptionsMem_zero_of_mem {mem : Finset BitString →
   rw [Finset.mem_filter]
   exact ⟨mem_descriptionsWithComplexityLe_of_complexity hA hi, hj⟩
 
-theorem ManyIJDescriptionsMem.mono_j {mem : Finset BitString →
-    Prop} {U : Map} {x : BitString} {i j j' k : ℕ}
+theorem ManyIJDescriptionsMem.mono_j {mem : Finset BitString → Prop} {U : Map} {x : BitString}
+    {i j j' k : ℕ}
     (h : ManyIJDescriptionsMem mem U x i j k)
         (hj : j ≤ j') : ManyIJDescriptionsMem mem U x i j' k := by
   classical
@@ -1012,8 +1039,8 @@ theorem ManyIJDescriptionsMem.mono_j {mem : Finset BitString →
   rw [Finset.mem_filter] at hS ⊢
   exact ⟨descriptionsWithComplexityLeAndSizeLe_subset_of_le_right U i hj hS.1, hS.2⟩
 
-theorem ManyIJDescriptionsMem.mono_k {mem : Finset BitString →
-    Prop} {U : Map} {x : BitString} {i j k k' : ℕ}
+theorem ManyIJDescriptionsMem.mono_k {mem : Finset BitString → Prop} {U : Map} {x : BitString}
+    {i j k k' : ℕ}
     (h : ManyIJDescriptionsMem mem U x i j k)
         (hk : k' ≤ k) : ManyIJDescriptionsMem mem U x i j k' := by
   unfold ManyIJDescriptionsMem at *
@@ -1031,7 +1058,7 @@ theorem uniform_manyIJDescriptionsMem_of_realizedSetOptimalityGap (U : Map)
     d ≤ delta + c_soi →
     ∃ slack : ℕ, slack ≤ logSlack c (n + delta + d) + (KPPlain U p).toNat ∧
       ManyIJDescriptionsMem mem U x i j (delta - d - slack) := by
-  rcases gap_lowerBound_conditional_setComplexity_tight_of_le_add U hU with ⟨c1, hc1⟩
+  rcases gap_lowerBound_conditional_setComplexity_tight U hU with ⟨c1, hc1⟩
   rcases uniform_description_count_of_conditional_complexity_gap U hU with ⟨c2, hc2⟩
   rcases gapCounting_slack_arithmetic U hU c1 c2 with ⟨c3, hc3⟩
   refine ⟨c3, fun p mem hp
@@ -1127,8 +1154,8 @@ theorem uniform_deficiencies_theorem_tight (U : Map) (hU : IsOptimalPrefixCondit
       ∃ (B : Finset BitString) (hB : B.Nonempty), mem B ∧ x ∈ B ∧
         setComplexity U B hB + (delta - d : ℕ) ≤
           setComplexity U A hA + (logSlack c (n + delta + d) + 2 * KPPlain U p : ENat) ∧
-        SetOptimalityDeficiencyLe U B hB x (d + logSlack c (n + delta + d) + 2 *
-            (KPPlain U p).toNat) := by
+        SetOptimalityDeficiencyLe U B hB x (d + logSlack c (n + delta + d) + 2 * (KPPlain U
+            p).toNat) := by
   obtain ⟨c1, hc1⟩ := uniform_manyIJDescriptionsMem_of_realizedSetOptimalityGap U hU
   obtain ⟨c2, hc2⟩ := uniform_familyComplexityRefinedSet U hU
   obtain ⟨bb, hbb⟩ := visible_param_linear_bound U hU
@@ -1167,8 +1194,11 @@ theorem uniform_deficiencies_theorem_tight (U : Map) (hU : IsOptimalPrefixCondit
   have hdeltak : delta - k ≤ d + slack1 + 1 := by omega
   have hcomb : logSlack c1 (n + delta + d) + 2 * logSlack C0 (n + delta + d) + 1 ≤
       logSlack (c1 + 2 * C0 + 2) (n + delta + d) := by
-    unfold logSlack
-    nlinarith [Nat.zero_le ((Nat.bits (n + delta + d)).length)]
+    have e : logSlack (c1 + 2 * C0 + 2) (n + delta + d)
+        = logSlack c1 (n + delta + d) + 2 * logSlack C0 (n + delta + d)
+          + (2 * (Nat.bits (n + delta + d)).length + 2) := by
+      unfold logSlack; ring
+    omega
   refine ⟨B, hB, hmemB, hxB, ?_, ?_⟩
   · refine le_trans (add_le_add hcompB (le_refl ((delta - d : ℕ) : ENat))) ?_
     rw [show setComplexity U A hA = (i : ENat) from h_realized.2.1, ← hkp_eq]
@@ -1182,23 +1212,23 @@ theorem uniform_deficiencies_theorem_tight (U : Map) (hU : IsOptimalPrefixCondit
     have hdelta_eq := h_realized.2.2.2.2.2
     omega
 
-/-- The uniform proposition for arbitrary enumerable 𝒜
-    (slack `O(K(p) + log K(A) + log n + log log #A)`).
-Stated with the enumeration program `p` in the condition. -/
+/-- The uniform proposition for arbitrary enumerable 𝒜, with slack
+`O(K(p) + log K(A) + log n + log log #A)`. The condition includes the enumeration
+program `p`. -/
 theorem restricted_stochasticity_to_optimal_set_uniform (U : Map)
     (hU : IsOptimalPrefixConditional U) :
     ∃ c : ℕ, ∀ (p : BitString) (mem : Finset BitString → Prop),
       IsProgramForFamily p mem →
       ∀ (x : BitString) (n alpha beta : ℕ),
       x.length = n →
-      (∃ (A : Finset BitString) (hA : A.Nonempty), mem A ∧
-          setComplexity U A hA ≤ (alpha : ENat) ∧
-          CodedFiniteDistribution.DeficiencyLe U (codedUniformOn A hA) x beta) →
-      (∃ (A : Finset BitString) (hA : A.Nonempty), mem A ∧
-          setComplexity U A hA ≤ (alpha + logSlack c
-          (n + alpha + beta) + 2 * KPPlain U p : ENat) ∧
-          SetOptimalityDeficiencyLe U A hA x (beta + logSlack c (n + alpha + beta) + 2 *
-          (KPPlain U p).toNat)) := by
+      (∃ (A : Finset BitString) (hA : A.Nonempty),
+          mem A ∧ setComplexity U A hA ≤ (alpha : ENat) ∧
+            CodedFiniteDistribution.DeficiencyLe U (codedUniformOn A hA) x beta) →
+      (∃ (A : Finset BitString) (hA : A.Nonempty),
+          mem A ∧ setComplexity U A hA ≤
+            (alpha + logSlack c (n + alpha + beta) + 2 * KPPlain U p : ENat) ∧
+          SetOptimalityDeficiencyLe U A hA x
+            (beta + logSlack c (n + alpha + beta) + 2 * (KPPlain U p).toNat)) := by
   obtain ⟨c_def, hc_def⟩ := uniform_deficiencies_theorem_tight U hU
   obtain ⟨c_br, hc_br⟩ := restricted_exists_realizedGap_of_member U hU
   obtain ⟨C0, hC0⟩ := logSlack_linear_bound c_def 4 c_br
@@ -1219,23 +1249,23 @@ theorem restricted_stochasticity_to_optimal_set_uniform (U : Map)
       unfold logSlack; ring_nf; linarith
     exact le_trans h1 (logSlack_mono_left (Nat.succ_le_succ (le_max_left _ _)) _)
   refine ⟨B, hB, hmemB, ?_, ?_⟩
-  · have h_le1 : setComplexity U B hB ≤ (i : ENat) + (logSlack c_def
-      (n + delta + d) : ENat) + 2 * KPPlain U p := by
+  · have h_le1 : setComplexity U B hB ≤ (i : ENat) + (logSlack c_def (n + delta + d) : ENat) +
+      2 * KPPlain U p := by
       rw [hcompA_i] at hcompB
-      have h_rhs : (logSlack c_def (n + delta + d) + 2 * KPPlain U p : ENat) =
-          (logSlack c_def (n + delta + d) : ENat) + 2 * KPPlain U p := by rfl
+      have h_rhs : (logSlack c_def (n + delta + d) + 2 * KPPlain U p : ENat) = (logSlack c_def
+          (n + delta + d) : ENat) + 2 * KPPlain U p := by rfl
       rw [h_rhs] at hcompB
-      have h_assoc : (i : ENat) + ((logSlack c_def
-          (n + delta + d) : ENat) + 2 * KPPlain U p) =
-          (i : ENat) + (logSlack c_def (n + delta + d) : ENat) + 2 * KPPlain U p :=
-          by exact (add_assoc _ _ _).symm
+      have h_assoc : (i : ENat) + ((logSlack c_def (n + delta + d) : ENat) + 2 * KPPlain U p)
+          = (i : ENat) + (logSlack c_def (n + delta + d) : ENat) +
+            2 * KPPlain U p := by
+        exact (add_assoc _ _ _).symm
       rw [h_assoc] at hcompB
       have h_self : setComplexity U B hB ≤ setComplexity U B hB + (delta - d : ℕ) :=
           le_add_right le_rfl
       exact le_trans h_self hcompB
     have h_le2 : (i : ENat) + (logSlack c_def (n + delta + d) : ENat) + 2 * KPPlain U p ≤
         (alpha : ENat) + (logSlack (max (c_br + C0) (c_def + c_br + 1) + 1)
-        (n + alpha + beta) : ENat) + 2 * KPPlain U p := by
+          (n + alpha + beta) : ENat) + 2 * KPPlain U p := by
       have hnat : i + logSlack c_def (n + delta + d) ≤ alpha + logSlack (max (c_br + C0)
           (c_def + c_br + 1) + 1) (n + alpha + beta) := by omega
       have hcast : (i : ENat) + (logSlack c_def (n + delta + d) : ENat) ≤ (alpha : ENat) +
@@ -1245,7 +1275,7 @@ theorem restricted_stochasticity_to_optimal_set_uniform (U : Map)
     have h_le3 : (alpha : ENat) + (logSlack (max (c_br + C0) (c_def + c_br + 1) + 1)
         (n + alpha + beta) : ENat) + 2 * KPPlain U p =
         (alpha + logSlack (max (c_br + C0) (c_def + c_br + 1) + 1)
-        (n + alpha + beta) + 2 * KPPlain U p : ENat) := by rfl
+          (n + alpha + beta) + 2 * KPPlain U p : ENat) := by rfl
     rw [← h_le3]
     exact le_trans h_le1 h_le2
   · refine hoptB.mono_beta ?_
@@ -1261,7 +1291,7 @@ theorem restricted_manyIJDescriptionsIn_of_realizedSetOptimalityGap (U : Map)
     d ≤ delta + c_soi →
     ∃ slack : ℕ, slack ≤ logSlack c (n + delta + d) ∧
       ManyIJDescriptionsIn 𝒜 U x i j (delta - d - slack) := by
-  rcases gap_lowerBound_conditional_setComplexity_tight_of_le_add U hU with ⟨c1, hc1⟩
+  rcases gap_lowerBound_conditional_setComplexity_tight U hU with ⟨c1, hc1⟩
   rcases restricted_description_count_of_conditional_complexity_gap_aux U hU 𝒜 with ⟨c2, hc2⟩
   rcases gapCounting_slack_arithmetic U hU c1 c2 with ⟨c3, hc3⟩
   refine ⟨c3, fun A hA x n delta d i j kx c_soi hn hmem h_realized hdef_cond hd => ?_⟩
@@ -1368,8 +1398,11 @@ theorem restricted_deficiencies_theorem_tight
   have hdeltak : delta - k ≤ d + slack1 + 1 := by omega
   have hcomb : logSlack c1 (n + delta + d) + 2 * logSlack C0 (n + delta + d) + 1 ≤
       logSlack (c1 + 2 * C0 + 2) (n + delta + d) := by
-    unfold logSlack
-    nlinarith [Nat.zero_le ((Nat.bits (n + delta + d)).length)]
+    have e : logSlack (c1 + 2 * C0 + 2) (n + delta + d)
+        = logSlack c1 (n + delta + d) + 2 * logSlack C0 (n + delta + d)
+          + (2 * (Nat.bits (n + delta + d)).length + 2) := by
+      unfold logSlack; ring
+    omega
   refine ⟨B, hB, hmemB, hxB, ?_, ?_⟩
   · refine le_trans (add_le_add hcompB (le_refl ((delta - d : ℕ) : ENat))) ?_
     rw [show setComplexity U A hA = (i : ENat) from h_realized.2.1]
@@ -1387,11 +1420,12 @@ theorem restricted_stochasticity_to_optimal_set_thm (U : Map)
     (hU : IsOptimalPrefixConditional U) (𝒜 : PreDescriptionFamily) :
     ∃ c : ℕ, ∀ (x : BitString) (n alpha beta : ℕ),
       x.length = n →
-      (∃ (A : Finset BitString) (hA : A.Nonempty), 𝒜.mem A ∧
-          setComplexity U A hA ≤ (alpha : ENat) ∧
-          CodedFiniteDistribution.DeficiencyLe U (codedUniformOn A hA) x beta) →
-      (∃ (A : Finset BitString) (hA : A.Nonempty), 𝒜.mem A ∧
-          setComplexity U A hA ≤ (alpha + logSlack c (n + alpha + beta) : ENat) ∧
+      (∃ (A : Finset BitString) (hA : A.Nonempty),
+          𝒜.mem A ∧ setComplexity U A hA ≤ (alpha : ENat) ∧
+            CodedFiniteDistribution.DeficiencyLe U (codedUniformOn A hA) x beta) →
+      (∃ (A : Finset BitString) (hA : A.Nonempty),
+          𝒜.mem A ∧ setComplexity U A hA ≤
+            (alpha + logSlack c (n + alpha + beta) : ENat) ∧
           SetOptimalityDeficiencyLe U A hA x (beta + logSlack c (n + alpha + beta))) := by
   obtain ⟨c_def, hc_def⟩ := restricted_deficiencies_theorem_tight U hU 𝒜
   obtain ⟨c_br, hc_br⟩ := restricted_exists_realizedGap_of_member U hU
@@ -1436,8 +1470,8 @@ theorem restricted_improving_descriptions_conditional (U : Map)
       x.length = n →
       ManyIJDescriptionsIn 𝒜.toPre U x i j k →
       k ≤ i →
-      InDescriptionProfileIn 𝒜 U x (i - k + logSlack c (n + i + j)) (j + logSlack c
-          (n + i + j)) := by
+      InDescriptionProfileIn 𝒜 U x (i - k + logSlack c (n + i + j))
+          (j + logSlack c (n + i + j)) := by
   obtain ⟨c, hc⟩ := exists_familyComplexityRefinedSet U hU 𝒜
   refine ⟨c, fun x n i j k hn hmany hk => ?_⟩
   obtain ⟨S, hS, hmemS, hxS, hcomp, hcard⟩ := hc x n i j k hn hmany hk

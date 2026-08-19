@@ -12,11 +12,13 @@ weakening final acceptance.
 2. `scripts/check_affected.py <files>` computes the transitive reverse-import
    closure and builds its maximal modules. It is the default developer feedback
    command for changes whose downstream compatibility matters.
-3. `scripts/audit.sh` checks repository hygiene, all discovered build roots,
-   warnings, the external tactic smoke test, and the strict sweep once
+3. `scripts/audit.sh` checks fidelity, repository hygiene, all discovered build
+   roots, warnings, the external tactic smoke test, and the strict sweep once
    project-wide suppressions are gone.
 4. `scripts/audit.sh --release` always requires the complete strict sweep and
    rejects every project linter suppression.
+5. `scripts/final_release_gate.py` adds an independent review and verifies that
+   the audited source did not change during that review.
 
 The import graph is discovered from source rather than encoded as a fixed list.
 The current project has 118 modules and four maximal build roots:

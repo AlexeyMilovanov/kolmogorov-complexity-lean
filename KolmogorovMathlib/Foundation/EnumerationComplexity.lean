@@ -1,32 +1,19 @@
-/-
-Copyright (c) 2024 Alexey Milovanov. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey Milovanov
--/
-
 import KolmogorovMathlib.Prefix.Properties
 import KolmogorovMathlib.Encoding.Tuples
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.Profile
 import KolmogorovMathlib.AlgorithmicStatistics.NormalizedCodedFiniteDistribution
 
 /-!
-# M0: complexity via computable enumerations
-
-Plan reference: `PLAN_RESTRICTED_TYPE.md`, milestone M0. This file is owned by
-the `M0_enumeration_complexity` proof-loop section.
+# Complexity via computable enumerations
 
 The single most-used informal step of VS40 §6: *"the selected set can be
 described by its ordinal number in an enumeration, so its complexity is
 ≤ log₂(index) + O(1)"*. The same move exists ad hoc in
 `TwoPart/GapCounting.lean` (`candidateCodes`, `appearanceListCodes`,
-`indexSelectorFn`, `code_mem_appearanceListCodes`) — the intended proof route
-GENERALIZES that machinery; read it before proving anything here, and prefer
-re-pointing it to this file over duplicating.
-
-Statement status: DRAFT until the first strategic freeze. The constants are
-per-enumeration (the enumeration is a fixed computable object, matching the
-`KPPlain_map_le` style of the repo); a conditional variant carries the
-context `y`.
+`indexSelectorFn`, `code_mem_appearanceListCodes`).  The construction here
+packages that argument for reuse.  Constants are per enumeration (the
+enumeration is a fixed computable object, as in `KPPlain_map_le`); the
+conditional variant also carries the context `y`.
 -/
 
 namespace Kolmogorov

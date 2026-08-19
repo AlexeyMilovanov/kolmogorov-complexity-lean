@@ -1,11 +1,8 @@
-/-
-Copyright (c) 2024 Alexey Milovanov. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey Milovanov
--/
-
 import KolmogorovMathlib.Restricted.BasicProfile
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.SlackArith
+
+namespace Kolmogorov
+open scoped ENNReal
 
 /-!
 ## Retired independent bad-set interface
@@ -20,8 +17,5 @@ The VV proof instead couples bad-description enumeration to survivor-preserving
 rebuilds of the good sets.  This module deliberately exports no theorem until
 that process is represented by the M7 grid/rebuild/process interfaces.
 -/
-
-namespace Kolmogorov
-open scoped ENNReal
 
 end Kolmogorov

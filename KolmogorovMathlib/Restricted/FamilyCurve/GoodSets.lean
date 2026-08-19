@@ -1,11 +1,8 @@
-/-
-Copyright (c) 2024 Alexey Milovanov. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey Milovanov
--/
-
 import KolmogorovMathlib.Restricted.BasicProfile
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.SlackArith
+
+namespace Kolmogorov
+open scoped ENNReal
 
 /-!
 ## Good sets in the coupled construction
@@ -17,8 +14,5 @@ candidates, and target-curve bounds are therefore supplied by the coupled-run
 invariants rather than by an independent sequence interface.  This module
 deliberately exports no separate good-set theorem.
 -/
-
-namespace Kolmogorov
-open scoped ENNReal
 
 end Kolmogorov

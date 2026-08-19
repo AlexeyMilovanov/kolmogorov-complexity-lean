@@ -1,14 +1,3 @@
-/-
-Copyright (c) 2024 Alexey Milovanov. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey Milovanov
--/
-
-import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Finset.Max
-import Mathlib.Data.Nat.Log
-import Mathlib.Algebra.Order.Ring.Pow
-import Mathlib.Data.Real.Basic
 import Mathlib.Analysis.SpecialFunctions.Log.Base
 
 /-!
@@ -43,12 +32,12 @@ theorem two_mul_pow_le_succ_pow (q : ℕ) (hq : 1 ≤ q) : 2 * q ^ q ≤ (q + 1)
     have he : (1:ℚ) + (q:ℚ) * (1/(q:ℚ)) = 2 := by
       rw [mul_one_div, div_self hqne]; norm_num
     rwa [he] at hstep
-  have hqq : (0:ℚ) < (q:ℚ)^q := pow_pos hqpos q
-  have hh : (2:ℚ) * (q:ℚ)^q ≤ (1 + 1/(q:ℚ))^q * (q:ℚ)^q := by nlinarith [hb, hqq]
+  have hqq : (0:ℚ) ≤ (q:ℚ)^q := (pow_pos hqpos q).le
+  have hh : (2:ℚ) * (q:ℚ)^q ≤ (1 + 1/(q:ℚ))^q * (q:ℚ)^q :=
+    mul_le_mul_of_nonneg_right hb hqq
   have h3 : ((1:ℚ) + 1/(q:ℚ)) * (q:ℚ) = (q:ℚ) + 1 := by field_simp
   have hpow : (2:ℚ) * (q:ℚ)^q ≤ ((q:ℚ)+1)^q := by rw [← mul_pow, h3] at hh; exact hh
-  have : ((2 * q ^ q : ℕ) : ℚ) ≤ (((q+1)^q : ℕ) : ℚ) := by push_cast; convert hpow using 2
-  exact_mod_cast this
+  exact_mod_cast hpow
 
 /-- Batch-halving power inequality: with `q = ⌊M/m⌋` and `1 ≤ m ≤ M`,
 `2·(M-m)^q ≤ M^q`.  Combined with the per-step `×(M-m)/M` decrease, one batch of
@@ -56,14 +45,10 @@ theorem two_mul_pow_le_succ_pow (q : ℕ) (hq : 1 ≤ q) : 2 * q ^ q ≤ (q + 1)
 theorem halving_pow (M m : ℕ) (hm : 1 ≤ m) (hmM : m ≤ M) :
     2 * (M - m) ^ (M / m) ≤ M ^ (M / m) := by
   set q := M / m with hqdef
-  have hqm : q * m ≤ M := Nat.div_mul_le_self M m
   have hq1 : 1 ≤ q := (Nat.one_le_div_iff (by omega)).mpr hmM
-  have hMlt : M < (q + 1) * m := by
-    have h1 : m * q + M % m = M := by rw [hqdef]; exact Nat.div_add_mod M m
-    have h2 : M % m < m := Nat.mod_lt M (by omega)
-    nlinarith [h1, h2]
   have hdle : M - m ≤ q * m := by
-    have : M < q * m + m := by nlinarith [hMlt]
+    have h1 : q * m + M % m = M := by rw [hqdef]; exact Nat.div_add_mod' M m
+    have h2 : M % m < m := Nat.mod_lt M (by omega)
     omega
   have hstep : (q + 1) * (M - m) ≤ q * M := by
     have hcancel : (M - m) + m = M := Nat.sub_add_cancel hmM

@@ -1,17 +1,4 @@
-/-
-Copyright (c) 2024 Alexey Milovanov. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey Milovanov
--/
-
 import KolmogorovMathlib.Restricted.FamilyCurve.EffectiveRun
-
-/-!
-# Semantics of the effective sampled run
-
-This file proves decoding, soundness, and termination properties for the chronological
-partial-recursive sampled-run processor.
--/
 
 namespace Kolmogorov
 

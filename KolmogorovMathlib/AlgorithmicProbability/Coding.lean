@@ -1,9 +1,3 @@
-/-
-Copyright (c) 2024 Alexey Milovanov. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey Milovanov
--/
-
 import KolmogorovMathlib.AlgorithmicProbability.Semimeasure
 
 /-!
@@ -109,7 +103,7 @@ theorem complexityWeight_le_of_le {a b : ENat} (h : a ≤ b) :
 /-- **Antitonicity**, packaged as `Antitone`: longer programs (larger `KP`) carry
 no more weight than shorter ones. -/
 theorem complexityWeight_antitone : Antitone complexityWeight :=
-  fun _ _ h ↦ complexityWeight_le_of_le h
+  fun _ _ h => complexityWeight_le_of_le h
 
 /-! ### From multiplicative weight bounds back to additive `K` bounds
 

@@ -1,11 +1,5 @@
-/-
-Copyright (c) 2024 Alexey Milovanov. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey Milovanov
--/
-
-import KolmogorovMathlib.AlgorithmicProbability.OptimalCoding
 import KolmogorovMathlib.AlgorithmicProbability.Simulation
+import KolmogorovMathlib.AlgorithmicProbability.OptimalCoding
 
 /-!
 # Program Simulation Bridges Complexity and Semimeasure Universality
@@ -95,9 +89,9 @@ simulation's `KP_le` supplies the required additive invariance bound. This is th
 headline bridge from the constructive notion to `IsOptimalPrefixConditional`. -/
 theorem IsSimulationUniversal.isOptimalPrefixConditional {U : Map}
     (hU : IsSimulationUniversal U) : IsOptimalPrefixConditional U := by
-  refine ⟨hU.1, fun M hM ↦ ?_⟩
+  refine ⟨hU.1, fun M hM => ?_⟩
   obtain ⟨c, ⟨sim⟩⟩ := hU.2 M hM
-  exact ⟨c, fun x y ↦ sim.KP_le x y⟩
+  exact ⟨c, fun x y => sim.KP_le x y⟩
 
 /-- **Simulation-universality ⇒ semimeasure domination.** The companion to
 `isOptimalPrefixConditional` on the a priori semimeasure side: `U`'s semimeasure

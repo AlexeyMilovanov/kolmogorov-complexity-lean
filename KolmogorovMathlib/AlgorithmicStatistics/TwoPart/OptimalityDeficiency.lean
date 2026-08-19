@@ -1,12 +1,6 @@
-/-
-Copyright (c) 2024 Alexey Milovanov. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey Milovanov
--/
-
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.Basic
-import KolmogorovMathlib.Prefix.Properties
 import KolmogorovMathlib.Prefix.Symmetry
+import KolmogorovMathlib.Prefix.Properties
 
 /-!
 # Optimality Deficiency and Randomness Optimality (P-RO)
@@ -33,8 +27,8 @@ theorem complexityWeight_add (a b : ENat) :
       | top =>
           rw [add_top, complexityWeight_top, mul_zero]
       | coe m =>
-          rw [← Nat.cast_add, complexityWeight_coe, complexityWeight_coe,
-            complexityWeight_coe, pow_add]
+          rw [← Nat.cast_add, complexityWeight_coe, complexityWeight_coe, complexityWeight_coe,
+               pow_add]
 
 /-- Randomness deficiency is bounded by optimality deficiency up to a constant:
 `d(x | P) ≤ δ(x,P) + c`.
@@ -66,15 +60,13 @@ theorem randomness_optimality (U : Map) (hU : IsOptimalPrefixConditional U) :
       _ = KPPlain U P.code + KP U x P.code + (c_upper + c_right : ℕ) := by
         push_cast
         abel
-  have h2 :
-      complexityWeight (KPPlain U P.code + KP U x P.code + (c_upper + c_right : ℕ)) ≤
-        complexityWeight (KPPlain U x) :=
+  have h2 : complexityWeight (KPPlain U P.code + KP U x P.code + (c_upper + c_right : ℕ)) ≤
+      complexityWeight (KPPlain U x) :=
     complexityWeight_le_of_le h1
   rw [complexityWeight_add_nat, complexityWeight_add] at h2
   -- Now we know `CW(P) * CW(x|P) * 2^{-c} ≤ CW(x) ≤ 2^beta * CW(P) * P(x)`
-  have h3 :
-      complexityWeight (KPPlain U P.code) * complexityWeight (KP U x P.code) *
-          (2 : ℝ≥0∞)⁻¹ ^ (c_upper + c_right) ≤
+  have h3 : complexityWeight (KPPlain U P.code) * complexityWeight (KP U x P.code) * (2 : ℝ≥0∞)⁻¹ ^
+      (c_upper + c_right) ≤
       (2 : ℝ≥0∞) ^ beta * (complexityWeight (KPPlain U P.code) * P.mass x) :=
     le_trans h2 h_opt
   -- `P.code` has finite plain complexity.
@@ -86,22 +78,17 @@ theorem randomness_optimality (U : Map) (hU : IsOptimalPrefixConditional U) :
   have h_CW_P_pos : 0 < complexityWeight (KPPlain U P.code) :=
     (complexityWeight_pos_iff _).mpr h_P_ne_top
   -- We can now divide both sides by `CW(P)`.
-  have h4 :
-      complexityWeight (KP U x P.code) * (2 : ℝ≥0∞)⁻¹ ^ (c_upper + c_right) ≤
-        (2 : ℝ≥0∞) ^ beta * P.mass x := by
+  have h4 : complexityWeight (KP U x P.code) * (2 : ℝ≥0∞)⁻¹ ^ (c_upper + c_right) ≤ (2 : ℝ≥0∞) ^
+      beta * P.mass x := by
     -- `CW(P) * (CW(x|P) * 2^{-c}) ≤ CW(P) * (2^beta * P(x))`
-    have h3_rewrite :
-        complexityWeight (KPPlain U P.code) *
-            (complexityWeight (KP U x P.code) *
-              (2 : ℝ≥0∞)⁻¹ ^ (c_upper + c_right)) ≤
+    have h3_rewrite : complexityWeight (KPPlain U P.code) *
+        (complexityWeight (KP U x P.code) * (2 : ℝ≥0∞)⁻¹ ^ (c_upper + c_right)) ≤
         complexityWeight (KPPlain U P.code) * ((2 : ℝ≥0∞) ^ beta * P.mass x) := by
       calc
         complexityWeight (KPPlain U P.code) *
-              (complexityWeight (KP U x P.code) *
-                (2 : ℝ≥0∞)⁻¹ ^ (c_upper + c_right)) =
-            complexityWeight (KPPlain U P.code) * complexityWeight (KP U x P.code) *
-              (2 : ℝ≥0∞)⁻¹ ^ (c_upper + c_right) := by
-                rw [mul_assoc]
+            (complexityWeight (KP U x P.code) * (2 : ℝ≥0∞)⁻¹ ^ (c_upper + c_right))
+            = complexityWeight (KPPlain U P.code) * complexityWeight (KP U x P.code) * (2 : ℝ≥0∞)⁻¹
+                ^ (c_upper + c_right) := by rw [mul_assoc]
         _ ≤ (2 : ℝ≥0∞) ^ beta * (complexityWeight (KPPlain U P.code) * P.mass x) := h3
         _ = complexityWeight (KPPlain U P.code) * ((2 : ℝ≥0∞) ^ beta * P.mass x) := by ring
     exact (ENNReal.mul_le_mul_iff_right (ne_of_gt h_CW_P_pos)
@@ -109,11 +96,10 @@ theorem randomness_optimality (U : Map) (hU : IsOptimalPrefixConditional U) :
   -- Multiply by `2^c`.
   calc
     complexityWeight (KP U x P.code)
-        = complexityWeight (KP U x P.code) *
-            (2 : ℝ≥0∞)⁻¹ ^ (c_upper + c_right) *
-              (2 : ℝ≥0∞) ^ (c_upper + c_right) := by
-          rw [mul_assoc, ← ENNReal.inv_pow,
-            ENNReal.inv_mul_cancel (by norm_num) (by norm_num), mul_one]
+        = complexityWeight (KP U x P.code) * (2 : ℝ≥0∞)⁻¹ ^ (c_upper + c_right) * (2 : ℝ≥0∞) ^
+            (c_upper + c_right) := by
+          rw [mul_assoc, ← ENNReal.inv_pow, ENNReal.inv_mul_cancel (by norm_num) (by norm_num),
+               mul_one]
     _ ≤ ((2 : ℝ≥0∞) ^ beta * P.mass x) * (2 : ℝ≥0∞) ^ (c_upper + c_right) := by
           gcongr
     _ = (2 : ℝ≥0∞) ^ (beta + (c_upper + c_right)) * P.mass x := by
@@ -139,11 +125,10 @@ theorem optimalityDeficiency_of_randomnessDeficiency (U : Map)
   rw [complexityWeight_add_nat] at h2
   have h3 : complexityWeight (KPPlain U x) ≤ (2 : ℝ≥0∞) ^ (beta + c1) * P.mass x := by
     calc
-      complexityWeight (KPPlain U x) =
-          complexityWeight (KPPlain U x) * (2 : ℝ≥0∞)⁻¹ ^ c1 *
-            (2 : ℝ≥0∞) ^ c1 := by
-        rw [mul_assoc, ← ENNReal.inv_pow,
-          ENNReal.inv_mul_cancel (by norm_num) (by norm_num), mul_one]
+      complexityWeight (KPPlain U x) = complexityWeight (KPPlain U x) * (2 : ℝ≥0∞)⁻¹ ^ c1 *
+          (2 : ℝ≥0∞) ^ c1 := by
+        rw [mul_assoc, ← ENNReal.inv_pow, ENNReal.inv_mul_cancel (by norm_num) (by norm_num),
+             mul_one]
       _ ≤ complexityWeight (KP U x P.code) * (2 : ℝ≥0∞) ^ c1 := by gcongr
       _ ≤ ((2 : ℝ≥0∞) ^ beta * P.mass x) * (2 : ℝ≥0∞) ^ c1 := by gcongr
       _ = (2 : ℝ≥0∞) ^ (beta + c1) * P.mass x := by

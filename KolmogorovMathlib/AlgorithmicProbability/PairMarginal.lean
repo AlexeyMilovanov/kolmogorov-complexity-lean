@@ -1,11 +1,6 @@
-/-
-Copyright (c) 2024 Alexey Milovanov. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey Milovanov
--/
-
-import KolmogorovMathlib.AlgorithmicProbability.Bounds
 import KolmogorovMathlib.Prefix.TwoStage
+import KolmogorovMathlib.Prefix.CountableKraft
+import KolmogorovMathlib.AlgorithmicProbability.Bounds
 
 /-!
 # The Pair-Output Marginal Semimeasure
@@ -59,10 +54,10 @@ theorem tsum_pairMarginal_le_one (M : Map) (z : BitString) (hM : IsPrefixMachine
   calc
     (∑' x : BitString, pairMarginal M x z)
         = ∑' p : BitString × BitString, aprioriMeasure M (pairCode p.1 p.2) z :=
-      (ENNReal.tsum_prod (f := fun x y ↦ aprioriMeasure M (pairCode x y) z)).symm
+      (ENNReal.tsum_prod (f := fun x y => aprioriMeasure M (pairCode x y) z)).symm
     _ ≤ ∑' out : BitString, aprioriMeasure M out z :=
       ENNReal.tsum_comp_le_tsum_of_injective pairCode_injective
-        (fun out ↦ aprioriMeasure M out z)
+        (fun out => aprioriMeasure M out z)
     _ ≤ 1 := tsum_aprioriMeasure_le_one M z hM
 
 /-- The pair marginal is finite for a prefix machine (being bounded by `1` after

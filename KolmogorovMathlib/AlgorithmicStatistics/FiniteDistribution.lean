@@ -1,15 +1,9 @@
-/-
-Copyright (c) 2024 Alexey Milovanov. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey Milovanov
--/
-
 import KolmogorovMathlib.AlgorithmicStatistics.Basic
 import KolmogorovMathlib.Complexity.Incompressibility
-import KolmogorovMathlib.Prefix.Encoding
-import KolmogorovMathlib.Prefix.Symmetry
 import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 import Mathlib.Topology.Algebra.InfiniteSum.ENNReal
+import KolmogorovMathlib.Prefix.Encoding
+import KolmogorovMathlib.Prefix.Symmetry
 
 /-!
 # Finite Probability Models
@@ -49,7 +43,7 @@ theorem tsum_mass : ∑' x, P.mass x = 1 := by
 theorem mass_le_one (x : BitString) : P.mass x ≤ 1 := by
   by_cases hx : x ∈ P.support
   · rw [← P.sum_mass]
-    exact Finset.single_le_sum (fun _ _ ↦ zero_le) hx
+    exact Finset.single_le_sum (fun _ _ => zero_le) hx
   · rw [P.mass_eq_zero x hx]
     exact zero_le
 
@@ -79,8 +73,8 @@ noncomputable def dirac (x : BitString) : FiniteDistribution where
 /-! ### Uniform Distribution on a Finite Set -/
 
 /-- The uniform distribution on a nonempty finite set. -/
-noncomputable def uniformOn (S : Finset BitString) (hS : S.Nonempty)
-    (code : BitString) : FiniteDistribution where
+noncomputable def uniformOn (S : Finset BitString) (hS : S.Nonempty) (code : BitString) :
+    FiniteDistribution where
   mass y := if y ∈ S then (S.card : ℝ≥0∞)⁻¹ else 0
   support := S
   code := code
@@ -98,8 +92,8 @@ noncomputable def uniformOn (S : Finset BitString) (hS : S.Nonempty)
     simp only [Finset.sum_const, nsmul_eq_mul]
     exact ENNReal.mul_inv_cancel hcard (ENNReal.natCast_ne_top _)
 
-@[simp] theorem uniformOn_mass_of_mem (S : Finset BitString) (hS : S.Nonempty)
-    (code : BitString) (x : BitString) (hx : x ∈ S) :
+@[simp] theorem uniformOn_mass_of_mem (S : Finset BitString) (hS : S.Nonempty) (code : BitString)
+    (x : BitString) (hx : x ∈ S) :
     (uniformOn S hS code).mass x = (S.card : ℝ≥0∞)⁻¹ := by
   dsimp [uniformOn]
   rw [if_pos hx]

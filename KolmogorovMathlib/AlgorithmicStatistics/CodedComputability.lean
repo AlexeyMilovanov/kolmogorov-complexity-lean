@@ -1,9 +1,3 @@
-/-
-Copyright (c) 2024 Alexey Milovanov. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey Milovanov
--/
-
 import KolmogorovMathlib.AlgorithmicStatistics.CodedFiniteDistribution
 import KolmogorovMathlib.Prefix.Properties
 
@@ -62,16 +56,16 @@ instance : Primcodable CodedFiniteDistribution :=
 
 /-- The unary natural-number encoder is primitive recursive. -/
 theorem natCode_primrec : Primrec natCode := by
-  have hrep : Primrec (fun n : ℕ ↦ List.replicate n true) := by
-    have h : (fun n : ℕ ↦ List.replicate n true)
-        = fun n ↦ Nat.rec ([] : List Bool) (fun _ ih ↦ true :: ih) n := by
+  have hrep : Primrec (fun n : ℕ => List.replicate n true) := by
+    have h : (fun n : ℕ => List.replicate n true)
+        = fun n => Nat.rec ([] : List Bool) (fun _ ih => true :: ih) n := by
       funext n; induction n with
       | zero => rfl
       | succ n ih => rw [List.replicate_succ, ih]
     rw [h]
     exact Primrec.nat_rec' Primrec.id (Primrec.const [])
       (Primrec.list_cons.comp (Primrec.const true) (Primrec.snd.comp Primrec.snd)).to₂
-  have h : natCode = fun n ↦ List.replicate n true ++ [false] := rfl
+  have h : natCode = fun n => List.replicate n true ++ [false] := rfl
   rw [h]
   exact Primrec.list_append.comp hrep (Primrec.const [false])
 
@@ -81,23 +75,21 @@ theorem pairCode_primrec : Primrec₂ pairCode :=
     (Primrec.list_append.comp
       (natCode_primrec.comp (Primrec.list_length.comp Primrec.fst))
       Primrec.fst)
-    Primrec.snd).of_eq (fun _ ↦ rfl)
+    Primrec.snd).of_eq (fun _ => rfl)
 
 /-- The `num` projection of a rational mass is primitive recursive. -/
-theorem ratMass_num_primrec : Primrec (fun q : RatMass ↦ q.num) :=
-  (Primrec.fst.comp (Primrec.subtype_val.comp
-    (Primrec.of_equiv (e := RatMass.equivSubtype)))).of_eq (fun _ ↦ rfl)
+theorem ratMass_num_primrec : Primrec (fun q : RatMass => q.num) :=
+  Primrec.fst.comp (Primrec.subtype_val.comp Primrec.of_equiv)
 
 /-- The `den` projection of a rational mass is primitive recursive. -/
-theorem ratMass_den_primrec : Primrec (fun q : RatMass ↦ q.den) :=
-  (Primrec.snd.comp (Primrec.subtype_val.comp
-    (Primrec.of_equiv (e := RatMass.equivSubtype)))).of_eq (fun _ ↦ rfl)
+theorem ratMass_den_primrec : Primrec (fun q : RatMass => q.den) :=
+  Primrec.snd.comp (Primrec.subtype_val.comp Primrec.of_equiv)
 
 /-- The map `k ↦ 2^k` is primitive recursive. -/
-theorem twoPow_primrec : Primrec (fun k : ℕ ↦ 2 ^ k) := by
+theorem twoPow_primrec : Primrec (fun k : ℕ => 2 ^ k) := by
   have h :
-      (fun k : ℕ ↦ 2 ^ k) =
-        fun k ↦ Nat.rec 1 (fun _ ih ↦ ih * 2) k := by
+      (fun k : ℕ => 2 ^ k) =
+        fun k => Nat.rec 1 (fun _ ih => ih * 2) k := by
     funext k
     induction k with
     | zero => rfl
@@ -106,60 +98,55 @@ theorem twoPow_primrec : Primrec (fun k : ℕ ↦ 2 ^ k) := by
   rw [h]
   exact Primrec.nat_rec' Primrec.id (Primrec.const 1)
     (Primrec.nat_mul.comp
-      (Primrec.snd.comp (Primrec.snd : Primrec (fun p : ℕ × (ℕ × ℕ) ↦ p.2)))
+      (Primrec.snd.comp (Primrec.snd : Primrec (fun p : ℕ × (ℕ × ℕ) => p.2)))
       (Primrec.const 2)).to₂
 
 /-- The rational threshold test `q.den ≤ q.num * 2^k` is primitive recursive. -/
-theorem ratMass_ge_invPow2_primrec : Primrec₂ RatMass.geInvPow2 := by
-  have hden : Primrec₂ (fun q : RatMass ↦ fun _k : ℕ ↦ q.den) :=
-    (ratMass_den_primrec.comp (Primrec.fst : Primrec (fun p : RatMass × ℕ ↦ p.1))).to₂
-  have hrhs : Primrec₂ (fun q : RatMass ↦ fun k : ℕ ↦ q.num * 2 ^ k) :=
+theorem ratMass_ge_invPow2_primrec : Primrec₂ RatMass.ge_invPow2 := by
+  have hden : Primrec₂ (fun q : RatMass => fun _k : ℕ => q.den) :=
+    (ratMass_den_primrec.comp (Primrec.fst : Primrec (fun p : RatMass × ℕ => p.1))).to₂
+  have hrhs : Primrec₂ (fun q : RatMass => fun k : ℕ => q.num * 2 ^ k) :=
     (Primrec.nat_mul.comp
-      (ratMass_num_primrec.comp (Primrec.fst : Primrec (fun p : RatMass × ℕ ↦ p.1)))
-      (twoPow_primrec.comp (Primrec.snd : Primrec (fun p : RatMass × ℕ ↦ p.2)))).to₂
+      (ratMass_num_primrec.comp (Primrec.fst : Primrec (fun p : RatMass × ℕ => p.1)))
+      (twoPow_primrec.comp (Primrec.snd : Primrec (fun p : RatMass × ℕ => p.2)))).to₂
   exact (PrimrecRel.decide (PrimrecRel.comp₂ Primrec.nat_le hden hrhs)).of_eq
-    (fun q k ↦ rfl)
+    (fun q k => rfl)
 
 /-- The rational-mass encoder is primitive recursive. -/
 theorem ratMass_code_primrec : Primrec RatMass.code :=
   (pairCode_primrec.comp (natCode_primrec.comp ratMass_num_primrec)
-    (natCode_primrec.comp ratMass_den_primrec)).of_eq (fun _ ↦ rfl)
+    (natCode_primrec.comp ratMass_den_primrec)).of_eq (fun _ => rfl)
 
 /-- The `point` projection of an entry is primitive recursive. -/
 theorem entry_point_primrec :
-    Primrec (fun e : CodedDistributionEntry ↦ e.point) :=
-  (Primrec.fst.comp (Primrec.of_equiv (e := CodedDistributionEntry.equivProd))).of_eq (fun _ ↦ rfl)
+    Primrec (fun e : CodedDistributionEntry => e.point) :=
+  Primrec.fst.comp Primrec.of_equiv
 
 /-- The `mass` projection of an entry is primitive recursive. -/
 theorem entry_mass_primrec :
-    Primrec (fun e : CodedDistributionEntry ↦ e.mass) :=
-  (Primrec.snd.comp (Primrec.of_equiv (e := CodedDistributionEntry.equivProd))).of_eq (fun _ ↦ rfl)
+    Primrec (fun e : CodedDistributionEntry => e.mass) :=
+  Primrec.snd.comp Primrec.of_equiv
 
 /-- The entry encoder is primitive recursive. -/
 theorem entry_code_primrec : Primrec CodedDistributionEntry.code :=
   (pairCode_primrec.comp entry_point_primrec
-    (ratMass_code_primrec.comp entry_mass_primrec)).of_eq (fun _ ↦ rfl)
+    (ratMass_code_primrec.comp entry_mass_primrec)).of_eq (fun _ => rfl)
 
 /-- The list-of-entries encoder is primitive recursive. -/
-theorem codedDistributionDataCode_primrec : Primrec codedDistributionDataCode := by
-  refine Primrec.of_eq
-    (f := fun l : List CodedDistributionEntry ↦
-      List.recOn l [false] fun e _ IH ↦ true :: pairCode (CodedDistributionEntry.code e) IH)
-    (g := codedDistributionDataCode) ?_ ?_
-  · convert Primrec.list_rec _ _ _ using 1
-    rotate_left
-    · exact CodedDistributionEntry
-    · exact inferInstance
-    · exact fun l ↦ l
-    · exact fun _ ↦ [false]
-    · exact fun _ p ↦ true :: pairCode p.1.code p.2.2
-    · exact Primrec.id
-    · exact Primrec.const [false]
-    · exact Primrec.list_cons.comp (Primrec.const true)
+theorem codedDistributionDataCode_primrec :
+    Primrec codedDistributionDataCode := by
+  have h := Primrec.list_rec
+    (show Primrec (fun l : List CodedDistributionEntry => l) from Primrec.id)
+    (show Primrec (fun _ : List CodedDistributionEntry => [false]) from Primrec.const [false])
+    (show Primrec₂ (fun _ (p : CodedDistributionEntry ×
+        (List CodedDistributionEntry × List Bool)) =>
+        true :: pairCode (CodedDistributionEntry.code p.1) p.2.2) from
+      (Primrec.list_cons.comp (Primrec.const true)
         (pairCode_primrec.comp (entry_code_primrec.comp (Primrec.fst.comp Primrec.snd))
-          (Primrec.snd.comp (Primrec.snd.comp Primrec.snd)))
-    · rfl
-  · intro l; induction l <;> simp +decide [*, codedDistributionDataCode]
+          (Primrec.snd.comp (Primrec.snd.comp Primrec.snd)))).to₂)
+  exact h.of_eq (fun l => by induction l with
+    | nil => rfl
+    | cons hd tl ih => exact congrArg (fun x => true :: pairCode hd.code x) ih)
 
 /-
 The computable enumeration `allStrings` is primitive recursive.
@@ -167,9 +154,9 @@ The computable enumeration `allStrings` is primitive recursive.
 theorem allStrings_primrec : Primrec allStrings := by
   convert Primrec.nat_rec' _ _ _ using 1;
   rotate_left;
-  · exact fun n ↦ n;
-  · exact fun n ↦ [ [] ];
-  · exact fun n p ↦ ( p.2.map ( List.cons false ) ) ++ ( p.2.map ( List.cons true ) );
+  · exact fun n => n
+  · exact fun n => [[]]
+  · exact fun n p => p.2.map (List.cons false) ++ p.2.map (List.cons true)
   · exact Primrec.id;
   · exact Primrec.const [ [] ];
   · apply Primrec₂.comp;
@@ -180,53 +167,36 @@ theorem allStrings_primrec : Primrec allStrings := by
     · apply Primrec.list_map;
       · exact Primrec.snd.comp ( Primrec.snd );
       · exact Primrec.list_cons.comp ( Primrec.const true ) ( Primrec.snd );
-  · funext n; induction n <;> simp +decide [ *, allStrings ];
+  · funext n; induction n <;> simp +decide [ *, allStrings ] ;
 
 /-
 The rational mass `1 / 2 ^ n` is a primitive-recursive function of `n`.
 -/
 theorem ratMassInvPow2_primrec :
-    Primrec (fun n : ℕ ↦ ratMassInvNat (2 ^ n) (pow_pos (by decide) n)) := by
-      have h : Primrec (fun n : ℕ ↦ (⟨(1, 2 ^ n), by simp +decide⟩ : {p : ℕ × ℕ // 0 < p.2})) := by
-        -- The constant function 1 is primitive recursive.
-        have h_const : Primrec (fun _ : ℕ ↦ 1 : ℕ → ℕ) := by
-          exact Primrec.const 1;
-        -- The function `Nat.pow 2 n` is primitive recursive.
-        have h_pow : Primrec (fun n : ℕ ↦ 2 ^ n : ℕ → ℕ) := by
-          have h_pow : Primrec (fun n : ℕ ↦ Nat.pow 2 n) := by
-            have h_pow_def : ∀ n : ℕ, Nat.pow 2 n = Nat.rec 1 (fun _ p ↦ 2 * p) n := by
-              intro n; induction n with
-              | zero => simp +decide
-              | succ n ih => simpa +decide [Nat.pow_succ'] using ih
-            convert Primrec.nat_rec' _ _ _ using 1;
-            rotate_left;
-            · exact fun n ↦ n;
-            · exact fun _ ↦ 1;
-            · exact fun n p ↦ 2 * p.2;
-            · exact Primrec.id;
-            · exact h_const;
-            · exact Primrec.nat_mul.comp ( Primrec.const 2 ) ( Primrec.snd.comp Primrec.snd );
-            · exact funext h_pow_def;
-          exact h_pow;
-        exact Primrec.subtype_mk ( Primrec.pair h_const h_pow );
-      exact ((Primrec.of_equiv_symm (e := RatMass.equivSubtype)).comp h).of_eq (fun _ ↦ rfl)
+    Primrec (fun n : ℕ => ratMassInvNat (2 ^ n) (pow_pos (by decide) n)) :=
+  let h_pow := twoPow_primrec
+  let h : Primrec (fun n : ℕ => ⟨(1, 2 ^ n), by simp +decide⟩ : ℕ → {p : ℕ × ℕ // 0 < p.2}) :=
+    Primrec.subtype_mk (Primrec.pair (Primrec.const 1) h_pow)
+  (Primrec.of_equiv_symm.comp h).of_eq (fun _ => rfl)
 
 /-
 The length-uniform data list is a primitive-recursive function of `n`.
 -/
 theorem lengthUniformData_primrec : Primrec lengthUniformData := by
-  have hf : Primrec (fun n ↦ (allStrings n).map fun x ↦
-      (⟨x, ratMassInvNat (2 ^ n) (pow_pos (by decide) n)⟩ : CodedDistributionEntry)) := by
-    refine Primrec.list_map allStrings_primrec ?_
-    exact (Primrec.of_equiv_symm (e := CodedDistributionEntry.equivProd)).comp
-      (Primrec.pair Primrec.snd (ratMassInvPow2_primrec.comp Primrec.fst))
-  exact hf.of_eq (fun _ ↦ rfl)
+  have hf : Primrec (fun n => (allStrings n).map fun x =>
+      (⟨x, ratMassInvNat (2 ^ n)
+        (pow_pos (by decide) n)⟩ : CodedDistributionEntry)) := by
+    exact (Primrec.list_map allStrings_primrec
+      (Primrec.of_equiv_symm.comp
+        (Primrec.pair Primrec.snd (ratMassInvPow2_primrec.comp Primrec.fst))).to₂).of_eq
+          (fun _ => rfl)
+  exact hf.of_eq (fun _ => rfl)
 
 /-- The canonical code of the length-uniform model is a primitive-recursive
 function of `n`. -/
 theorem codedLengthUniform_code_primrec :
-    Primrec (fun n : ℕ ↦ (codedLengthUniform n).code) :=
-  (codedDistributionDataCode_primrec.comp lengthUniformData_primrec).of_eq (fun _ ↦ rfl)
+    Primrec (fun n : ℕ => (codedLengthUniform n).code) :=
+  (codedDistributionDataCode_primrec.comp lengthUniformData_primrec).of_eq (fun _ => rfl)
 
 end CodedFiniteDistribution
 

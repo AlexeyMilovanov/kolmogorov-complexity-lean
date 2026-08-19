@@ -1,15 +1,10 @@
-/-
-Copyright (c) 2024 Alexey Milovanov. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey Milovanov
--/
-
 import KolmogorovMathlib.Prefix.Basic
 import Mathlib.Algebra.Field.GeomSum
 import Mathlib.Data.ENNReal.Basic
 import Mathlib.Tactic.NormNum
 import Mathlib.Tactic.Ring
 import Mathlib.Topology.Algebra.InfiniteSum.ENNReal
+
 /-!
 # The online Kraft–Chaitin allocator
 
@@ -34,7 +29,7 @@ The proofs are organized around three invariants of the free list:
 * prefix-freeness of the node set;
 * the mass identity `freeMass free + usedMass req n = 1`.
 
-These are bundled in `AllocGood` and shown to be preserved step by step.
+These are each shown to be preserved step by step.
 -/
 
 namespace Kolmogorov
@@ -49,7 +44,7 @@ open scoped ENNReal
 def splitNode (v : BitString) (l : ℕ) : BitString × List BitString :=
   let diff := l - v.length
   let allocated := v ++ List.replicate diff false
-  let newNodes := (List.range diff).map (fun i ↦ v ++ List.replicate i false ++ [true])
+  let newNodes := (List.range diff).map (fun i => v ++ List.replicate i false ++ [true])
   (allocated, newNodes)
 
 /-- Allocate one prefix-free codeword of length `l` from the free list.
@@ -59,7 +54,7 @@ is sorted in descending order of length), allocates a length-`l` descendant, and
 re-inserts the unallocated right siblings — in descending length order — into the
 position the chosen node occupied.  This keeps the free list sorted. -/
 def allocateOne (free : List BitString) (l : ℕ) : Option (BitString × List BitString) :=
-  match free.findIdx? (fun v ↦ v.length ≤ l) with
+  match free.findIdx? (fun v => v.length ≤ l) with
   | none => none
   | some idx =>
     let v := free[idx]!
@@ -112,7 +107,7 @@ noncomputable def usedMass (req : ℕ → Option (BitString × ℕ)) (n : ℕ) :
 
 /-- The free list has strictly descending node lengths (hence distinct lengths). -/
 def DescLengths (free : List BitString) : Prop :=
-  free.IsChain (fun a b ↦ b.length < a.length)
+  free.IsChain (fun a b => b.length < a.length)
 
 private lemma isChain_get_fin {α} {R : α → α → Prop} {l : List α}
     (h : List.IsChain R l) (i : Fin l.length.pred) :
@@ -145,12 +140,12 @@ private lemma isChain_iff_get_fin {α} {R : α → α → Prop} {l : List α} :
 private lemma descLengths_getElem_length_lt {free : List BitString} (hd : DescLengths free)
     {i j : ℕ} (hij : i < j) (hj : j < free.length) :
     (free[j]'hj).length < (free[i]'(lt_trans hij hj)).length := by
-  haveI : Trans (fun a b : BitString ↦ b.length < a.length)
-      (fun a b : BitString ↦ b.length < a.length)
-      (fun a b : BitString ↦ b.length < a.length) :=
-    ⟨fun {a b c : BitString} (hab : b.length < a.length) (hbc : c.length < b.length) ↦
+  haveI : Trans (fun a b : BitString => b.length < a.length)
+      (fun a b : BitString => b.length < a.length)
+      (fun a b : BitString => b.length < a.length) :=
+    ⟨fun {a b c : BitString} (hab : b.length < a.length) (hbc : c.length < b.length) =>
       lt_trans hbc hab⟩
-  have hp : List.Pairwise (fun a b : BitString ↦ b.length < a.length) free :=
+  have hp : List.Pairwise (fun a b : BitString => b.length < a.length) free :=
     List.isChain_iff_pairwise.mp hd
   rw [List.pairwise_iff_get] at hp
   simpa using hp ⟨i, lt_trans hij hj⟩ ⟨j, hj⟩ (by simpa using hij)
@@ -160,7 +155,8 @@ private lemma descLengths_getElem_length_lt {free : List BitString} (hd : DescLe
 /-- The allocated descendant has exactly the requested length. -/
 lemma splitNode_length (v : BitString) (l : ℕ) (hl : v.length ≤ l) :
     (splitNode v l).1.length = l := by
-  simp [splitNode, List.length_append, Nat.add_sub_of_le hl]
+  simp only [splitNode, List.append_assoc, List.length_append, List.length_replicate,
+    Nat.add_sub_of_le hl]
 
 /-- The original node `v` is a prefix of the allocated descendant. -/
 lemma splitNode_allocated_prefix (v : BitString) (l : ℕ) :
@@ -174,7 +170,7 @@ lemma splitNode_newNodes_prefix (v : BitString) (l : ℕ) :
   intro x hx
   simp only [splitNode, List.mem_map, List.mem_range] at hx
   obtain ⟨i, _, rfl⟩ := hx
-  exact ⟨List.replicate i false ++ [true], by simp [List.append_assoc]⟩
+  exact ⟨List.replicate i false ++ [true], by simp only [List.append_assoc]⟩
 
 /-- The right siblings produced by the split all have length in `(|v|, l]`. -/
 lemma splitNode_newNodes_length (v : BitString) (l : ℕ) :
@@ -255,7 +251,7 @@ lemma splitNode_antichain (v : BitString) (l : ℕ) :
         List.take (a + 1) (List.replicate (l - v.length) false) := by
       simpa only [List.prefix_iff_eq_take, List.length_append, List.length_replicate,
         List.length_singleton] using hpq
-    replace hpq_eq := congr_arg (fun x ↦ x[a]!) hpq_eq
+    replace hpq_eq := congr_arg (fun x => x[a]!) hpq_eq
     simp_all +decide
   · have := hpq.length_le
     have hab : a ≤ b := by
@@ -268,7 +264,7 @@ lemma splitNode_antichain (v : BitString) (l : ℕ) :
           List.take (a + 1) (List.replicate b false ++ [true]) := by
         simpa only [List.prefix_iff_eq_take, List.length_append, List.length_replicate,
           List.length_singleton] using hpq
-      replace hpq_eq := congr_arg (fun x ↦ x[a]!) hpq_eq
+      replace hpq_eq := congr_arg (fun x => x[a]!) hpq_eq
       simp_all +decide
 
 /-! ## Descendant monotonicity of the free list
@@ -282,7 +278,8 @@ of `v`.
 -/
 lemma not_prefix_of_descendant {c v d : BitString} (hvd : v <+: d)
     (hcv : ¬ c <+: v) (hvc : ¬ v <+: c) : ¬ c <+: d := by
-  grind +suggestions
+  intro hcd
+  exact (List.prefix_or_prefix_of_prefix hcd hvd).elim hcv hvc
 
 /-
 Every node remaining after one allocation step has a prefix among the nodes
@@ -291,17 +288,22 @@ present before the step.
 lemma allocateOne_free_descendant (free : List BitString) (l : ℕ)
     (a : BitString) (free' : List BitString) (h : allocateOne free l = some (a, free')) :
     ∀ w ∈ free', ∃ u ∈ free, u <+: w := by
-  unfold allocateOne at h;
-  cases h' : List.findIdx? ( fun v ↦ decide ( List.length v ≤ l ) ) free <;>
-    simp_all +decide only [reduceCtorEq, List.getElem!_eq_getElem?_getD, List.append_assoc,
-      Option.some.injEq, Prod.mk.injEq];
-  rw [ ← h.2 ];
-  simp +zetaDelta only [List.mem_append, List.mem_reverse] at *;
-  rintro w ( hw | hw | hw );
-  · exact ⟨ w, List.mem_of_mem_take hw, List.prefix_refl _ ⟩;
-  · use free[‹ℕ›]!;
-    grind +suggestions;
-  · exact ⟨ w, List.mem_of_mem_drop hw, List.prefix_refl _ ⟩
+  unfold allocateOne at h
+  rcases hidx : free.findIdx? (fun v => v.length ≤ l) with _ | idx
+  · rw [hidx] at h; simp at h
+  · rw [hidx] at h
+    simp only [Option.some.injEq, Prod.mk.injEq] at h
+    obtain ⟨-, hfree'⟩ := h
+    have hlt : idx < free.length := (List.findIdx?_eq_some_iff_getElem.mp hidx).1
+    have hmem : free[idx]! ∈ free := by
+      rw [getElem!_pos free idx hlt]; exact List.getElem_mem hlt
+    intro w hw
+    rw [← hfree'] at hw
+    simp only [List.mem_append, List.mem_reverse] at hw
+    rcases hw with (hw | hw) | hw
+    · exact ⟨w, List.mem_of_mem_take hw, List.prefix_refl _⟩
+    · exact ⟨free[idx]!, hmem, splitNode_newNodes_prefix free[idx]! l w hw⟩
+    · exact ⟨w, List.mem_of_mem_drop hw, List.prefix_refl _⟩
 
 /-
 The allocated codeword is a descendant of some node present before the step.
@@ -309,12 +311,18 @@ The allocated codeword is a descendant of some node present before the step.
 lemma allocateOne_allocated_descendant (free : List BitString) (l : ℕ)
     (a : BitString) (free' : List BitString) (h : allocateOne free l = some (a, free')) :
     ∃ u ∈ free, u <+: a := by
-  unfold allocateOne at h;
-  rcases h' : List.findIdx? ( fun v ↦ decide ( List.length v ≤ l ) ) free with ( _ | idx ) <;>
-    simp_all +decide only [reduceCtorEq, List.getElem!_eq_getElem?_getD, List.append_assoc,
-      Option.some.injEq, Prod.mk.injEq];
-  use free[idx]!;
-  grind +suggestions
+  unfold allocateOne at h
+  rcases hidx : free.findIdx? (fun v => v.length ≤ l) with _ | idx
+  · rw [hidx] at h; simp at h
+  · rw [hidx] at h
+    simp only [Option.some.injEq, Prod.mk.injEq] at h
+    obtain ⟨ha, -⟩ := h
+    have hlt : idx < free.length := (List.findIdx?_eq_some_iff_getElem.mp hidx).1
+    refine ⟨free[idx]!, ?_, ?_⟩
+    · rw [getElem!_pos free idx hlt]
+      exact List.getElem_mem hlt
+    · rw [← ha]
+      exact splitNode_allocated_prefix free[idx]! l
 
 /-
 After an allocation step the allocated codeword is prefix-incomparable to every
@@ -325,7 +333,7 @@ lemma allocateOne_alloc_incomp_free' (free : List BitString) (l : ℕ)
     (hpf : IsPrefixFree ↑free.toFinset) (hd : DescLengths free) :
     ∀ w ∈ free', ¬ a <+: w ∧ ¬ w <+: a := by
   unfold allocateOne at h
-  cases hfind : List.findIdx? (fun v ↦ decide (v.length ≤ l)) free with
+  cases hfind : List.findIdx? (fun v => decide (v.length ≤ l)) free with
   | none => simp only [hfind, reduceCtorEq] at h
   | some idx =>
       simp only [hfind, List.getElem!_eq_getElem?_getD, List.append_assoc,
@@ -341,12 +349,12 @@ lemma allocateOne_alloc_incomp_free' (free : List BitString) (l : ℕ)
         exact List.getElem_mem hidx
       have hnodup : List.Nodup free := by
         have hlen_nodup : List.Nodup (List.map List.length free) := by
-          have hchain : List.IsChain (fun a b ↦ b < a) (List.map List.length free) := by
+          have hchain : List.IsChain (fun a b => b < a) (List.map List.length free) := by
             rw [List.isChain_iff_getElem]
             intro i hi
             simpa using (List.isChain_iff_getElem.mp hd i (by simpa using hi))
           exact (List.isChain_iff_pairwise.mp hchain).nodup
-        exact List.Nodup.of_map (fun x ↦ x.length) hlen_nodup
+        exact List.Nodup.of_map (fun x => x.length) hlen_nodup
       have old_incomp (w : BitString)
           (hw : w ∈ free.take idx ++ free.drop (idx + 1)) :
           ¬ (splitNode free[idx]! l).1 <+: w ∧ ¬ w <+: (splitNode free[idx]! l).1 := by
@@ -364,12 +372,12 @@ lemma allocateOne_alloc_incomp_free' (free : List BitString) (l : ℕ)
           exact hine (congr_arg Fin.val hfin)
         have hselected_set : free[idx]! ∈ ↑free.toFinset := by simpa using hselected_mem
         have hw_set : w ∈ ↑free.toFinset := by simpa using hw_free
-        have hselected_not_prefix : ¬ free[idx]! <+: w := fun hp ↦
+        have hselected_not_prefix : ¬ free[idx]! <+: w := fun hp =>
           hne (hpf hselected_set hw_set hp)
-        have hw_not_prefix : ¬ w <+: free[idx]! := fun hp ↦
+        have hw_not_prefix : ¬ w <+: free[idx]! := fun hp =>
           hne (hpf hw_set hselected_set hp).symm
         have hprefix := splitNode_allocated_prefix free[idx]! l
-        exact ⟨fun hp ↦ hselected_not_prefix (hprefix.trans hp),
+        exact ⟨fun hp => hselected_not_prefix (hprefix.trans hp),
           not_prefix_of_descendant hprefix hw_not_prefix hselected_not_prefix⟩
       have new_incomp (w : BitString) (hw : w ∈ (splitNode free[idx]! l).2) :
           ¬ (splitNode free[idx]! l).1 <+: w ∧ ¬ w <+: (splitNode free[idx]! l).1 := by
@@ -391,8 +399,8 @@ lemma allocateOne_alloc_incomp_free' (free : List BitString) (l : ℕ)
             ↑(((splitNode free[idx]! l).1 :: (splitNode free[idx]! l).2).toFinset) := by
           rw [List.mem_toFinset]
           exact List.mem_cons.mpr (Or.inr hw)
-        exact ⟨fun hp ↦ hne (hanti hallocated hw_set hp),
-          fun hp ↦ hne (hanti hw_set hallocated hp).symm⟩
+        exact ⟨fun hp => hne (hanti hallocated hw_set hp),
+          fun hp => hne (hanti hw_set hallocated hp).symm⟩
       intro w hw
       simp only [List.mem_append, List.mem_reverse] at hw
       rcases hw with hw | hw | hw
@@ -411,10 +419,10 @@ lemma allocateOne_prefixFree (free : List BitString) (l : ℕ)
     (a : BitString) (free' : List BitString) (h : allocateOne free l = some (a, free'))
     (hpf : IsPrefixFree ↑free.toFinset) (hd : DescLengths free) :
     IsPrefixFree ↑free'.toFinset := by
-  obtain ⟨idx, hidx, -, -⟩ : ∃ idx, free.findIdx? (fun v ↦ v.length ≤ l) = some idx ∧ free[idx]! ∈
+  obtain ⟨idx, hidx, -, -⟩ : ∃ idx, free.findIdx? (fun v => v.length ≤ l) = some idx ∧ free[idx]! ∈
       free ∧ free[idx]!.length ≤ l := by
     unfold allocateOne at h
-    cases h_idx : free.findIdx? (fun v ↦ v.length ≤ l) with
+    cases h_idx : free.findIdx? (fun v => v.length ≤ l) with
     | none =>
       simp only [h_idx] at h
       contradiction
@@ -442,8 +450,8 @@ lemma allocateOne_prefixFree (free : List BitString) (l : ℕ)
     have h_distinct : p ≠ free[idx]! := by
       have h_distinct : List.Nodup free := by
         have h_distinct : List.Nodup free := by
-          have h_chain : List.IsChain (fun a b ↦ b.length < a.length) free := hd
-          have h_distinct : List.Pairwise (fun a b ↦ a.length ≠ b.length) free := by
+          have h_chain : List.IsChain (fun a b => b.length < a.length) free := hd
+          have h_distinct : List.Pairwise (fun a b => a.length ≠ b.length) free := by
             rw [ List.pairwise_iff_get ];
             intro i j hij
             exact ne_of_gt (descLengths_getElem_length_lt h_chain hij j.2)
@@ -463,12 +471,12 @@ lemma allocateOne_prefixFree (free : List BitString) (l : ℕ)
       have h_incomparable : ∀ p ∈ free, p ≠ free[idx]! →
           ¬ free[idx]! <+: p ∧ ¬ p <+: free[idx]! := by
         intros p hp hp_ne; exact ⟨by
-        exact fun h ↦ hp_ne <| hpf ( by aesop ) ( by aesop ) h ▸ rfl, by
-          exact fun h ↦ hp_ne <| hpf ( by aesop ) ( by aesop ) h⟩;
+        exact fun h => hp_ne <| hpf ( by aesop ) ( by aesop ) h ▸ rfl, by
+          exact fun h => hp_ne <| hpf ( by aesop ) ( by aesop ) h⟩;
       apply h_incomparable p (by
       rw [ List.mem_append ] at hp;
-      exact hp.elim (fun hp ↦ List.mem_of_mem_take hp)
-        (fun hp ↦ List.mem_of_mem_drop hp)) h_distinct
+      exact hp.elim (fun hp => List.mem_of_mem_take hp)
+        (fun hp => List.mem_of_mem_drop hp)) h_distinct
     exact ⟨h_distinct, h_incomparable⟩;
   have h_disjoint : ∀ p ∈ free.take idx ++ free.drop (idx + 1),
       ∀ q ∈ (splitNode free[idx]! l).2, ¬ p <+: q ∧ ¬ q <+: p := by
@@ -476,7 +484,7 @@ lemma allocateOne_prefixFree (free : List BitString) (l : ℕ)
     have h_not_prefix_p := h_disjoint p hp
     have h_q_desc := splitNode_newNodes_prefix free[idx]! l q hq
     exact ⟨not_prefix_of_descendant h_q_desc h_not_prefix_p.2.2 h_not_prefix_p.2.1,
-      fun h_q_p ↦ h_not_prefix_p.2.1 (h_q_desc.trans h_q_p)⟩
+      fun h_q_p => h_not_prefix_p.2.1 (h_q_desc.trans h_q_p)⟩
   have hfree' : free' = free.take idx ++
       ((splitNode free[idx]! l).2.reverse ++ free.drop (idx + 1)) := by
     unfold allocateOne at h
@@ -510,9 +518,14 @@ lemma allocateOne_prefixFree (free : List BitString) (l : ℕ)
 -/
 lemma allocateOne_eq_none_iff (free : List BitString) (l : ℕ) :
     allocateOne free l = none ↔ ∀ v ∈ free, l < v.length := by
-  simp [allocateOne];
-  cases h' : List.findIdx? ( fun v ↦ decide ( List.length v ≤ l ) ) free <;> simp_all +decide;
-  grind +suggestions
+  calc
+    allocateOne free l = none ↔
+        List.findIdx? (fun v => decide (v.length ≤ l)) free = none := by
+      unfold allocateOne
+      cases List.findIdx? (fun v => decide (v.length ≤ l)) free <;> simp
+    _ ↔ ∀ v ∈ free, decide (v.length ≤ l) = false :=
+      List.findIdx?_eq_none_iff
+    _ ↔ ∀ v ∈ free, l < v.length := by simp
 
 /-
 If some free node has length `≤ l`, `allocateOne` succeeds.
@@ -528,8 +541,17 @@ The codeword produced by a successful allocation has exactly length `l`.
 lemma allocateOne_length (free : List BitString) (l : ℕ)
     (a : BitString) (free' : List BitString) (h : allocateOne free l = some (a, free')) :
     a.length = l := by
-  unfold allocateOne at h;
-  grind +suggestions
+  unfold allocateOne at h
+  rcases hidx : free.findIdx? (fun v => v.length ≤ l) with _ | idx
+  · rw [hidx] at h; simp at h
+  · rw [hidx] at h
+    simp only [Option.some.injEq, Prod.mk.injEq] at h
+    obtain ⟨ha, -⟩ := h
+    have hv : (free[idx]!).length ≤ l := by
+      obtain ⟨hlt, hpred, -⟩ := List.findIdx?_eq_some_iff_getElem.mp hidx
+      simpa [List.getElem!_eq_getElem?_getD, List.getElem?_eq_getElem hlt] using hpred
+    rw [← ha]
+    exact splitNode_length _ _ hv
 
 /-
 **Mass conservation for one allocation step.**
@@ -538,7 +560,7 @@ lemma allocateOne_mass (free : List BitString) (l : ℕ)
     (a : BitString) (free' : List BitString) (h : allocateOne free l = some (a, free')) :
     freeMass free' + nodeMass a = freeMass free := by
   unfold allocateOne at h;
-  rcases h' : List.findIdx? (fun v ↦ decide (List.length v ≤ l)) free with (_ | idx)
+  rcases h' : List.findIdx? (fun v => decide (List.length v ≤ l)) free with (_ | idx)
   · simp_all +decide
   simp_all +decide only [List.getElem!_eq_getElem?_getD, List.append_assoc,
     Option.some.injEq, Prod.mk.injEq];
@@ -568,11 +590,11 @@ lemma allocateOne_descLengths (free : List BitString) (l : ℕ)
     (a : BitString) (free' : List BitString) (h : allocateOne free l = some (a, free'))
     (hd : DescLengths free) : DescLengths free' := by
   unfold allocateOne at h;
-  rcases h' : List.findIdx? (fun v ↦ decide (List.length v ≤ l)) free with (_ | idx)
+  rcases h' : List.findIdx? (fun v => decide (List.length v ≤ l)) free with (_ | idx)
   · simp_all +decide
   simp_all +decide only [List.getElem!_eq_getElem?_getD, List.append_assoc,
     Option.some.injEq, Prod.mk.injEq];
-  have h_desc : List.IsChain (fun a b ↦ b.length < a.length)
+  have h_desc : List.IsChain (fun a b => b.length < a.length)
       (List.take idx free ++ List.reverse (splitNode (free[idx]!) l).2 ++
         List.drop (idx + 1) free) := by
     apply List.isChain_append.mpr;
@@ -647,7 +669,7 @@ lemma freeMass_lt_of_all_gt (free : List BitString) (l : ℕ)
       (∀ i < free.length, List.length (f i) > l) ∧
       (∀ i j, i < j → i < free.length → j < free.length →
         List.length (f i) > List.length (f j)) := by
-    use fun i ↦ if hi : i < free.length then free[i]! else [];
+    use fun i => if hi : i < free.length then free[i]! else [];
     refine ⟨ ?_, ?_, ?_, ?_ ⟩;
     · grind;
     · intro i j hij hi hj
@@ -676,9 +698,9 @@ lemma freeMass_lt_of_all_gt (free : List BitString) (l : ℕ)
           rw [ List.nodup_iff_injective_get ];
           intros i j hij;
           exact le_antisymm
-            (le_of_not_gt fun hi ↦ h_distinct _ _ hi (by simp) (by simp) <| by
+            (le_of_not_gt fun hi => h_distinct _ _ hi (by simp) (by simp) <| by
               simpa [Fin.cast_val_eq_self] using hij.symm)
-            (le_of_not_gt fun hj ↦ h_distinct _ _ hj (by simp) (by simp) <| by
+            (le_of_not_gt fun hj => h_distinct _ _ hj (by simp) (by simp) <| by
               simpa [Fin.cast_val_eq_self] using hij);
         rw [ List.sum_toFinset ];
         · rfl;
@@ -686,20 +708,20 @@ lemma freeMass_lt_of_all_gt (free : List BitString) (l : ℕ)
       rw [h_sum];
       rw [Finset.eq_of_subset_of_card_le
         (show Finset.image f (Finset.range free.length) ⊆ free.toFinset from
-          Finset.image_subset_iff.mpr fun i hi ↦ by aesop)];
-      rw [Finset.card_image_of_injOn fun i hi j hj hij ↦ le_antisymm
-        (le_of_not_gt fun hi' ↦
+          Finset.image_subset_iff.mpr fun i hi => by aesop)];
+      rw [Finset.card_image_of_injOn fun i hi j hj hij => le_antisymm
+        (le_of_not_gt fun hi' =>
           hf_distinct _ _ hi' (Finset.mem_range.mp hj) (Finset.mem_range.mp hi) hij.symm)
-        (le_of_not_gt fun hj' ↦
+        (le_of_not_gt fun hj' =>
           hf_distinct _ _ hj' (Finset.mem_range.mp hi) (Finset.mem_range.mp hj) hij),
         Finset.card_range];
       exact List.toFinset_card_le _;
     rwa [Finset.sum_image <| by
       intros i hi j hj hij
       exact le_antisymm
-        (le_of_not_gt fun hi' ↦
+        (le_of_not_gt fun hi' =>
           hf_distinct _ _ hi' (Finset.mem_range.mp hj) (Finset.mem_range.mp hi) hij.symm)
-        (le_of_not_gt fun hj' ↦
+        (le_of_not_gt fun hj' =>
           hf_distinct _ _ hj' (Finset.mem_range.mp hi) (Finset.mem_range.mp hj) hij)] at h_sum;
   -- Since the lengths are strictly decreasing, we can bound each term in the sum.
   have h_bound : ∀ i < free.length, (2⁻¹ : ℝ≥0∞) ^ (List.length (f i)) ≤ (2⁻¹ : ℝ≥0∞) ^
@@ -718,10 +740,10 @@ lemma freeMass_lt_of_all_gt (free : List BitString) (l : ℕ)
           omega
     exact pow_le_pow_of_le_one ( by norm_num ) ( by norm_num ) h_length;
   refine lt_of_le_of_lt h_sum <| lt_of_le_of_lt
-    (Finset.sum_le_sum fun i hi ↦ h_bound i <| Finset.mem_range.mp hi) ?_;
+    (Finset.sum_le_sum fun i hi => h_bound i <| Finset.mem_range.mp hi) ?_;
   norm_num [ pow_add, Finset.mul_sum _ _ _, Finset.sum_mul ];
   rw [ ← Finset.mul_sum _ _ _, ← Finset.sum_range_reflect ];
-  rw [Finset.sum_congr rfl fun i hi ↦ by
+  rw [Finset.sum_congr rfl fun i hi => by
     rw [tsub_tsub_cancel_of_le (Nat.le_sub_one_of_lt (Finset.mem_range.mp hi))]];
   ring_nf;
   rw [ ← ENNReal.toReal_lt_toReal ] <;> norm_num;
@@ -729,7 +751,7 @@ lemma freeMass_lt_of_all_gt (free : List BitString) (l : ℕ)
     · norm_num [geom_sum_eq]
       ring_nf
       norm_num
-    · exact fun _ _ ↦ ENNReal.pow_ne_top <| by norm_num;
+    · exact fun _ _ => ENNReal.pow_ne_top <| by norm_num;
   · norm_num [ ENNReal.mul_eq_top ]
 
 /-- **Serviceability.**  A free list of descending lengths with mass `≥ 2^{-l}`
@@ -843,8 +865,8 @@ lemma allocatorState_mass (req : ℕ → Option (BitString × ℕ)) (n : ℕ) (f
 Each partial Kraft sum is bounded by the total.
 -/
 lemma usedMass_le_tsum (req : ℕ → Option (BitString × ℕ)) (n : ℕ) :
-    usedMass req n ≤ ∑' i, reqMass req i :=
-  ENNReal.sum_le_tsum (Finset.range n)
+    usedMass req n ≤ ∑' i, reqMass req i := by
+  exact ENNReal.sum_le_tsum (Finset.range n)
 
 /-
 Given the global Kraft bound `≤ 1`, the allocator never fails.
@@ -912,23 +934,24 @@ theorem findIdx?_eq_ite {α} (p : α → Bool) (l : List α) :
     exact hlen
 
 /-- `List.drop` (as a binary function) is primitive recursive. -/
-theorem drop_primrec {α} [Primcodable α] : Primrec₂ (fun (l : List α) (n : ℕ) ↦ l.drop n) := by
-  have h : Primrec (fun p : List α × ℕ ↦ (List.tail)^[p.2] p.1) :=
+theorem drop_primrec {α} [Primcodable α] : Primrec₂ (fun (l : List α) (n : ℕ) => l.drop n) := by
+  have h : Primrec (fun p : List α × ℕ => (List.tail)^[p.2] p.1) :=
     Primrec.nat_iterate Primrec.snd Primrec.fst (Primrec.list_tail.comp Primrec.snd).to₂
-  exact h.of_eq (fun p ↦ (drop_eq_iterate p.2 p.1).symm)
+  exact h.of_eq (fun p => (drop_eq_iterate p.2 p.1).symm)
 
 /-- `List.take` (as a binary function) is primitive recursive. -/
-theorem take_primrec {α} [Primcodable α] : Primrec₂ (fun (l : List α) (n : ℕ) ↦ l.take n) := by
-  have hdrop : Primrec₂ (fun (l : List α) (n : ℕ) ↦ l.drop n) := drop_primrec
-  have h : Primrec (fun p : List α × ℕ ↦ ((p.1.reverse).drop (p.1.length - p.2)).reverse) := by
+theorem take_primrec {α} [Primcodable α] : Primrec₂ (fun (l : List α) (n : ℕ) => l.take n) := by
+  have hdrop : Primrec₂ (fun (l : List α) (n : ℕ) => l.drop n) := drop_primrec
+  have h : Primrec (fun p : List α × ℕ => ((p.1.reverse).drop (p.1.length - p.2)).reverse) := by
     apply Primrec.list_reverse.comp
     apply hdrop.comp (Primrec.list_reverse.comp Primrec.fst)
     exact Primrec.nat_sub.comp (Primrec.list_length.comp Primrec.fst) Primrec.snd
-  exact h.of_eq (fun p ↦ (take_eq_rev p.2 p.1).symm)
+  exact h.of_eq (fun p => (take_eq_rev p.2 p.1).symm)
 
 /-- `List.replicate _ false` is primitive recursive. -/
-theorem replicate_false_primrec : Primrec (fun n : ℕ ↦ List.replicate n false) := by
-  have : (fun n : ℕ ↦ List.replicate n false) = (fun n ↦ (List.range n).map (fun _ ↦ false)) := by
+theorem replicate_false_primrec : Primrec (fun n : ℕ => List.replicate n false) := by
+  have : (fun n : ℕ => List.replicate n false) =
+      (fun n => (List.range n).map (fun _ => false)) := by
     funext n; rw [List.map_const']; simp
   rw [this]
   exact Primrec.list_range.list_map (Primrec.const false).to₂
@@ -937,7 +960,7 @@ theorem replicate_false_primrec : Primrec (fun n : ℕ ↦ List.replicate n fals
 `splitNode` is computable.
 -/
 /-- `splitNode` (as a binary function) is primitive recursive. -/
-lemma splitNode_primrec : Primrec (fun p : BitString × ℕ ↦ splitNode p.1 p.2) := by
+lemma splitNode_primrec : Primrec (fun p : BitString × ℕ => splitNode p.1 p.2) := by
   refine Primrec.pair ?_ ?_
   · exact Primrec.list_append.comp Primrec.fst
       (replicate_false_primrec.comp (Primrec.nat_sub.comp Primrec.snd
@@ -951,34 +974,34 @@ lemma splitNode_primrec : Primrec (fun p : BitString × ℕ ↦ splitNode p.1 p.
       (Primrec.const [true])).to₂
 
 lemma splitNode_computable :
-    Computable (fun p : BitString × ℕ ↦ splitNode p.1 p.2) :=
+    Computable (fun p : BitString × ℕ => splitNode p.1 p.2) :=
   splitNode_primrec.to_comp
 
 /-- `getElem!` on a free list is primitive recursive. -/
-lemma getElem!_primrec : Primrec₂ (fun (l : List BitString) (i : ℕ) ↦ l[i]!) :=
+lemma getElem!_primrec : Primrec₂ (fun (l : List BitString) (i : ℕ) => l[i]!) :=
   (Primrec.option_getD.comp Primrec.list_getElem? (Primrec.const default)).of_eq
-    (fun _ ↦ (List.getElem!_eq_getElem?_getD ..).symm)
+    (fun _ => (List.getElem!_eq_getElem?_getD ..).symm)
 
 /-- The length-fit search used by `allocateOne` is primitive recursive. -/
 lemma findIdx?_pred_primrec :
-    Primrec (fun p : List BitString × ℕ ↦
-      p.1.findIdx? (fun v ↦ decide (v.length ≤ p.2))) := by
-  have hR : PrimrecRel (fun (p : List BitString × ℕ) (v : BitString) ↦ v.length ≤ p.2) :=
+    Primrec (fun p : List BitString × ℕ =>
+      p.1.findIdx? (fun v => decide (v.length ≤ p.2))) := by
+  have hR : PrimrecRel (fun (p : List BitString × ℕ) (v : BitString) => v.length ≤ p.2) :=
     Primrec.nat_le.comp₂ (Primrec.list_length.comp Primrec.snd) (Primrec.snd.comp Primrec.fst)
-  have hj : Primrec (fun p : List BitString × ℕ ↦
-      p.1.findIdx (fun v ↦ decide (v.length ≤ p.2))) :=
+  have hj : Primrec (fun p : List BitString × ℕ =>
+      p.1.findIdx (fun v => decide (v.length ≤ p.2))) :=
     Primrec.list_findIdx Primrec.fst hR.decide
   exact (Primrec.ite (Primrec.nat_lt.comp hj (Primrec.list_length.comp Primrec.fst))
       (Primrec.option_some.comp hj) (Primrec.const none)).of_eq
-    (fun _ ↦ (findIdx?_eq_ite _ _).symm)
+    (fun _ => (findIdx?_eq_ite _ _).symm)
 
 /-- `allocateOne` written as an `Option.map` over the fit search. -/
 lemma allocateOne_eq_map (free : List BitString) (l : ℕ) :
-    allocateOne free l = (free.findIdx? (fun v ↦ decide (v.length ≤ l))).map
-      (fun idx ↦ ((splitNode free[idx]! l).1,
+    allocateOne free l = (free.findIdx? (fun v => decide (v.length ≤ l))).map
+      (fun idx => ((splitNode free[idx]! l).1,
         free.take idx ++ (splitNode free[idx]! l).2.reverse ++ free.drop (idx + 1))) := by
   unfold allocateOne
-  cases free.findIdx? (fun v ↦ decide (v.length ≤ l)) <;> rfl
+  cases free.findIdx? (fun v => decide (v.length ≤ l)) <;> rfl
 
 -- Treat the data functions opaquely from here on: their definitions have already
 -- been characterized by the equational lemmas above, and keeping them reducible
@@ -988,13 +1011,13 @@ attribute [local irreducible] splitNode allocateOne
 
 /-- `allocateOne` is computable. -/
 lemma allocateOne_computable :
-    Computable (fun p : List BitString × ℕ ↦ allocateOne p.1 p.2) := by
+    Computable (fun p : List BitString × ℕ => allocateOne p.1 p.2) := by
   apply Primrec.to_comp
-  have hv : Primrec (fun a : (List BitString × ℕ) × ℕ ↦ a.1.1[a.2]!) :=
+  have hv : Primrec (fun a : (List BitString × ℕ) × ℕ => a.1.1[a.2]!) :=
     getElem!_primrec.comp (Primrec.fst.comp Primrec.fst) Primrec.snd
-  have hnode : Primrec (fun a : (List BitString × ℕ) × ℕ ↦ splitNode a.1.1[a.2]! a.1.2) :=
+  have hnode : Primrec (fun a : (List BitString × ℕ) × ℕ => splitNode a.1.1[a.2]! a.1.2) :=
     splitNode_primrec.comp (Primrec.pair hv (Primrec.snd.comp Primrec.fst))
-  have hg : Primrec₂ (fun (p : List BitString × ℕ) (idx : ℕ) ↦
+  have hg : Primrec₂ (fun (p : List BitString × ℕ) (idx : ℕ) =>
       ((splitNode p.1[idx]! p.2).1,
         p.1.take idx ++ (splitNode p.1[idx]! p.2).2.reverse ++ p.1.drop (idx + 1))) := by
     refine Primrec.pair (Primrec.fst.comp hnode) ?_
@@ -1004,13 +1027,13 @@ lemma allocateOne_computable :
         (Primrec.list_reverse.comp (Primrec.snd.comp hnode)))
       (drop_primrec.comp (Primrec.fst.comp Primrec.fst) (Primrec.succ.comp Primrec.snd))
   exact (Primrec.option_map findIdx?_pred_primrec hg).of_eq
-    (fun p ↦ (allocateOne_eq_map p.1 p.2).symm)
+    (fun p => (allocateOne_eq_map p.1 p.2).symm)
 
 /-- `allocatorState` rewritten as an explicit `Nat.rec` with a combinator-friendly step. -/
 lemma allocatorState_eq_rec (req : ℕ → Option (BitString × ℕ)) (n : ℕ) :
     allocatorState req n = Nat.rec (some [[]])
-      (fun y IH ↦ IH.bind (fun free ↦
-        ((req y).map (fun pr ↦ (allocateOne free pr.2).map Prod.snd)).getD (some free))) n := by
+      (fun y IH => IH.bind (fun free =>
+        ((req y).map (fun pr => (allocateOne free pr.2).map Prod.snd)).getD (some free))) n := by
   induction n with
   | zero => rfl
   | succ k ih =>
@@ -1022,8 +1045,8 @@ lemma allocatorState_eq_rec (req : ℕ → Option (BitString × ℕ)) (n : ℕ) 
             | some (_, l) => match allocateOne free l with
               | none => none
               | some (_, free') => some free')
-        = X.bind (fun free ↦
-            ((req k).map (fun pr ↦ (allocateOne free pr.2).map Prod.snd)).getD (some free)) := by
+        = X.bind (fun free =>
+            ((req k).map (fun pr => (allocateOne free pr.2).map Prod.snd)).getD (some free)) := by
       intro X
       cases X with
       | none => rfl
@@ -1041,8 +1064,8 @@ lemma allocatorState_eq_rec (req : ℕ → Option (BitString × ℕ)) (n : ℕ) 
               | some (_, l) => match allocateOne free l with
                 | none => none
                 | some (_, free') => some free') := by rw [allocatorState]
-      _ = (allocatorState req k).bind (fun free ↦
-            ((req k).map (fun pr ↦ (allocateOne free pr.2).map Prod.snd)).getD (some free)) :=
+      _ = (allocatorState req k).bind (fun free =>
+            ((req k).map (fun pr => (allocateOne free pr.2).map Prod.snd)).getD (some free)) :=
             step_eq _
       _ = _ := by rw [ih]
 
@@ -1050,12 +1073,12 @@ attribute [local irreducible] allocatorState
 
 lemma allocatorState_hinner_free_comp :
     Computable (fun (p : (((BitString × ℕ) × (ℕ × Option (List BitString))) ×
-      List BitString) × (BitString × ℕ)) ↦ p.1.2) :=
+      List BitString) × (BitString × ℕ)) => p.1.2) :=
   Computable.snd.comp Computable.fst
 
 lemma allocatorState_hinner_length_comp :
     Computable (fun (p : (((BitString × ℕ) × (ℕ × Option (List BitString))) ×
-      List BitString) × (BitString × ℕ)) ↦ p.2.2) :=
+      List BitString) × (BitString × ℕ)) => p.2.2) :=
   Computable.snd.comp Computable.snd
 
 -- Extracted as a helper to isolate the slow `Primcodable` elaboration.
@@ -1063,39 +1086,40 @@ lemma allocatorState_hinner_length_comp :
 lemma allocatorState_hinner_computable :
     Computable₂
       (fun (d : ((BitString × ℕ) × (ℕ × Option (List BitString))) × List BitString)
-        (pr : BitString × ℕ) ↦ (allocateOne d.2 pr.2).map Prod.snd) := by
+        (pr : BitString × ℕ) => (allocateOne d.2 pr.2).map Prod.snd) := by
   refine Computable.option_map ?_ (Computable.snd.comp Computable.snd).to₂
   exact @Computable.comp
     ((((BitString × ℕ) × (ℕ × Option (List BitString))) × List BitString) × (BitString × ℕ))
     (List BitString × ℕ)
     (Option (BitString × List BitString))
     inferInstance inferInstance inferInstance
-    (fun (p : List BitString × ℕ) ↦ allocateOne p.1 p.2)
-    (fun p ↦ (p.1.2, p.2.2))
+    (fun (p : List BitString × ℕ) => allocateOne p.1 p.2)
+    (fun p => (p.1.2, p.2.2))
     allocateOne_computable
     (allocatorState_hinner_free_comp.pair allocatorState_hinner_length_comp)
 
 /-- Helper for allocatorState_computable: computability of the bind step. -/
 lemma allocatorState_hstep_computable (req : BitString → ℕ → Option (BitString × ℕ))
-    (hcomp : Computable (fun p : BitString × ℕ ↦ req p.1 p.2)) :
-    Computable₂ (fun (p : BitString × ℕ) (q : ℕ × Option (List BitString)) ↦
-      q.2.bind (fun free ↦
-        ((req p.1 q.1).map (fun pr ↦ (allocateOne free pr.2).map Prod.snd)).getD (some free))) := by
+    (hcomp : Computable (fun p : BitString × ℕ => req p.1 p.2)) :
+    Computable₂ (fun (p : BitString × ℕ) (q : ℕ × Option (List BitString)) =>
+      q.2.bind (fun free =>
+        ((req p.1 q.1).map (fun pr => (allocateOne free pr.2).map Prod.snd)).getD
+          (some free))) := by
   have hreq : Computable
-      (fun d : ((BitString × ℕ) × (ℕ × Option (List BitString))) × List BitString ↦
+      (fun d : ((BitString × ℕ) × (ℕ × Option (List BitString))) × List BitString =>
         req d.1.1.1 d.1.2.1) :=
     @Computable.comp (((BitString × ℕ) × (ℕ × Option (List BitString))) × List BitString)
       (BitString × ℕ) (Option (BitString × ℕ))
       inferInstance inferInstance inferInstance
-      (fun p ↦ req p.1 p.2)
-      (fun d ↦ (d.1.1.1, d.1.2.1))
+      (fun p => req p.1 p.2)
+      (fun d => (d.1.1.1, d.1.2.1))
       hcomp
       ((Computable.fst.comp (Computable.fst.comp Computable.fst)).pair
         (Computable.fst.comp (Computable.snd.comp Computable.fst)))
   have hg : Computable
-      (fun d : ((BitString × ℕ) × (ℕ × Option (List BitString))) × List BitString ↦
+      (fun d : ((BitString × ℕ) × (ℕ × Option (List BitString))) × List BitString =>
         ((req d.1.1.1 d.1.2.1).map
-          (fun pr ↦ (allocateOne d.2 pr.2).map Prod.snd)).getD (some d.2)) :=
+          (fun pr => (allocateOne d.2 pr.2).map Prod.snd)).getD (some d.2)) :=
     Computable.option_getD (Computable.option_map hreq allocatorState_hinner_computable)
       (Computable.option_some.comp Computable.snd)
   exact Computable.option_bind (Computable.snd.comp Computable.snd) hg
@@ -1106,8 +1130,8 @@ The `Nat.rec` step function is built by `Computable` combinators over a deeply
 nested product of list types, whose `Primcodable` encoders make elaboration
 unusually slow. -/
 lemma allocatorState_computable (req : BitString → ℕ → Option (BitString × ℕ))
-    (hcomp : Computable (fun p : BitString × ℕ ↦ req p.1 p.2)) :
-    Computable (fun p : BitString × ℕ ↦ allocatorState (req p.1) p.2) := by
+    (hcomp : Computable (fun p : BitString × ℕ => req p.1 p.2)) :
+    Computable (fun p : BitString × ℕ => allocatorState (req p.1) p.2) := by
   have hstep := allocatorState_hstep_computable req hcomp
   refine (Computable.nat_rec Computable.snd (Computable.const (some [[]])) hstep).of_eq ?_
   intro p
@@ -1117,8 +1141,8 @@ lemma allocatorState_computable (req : BitString → ℕ → Option (BitString �
 
 /-- `allocFun` rewritten as a bind over the allocator state. -/
 lemma allocFun_eq_bind (req : ℕ → Option (BitString × ℕ)) (n : ℕ) :
-    allocFun req n = (allocatorState req n).bind (fun free ↦
-      ((req n).map (fun pr ↦ (allocateOne free pr.2).map Prod.fst)).getD none) := by
+    allocFun req n = (allocatorState req n).bind (fun free =>
+      ((req n).map (fun pr => (allocateOne free pr.2).map Prod.fst)).getD none) := by
   unfold allocFun
   rcases allocatorState req n with _ | free
   · rfl
@@ -1129,16 +1153,16 @@ lemma allocFun_eq_bind (req : ℕ → Option (BitString × ℕ)) (n : ℕ) :
       rcases allocateOne free l with _ | ⟨a, free'⟩ <;> rfl
 
 lemma allocFun_hinner_free_comp :
-    Computable (fun p : ((BitString × ℕ) × List BitString) × (BitString × ℕ) ↦ p.1.2) :=
+    Computable (fun p : ((BitString × ℕ) × List BitString) × (BitString × ℕ) => p.1.2) :=
   Computable.snd.comp Computable.fst
 
 lemma allocFun_hinner_length_comp :
-    Computable (fun p : ((BitString × ℕ) × List BitString) × (BitString × ℕ) ↦ p.2.2) :=
+    Computable (fun p : ((BitString × ℕ) × List BitString) × (BitString × ℕ) => p.2.2) :=
   Computable.snd.comp Computable.snd
 
 /-- Helper for allocFun_computable: computability of the allocateOne step. -/
 lemma allocFun_hinner_computable :
-    Computable₂ (fun (e : (BitString × ℕ) × List BitString) (pr : BitString × ℕ) ↦
+    Computable₂ (fun (e : (BitString × ℕ) × List BitString) (pr : BitString × ℕ) =>
         (allocateOne e.2 pr.2).map Prod.fst) := by
   refine Computable.option_map ?_ (Computable.fst.comp Computable.snd).to₂
   exact @Computable.comp
@@ -1146,25 +1170,25 @@ lemma allocFun_hinner_computable :
     (List BitString × ℕ)
     (Option (BitString × List BitString))
     inferInstance inferInstance inferInstance
-    (fun p : List BitString × ℕ ↦ allocateOne p.1 p.2)
-    (fun p ↦ (p.1.2, p.2.2))
+    (fun p : List BitString × ℕ => allocateOne p.1 p.2)
+    (fun p => (p.1.2, p.2.2))
     allocateOne_computable
     (allocFun_hinner_free_comp.pair allocFun_hinner_length_comp)
 
 /-- Helper for allocFun_computable: computability of the map and getD step. -/
 lemma allocFun_hg_computable (req : BitString → ℕ → Option (BitString × ℕ))
-    (hcomp : Computable (fun p : BitString × ℕ ↦ req p.1 p.2)) :
-    Computable₂ (fun (p : BitString × ℕ) (free : List BitString) ↦
-      ((req p.1 p.2).map (fun pr ↦ (allocateOne free pr.2).map Prod.fst)).getD none) := by
-  have hreq : Computable (fun e : (BitString × ℕ) × List BitString ↦ req e.1.1 e.1.2) :=
+    (hcomp : Computable (fun p : BitString × ℕ => req p.1 p.2)) :
+    Computable₂ (fun (p : BitString × ℕ) (free : List BitString) =>
+      ((req p.1 p.2).map (fun pr => (allocateOne free pr.2).map Prod.fst)).getD none) := by
+  have hreq : Computable (fun e : (BitString × ℕ) × List BitString => req e.1.1 e.1.2) :=
     hcomp.comp Computable.fst
   exact Computable.option_getD
     (Computable.option_map hreq allocFun_hinner_computable) (Computable.const none)
 
 /-- The allocation function is computable uniformly in the context. -/
 lemma allocFun_computable (req : BitString → ℕ → Option (BitString × ℕ))
-    (hcomp : Computable (fun p : BitString × ℕ ↦ req p.1 p.2)) :
-    Computable (fun p : BitString × ℕ ↦ allocFun (req p.1) p.2) := by
+    (hcomp : Computable (fun p : BitString × ℕ => req p.1 p.2)) :
+    Computable (fun p : BitString × ℕ => allocFun (req p.1) p.2) := by
   have hg := allocFun_hg_computable req hcomp
   refine (Computable.option_bind (allocatorState_computable req hcomp) hg).of_eq ?_
   intro p
@@ -1238,7 +1262,7 @@ lemma allocatorState_descendant_mono (req : ℕ → Option (BitString × ℕ)) (
               rcases pr with ⟨a, l⟩
               cases halloc : allocateOne G l with
               | none =>
-                  simp [hG, hreq, halloc] at h'
+                  simp only [hG, hreq, halloc, reduceCtorEq] at h'
               | some out =>
                   rcases out with ⟨a', free'⟩
                   have hfree' : free' = F' := by
@@ -1256,10 +1280,14 @@ lemma allocFun_descendant_state (req : ℕ → Option (BitString × ℕ)) (m : �
     (hm : allocFun req m = some cm) :
     ∃ Fm, allocatorState req m = some Fm ∧ ∃ u ∈ Fm, u <+: cm := by
   unfold allocFun at hm;
-  rcases h : allocatorState req m with ( _ | Fm ) <;> rcases h' : req m with ( _ | ⟨ fst, l ⟩ ) <;>
-    simp_all +decide only [reduceCtorEq, Option.some.injEq, exists_eq_left'];
-  rcases h'' : allocateOne Fm l with ( _ | ⟨ allocated, snd ⟩ ) <;>
-    simp_all +decide only [reduceCtorEq, Option.some.injEq];
+  rcases h : allocatorState req m with (_ | Fm)
+  · simp_all +decide only [reduceCtorEq]
+  rcases h' : req m with (_ | ⟨fst, l⟩)
+  · simp_all +decide only [reduceCtorEq]
+  simp_all +decide only [Option.some.injEq, exists_eq_left']
+  rcases h'' : allocateOne Fm l with ( _ | ⟨ allocated, snd ⟩ )
+  · simp_all +decide only [reduceCtorEq]
+  simp_all +decide only [Option.some.injEq]
   exact allocateOne_allocated_descendant Fm l cm snd h''
 
 /-- For `m > n`, the codeword allocated at step `m` has a prefix among the nodes
@@ -1284,7 +1312,7 @@ lemma allocFun_prefixFree (req : ℕ → Option (BitString × ℕ)) (n m : ℕ) 
   · obtain ⟨free', hfree'⟩ := allocFun_state_succ req m cm hm
     obtain ⟨w, hw, hwpre⟩ := alloc_descendant_freeNext req m n cn hgt hn free' hfree'
     obtain ⟨_, h2⟩ := alloc_incomp_freeNext req m cm hm free' hfree' w hw
-    exact fun hcontra ↦ h2 (hwpre.trans hcontra)
+    exact fun hcontra => h2 (hwpre.trans hcontra)
 
 lemma allocFun_success (req : ℕ → Option (BitString × ℕ)) (n : ℕ) (o : BitString) (l : ℕ)
     (hreq : req n = some (o, l))
@@ -1293,7 +1321,7 @@ lemma allocFun_success (req : ℕ → Option (BitString × ℕ)) (n : ℕ) (o : 
   -- Reduce the inline Kraft sum to `reqMass`.
   have hw : (∑' i, reqMass req i) ≤ 1 := by
     refine le_trans (le_of_eq ?_) hweight
-    exact tsum_congr (fun i ↦ by simp only [reqMass])
+    exact tsum_congr (fun i => by simp only [reqMass])
   -- The state exists at step `n`.
   obtain ⟨free, hstate⟩ : ∃ free, allocatorState req n = some free := by
     have := allocatorState_isSome req n hw

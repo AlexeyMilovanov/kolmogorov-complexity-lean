@@ -1,16 +1,10 @@
-/-
-Copyright (c) 2024 Alexey Milovanov. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey Milovanov
--/
-
-import KolmogorovMathlib.Core.Basic
-import KolmogorovMathlib.Core.UniversalDecompressor
-import Mathlib.Computability.Encoding
 import Mathlib.Computability.Partrec
 import Mathlib.Computability.PartrecCode
-import Mathlib.Data.ENat.Lattice
+import Mathlib.Computability.Encoding
 import Mathlib.Data.List.Basic
+import Mathlib.Data.ENat.Lattice
+import KolmogorovMathlib.Core.Basic
+import KolmogorovMathlib.Core.UniversalDecompressor
 
 /-!
 # The Invariance Theorem
@@ -29,9 +23,9 @@ namespace Kolmogorov
 lemma existsCodeOfIsDecompressor (D : Map) (hD : isDecompressor D) :
     ∃ code : Nat.Partrec.Code, ∀ p y,
       (code.eval (Encodable.encode (p, y))).map
-        (fun r ↦ (Encodable.decode r : Option BitString).getD []) = D (p, y) := by
+        (fun r => (Encodable.decode r : Option BitString).getD []) = D (p, y) := by
   obtain ⟨code, hc⟩ := Nat.Partrec.Code.exists_code.mp hD
-  exact ⟨code, fun p y ↦ by
+  exact ⟨code, fun p y => by
     ext out
     rw [hc]
     simp [Encodable.encodek]⟩
@@ -52,9 +46,9 @@ lemma sInfLeSInfAdd {S₁ S₂ : Set ENat} {c : ℕ}
     We prove this by showing that our `universalDecompressor` satisfies the
     optimality predicate. -/
 theorem existsIsOptimalConditional : ∃ U : Map, isOptimalConditional U := by
-  refine ⟨universalDecompressor, isDecompressorUniversalDecompressor, fun D hD ↦ ?_⟩
+  refine ⟨universalDecompressor, isDecompressorUniversalDecompressor, fun D hD => ?_⟩
   obtain ⟨code, hc⟩ := existsCodeOfIsDecompressor D hD
-  refine ⟨(unaryPrefix (Encodable.encode code)).length, fun x y ↦ ?_⟩
+  refine ⟨(unaryPrefix (Encodable.encode code)).length, fun x y => ?_⟩
   apply sInfLeSInfAdd
   rintro len_p ⟨p, hp_out, rfl⟩
   refine ⟨(programLength (unaryPrefix (Encodable.encode code) ++ p) : ENat), ?_, ?_⟩

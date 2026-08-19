@@ -1,14 +1,9 @@
-/-
-Copyright (c) 2024 Alexey Milovanov. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey Milovanov
--/
-
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.Profile
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.CurveRealization
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.GreedyWindow
 import KolmogorovMathlib.AlgorithmicStatistics.Stochasticity
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.DescriptionSnapshot
+
 /-!
 # Section 3: profile / curve realization (`stat-any-curve`)
 
@@ -41,121 +36,9 @@ The construction is decomposed into named components:
   Gates F and E3.
 -/
 
-
-def List.localDedup {α : Type} [DecidableEq α] (l : List α) : List α :=
-  l.foldr (fun a acc => if a ∈ acc then acc else a :: acc) []
-
-@[simp] theorem List.mem_localDedup {α : Type} [DecidableEq α] {a : α} {l : List α} :
-    a ∈ l.localDedup ↔ a ∈ l := by
-  unfold List.localDedup
-  induction l with
-  | nil => simp
-  | cons h t ih =>
-    rw [List.foldr_cons]
-    by_cases h_in : h ∈ t.foldr (fun a acc => if a ∈ acc then acc else a :: acc) []
-    · rw [if_pos h_in]
-      constructor
-      · intro h1; exact List.mem_cons.mpr (Or.inr (ih.mp h1))
-      · intro h1
-        cases List.mem_cons.mp h1 with
-        | inl eq => subst eq; exact h_in
-        | inr h_rest => exact ih.mpr h_rest
-    · rw [if_neg h_in]
-      constructor
-      · intro h1
-        cases List.mem_cons.mp h1 with
-        | inl eq => subst eq; exact List.mem_cons.mpr (Or.inl rfl)
-        | inr h_rest => exact List.mem_cons.mpr (Or.inr (ih.mp h_rest))
-      · intro h1
-        cases List.mem_cons.mp h1 with
-        | inl eq => subst eq; exact List.mem_cons.mpr (Or.inl rfl)
-        | inr h_rest => exact List.mem_cons.mpr (Or.inr (ih.mpr h_rest))
-
-theorem List.localDedup_cons_of_mem {α : Type} [DecidableEq α] {a : α} {l : List α}
-    (h : a ∈ l) : (a :: l).localDedup = l.localDedup := by
-  unfold List.localDedup
-  rw [List.foldr_cons]
-  have h_in : a ∈ l.foldr (fun a acc => if a ∈ acc then acc else a :: acc) [] :=
-    List.mem_localDedup.mpr h
-  rw [if_pos h_in]
-
-theorem List.localDedup_cons_of_notMem {α : Type} [DecidableEq α] {a : α} {l : List α}
-    (h : a ∉ l) : (a :: l).localDedup = a :: l.localDedup := by
-  unfold List.localDedup
-  rw [List.foldr_cons]
-  have h_not_in : a ∉ l.foldr (fun a acc => if a ∈ acc then acc else a :: acc) [] :=
-    fun contra => h (List.mem_localDedup.mp contra)
-  rw [if_neg h_not_in]
-
-theorem List.nodup_localDedup {α : Type} [DecidableEq α] (l : List α) : (l.localDedup).Nodup := by
-  unfold List.localDedup
-  induction l with
-  | nil => exact List.nodup_nil
-  | cons h t ih =>
-    rw [List.foldr_cons]
-    by_cases h_in : h ∈ t.foldr (fun a acc => if a ∈ acc then acc else a :: acc) []
-    · rw [if_pos h_in]
-      exact ih
-    · rw [if_neg h_in]
-      exact List.nodup_cons.mpr ⟨h_in, ih⟩
-
-/-- `List.localDedup` agrees with Mathlib's `List.dedup`.
-
-This is the Lean 4.31 form of the Lean 4.28 bridge `list_dedup_eq_root_gen`.  In
-Lean 4.28 the project-local deduplication was itself called `List.dedup` and so
-shadowed the Mathlib operation; the bridge was stated as
-`List.dedup l = _root_.List.dedup l`.  Renaming the local operation to
-`List.localDedup` removes the shadowing, and the same result is stated here
-without the `_root_` qualifier. -/
-theorem List.localDedup_eq_dedup {α : Type} [DecidableEq α] (l : List α) :
-    l.localDedup = l.dedup := by
-  induction l with
-  | nil => rfl
-  | cons a t ih =>
-    by_cases h : a ∈ t
-    · rw [List.localDedup_cons_of_mem h, ih, List.dedup_cons_of_mem h]
-    · rw [List.localDedup_cons_of_notMem h, ih, List.dedup_cons_of_notMem h]
-
 namespace Kolmogorov
 
 open scoped ENNReal
-
-/-- The project-local deduplication is primitive recursive for every primcodable type. -/
-theorem local_dedup_primrec {α} [Primcodable α] [DecidableEq α] :
-    Primrec (fun l : List α => l.localDedup) := by
-  have hmem : Primrec₂ (fun (a : α) (l : List α) => decide (a ∈ l)) := by
-    have key : ∀ (a : α) (l : List α),
-        decide (a ∈ l) = l.foldr (fun x acc => if x = a then true else acc) false := by
-      intro a l
-      induction l with
-      | nil => simp
-      | cons x t ih =>
-        simp only [List.mem_cons, List.foldr_cons, ← ih]
-        by_cases h : x = a
-        · simp only [h, true_or, decide_true, ↓reduceIte]
-        · simp only [Bool.decide_or, h, ↓reduceIte, eq_comm, Bool.eq_or_self,
-            true_eq_decide_iff]
-          exact fun heq => absurd heq.symm h
-    have hcond : PrimrecPred (fun a : (α × List α) × (α × Bool) => a.2.1 = a.1.1) :=
-      Primrec.eq.comp (Primrec.fst.comp Primrec.snd) (Primrec.fst.comp Primrec.fst)
-    have hstep :
-        Primrec₂ (fun (p : α × List α) (q : α × Bool) =>
-          if q.1 = p.1 then true else q.2) :=
-      Primrec.ite hcond (Primrec.const true) (Primrec.snd.comp Primrec.snd)
-    exact (Primrec.list_foldr Primrec.snd (Primrec.const false) hstep).of_eq
-      fun p => (key p.1 p.2).symm
-  have hbool : Primrec (fun p : List α × (α × List α) => decide (p.2.1 ∈ p.2.2)) :=
-    hmem.comp (Primrec.fst.comp Primrec.snd) (Primrec.snd.comp Primrec.snd)
-  have hstep :
-      Primrec₂ (fun (_ : List α) (q : α × List α) =>
-        if q.1 ∈ q.2 then q.2 else q.1 :: q.2) := by
-    have h := Primrec.cond hbool (Primrec.snd.comp Primrec.snd)
-      (Primrec.list_cons.comp (Primrec.fst.comp Primrec.snd) (Primrec.snd.comp Primrec.snd))
-    exact h.of_eq fun p => by
-      by_cases hp : p.2.1 ∈ p.2.2 <;>
-        simp only [hp, decide_true, decide_false, Bool.cond_true, Bool.cond_false, ↓reduceIte]
-  exact (Primrec.list_foldr Primrec.id (Primrec.const []) hstep).of_eq fun _ => rfl
-
 open Kolmogorov.CodedFiniteDistribution
 
 /-- Total decoder for a coded curve.  The program bits are read as a **run-length
@@ -163,13 +46,11 @@ code**: the maximal blocks of `true`, in order and separated by `false`, name th
 successive curve values `h 0, h 1, …` (so `[t,t,f,t,f]` decodes to `2, 1, 0, …`).
 Reading past the encoded prefix returns `0`.
 
-This is a genuine total, *surjective* decoder — not a placeholder.  Every finite value
-sequence is named by some bitstring (`curveEncode`, `decodeCurve_curveEncode`), so the
+The decoder is total and surjective.  Every finite value sequence is named by some
+bitstring (`curveEncode`, `decodeCurve_curveEncode`), so the
 `curveDecodes` field of `ProfileCurve` is satisfiable for an arbitrary curve
-(`exists_code_decoding_curve`) and `ProfileCurve` is *non-vacuous*.  The earlier version
-returned the constant `0`; through `curveDecodes` that silently forced `h = 0` on the
-whole decoded range, making every `ProfileCurve` hypothesis — and hence the realization
-theorems below — vacuous. -/
+(`exists_code_decoding_curve`) and `ProfileCurve` is non-vacuous.  Consequently, the
+decoder can represent the curves required by the realization theorems below. -/
 def decodeCurve (code : BitString) (i : ℕ) : ℕ :=
   ((code.splitOn false).map List.length).getD i 0
 
@@ -198,8 +79,8 @@ theorem splitOn_map_length_flatMap (vals : List ℕ) :
     change (((List.replicate v true ++ false ::
       vs.flatMap (fun v => List.replicate v true ++ [false])).splitOnP (· == false)).map
       List.length) = _
-    rw [List.splitOnP_append_cons_of_forall_mem hsep false rfl
-      (vs.flatMap (fun v => List.replicate v true ++ [false]))]
+    rw [List.splitOnP_append_cons_of_forall_mem
+      hsep false (by decide) (vs.flatMap (fun v => List.replicate v true ++ [false]))]
     simp only [List.map_cons, List.length_replicate]
     change v :: (((vs.flatMap (fun v => List.replicate v true ++ [false])).splitOn false).map
       List.length) = _
@@ -218,7 +99,8 @@ theorem decodeCurve_curveEncode (h : ℕ → ℕ) (K : ℕ) {i : ℕ} (hi : i �
     List.getElem?_map, List.getElem?_range (by omega)]
   simp
 
-theorem decodeCurve_curveEncode_out_of_bounds (h : ℕ → ℕ) (K : ℕ) {i : ℕ} (hi : K < i) :
+theorem decodeCurve_curveEncode_out_of_bounds (h : ℕ → ℕ) (K : ℕ) {i : ℕ} (hi : K < i)
+    :
     decodeCurve (curveEncode h K) i = 0 := by
   unfold decodeCurve curveEncode
   rw [splitOn_map_length_flatMap]
@@ -264,12 +146,8 @@ structure ProfileCurve (U : Map) (c : ℕ) (n kx m : ℕ) (h : ℕ → ℕ) wher
   /-- Slope at least `-1`: while positive, the curve strictly decreases, matching the
   article's strictly decreasing sequence `t_0 > t_1 > … > t_k = 0`. -/
   slope      : ∀ i, h i = 0 ∨ h (i + 1) < h i
-  /-- Left endpoint: `h 0 ≤ n`.  (This is the faithful `(0, n)` endpoint of the
-  article's boundary.  The previous, weaker `h (logSlack c n) ≤ n` was a defect: with
-  only that bound `slope` permits `h 0 = n + logSlack c n`, which forces `i + h i` up
-  to `n + O(log n)` and makes the genericity counting `sum_badSetsUnion_card_lt` false
-  — the level-`0` bad sets alone can have `2^{n+1}` elements.  Requiring `h 0 ≤ n`
-  gives `i + h i ≤ n` throughout the positive region, restoring the counting.) -/
+  /-- Left endpoint: `h 0 ≤ n`.  Together with antitonicity, this gives
+  `i + h i ≤ n` throughout the positive region, as required by the genericity count. -/
   top        : h 0 ≤ n
   bottom     : h (kx + logSlack c n) = 0
   sufficient : ∀ i, kx ≤ i + h i + logSlack c (n + i + h i) + m
@@ -295,7 +173,8 @@ theorem badSetsUnion_card_le (U : Map) (n : ℕ) (h : ℕ → ℕ) (m c_gen i : 
     rw [Finset.mem_filter] at hS
     exact hS.2
   have h_card := card_descriptionsWithComplexityLeAndSizeLe U i (h i - (m + logSlack c_gen n))
-  calc ((descriptionsWithComplexityLeAndSizeLe U i (h i - (m + logSlack c_gen n))).biUnion id).card
+  calc ((descriptionsWithComplexityLeAndSizeLe U i (h i - (m + logSlack c_gen n))).biUnion
+      id).card
       ≤ Finset.sum (descriptionsWithComplexityLeAndSizeLe U i (h i - (m + logSlack c_gen n)))
           (fun S => S.card) := Finset.card_biUnion_le
     _ ≤ (descriptionsWithComplexityLeAndSizeLe U i (h i - (m + logSlack c_gen n))).card * 2 ^
@@ -415,7 +294,8 @@ theorem sum_badSetsUnion_card_lt_of_le (U : Map) (c_gen : ℕ) (hc_gen : 3 ≤ c
       omega
   -- The relevant index set and its two key facts.
   set s := (Finset.range n).filter (fun i => A < h i) with hsdef
-  have key : ∀ i ∈ s, (badSetsUnion U n h m c_gen i).card ≤ 2 ^ (n + 1 - A) ∧ i < n := by
+  have key : ∀ i ∈ s, (badSetsUnion U n h m c_gen i).card ≤ 2 ^ (n + 1 - A) ∧ i < n :=
+      by
     intro i hi
     rw [hsdef, Finset.mem_filter] at hi
     obtain ⟨_, hAi⟩ := hi
@@ -574,6 +454,28 @@ theorem exists_string_structureFunction_above_curve
     exact not_le.mp hno
   · exact Or.inr hle
 
+def List.dedup {α} [DecidableEq α] : List α → List α
+| [] => []
+| a :: l => if a ∈ List.dedup l then List.dedup l else a :: List.dedup l
+
+theorem mem_List.dedup {α} [DecidableEq α] (l : List α) (x : α) :
+    x ∈ List.dedup l ↔ x ∈ l := by
+  induction l with
+  | nil =>
+    simp [List.dedup]
+  | cons a l ih =>
+    unfold List.dedup
+    split_ifs with h
+    · rw [ih]
+      constructor
+      · intro hx
+        exact List.mem_cons_of_mem a hx
+      · intro hx
+        cases hx with
+        | head _ => rwa [← ih]
+        | tail _ h_tail => exact h_tail
+    · simp only [List.mem_cons]
+      rw [ih]
 
 /-- Auxiliary: snapshot-based bad sets up to time `t`.
     This uses the computable `snapshotDescList` which enumerates the valid
@@ -582,7 +484,7 @@ theorem exists_string_structureFunction_above_curve
 def badSetsUpToTime (c : Nat.Partrec.Code) (n : ℕ) (h : ℕ → ℕ) (m c_gen : ℕ) (t : ℕ)
     : List
     (Finset BitString) :=
-  List.localDedup (((List.range n).filter (fun j => m + logSlack c_gen n < h j)).flatMap (fun j =>
+  List.dedup (((List.range n).filter (fun j => m + logSlack c_gen n < h j)).flatMap (fun j =>
     (snapshotDescList c j (h j - (m + logSlack c_gen n)) t).map List.toFinset))
 
 /-- Auxiliary: bad sets discovered exactly at time `t`. -/
@@ -605,11 +507,8 @@ def temporalBadEnumList (c : Nat.Partrec.Code) (n : ℕ) (h : ℕ → ℕ) (m c_
   (List.range (t_max + 1)).flatMap (fun t => newBadSetsAtTime c n h m c_gen t)
 
 /-- B0: Flattened list of all bad sets across all levels `j ≤ kx + logSlack c_gen n`.
-    WARNING (Blocker identified in Iteration 3): This uses `Finset.toList`, which
-    produces a lexicographical order, not the chronological (time-of-discovery) order
-    produced by `evaln`. The Vereshchagin-Vitányi machine model simulation requires
-    the online, temporal order (`temporalBadEnumList`). Bridging the greedy process
-    requires updating the remaining gates to use the temporal list. -/
+This uses the extensional `Finset.toList` order.  The machine-model simulation instead
+uses `temporalBadEnumList`, whose order records when `evaln` discovers each set. -/
 noncomputable def badEnumList (U : Map) (n : ℕ) (h : ℕ → ℕ) (m c_gen _kx : ℕ) : List
     (Finset BitString) :=
   (((Finset.range n).filter (fun j => m + logSlack c_gen n < h j)).biUnion
@@ -649,7 +548,8 @@ noncomputable def temporalWindow (c : Nat.Partrec.Code) (n : ℕ) (h : ℕ → �
 Intended construction: choose the first length-`n` string outside the finite union of
 bad sets.  Existence is the already-proved lower-half counting argument, and the
 lexicographic choice pins the same `x` for all windows. -/
-noncomputable def lexLeastSurvivor (U : Map) (n : ℕ) (h : ℕ → ℕ) (m c_gen kx : ℕ) : BitString :=
+noncomputable def lexLeastSurvivor (U : Map) (n : ℕ) (h : ℕ → ℕ) (m c_gen kx : ℕ) :
+    BitString :=
   let L := badEnumList U n h m c_gen kx
   let rem := stringsOfLength n \ badUnionUpTo L L.length
   if _hne : rem.Nonempty then
@@ -661,7 +561,8 @@ noncomputable def lexLeastSurvivor (U : Map) (n : ℕ) (h : ℕ → ℕ) (m c_ge
 refresh happens.  Intended construction: scan the finite bad-set enumeration and
 advance exactly when the current `2^(h i)`-window has been fully deleted; this is the
 finite Vereshchagin-Vitányi running-window process. -/
-noncomputable def windowRefreshSequence (U : Map) (n : ℕ) (h : ℕ → ℕ) (m c_gen kx i : ℕ) : ℕ → ℕ
+noncomputable def windowRefreshSequence (U : Map) (n : ℕ) (h : ℕ → ℕ) (m c_gen kx i :
+    ℕ) : ℕ → ℕ
 | 0 => 0
 | (k + 1) =>
   let L := badEnumList U n h m c_gen kx
@@ -680,10 +581,9 @@ noncomputable def greedyWindow (U : Map) (n : ℕ) (h : ℕ → ℕ) (m c_gen kx
 
 /-- The greedy window always respects the size budget `2 ^ h i`.  Each version is a
 `firstElements`-block of width `2 ^ h i`, so `firstElements_card` bounds its cardinality
-by `min (2 ^ h i) …`, regardless of how many survivors remain.  This is the
-*unconditional* size half of B5 (`mem_coverableSet_of_window`): only the `setComplexity`
-half still needs the version-count core (B4). -/
-theorem temporalWindow_card_le (c_U : Nat.Partrec.Code) (n : ℕ) (h : ℕ → ℕ) (m c_gen i T : ℕ) :
+by `min (2 ^ h i) …`, regardless of how many survivors remain. -/
+theorem temporalWindow_card_le (c_U : Nat.Partrec.Code) (n : ℕ) (h : ℕ → ℕ) (m c_gen i T
+    : ℕ) :
     (temporalWindow c_U n h m c_gen i T).card ≤ 2 ^ h i := by
   have h_step : ∀ (L' : List (Finset BitString)) (st : Finset BitString × Finset BitString ×
       ℕ),
@@ -735,34 +635,36 @@ theorem badUnionUpTo_mono (L : List (Finset BitString)) {a b : ℕ} (hab : a ≤
   rw [← ht, List.foldl_append]
   exact hgrow t _
 
-/-- Every element of a bad-set list is contained in the full running bad-union. -/
-theorem subset_badUnionUpTo_full (L : List (Finset BitString)) {d : Finset BitString}
-    (hd : d ∈ L) : d ⊆ badUnionUpTo L L.length := by
+/-- Membership in the full running bad-union is witnessed by some list element. -/
+theorem mem_badUnionUpTo_full {L : List (Finset BitString)} {x : BitString} :
+    x ∈ badUnionUpTo L L.length ↔ ∃ d ∈ L, x ∈ d := by
   unfold badUnionUpTo
   rw [List.take_length]
-  have hgrow : ∀ (l : List (Finset BitString)) (s : Finset BitString),
-      s ⊆ l.foldl (· ∪ ·) s := by
-    intro l
-    induction l with
-    | nil => intro s; simp
-    | cons x xs ih => intro s; exact Finset.subset_union_left.trans (ih (s ∪ x))
-  have key : ∀ (l : List (Finset BitString)) (s : Finset BitString),
-      d ∈ l → d ⊆ l.foldl (· ∪ ·) s := by
-    intro l
-    induction l with
-    | nil => intro s hd'; simp at hd'
-    | cons x xs ih =>
-      intro s hd'
-      rcases List.mem_cons.mp hd' with rfl | hmem
-      · exact Finset.subset_union_right.trans (hgrow xs (s ∪ d))
-      · exact ih (s ∪ x) hmem
-  exact key L ∅ hd
+  induction L using List.reverseRecOn with
+  | nil => simp
+  | append_singleton l d ih =>
+    rw [List.foldl_append]
+    simp only [List.foldl_cons, List.foldl_nil, Finset.mem_union, List.mem_append,
+      List.mem_singleton, ih]
+    constructor
+    · rintro (⟨d', hd', hx⟩ | hx)
+      · exact ⟨d', Or.inl hd', hx⟩
+      · exact ⟨d, Or.inr rfl, hx⟩
+    · rintro ⟨d', hd' | rfl, hx⟩
+      · exact Or.inl ⟨d', hd', hx⟩
+      · exact Or.inr hx
+
+/-- Every element of a bad-set list is contained in the full running bad-union.
+A direct corollary of `mem_badUnionUpTo_full`. -/
+theorem subset_badUnionUpTo_full (L : List (Finset BitString)) {d : Finset BitString}
+    (hd : d ∈ L) : d ⊆ badUnionUpTo L L.length := by
+  intro x hx
+  exact mem_badUnionUpTo_full.mpr ⟨d, hd, hx⟩
 
 /-- The refresh index never exceeds the length of the bad-set enumeration. -/
-theorem windowRefreshSequence_le_length (U : Map) (n : ℕ) (h : ℕ → ℕ)
-    (m c_gen kx i k : ℕ) :
-    windowRefreshSequence U n h m c_gen kx i k ≤
-      (badEnumList U n h m c_gen kx).length := by
+theorem windowRefreshSequence_le_length (U : Map) (n : ℕ) (h : ℕ → ℕ) (m c_gen kx i k :
+    ℕ) :
+    windowRefreshSequence U n h m c_gen kx i k ≤ (badEnumList U n h m c_gen kx).length := by
   cases k with
   | zero => exact Nat.zero_le _
   | succ k =>
@@ -775,53 +677,45 @@ theorem windowRefreshSequence_le_length (U : Map) (n : ℕ) (h : ℕ → ℕ)
 its final snapshot: after `L.length` potential refreshes the refresh index equals
 `L.length` (the whole bad enumeration has been consumed).  This is the finite
 termination fact of the Vereshchagin–Vitányi running-window construction. -/
-theorem windowRefreshSequence_stabilizes (U : Map) (n : ℕ) (h : ℕ → ℕ) (m c_gen kx i : ℕ)
+theorem windowRefreshSequence_stabilizes (U : Map) (n : ℕ) (h : ℕ → ℕ) (m c_gen kx i :
+    ℕ)
     (hrem : (stringsOfLength n \ badUnionUpTo (badEnumList U n h m c_gen kx)
       (badEnumList U n h m c_gen kx).length).Nonempty) :
     windowRefreshSequence U n h m c_gen kx i (badEnumList U n h m c_gen kx).length
       = (badEnumList U n h m c_gen kx).length := by
   -- By induction on `k`, either `seq k = L.length` or `k ≤ seq k`.
   have h_ind : ∀ k, windowRefreshSequence U n h m c_gen kx i k =
-      (badEnumList U n h m c_gen kx).length ∨
-        k ≤ windowRefreshSequence U n h m c_gen kx i k := by
+      (badEnumList U n h m c_gen kx).length ∨ k ≤ windowRefreshSequence U n h m c_gen kx i k
+          := by
     intro k
     induction k with
     | zero => simp +arith +decide [windowRefreshSequence]
     | succ k ih =>
       simp only [windowRefreshSequence]
       split_ifs with hne
-      · have hmem := Finset.min'_mem _ hne
+      · -- A refresh occurs: the new index is the minimum of a valid window.
+        have hmem := Finset.min'_mem _ hne
         have hfilt := Finset.mem_filter.mp hmem
         have hIcc := Finset.mem_Icc.mp hfilt.1
         rcases ih with hih | hih
-        · left
-          omega
+        · left; omega
         · right
           have hsurv :
-              (firstElements
-                (stringsOfLength n \
-                  badUnionUpTo (badEnumList U n h m c_gen kx)
-                    (windowRefreshSequence U n h m c_gen kx i k))
-                (2 ^ h i)).Nonempty := by
+              (firstElements (stringsOfLength n \ badUnionUpTo (badEnumList U n h m c_gen kx)
+                  (windowRefreshSequence U n h m c_gen kx i k)) (2 ^ h i)).Nonempty := by
             have hrem' :
-                (stringsOfLength n \
-                  badUnionUpTo (badEnumList U n h m c_gen kx)
+                (stringsOfLength n \ badUnionUpTo (badEnumList U n h m c_gen kx)
                     (windowRefreshSequence U n h m c_gen kx i k)).Nonempty :=
-              hrem.mono
-                (Finset.sdiff_subset_sdiff (Finset.Subset.refl _)
-                  (badUnionUpTo_mono _
-                    (windowRefreshSequence_le_length U n h m c_gen kx i k)))
+              hrem.mono (Finset.sdiff_subset_sdiff (Finset.Subset.refl _)
+                (badUnionUpTo_mono _ (windowRefreshSequence_le_length U n h m c_gen kx i k)))
             exact Finset.card_pos.mp (by
               rw [firstElements_card]
               exact lt_min (Nat.one_le_pow _ _ (by decide)) (Finset.card_pos.mpr hrem'))
           have hnotsub :
-              ¬ firstElements
-                  (stringsOfLength n \
-                    badUnionUpTo (badEnumList U n h m c_gen kx)
-                      (windowRefreshSequence U n h m c_gen kx i k))
-                  (2 ^ h i) ⊆
-                badUnionUpTo (badEnumList U n h m c_gen kx)
-                  (windowRefreshSequence U n h m c_gen kx i k) := by
+              ¬ (firstElements (stringsOfLength n \ badUnionUpTo (badEnumList U n h m c_gen kx)
+                  (windowRefreshSequence U n h m c_gen kx i k)) (2 ^ h i))
+                ⊆ badUnionUpTo (badEnumList U n h m c_gen kx)
+                    (windowRefreshSequence U n h m c_gen kx i k) := by
             intro hsub
             obtain ⟨x, hx⟩ := hsurv
             exact (Finset.mem_sdiff.mp (firstElements_subset _ _ hx)).2 (hsub hx)
@@ -832,11 +726,9 @@ theorem windowRefreshSequence_stabilizes (U : Map) (n : ℕ) (h : ℕ → ℕ) (
             exact hnotsub
               (Finset.sdiff_eq_empty_iff_subset.mp (Finset.mem_filter.mp hmem).2)
           omega
-      · left
-        rfl
-  rcases h_ind (badEnumList U n h m c_gen kx).length with hfinal | hfinal
-  · exact hfinal
-  · exact le_antisymm (windowRefreshSequence_le_length U n h m c_gen kx i _) hfinal
+      · left; rfl
+  cases h_ind ( List.length ( badEnumList U n h m c_gen kx ) ) <;> [ tauto; exact le_antisymm (
+      windowRefreshSequence_le_length U n h m c_gen kx i _ ) ‹_› ]
 
 /-- B3: the final greedy window contains the lex-least survivor.
 
@@ -844,7 +736,8 @@ The nonemptiness hypothesis is essential: the bad enumeration can otherwise cove
 length-`n` string.  Under `hrem`, `windowRefreshSequence_stabilizes` at the final snapshot,
 where the window is `firstElements (survivors) (2^{h i})` and hence contains the least
 survivor. -/
-theorem greedyWindow_contains_survivor (U : Map) (n : ℕ) (h : ℕ → ℕ) (m c_gen kx i : ℕ)
+theorem greedyWindow_contains_survivor (U : Map) (n : ℕ) (h : ℕ → ℕ) (m c_gen kx i :
+    ℕ)
     (hrem : (stringsOfLength n \ badUnionUpTo (badEnumList U n h m c_gen kx)
       (badEnumList U n h m c_gen kx).length).Nonempty) :
     ∃ v, lexLeastSurvivor U n h m c_gen kx ∈ greedyWindow U n h m c_gen kx i v := by
@@ -861,8 +754,9 @@ theorem greedyWindow_contains_survivor (U : Map) (n : ℕ) (h : ℕ → ℕ) (m 
 /-- The `v = L.length` final snapshot of the concrete greedy process contains the
 lex-least final survivor.  This is the membership fact needed by the final
 `coverableSet` assembly; it uses concrete `windowRefreshSequence` stabilization,
-not the temporal fold scaffold. -/
-theorem greedyWindow_final_contains_survivor (U : Map) (n : ℕ) (h : ℕ → ℕ) (m c_gen kx i : ℕ)
+rather than the temporal-fold formulation. -/
+theorem greedyWindow_final_contains_survivor (U : Map) (n : ℕ) (h : ℕ → ℕ) (m c_gen kx i
+    : ℕ)
     (hrem : (stringsOfLength n \ badUnionUpTo (badEnumList U n h m c_gen kx)
       (badEnumList U n h m c_gen kx).length).Nonempty) :
     lexLeastSurvivor U n h m c_gen kx ∈
@@ -888,7 +782,7 @@ theorem greedyWindow_final_nonempty (U : Map) (n : ℕ) (h : ℕ → ℕ) (m c_g
 noncomputable def bucket1_pred (U : Map) (i : ℕ) (d : Finset BitString) : Bool :=
   decide (d ∈ descriptionsWithComplexityLe U i)
 
-/-- B4 bucket 1 bound (fully proved). -/
+/-- B4 bucket 1 bound. -/
 theorem bucket1_bound (U : Map) (n : ℕ) (h : ℕ → ℕ) (m c_gen kx i : ℕ) :
     ((badEnumList U n h m c_gen kx).filter (bucket1_pred U i)).length ≤ 2 ^ (i + 1) := by
   have h_nodup : (badEnumList U n h m c_gen kx).Nodup := by
@@ -927,7 +821,8 @@ with size budget `t` is at most `2 ^ (j + 1 + t)` (there are `≤ 2^(j+1)` of th
 card `≤ 2^t`).  Mirrors `badSetsUnion_card_le`.
 -/
 theorem bucket2_level_card_sum_le (U : Map) (j t : ℕ) (G : Finset BitString) :
-    ∑ d ∈ descriptionsWithComplexityLeAndSizeLe U j t, (d ∩ G).card ≤ 2 ^ (j + 1 + t) := by
+    ∑ d ∈ descriptionsWithComplexityLeAndSizeLe U j t, (d ∩ G).card ≤ 2 ^ (j + 1 + t) :=
+        by
   refine le_trans (Finset.sum_le_card_nsmul _ _ (2 ^ t) ?_) ?_
   · intro x hx
     exact le_trans (Finset.card_le_card Finset.inter_subset_left) (Finset.mem_filter.mp hx).2
@@ -936,9 +831,8 @@ theorem bucket2_level_card_sum_le (U : Map) (j t : ℕ) (G : Finset BitString) :
     exact card_descriptionsWithComplexityLeAndSizeLe U j t
 
 /-
-B4 bucket 2 bound (corrected: with the `ProfileCurve` shape hypothesis, which supplies
-the `slope`/`antitone` diagonal descent the bound genuinely needs — see the false-as-stated
-original above).
+B4 bucket 2 bound.  The `ProfileCurve` shape hypothesis supplies the
+`slope`/`antitone` diagonal descent used below.
 -/
 theorem bucket2_bound_of_curve (U : Map) (c n kx m c_gen : ℕ) (h : ℕ → ℕ)
     (hc : ProfileCurve U c n kx m h) (i : ℕ) :
@@ -957,7 +851,8 @@ theorem bucket2_bound_of_curve (U : Map) (c n kx m c_gen : ℕ) (h : ℕ → ℕ
     rw [ge_iff_le, Order.add_one_le_iff]
     by_contra hij
     have hji : j ≤ i := Nat.le_of_not_gt hij
-    have hdj' : d ∈ descriptionsWithComplexityLe U j := (Finset.mem_filter.mp hdj).1
+    have hdj' : d ∈ descriptionsWithComplexityLe U j :=
+      (Finset.mem_filter.mp hdj).1
     have hdi : d ∈ descriptionsWithComplexityLe U i :=
       descriptionsWithComplexityLe_subset_of_le U hji hdj'
     simp [bucket1_pred, hdi] at hd_not_bucket1
@@ -975,23 +870,22 @@ theorem bucket2_bound_of_curve (U : Map) (c n kx m c_gen : ℕ) (h : ℕ → ℕ
         (fun d => !bucket1_pred U i d), if d ∈ descriptionsWithComplexityLeAndSizeLe U j
         (h j - (m + logSlack c_gen n)) ∧ j ≥ i + 1 then (d ∩ stringsOfLength n).card else
             0 := by
-      rw [Finset.sum_comm]
-      gcongr
+      rw [ Finset.sum_comm ];
+      gcongr;
       simp +zetaDelta only [List.mem_filter, Bool.not_eq_eq_eq_not, Bool.not_true,
         Finset.mem_filter, Finset.mem_range, ge_iff_le, Order.add_one_le_iff, and_imp,
-        List.mem_toFinset] at *
-      obtain ⟨j, hj₁, hj₂, hj₃⟩ := h_filter _ (by tauto) (by tauto)
-      exact le_trans (by aesop)
-        (Finset.single_le_sum (fun x _ => Nat.zero_le _)
-          (Finset.mem_filter.mpr ⟨Finset.mem_range.mpr hj₁.1, hj₁.2⟩))
-    refine le_trans h_filter_sum <| Finset.sum_le_sum fun j hj => ?_
-    split_ifs <;>
-      simp_all +decide only [List.mem_filter, Bool.not_eq_eq_eq_not, Bool.not_true,
-        Finset.mem_filter, Finset.mem_range, ge_iff_le, Order.add_one_le_iff, and_imp,
-        Finset.sum_ite, not_and, not_lt, Finset.sum_const_zero, add_zero, and_true,
-        implies_true, Finset.filter_true, nonpos_iff_eq_zero, Finset.sum_eq_zero_iff,
-        List.mem_toFinset, Finset.card_eq_zero, isEmpty_Prop, IsEmpty.forall_iff]
-    exact Finset.sum_le_sum_of_subset Finset.inter_subset_right
+        List.mem_toFinset] at *;
+      obtain ⟨ j, hj₁, hj₂, hj₃ ⟩ := h_filter _ ( by tauto ) ( by tauto ) ; exact
+          le_trans ( by aesop ) ( Finset.single_le_sum ( fun x _ => Nat.zero_le _ ) (
+          Finset.mem_filter.mpr ⟨ Finset.mem_range.mpr hj₁.1, hj₁.2 ⟩ ) ) ;
+    refine le_trans h_filter_sum <| Finset.sum_le_sum fun j hj => ?_;
+    split_ifs <;> simp_all +decide only [List.mem_filter, Bool.not_eq_eq_eq_not, Bool.not_true,
+      Finset.mem_filter, Finset.mem_range, ge_iff_le, Order.add_one_le_iff, and_imp,
+          Finset.sum_ite,
+      not_and, not_lt, Finset.sum_const_zero, add_zero, and_true, implies_true,
+      Finset.filter_true, nonpos_iff_eq_zero, Finset.sum_eq_zero_iff, List.mem_toFinset,
+      Finset.card_eq_zero, isEmpty_Prop, IsEmpty.forall_iff];
+    exact Finset.sum_le_sum_of_subset ( Finset.inter_subset_right );
   have h_filter_sum_le : ∑ j ∈ (Finset.range n).filter (fun j => m + logSlack c_gen n < h
       j),
       (if j ≥ i + 1 then 2 ^ (j + 1 + (h j - (m + logSlack c_gen n))) else 0) ≤ n * 2 ^
@@ -1030,8 +924,7 @@ theorem bucket2_bound_of_curve (U : Map) (c n kx m c_gen : ℕ) (h : ℕ → ℕ
       · exact List.Nodup.filter _ (Finset.nodup_toList _)
     _ ≤ ∑ j ∈ (Finset.range n).filter (fun j => m + logSlack c_gen n < h j),
         if j ≥ i + 1 then ∑ d ∈ descriptionsWithComplexityLeAndSizeLe U j
-          (h j - (m + logSlack c_gen n)), (d ∩ stringsOfLength n).card else 0 :=
-      h_filter_sum
+          (h j - (m + logSlack c_gen n)), (d ∩ stringsOfLength n).card else 0 := h_filter_sum
     _ ≤ ∑ j ∈ (Finset.range n).filter (fun j => m + logSlack c_gen n < h j),
         if j ≥ i + 1 then 2 ^ (j + 1 + (h j - (m + logSlack c_gen n))) else 0 := by
       gcongr
@@ -1039,7 +932,8 @@ theorem bucket2_bound_of_curve (U : Map) (c n kx m c_gen : ℕ) (h : ℕ → ℕ
     _ ≤ n * 2 ^ (i + 1 + h i) := h_filter_sum_le
 
 /- B4: the number of physical refreshes made by a sequence over a bad-set list `L`. -/
-noncomputable def visitedVersionCountOfList (L : List (Finset BitString)) (seq : ℕ → ℕ) : ℕ :=
+noncomputable def visitedVersionCountOfList (L : List (Finset BitString)) (seq : ℕ → ℕ) :
+    ℕ :=
   (Finset.range L.length).filter (fun k => seq k < seq (k + 1)) |>.card
 
 /- `windowRefreshSequence` hardcodes `badEnumList`, so the temporal analysis below uses
@@ -1056,7 +950,8 @@ of refreshes of the abstract greedy fold over `badEnumList` is at most
 `2 ^ (i+1) + n · 2 ^ (i+1) = (n+1) · 2 ^ (i+1)`.  In bits this is `i + O(log n)`, which is
 exactly the Vereshchagin–Vitányi version-count budget consumed inside `coverableSet`. -/
 theorem greedyFold_version_count_le_of_survivor_curve
-    (U : Map) (c n kx m c_gen : ℕ) (h : ℕ → ℕ) (hc : ProfileCurve U c n kx m h) (i : ℕ)
+    (U : Map) (c n kx m c_gen : ℕ) (h : ℕ → ℕ) (hc : ProfileCurve U c n kx m h) (i :
+        ℕ)
     (hsurv : (stringsOfLength n \
       (GreedyWindow.fold (stringsOfLength n) (fun S => firstElements S (2 ^ h i))
         (badEnumList U n h m c_gen kx)).1).Nonempty) :
@@ -1085,7 +980,8 @@ cardinality bound for the accumulated deleted set. -/
 elements may be deleted only after the last refresh.  The temporal bridge below uses a
 complete later enumeration and refresh-count stability to rule out that obstruction. -/
 
-theorem List.flatMap_congr_loc {α β} (l : List α) (f g : α → List β) (h : ∀ x ∈ l, f x = g x) :
+theorem List.flatMap_congr_loc {α β} (l : List α) (f g : α → List β) (h : ∀ x ∈ l, f
+    x = g x) :
     l.flatMap f = l.flatMap g := by
   have : List.map f l = List.map g l := List.map_congr_left h
   unfold List.flatMap
@@ -1152,12 +1048,13 @@ theorem temporalBadEnumList_eq_of_max (c : Nat.Partrec.Code) {U : Map} (hc : IsC
     temporalBadEnumList c n h m c_gen t = temporalBadEnumList c n h m c_gen t₀ :=
   temporalBadEnumList_eq_of_max_aux c hc n h m c_gen t₀ t h_ge hmax
 
-/-- Split sublemma: Bounding the total number of refreshes for the temporal bad enum list.
-This separates the combinatorics (Nodup, mapping to descriptions) from the
-stabilization loop. -/
+/-- Split sublemma bounding the total number of refreshes for the temporal bad enumeration.
+This separates the combinatorics (nodup and mapping to descriptions) from the stabilization
+loop. -/
 theorem temporalBadEnumList_sublist_badEnumList (U : Map) (c_U : Nat.Partrec.Code)
     (hc_code : IsCodeFor c_U U) (n : ℕ) (h : ℕ → ℕ) (m c_gen kx T : ℕ) :
-    ∀ x, x ∈ temporalBadEnumList c_U n h m c_gen T → x ∈ badEnumList U n h m c_gen kx := by
+    ∀ x, x ∈ temporalBadEnumList c_U n h m c_gen T → x ∈ badEnumList U n h m c_gen kx :=
+        by
   intro d hd
   unfold temporalBadEnumList at hd
   obtain ⟨t, _ht⟩ : ∃ t, d ∈ newBadSetsAtTime c_U n h m c_gen t ∧ t ≤ T := by
@@ -1170,8 +1067,8 @@ theorem temporalBadEnumList_sublist_badEnumList (U : Map) (c_U : Nat.Partrec.Cod
       ∧ d ∈
       (snapshotDescList c_U j (h j - (m + logSlack c_gen n)) t).map List.toFinset := by
     unfold badSetsUpToTime at h_subset
-    rw [List.mem_localDedup] at h_subset
-    aesop
+    rw [mem_List.dedup, List.mem_flatMap] at h_subset
+    exact h_subset
   have h_subset_desc : d ∈ descriptionsWithComplexityLeAndSizeLe U j (h j - (m + logSlack
       c_gen n))
       := by
@@ -1187,8 +1084,10 @@ theorem temporalBadEnumList_sublist_badEnumList (U : Map) (c_U : Nat.Partrec.Cod
     exact snapshotDescriptionsAndSizeLe_subset_descriptions hc_code j (h j - (m + logSlack c_gen
         n)) t (h_mem hj.2)
   have h_final : d ∈ (badEnumList U n h m c_gen kx).toFinset := by
-    unfold badEnumList
-    aesop
+    rw [badEnumList, List.mem_toFinset, Finset.mem_toList, Finset.mem_biUnion]
+    refine ⟨j, ?_, h_subset_desc⟩
+    simpa only [Finset.mem_filter, Finset.mem_range, List.mem_filter, List.mem_range,
+      decide_eq_true_eq] using hj.1
   exact List.mem_toFinset.mp h_final
 
 theorem filter_length_le_of_subset_of_nodup {α} (L1 L2 : List α) (p : α → Bool)
@@ -1208,9 +1107,11 @@ theorem filter_length_le_of_subset_of_nodup {α} (L1 L2 : List α) (p : α → B
   rw [Finset.mem_filter] at hx ⊢
   exact ⟨List.mem_toFinset.mpr (h_sub x (List.mem_toFinset.mp hx.1)), hx.2⟩
 
-theorem filter_sum_toFinset_eq {α} [DecidableEq α] (L : List α) (p : α → Bool) (f : α → ℕ)
+theorem filter_sum_toFinset_eq {α} [DecidableEq α] (L : List α) (p : α → Bool) (f : α →
+    ℕ)
     (h_nodup : L.Nodup) :
-    ((L.toFinset.filter (fun x => p x = true)).toList.map f).sum = ((L.filter p).map f).sum := by
+    ((L.toFinset.filter (fun x => p x = true)).toList.map f).sum = ((L.filter p).map f).sum :=
+        by
   let S := L.toFinset.filter (fun x => p x = true)
   have hleft : ((L.toFinset.filter (fun x => p x = true)).toList.map f).sum = S.sum f := by
     symm
@@ -1221,7 +1122,8 @@ theorem filter_sum_toFinset_eq {α} [DecidableEq α] (L : List α) (p : α → B
     simpa [S, List.toFinset_filter] using (List.sum_toFinset f (l := L.filter p) hnod)
   rw [hleft, hright]
 
-theorem filter_sum_le_of_subset_of_nodup {α} (L1 L2 : List α) (p : α → Bool) (f : α → ℕ)
+theorem filter_sum_le_of_subset_of_nodup {α} (L1 L2 : List α) (p : α → Bool) (f : α →
+    ℕ)
     (h_nodup1 : L1.Nodup) (h_nodup2 : L2.Nodup)
     (h_sub : ∀ x ∈ L1, x ∈ L2) :
     ((L1.filter p).map f).sum ≤ ((L2.filter p).map f).sum := by
@@ -1244,26 +1146,39 @@ theorem filter_sum_le_of_subset_of_nodup {α} (L1 L2 : List α) (p : α → Bool
   · intro x _ _
     exact Nat.zero_le (f x)
 
+/-- `List.dedup` produces a duplicate-free list. -/
+theorem List.dedup_nodup {α} [DecidableEq α] (l : List α) : (List.dedup l).Nodup := by
+  induction l with
+  | nil => simp [List.dedup]
+  | cons a l ih =>
+    unfold List.dedup
+    split_ifs with hmem
+    · exact ih
+    · exact List.nodup_cons.mpr ⟨hmem, ih⟩
+
 /-- The snapshot bad-set enumeration up to time `t` is duplicate-free. -/
-theorem badSetsUpToTime_nodup (c : Nat.Partrec.Code) (n : ℕ) (h : ℕ → ℕ) (m c_gen t : ℕ) :
+theorem badSetsUpToTime_nodup (c : Nat.Partrec.Code) (n : ℕ) (h : ℕ → ℕ) (m c_gen t :
+    ℕ) :
     (badSetsUpToTime c n h m c_gen t).Nodup := by
   unfold badSetsUpToTime
-  exact List.nodup_localDedup _
+  exact List.dedup_nodup _
 
 /-- Membership in `badSetsUpToTime` is monotone in the time budget: the snapshot
 description universe only grows. -/
-theorem badSetsUpToTime_mem_mono (c : Nat.Partrec.Code) (n : ℕ) (h : ℕ → ℕ) (m c_gen : ℕ)
+theorem badSetsUpToTime_mem_mono (c : Nat.Partrec.Code) (n : ℕ) (h : ℕ → ℕ) (m c_gen :
+    ℕ)
     {t t' : ℕ} (hle : t ≤ t') {d : Finset BitString}
     (hd : d ∈ badSetsUpToTime c n h m c_gen t) :
     d ∈ badSetsUpToTime c n h m c_gen t' := by
   unfold badSetsUpToTime at hd ⊢
-  rw [List.mem_localDedup] at hd ⊢
+  rw [mem_List.dedup] at hd ⊢
   rw [List.mem_flatMap] at hd ⊢
   obtain ⟨j, hj, hdj⟩ := hd
   refine ⟨j, hj, ?_⟩
   -- Convert list membership to membership in `snapshotDescriptionsAndSizeLe`,
   -- use its monotonicity, and convert back.
-  have hkey : ∀ s, (d ∈ (snapshotDescList c j (h j - (m + logSlack c_gen n)) s).map List.toFinset)
+  have hkey : ∀ s, (d ∈ (snapshotDescList c j (h j - (m + logSlack c_gen n)) s).map
+      List.toFinset)
       ↔ d ∈ snapshotDescriptionsAndSizeLe c j (h j - (m + logSlack c_gen n)) s := by
     intro s
     rw [← List.mem_toFinset, snapshotDescList_nodup_map_toFinset c j (h j - (m + logSlack
@@ -1283,7 +1198,8 @@ theorem newBadSetsAtTime_mem_badSetsUpToTime (c : Nat.Partrec.Code) (n : ℕ) (h
     exact hd.1
 
 /-- The newly-discovered bad sets at time `t` are duplicate-free. -/
-theorem newBadSetsAtTime_nodup (c : Nat.Partrec.Code) (n : ℕ) (h : ℕ → ℕ) (m c_gen t : ℕ) :
+theorem newBadSetsAtTime_nodup (c : Nat.Partrec.Code) (n : ℕ) (h : ℕ → ℕ) (m c_gen t :
+    ℕ) :
     (newBadSetsAtTime c n h m c_gen t).Nodup := by
   cases t with
   | zero => simpa [newBadSetsAtTime] using badSetsUpToTime_nodup c n h m c_gen 0
@@ -1294,7 +1210,8 @@ theorem newBadSetsAtTime_nodup (c : Nat.Partrec.Code) (n : ℕ) (h : ℕ → ℕ
 /-- Bad sets discovered at distinct times are disjoint: a set first discovered at
 time `t` is already in `badSetsUpToTime` at every later time, so it is filtered out
 of `newBadSetsAtTime` there. -/
-theorem newBadSetsAtTime_disjoint (c : Nat.Partrec.Code) (n : ℕ) (h : ℕ → ℕ) (m c_gen : ℕ)
+theorem newBadSetsAtTime_disjoint (c : Nat.Partrec.Code) (n : ℕ) (h : ℕ → ℕ) (m c_gen :
+    ℕ)
     {t t' : ℕ} (hlt : t < t') :
     List.Disjoint (newBadSetsAtTime c n h m c_gen t) (newBadSetsAtTime c n h m c_gen t') := by
   intro d hd hd'
@@ -1307,7 +1224,8 @@ theorem newBadSetsAtTime_disjoint (c : Nat.Partrec.Code) (n : ℕ) (h : ℕ → 
   simp only [decide_eq_true_eq] at hd'
   exact hd'.2 this
 
-theorem temporalBadEnumList_nodup (c : Nat.Partrec.Code) (n : ℕ) (h : ℕ → ℕ) (m c_gen t : ℕ) :
+theorem temporalBadEnumList_nodup (c : Nat.Partrec.Code) (n : ℕ) (h : ℕ → ℕ) (m c_gen t
+    : ℕ) :
     (temporalBadEnumList c n h m c_gen t).Nodup := by
   unfold temporalBadEnumList
   rw [List.nodup_flatMap]
@@ -1338,7 +1256,8 @@ theorem temporalBadEnumList_bound (U : Map) (c_U : Nat.Partrec.Code) (hc_code : 
     refine ⟨hx.1, fun hxdel => hx.2 ?_⟩
     have hsub : (GreedyWindow.fold (stringsOfLength n) (fun S => firstElements S (2 ^ h i))
         (temporalBadEnumList c_U n h m c_gen t)).1
-          ⊆ badUnionUpTo (badEnumList U n h m c_gen kx) (badEnumList U n h m c_gen kx).length := by
+          ⊆ badUnionUpTo (badEnumList U n h m c_gen kx) (badEnumList U n h m c_gen kx).length
+              := by
       refine GreedyWindow.fold_deleted_subset _ _ _ _ (fun d hd => ?_)
       have hdmem : d ∈ badEnumList U n h m c_gen kx :=
         temporalBadEnumList_sublist_badEnumList U c_U hc_code n h m c_gen kx t d hd
@@ -1413,8 +1332,10 @@ simultaneously a stabilization point and a level-wise maximum.
 theorem exists_simultaneous_stable_countHalts (c : Nat.Partrec.Code) (n : ℕ) :
     ∃ t₀, (∀ j < n, ∀ t ≥ t₀, countHalts c j t = countHalts c j t₀) ∧
           (∀ j < n, ∀ t', countHalts c j t' ≤ countHalts c j t₀) := by
-  obtain ⟨t₀, ht₀⟩ : ∃ t₀, ∀ j < n, ∀ t ≥ t₀, countHalts c j t = countHalts c j t₀ := by
-    have h_const : ∀ j < n, ∃ t₀, ∀ t ≥ t₀, countHalts c j t = countHalts c j t₀ := by
+  obtain ⟨t₀, ht₀⟩ : ∃ t₀, ∀ j < n, ∀ t ≥ t₀, countHalts c j t = countHalts
+      c j t₀ := by
+    have h_const : ∀ j < n, ∃ t₀, ∀ t ≥ t₀, countHalts c j t = countHalts c j t₀
+        := by
       intro j hj
       obtain ⟨t₀, ht₀⟩ : ∃ t₀, ∀ t', countHalts c j t' ≤ countHalts c j t₀ :=
           exists_max_countHalts c j;
@@ -1425,15 +1346,18 @@ theorem exists_simultaneous_stable_countHalts (c : Nat.Partrec.Code) (n : ℕ) :
     rw [ ht₀ j hj t ( le_trans ( Finset.le_sup ( f := t₀ ) ( Finset.mem_range.mpr hj ) ) ht
         ), ht₀ j hj ( Finset.sup ( Finset.range n ) t₀ ) ( Finset.le_sup ( f := t₀ ) (
         Finset.mem_range.mpr hj ) ) ];
-  use t₀;
-  grind +suggestions
+  use t₀
+  refine ⟨ht₀, fun j hj t' => ?_⟩
+  by_cases h : t₀ ≤ t'
+  · rw [ht₀ j hj t' h]
+  · exact countHalts_mono c j (le_of_not_ge h)
 
 /-- T1: The temporal refresh count is bounded and stabilizes to `version*`. -/
 theorem temporalRefreshCount_stabilizes (U : Map) (c_U : Nat.Partrec.Code)
     (hc_code : IsCodeFor c_U U) (c n kx m c_gen i : ℕ) (h : ℕ → ℕ) (hc : ProfileCurve U
         c n kx m h)
-    (hrem : (stringsOfLength n \ badUnionUpTo (badEnumList U n h m c_gen kx)
-      (badEnumList U n h m c_gen kx).length).Nonempty) :
+    (hrem : (stringsOfLength n \ badUnionUpTo (badEnumList U n h m c_gen kx) (badEnumList U n h
+        m c_gen kx).length).Nonempty) :
     ∃ T version, version ≤ 2 ^ (i + 1) + n * 2 ^ (i + 1) + 1 ∧
       temporalRefreshCount c_U n h m c_gen i T = version ∧
       ∀ t ≥ T, temporalRefreshCount c_U n h m c_gen i t = version := by
@@ -1454,11 +1378,13 @@ window.  Unlike `windowRefreshSequence`
 (whose `_stabilizes` lemma pins the final refresh index at `L.length`, so the final window
 is `firstElements (survivors) (2^{h i})`), the abstract `GreedyWindow.fold` only refreshes
 when the window is fully deleted; at the end the window is the block installed at the *last*
-refresh, `firstElements (G \ deletedₖ) (2^{h i})` for an earlier `deletedₖ ⊆ deleted_final`.
+refresh, `firstElements (G \ deletedₖ) (2^{h i})` for an earlier `deletedₖ ⊆
+    deleted_final`.
 Because `firstElements` keeps the `decodeBits`-smallest elements and
 `G \ deletedₖ ⊇ G \ deleted_final`, the globally lex-least survivor need not be among the
 smallest elements of the larger set `G \ deletedₖ` — smaller strings deleted only *after*
-the last refresh can crowd it out.  So the final window contains *some* survivor, but not
+    the
+last refresh can crowd it out.  So the final window contains *some* survivor, but not
 necessarily *this* one from a static argument alone.
 
 The bridge below adds the missing temporal information: extend the chronological
@@ -1492,17 +1418,15 @@ theorem temporalWindow_contains_survivor_of_append_no_refresh
         (∀ d ∈ temporalBadEnumList c_U n h m c_gen T_full, y ∉ d) →
           Encodable.encode x ≤ Encodable.encode y) :
     x ∈ temporalWindow c_U n h m c_gen i T := by
-  have h_aux := @Kolmogorov.GreedyWindow.temporalWindow_contains_survivor_aux
-  unfold temporalWindow
-  refine h_aux (stringsOfLength n) Encodable.encode (2 ^ h i) (pow_pos (by decide) _)
-    (temporalBadEnumList c_U n h m c_gen T) L_rest x ?_ hxG ?_ ?_ ?_
-  · exact fun d hd => h_surv d <| h_append ▸ hd
-  · exact h_append ▸ h_no_refresh
-  · exact fun y hy hy' => h_min y hy fun d hd => hy' d <| h_append ▸ hd
-  · exact fun _ _ _ _ h => Encodable.encode_injective h
-
--- `temporalWindow_contains_survivor` is now proved below (after the completeness
--- helper lemmas and `temporalBadEnumList_subset_fullBadUnion`, which it depends on).
+  have := @Kolmogorov.GreedyWindow.temporalWindow_contains_survivor_aux;
+  unfold temporalWindow;
+  convert this ( stringsOfLength n ) Encodable.encode ( 2 ^ h i ) ( pow_pos ( by decide ) _ ) (
+      temporalBadEnumList c_U n h m c_gen T ) L_rest x _ hxG _ _ _ using 1;
+  · rfl;
+  · exact fun d hd => h_surv d <| h_append ▸ hd;
+  · exact h_append ▸ h_no_refresh;
+  · exact fun y hy hy' => h_min y hy fun d hd => hy' d <| h_append ▸ hd;
+  · exact fun a b ha hb h => Encodable.encode_injective h
 
 /-
 Every set appearing in the temporal bad-set enumeration is one of the genuine
@@ -1517,10 +1441,39 @@ level `j < n` with `m + logSlack c_gen n < h j`, from `snapshotDescList` which
 theorem temporalBadEnumList_subset_fullBadUnion (U : Map) (c_U : Nat.Partrec.Code)
     (hc_code : IsCodeFor c_U U) (n : ℕ) (h : ℕ → ℕ) (m c_gen kx T : ℕ)
     {d : Finset BitString} (hd : d ∈ temporalBadEnumList c_U n h m c_gen T) :
-    d ⊆ badUnionUpTo (badEnumList U n h m c_gen kx) (badEnumList U n h m c_gen kx).length := by
-  have h_in_bad : d ∈ badEnumList U n h m c_gen kx :=
-    temporalBadEnumList_sublist_badEnumList U c_U hc_code n h m c_gen kx T d hd
-  exact subset_badUnionUpTo_full _ h_in_bad
+    d ⊆ badUnionUpTo (badEnumList U n h m c_gen kx) (badEnumList U n h m c_gen kx).length :=
+        by
+  unfold temporalBadEnumList at hd
+  rw [List.mem_flatMap] at hd
+  obtain ⟨t, _, hd_in⟩ := hd
+  have h_subset : d ∈ badSetsUpToTime c_U n h m c_gen t := by
+    cases t with
+    | zero => exact hd_in
+    | succ t' =>
+      unfold newBadSetsAtTime at hd_in
+      rw [List.mem_filter] at hd_in
+      exact hd_in.1
+  unfold badSetsUpToTime at h_subset
+  rw [mem_List.dedup, List.mem_flatMap] at h_subset
+  obtain ⟨j, hj_mem, hd_j⟩ := h_subset
+  have h_subset_d :
+      d ∈ descriptionsWithComplexityLeAndSizeLe U j (h j - (m + logSlack c_gen n)) := by
+    rw [List.mem_map] at hd_j
+    obtain ⟨L, hL, hd_eq⟩ := hd_j
+    have h_mem_snap := snapshotDescList_nodup_map_toFinset c_U j (h j - (m + logSlack c_gen n)) t
+    have h_in_snap : d ∈ snapshotDescriptionsAndSizeLe c_U j (h j - (m + logSlack c_gen n)) t := by
+      rw [← h_mem_snap.2, List.mem_toFinset, ← hd_eq]
+      exact List.mem_map.mpr ⟨L, hL, rfl⟩
+    exact snapshotDescriptionsAndSizeLe_subset_descriptions hc_code j
+      (h j - (m + logSlack c_gen n)) t h_in_snap
+  have h_subset_badEnum : d ∈ badEnumList U n h m c_gen kx := by
+    unfold badEnumList
+    rw [Finset.mem_toList, Finset.mem_biUnion]
+    exact ⟨j, (by
+      rw [Finset.mem_filter, Finset.mem_range]
+      rw [List.mem_filter, List.mem_range] at hj_mem
+      exact ⟨hj_mem.1, of_decide_eq_true hj_mem.2⟩), h_subset_d⟩
+  exact subset_badUnionUpTo_full _ h_subset_badEnum
 
 /-- The stabilized temporal window is nonempty.  Proved directly (no survivor-containment):
 the survivor set `stringsOfLength n \ fullBadUnion` is nonempty (`hrem`) and disjoint from
@@ -1532,7 +1485,8 @@ theorem temporalWindow_nonempty (U : Map) (c_U : Nat.Partrec.Code) (hc_code : Is
       (badEnumList U n h m c_gen kx).length).Nonempty) :
     (temporalWindow c_U n h m c_gen i T).Nonempty := by
   unfold temporalWindow
-  have hfirst_ne : ∀ S : Finset BitString, S.Nonempty → (firstElements S (2 ^ h i)).Nonempty := by
+  have hfirst_ne : ∀ S : Finset BitString, S.Nonempty → (firstElements S (2 ^ h i)).Nonempty
+      := by
     intro S hS
     rw [← Finset.card_pos, firstElements_card]
     exact lt_min (Nat.one_le_pow _ _ (by decide)) (Finset.card_pos.mpr hS)
@@ -1540,7 +1494,8 @@ theorem temporalWindow_nonempty (U : Map) (c_U : Nat.Partrec.Code) (hc_code : Is
       Disjoint (stringsOfLength n \ badUnionUpTo (badEnumList U n h m c_gen kx)
         (badEnumList U n h m c_gen kx).length) (d ∩ stringsOfLength n) := by
     intro d hd
-    have hsub := temporalBadEnumList_subset_fullBadUnion U c_U hc_code n h m c_gen kx (T := T) hd
+    have hsub := temporalBadEnumList_subset_fullBadUnion U c_U hc_code n h m c_gen kx (T := T)
+        hd
     rw [Finset.disjoint_left]
     intro x hxS hxd
     exact (Finset.mem_sdiff.mp hxS).2 (hsub (Finset.mem_inter.mp hxd).1)
@@ -1555,24 +1510,6 @@ enumeration covers every static bad set, so a temporal survivor is a full surviv
 `lexLeastSurvivor` is the encoding-minimal full survivor. -/
 
 /-
-Membership in the full running bad-union is witnessed by some list element.
--/
-theorem mem_badUnionUpTo_full {L : List (Finset BitString)} {x : BitString} :
-    x ∈ badUnionUpTo L L.length ↔ ∃ d ∈ L, x ∈ d := by
-  have h_fold : ∀ (l : List (Finset BitString)) (init : Finset BitString),
-      x ∈ l.foldl (· ∪ ·) init ↔ x ∈ init ∨ ∃ d ∈ l, x ∈ d := by
-    intro l
-    induction l with
-    | nil => intro init; simp
-    | cons a l ih =>
-      intro init
-      rw [List.foldl_cons, ih, Finset.mem_union]
-      aesop
-  unfold badUnionUpTo
-  rw [List.take_length, h_fold]
-  simp
-
-/-
 The chronological list at a later time extends the one at an earlier time.
 -/
 theorem temporalBadEnumList_append_of_le (c : Nat.Partrec.Code) (n : ℕ) (h : ℕ → ℕ)
@@ -1581,22 +1518,25 @@ theorem temporalBadEnumList_append_of_le (c : Nat.Partrec.Code) (n : ℕ) (h : �
       temporalBadEnumList c n h m c_gen a ++ L_rest := by
   set L_b := List.range (b + 1)
   set L_a := List.range (a + 1);
+  -- Split the range into the prefix through `a` and the suffix from `a + 1` to `b`.
   have h_split : L_b = L_a ++ (L_b.drop (a + 1)) := by
     have hmin : min (a + 1) (b + 1) = a + 1 := Nat.min_eq_left (Nat.succ_le_succ hab)
     conv_lhs => rw [← List.take_append_drop (a + 1) L_b]
     rw [List.take_range, hmin]
+  -- `flatMap` preserves this prefix-suffix decomposition.
   have h_flatMap_split : List.flatMap (fun t => newBadSetsAtTime c n h m c_gen t) L_b =
       List.flatMap
       (fun t => newBadSetsAtTime c n h m c_gen t) L_a ++ List.flatMap
       (fun t => newBadSetsAtTime c n h m c_gen t) (L_b.drop (a + 1)) := by
-    rw [← List.flatMap_append, ← h_split]
-  exact ⟨_, h_flatMap_split⟩
+    rw [ ← List.flatMap_append, ← h_split ];
+  exact ⟨ _, h_flatMap_split ⟩
 
 /-
 Any set present in `badSetsUpToTime` at time `t` occurs in the chronological
 enumeration up to `t`.
 -/
-theorem badSetsUpToTime_mem_temporal (c : Nat.Partrec.Code) (n : ℕ) (h : ℕ → ℕ) (m c_gen : ℕ)
+theorem badSetsUpToTime_mem_temporal (c : Nat.Partrec.Code) (n : ℕ) (h : ℕ → ℕ) (m c_gen
+    : ℕ)
     {d : Finset BitString} (t : ℕ) (hd : d ∈ badSetsUpToTime c n h m c_gen t) :
     d ∈ temporalBadEnumList c n h m c_gen t := by
   induction t generalizing d with
@@ -1627,13 +1567,9 @@ theorem badEnumList_mem_temporal_of_max (U : Map) (c_U : Nat.Partrec.Code)
   rw [Finset.mem_toList, Finset.mem_biUnion] at hd
   obtain ⟨j, hj, hd⟩ := hd
   have hd_map :
-      d ∈ (snapshotDescList c_U j (h j - (m + logSlack c_gen n)) t).map
-        List.toFinset := by
-    have h_mem_snap :=
-      snapshotDescList_nodup_map_toFinset c_U j (h j - (m + logSlack c_gen n)) t
-    have h_in_snap :
-        d ∈ snapshotDescriptionsAndSizeLe c_U j
-          (h j - (m + logSlack c_gen n)) t := by
+      d ∈ (snapshotDescList c_U j (h j - (m + logSlack c_gen n)) t).map List.toFinset := by
+    have h_mem_snap := snapshotDescList_nodup_map_toFinset c_U j (h j - (m + logSlack c_gen n)) t
+    have h_in_snap : d ∈ snapshotDescriptionsAndSizeLe c_U j (h j - (m + logSlack c_gen n)) t := by
       have h_eq := snapshotDescriptionsAndSizeLe_eq_descriptionsWithComplexityLeAndSizeLe
         hc_code j (h j - (m + logSlack c_gen n)) t
       have hj_range := (Finset.mem_filter.mp hj).1
@@ -1642,19 +1578,15 @@ theorem badEnumList_mem_temporal_of_max (U : Map) (c_U : Nat.Partrec.Code)
       exact hd
     rw [← h_mem_snap.2] at h_in_snap
     exact List.mem_toFinset.mp h_in_snap
-  have hd_dedup :
-      d ∈ List.localDedup
-        (((List.range n).filter (fun j => decide (m + logSlack c_gen n < h j))).flatMap
-          (fun j =>
-            (snapshotDescList c_U j (h j - (m + logSlack c_gen n)) t).map
-              List.toFinset)) := by
-    rw [List.mem_localDedup, List.mem_flatMap]
-    have hj_list :
-        j ∈ (List.range n).filter (fun j => decide (m + logSlack c_gen n < h j)) := by
+  have hd_dedup : d ∈ List.dedup (((List.range n).filter
+      (fun j => decide (m + logSlack c_gen n < h j))).flatMap (fun j =>
+      (snapshotDescList c_U j (h j - (m + logSlack c_gen n)) t).map List.toFinset)) := by
+    rw [mem_List.dedup, List.mem_flatMap]
+    have hj_list : j ∈ (List.range n).filter (fun j => decide (m + logSlack c_gen n < h j)) := by
       rw [List.mem_filter, List.mem_range]
-      have hj' := Finset.mem_filter.mp hj
-      rw [Finset.mem_range] at hj'
-      exact ⟨hj'.1, decide_eq_true_eq.mpr hj'.2⟩
+      have := Finset.mem_filter.mp hj
+      rw [Finset.mem_range] at this
+      exact ⟨this.1, decide_eq_true_eq.mpr this.2⟩
     exact ⟨j, hj_list, hd_map⟩
   exact badSetsUpToTime_mem_temporal c_U n h m c_gen t hd_dedup
 
@@ -1688,11 +1620,10 @@ theorem lexLeastSurvivor_mem_rem (U : Map) (n : ℕ) (h : ℕ → ℕ) (m c_gen 
       := by
     exact Finset.card_pos.mp ( by rw [ firstElements_card ] ; exact lt_min ( by norm_num ) (
         Finset.card_pos.mpr hrem ) );
-  simp +zetaDelta only [ne_eq, Finset.toList_eq_nil, dite_not, dite_eq_ite,
-    Finset.mem_sdiff] at *;
-  split_ifs <;>
-    simp_all +decide only [Finset.Nonempty, Finset.mem_sdiff, Finset.notMem_empty,
-      exists_const];
+  simp +zetaDelta only [ne_eq, Finset.toList_eq_nil, dite_not, dite_eq_ite, Finset.mem_sdiff] at
+      *;
+  split_ifs <;> simp_all +decide only [Finset.Nonempty, Finset.mem_sdiff, Finset.notMem_empty,
+    exists_const];
   exact ⟨ Finset.mem_sdiff.mp ( firstElements_subset _ _ |> Finset.mem_of_subset <|
       Finset.mem_toList.mp <| List.head_mem <| by aesop ) |>.1, Finset.mem_sdiff.mp (
       firstElements_subset _ _ |> Finset.mem_of_subset <| Finset.mem_toList.mp <| List.head_mem
@@ -1749,7 +1680,8 @@ theorem temporalWindow_contains_survivor (U : Map) (c_U : Nat.Partrec.Code)
   obtain ⟨L_rest, h_append⟩ :=
     temporalBadEnumList_append_of_le c_U n h m c_gen (le_max_left T t₀)
   have h_no_refresh :
-      temporalRefreshCount c_U n h m c_gen i T_full = temporalRefreshCount c_U n h m c_gen i T :=
+      temporalRefreshCount c_U n h m c_gen i T_full = temporalRefreshCount c_U n h m c_gen i T
+          :=
     h_stable T_full (le_max_left T t₀)
   have hmem := lexLeastSurvivor_mem_rem U n h m c_gen kx hrem
   have h_surv : ∀ d ∈ temporalBadEnumList c_U n h m c_gen T_full,
@@ -1766,7 +1698,8 @@ theorem temporalWindow_contains_survivor (U : Map) (c_U : Nat.Partrec.Code)
         (badEnumList U n h m c_gen kx).length := by
       rw [Finset.mem_sdiff]
       refine ⟨hyG, fun hy_bad => ?_⟩
-      have hcov := badUnion_subset_temporal_of_max U c_U hc_code n h m c_gen kx T_full hmaxF hy_bad
+      have hcov := badUnion_subset_temporal_of_max U c_U hc_code n h m c_gen kx T_full hmaxF
+          hy_bad
       rw [mem_badUnionUpTo_full] at hcov
       obtain ⟨d, hd, hyd⟩ := hcov
       exact hy_avoid d hd hyd
@@ -1848,7 +1781,8 @@ inlining the `dite`) lets `finalWindowFn` be *definitionally* `codedWindowDecode
 matching `finalWindowFn` against the skeleton lemma is a delta step on `codedWindowDecoder`
 and never exposes the heavy `temporalWindow` `Decidable`-nonempty instance to `whnf`. -/
 noncomputable def codedWindowDecoder {α : Type} [Primcodable α]
-    (P : α → ℕ → Bool) (W : α → ℕ → Finset BitString) : α →. BitString := fun s =>
+    (P : α → ℕ → Bool) (W : α → ℕ → Finset BitString) : α →. BitString := fun s
+        =>
   (Nat.rfind (fun t => Part.some (P s t))).bind
     (fun t => if hne : (W s t).Nonempty then Part.some (codedUniformOn (W s t) hne).code
       else Part.none)
@@ -1881,7 +1815,8 @@ theorem badSetsUpToTime_congr (c : Nat.Partrec.Code) (n m c_gen t : ℕ) {h1 h2 
         have hl_l : ∀ j ∈ l, j < n := fun j hj => hl j (by simp [hj])
         have ih_l := ih hl_l
         simp only [List.filter_cons]
-        have heq_a : (m + logSlack c_gen n < h1 a) ↔ (m + logSlack c_gen n < h2 a) := heq a hl_a
+        have heq_a : (m + logSlack c_gen n < h1 a) ↔ (m + logSlack c_gen n < h2 a) := heq a
+            hl_a
         have dec_eq : decide (m + logSlack c_gen n < h1 a) = decide (m + logSlack c_gen n < h2
             a) := decide_eq_decide.mpr heq_a
         rw [dec_eq, ih_l]
@@ -1905,9 +1840,11 @@ theorem newBadSetsAtTime_congr (c : Nat.Partrec.Code) (n m c_gen t : ℕ) {h1 h2
   cases t
   · exact badSetsUpToTime_congr c n m c_gen 0 heq heq2
   · simp only
-    rw [badSetsUpToTime_congr c n m c_gen _ heq heq2, badSetsUpToTime_congr c n m c_gen _ heq heq2]
+    rw [badSetsUpToTime_congr c n m c_gen _ heq heq2, badSetsUpToTime_congr c n m c_gen _ heq
+        heq2]
 
-theorem temporalBadEnumList_congr (c : Nat.Partrec.Code) (n m c_gen t_max : ℕ) {h1 h2 : ℕ → ℕ}
+theorem temporalBadEnumList_congr (c : Nat.Partrec.Code) (n m c_gen t_max : ℕ) {h1 h2 : ℕ
+    → ℕ}
     (heq : ∀ j < n, m + logSlack c_gen n < h1 j ↔ m + logSlack c_gen n < h2 j)
     (heq2 : ∀ j < n, m + logSlack c_gen n < h1 j → h1 j = h2 j) :
     temporalBadEnumList c n h1 m c_gen t_max = temporalBadEnumList c n h2 m c_gen t_max := by
@@ -1917,7 +1854,8 @@ theorem temporalBadEnumList_congr (c : Nat.Partrec.Code) (n m c_gen t_max : ℕ)
   exact newBadSetsAtTime_congr c n m c_gen t heq heq2
 
 /-- Congruence for temporal refresh count over the curve function. -/
-theorem temporalRefreshCount_congr (c : Nat.Partrec.Code) (n m c_gen i t : ℕ) {h1 h2 : ℕ → ℕ}
+theorem temporalRefreshCount_congr (c : Nat.Partrec.Code) (n m c_gen i t : ℕ) {h1 h2 : ℕ →
+    ℕ}
     (heq : ∀ j < n, m + logSlack c_gen n < h1 j ↔ m + logSlack c_gen n < h2 j)
     (heq2 : ∀ j < n, m + logSlack c_gen n < h1 j → h1 j = h2 j)
     (heqi : h1 i = h2 i) :
@@ -1940,11 +1878,9 @@ theorem temporalWindow_congr (c : Nat.Partrec.Code) (n m c_gen i t : ℕ) {h1 h2
 def badSetsUpToTimeList (c : Nat.Partrec.Code) (n : ℕ) (curve : BitString) (m c_gen : ℕ) (t
     : ℕ) :
     List (List BitString) :=
-  List.localDedup
-    (((List.range n).filter
-      (fun j => decide (m + logSlack c_gen n < decodeCurve curve j))).flatMap
-        (fun j => snapshotDescList c j
-          (decodeCurve curve j - (m + logSlack c_gen n)) t))
+  List.dedup (((List.range n).filter (fun j => decide (m + logSlack c_gen n < decodeCurve curve
+      j))).flatMap (fun j =>
+    snapshotDescList c j (decodeCurve curve j - (m + logSlack c_gen n)) t))
 
 /-- Computable list mirror of `newBadSetsAtTime`. -/
 def newBadSetsAtTimeList (c : Nat.Partrec.Code) (n : ℕ) (curve : BitString) (m c_gen : ℕ) (t
@@ -1966,7 +1902,7 @@ def temporalBadEnumListList (c : Nat.Partrec.Code) (n : ℕ) (curve : BitString)
 def greedyWindowStepList (G : List BitString) (size : ℕ) (st : List BitString × List
     BitString × ℕ)
     (d : List BitString) : List BitString × List BitString × ℕ :=
-  let deleted := List.localDedup (st.1 ++ (d.filter (fun x => G.elem x)))
+  let deleted := List.dedup (st.1 ++ (d.filter (fun x => G.elem x)))
   if st.2.1.all (fun x => deleted.elem x) then
     let new_window_full := G.filter (fun x => ! (deleted.elem x))
     (deleted, new_window_full.take size, st.2.2 + 1)
@@ -2000,31 +1936,34 @@ the computable list mirrors (`badSetsUpToTimeList`, `greedyWindowFoldList`, …)
 with their abstract `Finset`-valued counterparts.
 -/
 
-/-- Injective image commutes with `List.localDedup`. -/
+/-- Injective image commutes with `List.dedup`. -/
 theorem dedup_map_injOn {α β} [DecidableEq α] [DecidableEq β] (f : α → β) (l : List α)
     (hf : ∀ a ∈ l, ∀ b ∈ l, f a = f b → a = b) :
-    List.map f (List.localDedup l) = List.localDedup (List.map f l) := by
+    List.map f (List.dedup l) = List.dedup (List.map f l) := by
   induction l with
   | nil => rfl
   | cons a t ih =>
     have hft : ∀ x ∈ t, ∀ y ∈ t, f x = f y → x = y :=
       fun x hx y hy => hf x (by simp [hx]) y (by simp [hy])
     have iht := ih hft
+    have hmemA : a ∈ List.dedup t ↔ a ∈ t := mem_List.dedup t a
+    have hmemB : f a ∈ List.dedup (List.map f t) ↔ f a ∈ List.map f t :=
+      mem_List.dedup (List.map f t) (f a)
+    change List.map f (if a ∈ List.dedup t then List.dedup t else a :: List.dedup t)
+      = (if f a ∈ List.dedup (List.map f t) then List.dedup (List.map f t)
+          else f a :: List.dedup (List.map f t))
     by_cases h : a ∈ t
-    · rw [List.localDedup_cons_of_mem h, List.map_cons,
-        List.localDedup_cons_of_mem (List.mem_map_of_mem h), iht]
-    · have hfa : f a ∉ List.map f t := by
+    · rw [if_pos (hmemA.mpr h), if_pos (hmemB.mpr (List.mem_map_of_mem h)), iht]
+    · have hfa : f a ∉ List.dedup (List.map f t) := by
         intro hd
-        rw [List.mem_map] at hd
+        rw [hmemB, List.mem_map] at hd
         obtain ⟨x, hx, hfx⟩ := hd
         exact h (hf x (by simp [hx]) a (by simp) hfx ▸ hx)
-      rw [List.localDedup_cons_of_notMem h]
-      change f a :: List.map f t.localDedup = (f a :: List.map f t).localDedup
-      rw [List.localDedup_cons_of_notMem hfa, iht]
+      rw [if_neg (fun hd => h (hmemA.mp hd)), if_neg hfa, List.map_cons, iht]
 
 /-- Every description list produced by `snapshotDescList` is in canonical form,
 i.e. it is a fixed point of `canonicalFinsetList ∘ List.toFinset`.  This is the
-injectivity input needed to swap `List.localDedup` past `List.toFinset`. -/
+injectivity input needed to swap `List.dedup` past `List.toFinset`. -/
 theorem snapshotDescList_canonical (c : Nat.Partrec.Code) (i j t : ℕ) :
     ∀ x ∈ snapshotDescList c i j t, canonicalFinsetList x.toFinset = x := by
   intro x hx
@@ -2043,10 +1982,12 @@ theorem badSetsUpToTimeList_eq (c : Nat.Partrec.Code) (n : ℕ) (curve : BitStri
   rw [← List.map_flatMap]
   have hinj : ∀ a ∈ List.flatMap
       (fun j => snapshotDescList c j (decodeCurve curve j - (m + logSlack c_gen n)) t)
-      (List.filter (fun j => decide (m + logSlack c_gen n < decodeCurve curve j)) (List.range n)),
+      (List.filter (fun j => decide (m + logSlack c_gen n < decodeCurve curve j)) (List.range
+          n)),
       ∀ b ∈ List.flatMap
       (fun j => snapshotDescList c j (decodeCurve curve j - (m + logSlack c_gen n)) t)
-      (List.filter (fun j => decide (m + logSlack c_gen n < decodeCurve curve j)) (List.range n)),
+      (List.filter (fun j => decide (m + logSlack c_gen n < decodeCurve curve j)) (List.range
+          n)),
       List.toFinset a = List.toFinset b → a = b := by
     intro a ha b hb hab
     rw [List.mem_flatMap] at ha hb
@@ -2063,13 +2004,14 @@ theorem badSetsUpToTimeList_canonical (c : Nat.Partrec.Code) (n : ℕ) (curve : 
     ∀ x ∈ badSetsUpToTimeList c n curve m c_gen t, canonicalFinsetList x.toFinset = x := by
   intro x hx
   unfold badSetsUpToTimeList at hx
-  rw [List.mem_localDedup, List.mem_flatMap] at hx
+  rw [mem_List.dedup, List.mem_flatMap] at hx
   obtain ⟨j, _, hx⟩ := hx
   exact snapshotDescList_canonical c j _ t x hx
 
 /-- `List.map f` commutes with a `List.filter` provided the predicates agree on the
 images of the list's elements. -/
-theorem map_filter_congr {α β} (f : α → β) (p : α → Bool) (q : β → Bool) (l : List α)
+theorem map_filter_congr {α β} (f : α → β) (p : α → Bool) (q : β → Bool) (l : List
+    α)
     (h : ∀ x ∈ l, p x = q (f x)) : (l.filter p).map f = (l.map f).filter q := by
   induction l with
   | nil => simp
@@ -2162,7 +2104,8 @@ theorem canonical_filter_eq (G : Finset BitString) (p : BitString → Bool) :
     (canonicalFinsetList G).filter p = canonicalFinsetList (G.filter (fun x => p x)) := by
   have hnd : ((canonicalFinsetList G).filter p).Nodup :=
     (canonicalFinsetList_nodup G).filter p
-  have hpairG : (canonicalFinsetList G).Pairwise bitStringLE := Finset.pairwise_sort G bitStringLE
+  have hpairG : (canonicalFinsetList G).Pairwise bitStringLE := Finset.pairwise_sort G
+      bitStringLE
   have hpair : ((canonicalFinsetList G).filter p).Pairwise bitStringLE :=
     List.Pairwise.filter p hpairG
   have htf : ((canonicalFinsetList G).filter p).toFinset = G.filter (fun x => p x) := by
@@ -2204,7 +2147,8 @@ theorem greedy_fold_correspondence (G : Finset BitString) (size : ℕ) :
       let stl' := L.foldl (greedyWindowStepList (canonicalFinsetList G) size) (dl, wl, cl)
       let stf' := (L.map List.toFinset).foldl
         (GreedyWindow.step G (fun S => firstElements S size)) (df, wf, cf)
-      stl'.1.toFinset = stf'.1 ∧ stl'.2.1 = canonicalFinsetList stf'.2.1 ∧ stl'.2.2 = stf'.2.2 := by
+      stl'.1.toFinset = stf'.1 ∧ stl'.2.1 = canonicalFinsetList stf'.2.1 ∧ stl'.2.2 =
+          stf'.2.2 := by
   intro L
   induction L with
   | nil =>
@@ -2213,20 +2157,17 @@ theorem greedy_fold_correspondence (G : Finset BitString) (size : ℕ) :
   | cons d rest ih =>
     intro dl wl cl df wf cf h1 h2 h3
     -- new deleted set (list side) and its `toFinset`.
-    have hdel :
-        (List.localDedup
-          (dl ++ d.filter (fun x => (canonicalFinsetList G).elem x))).toFinset =
-            df ∪ (d.toFinset ∩ G) := by
+    have hdel : (List.dedup (dl ++ (d.filter (fun x => (canonicalFinsetList G).elem
+        x)))).toFinset
+        = df ∪ (d.toFinset ∩ G) := by
       ext x
-      simp only [List.mem_toFinset, List.mem_localDedup, List.mem_append, List.mem_filter,
+      simp only [List.mem_toFinset, mem_List.dedup, List.mem_append, List.mem_filter,
         List.elem_eq_mem, decide_eq_true_eq, Finset.mem_union, Finset.mem_inter,
         mem_canonicalFinsetList, ← h1]
     -- the emptiness test agrees on both sides.
-    have htest :
-        (wl.all (fun x =>
-          (List.localDedup
-            (dl ++ d.filter (fun x => (canonicalFinsetList G).elem x))).elem x) = true) ↔
-          wf ⊆ df ∪ (d.toFinset ∩ G) := by
+    have htest : (wl.all (fun x => (List.dedup (dl ++ (d.filter (fun x => (canonicalFinsetList
+        G).elem x)))).elem x) = true)
+        ↔ (wf ⊆ df ∪ (d.toFinset ∩ G)) := by
       rw [List.all_eq_true]
       constructor
       · intro hall y hy
@@ -2252,7 +2193,8 @@ theorem greedy_fold_correspondence (G : Finset BitString) (size : ℕ) :
       · exact h2
       · exact h3
 
-theorem greedyWindowFoldList_eq (G : Finset BitString) (size : ℕ) (L : List (List BitString)) :
+theorem greedyWindowFoldList_eq (G : Finset BitString) (size : ℕ) (L : List (List BitString))
+    :
     let st' := greedyWindowFoldList (canonicalFinsetList G) size L
     (st'.1.toFinset, st'.2.1.toFinset, st'.2.2) = GreedyWindow.fold G
         (fun S => firstElements S size) (L.map List.toFinset) := by
@@ -2278,7 +2220,8 @@ theorem greedyWindowFoldList_window_canonical (G : Finset BitString) (size : ℕ
       :=
       by
     rw [firstElements_eq_take, canonical_prefix]
-  obtain ⟨_, e2, _⟩ := greedy_fold_correspondence G size L [] ((canonicalFinsetList G).take size) 0
+  obtain ⟨_, e2, _⟩ := greedy_fold_correspondence G size L [] ((canonicalFinsetList G).take
+      size) 0
     ∅ (firstElements G size) 0 (by simp) hinit_w rfl
   simpa only [greedyWindowFoldList, GreedyWindow.fold] using e2
 
@@ -2287,23 +2230,21 @@ theorem temporalRefreshCountList_eq (c : Nat.Partrec.Code) (n : ℕ) (curve : Bi
     temporalRefreshCountList c n curve m c_gen i t = temporalRefreshCount c n (decodeCurve
         curve) m
         c_gen i t := by
-  unfold temporalRefreshCountList temporalRefreshCount stringsOfLength
+  unfold temporalRefreshCountList temporalRefreshCount
   have h := greedyWindowFoldList_eq ((allStrings n).toFinset) (2 ^ decodeCurve curve i)
     (temporalBadEnumListList c n curve m c_gen t)
   have h2 := congrArg (fun p : Finset BitString × Finset BitString × ℕ => p.2.2) h
   simp only at h2
   rw [h2, temporalBadEnumListList_eq]
-/-
-Computability plumbing for the list-mirror layer.  The `*_eq` correspondence
-chain and the `c`-independent fold definitions above are complete.
+  rfl
 
-The development proceeds through:
-* `snapshotDescList_primrec` (DescriptionSnapshot.lean:234), which gives the hard
-  `c`-parameterized enumeration as `Primrec`.
+/-
+Computability plumbing for the list-mirror layer:
+* `snapshotDescList_primrec` gives the `c`-parameterized enumeration as `Primrec`.
 * the general primitive-recursion helpers `natPow_primrec`, `natSize_primrec`,
   `logSlack_primrec`, `decodeCurve_primrec`, `list_mem_decide_primrec` and
-  `local_dedup_primrec`.
-* `badSetsUpToTimeList_primrec` = `List.localDedup` of a `flatMap`/`filter` over
+  `list_dedup_gen_primrec`.
+* `badSetsUpToTimeList_primrec` = `List.dedup` of a `flatMap`/`filter` over
   `List.range n` whose predicate uses `decodeCurve` and `logSlack`, then
   `newBadSetsAtTimeList_primrec` / `temporalBadEnumListList_primrec` by
   `filter`/`flatMap` composition, and finally `temporalRefreshCountList_computable`
@@ -2313,7 +2254,8 @@ The development proceeds through:
 Natural-number exponentiation is primitive recursive in both arguments.
 -/
 theorem natPow_primrec : Primrec₂ (fun a b : ℕ => a ^ b) := by
-  exact Primrec.nat_iff.mpr Nat.Primrec.pow
+  refine Primrec.nat_iff.2 ?_;
+  refine Nat.Primrec.pow.of_eq (by intro p; rfl)
 
 /-
 `Nat.size` (the binary length) is primitive recursive.  Uses the closed form
@@ -2326,10 +2268,11 @@ theorem natSize_primrec : Primrec (fun n => Nat.size n) := by
           by
     convert Primrec.comp ( Primrec.list_length ) ( list_filter_primrec ( Primrec.comp (
         Primrec.list_range ) ( Primrec.succ ) ) _ ) using 1;
-    exact (PrimrecPred.decide
-      (Primrec.nat_le.comp
-        (natPow_primrec.comp (Primrec.const 2) Primrec.snd) Primrec.fst)).of_eq
-      (fun _ => rfl)
+    convert Primrec.nat_le.comp ( natPow_primrec.comp ( Primrec.const 2 ) ( Primrec.snd ) ) (
+        Primrec.fst ) using 1;
+    constructor <;> intro h <;> simp_all +decide only [Primrec₂, PrimrecPred];
+    · exact ⟨ inferInstance, h ⟩;
+    · grind
   generalize_proofs at *
   convert h_size_primrec using 1
   ext n
@@ -2367,11 +2310,12 @@ theorem logSlack_primrec : Primrec₂ (fun c n : ℕ => logSlack c n) := by
 /-
 `decodeCurve` is primitive recursive in the code bitstring and the index.
 -/
-theorem decodeCurve_primrec :
-    Primrec₂ (fun (code : BitString) (i : ℕ) => decodeCurve code i) := by
+theorem decodeCurve_primrec : Primrec₂ (fun (code : BitString) (i : ℕ) => decodeCurve code
+    i) := by
   have h_splitOnP : ∀ (code : BitString),
       (List.splitOnP (fun x : Bool => !x) code).map List.length =
-        code.foldr (fun b acc => if b then (acc.headI + 1) :: acc.tail else 0 :: acc) [0] := by
+        code.foldr (fun b acc => if b then ((acc.headI + 1) :: acc.tail) else 0 :: acc) [0] :=
+            by
     intro code
     induction code with
     | nil => simp [List.splitOnP_nil]
@@ -2391,10 +2335,11 @@ theorem decodeCurve_primrec :
           simp [List.modifyHead]
   have h_splitOn : ∀ (code : BitString),
       (code.splitOn false).map List.length =
-        code.foldr (fun b acc => if b then (acc.headI + 1) :: acc.tail else 0 :: acc) [0] := by
+        code.foldr (fun b acc => if b then ((acc.headI + 1) :: acc.tail) else 0 :: acc) [0] :=
+            by
     intro code
     simpa [List.splitOn] using h_splitOnP code
-  convert Primrec₂.of_eq _ _
+  convert Primrec₂.of_eq _ _;
   · exact fun code i =>
       (code.foldr (fun b acc => if b then (acc.headI + 1) :: acc.tail else 0 :: acc)
         [0]).getD i 0
@@ -2408,35 +2353,30 @@ theorem decodeCurve_primrec :
             (fun (p : BitString × List ℕ) => (List.foldr (fun b acc => if b = true then
                 (acc.headI + 1) :: acc.tail else 0 :: acc) p.2 p.1))
             := by
-          convert Primrec.list_foldr _ _ _
-          rotate_left
-          · exact inferInstance
-          · exact fun p q => if q.1 then (q.2.headI + 1) :: q.2.tail else 0 :: q.2
+          convert Primrec.list_foldr _ _ _;
+          rotate_left;
+          · exact inferInstance;
+          · exact fun p q => if q.1 then ( q.2.headI + 1 ) :: q.2.tail else 0 :: q.2;
           · exact Primrec.fst;
           · exact Primrec.snd;
-          · exact Primrec.ite
-              (Primrec.eq.comp
-                (Primrec.fst.comp Primrec.snd :
-                  Primrec (fun p : (BitString × List ℕ) × (Bool × List ℕ) => p.2.1))
-                (Primrec.const true))
-              ((Primrec.list_cons.comp
-                (Primrec.nat_add.comp
-                  (Primrec.list_headI.comp (Primrec.snd.comp Primrec.snd))
-                  (Primrec.const 1))
-                (Primrec.list_tail.comp (Primrec.snd.comp Primrec.snd))).of_eq
-                  (by intro p; rfl))
-              (Primrec.list_cons.comp (Primrec.const 0) (Primrec.snd.comp Primrec.snd))
+          · refine (Primrec.ite ?_ ?_ ?_).of_eq (by intro p; rfl)
+            · exact Primrec.eq.comp ( Primrec.fst.comp ( Primrec.snd ) ) ( Primrec.const true
+                )
+            · refine (Primrec.list_cons.comp ( Primrec.nat_add.comp ( Primrec.list_headI.comp (
+                Primrec.snd.comp ( Primrec.snd ) ) ) ( Primrec.const 1 ) ) (
+                Primrec.list_tail.comp ( Primrec.snd.comp ( Primrec.snd ) ) )).of_eq
+                (by intro p; rfl)
+            · exact Primrec.list_cons.comp ( Primrec.const 0 ) ( Primrec.snd.comp ( Primrec.snd
+                ) )
           · rfl
         have h_getD : Primrec (fun (p : List ℕ × ℕ) => p.1.getD p.2 0) := by
-          exact (Primrec.option_getD.comp Primrec.list_getElem? (Primrec.const 0)).of_eq
-            (by intro p; rfl)
-        exact (h_getD.comp
-          (h_foldr.comp (Primrec.fst.pair (Primrec.const [0])) |>
-            Primrec.pair <| Primrec.snd)).of_eq (by intro p; rfl)
-      exact h_foldr
-    · exact fun _ _ => rfl
-  · unfold decodeCurve
-    aesop
+          refine (Primrec.option_getD.comp ( Primrec.list_getElem? )
+            ( Primrec.const 0 )).of_eq (by intro p; rfl)
+        refine (h_getD.comp ( h_foldr.comp ( Primrec.fst.pair ( Primrec.const [ 0 ] ) ) |>
+            Primrec.pair <| Primrec.snd )).of_eq (by intro p; rfl)
+      exact h_foldr;
+    · exact fun _ _ => rfl;
+  · unfold decodeCurve; aesop;
 
 /-- Membership `a ∈ l` is a primitive-recursive relation for any primcodable type
 with decidable equality. -/
@@ -2455,18 +2395,40 @@ theorem list_mem_decide_primrec {α} [Primcodable α] [DecidableEq α] :
         exact fun heq => absurd heq.symm h
   have hcond : PrimrecPred (fun a : (α × List α) × (α × Bool) => a.2.1 = a.1.1) :=
     Primrec.eq.comp (Primrec.fst.comp Primrec.snd) (Primrec.fst.comp Primrec.fst)
-  have hstep : Primrec₂ (fun (p : α × List α) (q : α × Bool) => if q.1 = p.1 then true else q.2) :=
+  have hstep : Primrec₂ (fun (p : α × List α) (q : α × Bool) => if q.1 = p.1 then true
+      else q.2) :=
     Primrec.ite hcond (Primrec.const true) (Primrec.snd.comp Primrec.snd)
   exact (Primrec.list_foldr Primrec.snd (Primrec.const false) hstep).of_eq (fun p => (key p.1
       p.2).symm)
 
+/-
+The project-local `List.dedup` agrees with Mathlib's `_root_.List.dedup`
+(general element type).
+-/
+theorem list_dedup_eq_root_gen {α} [DecidableEq α] (l : List α) :
+    List.dedup l = _root_.List.dedup l := by
+      induction l <;> simp_all +decide [ List.dedup ];
+      aesop
 
-
-/-- The project-local `List.localDedup` is primitive recursive for any primcodable type
+/-- The project-local `List.dedup` is primitive recursive for any primcodable type
 with decidable equality. -/
-theorem localDedup_gen_primrec {α} [Primcodable α] [DecidableEq α] :
-    Primrec (fun l : List α => List.localDedup l) :=
-  local_dedup_primrec
+theorem list_dedup_gen_primrec {α} [Primcodable α] [DecidableEq α] :
+    Primrec (fun l : List α => List.dedup l) := by
+  have key : ∀ l : List α,
+      List.dedup l = l.foldr (fun a acc => if a ∈ acc then acc else a :: acc) [] := by
+    intro l; induction l with
+    | nil => rfl
+    | cons a t ih => simp only [List.dedup, List.foldr_cons, ih]
+  have hmem := @list_mem_decide_primrec α _ _
+  have hbool : Primrec (fun p : List α × (α × List α) => decide (p.2.1 ∈ p.2.2)) :=
+    hmem.comp (Primrec.fst.comp Primrec.snd) (Primrec.snd.comp Primrec.snd)
+  have hstep : Primrec₂ (fun (_ : List α) (q : α × List α) => if q.1 ∈ q.2 then q.2 else
+      q.1 :: q.2)
+      := by
+    have := Primrec.cond hbool (Primrec.snd.comp Primrec.snd)
+      (Primrec.list_cons.comp (Primrec.fst.comp Primrec.snd) (Primrec.snd.comp Primrec.snd))
+    exact this.of_eq (fun p => by cases h : decide (p.2.1 ∈ p.2.2) <;> simp_all)
+  exact (Primrec.list_foldr Primrec.id (Primrec.const []) hstep).of_eq (fun l => (key l).symm)
 
 /-- Primitive-recursive version of `badSetsUpToTimeList_computable`. -/
 theorem badSetsUpToTimeList_primrec (c : Nat.Partrec.Code) :
@@ -2481,8 +2443,9 @@ theorem badSetsUpToTimeList_primrec (c : Nat.Partrec.Code) :
     apply list_filter_primrec;
     · exact Primrec.list_range.comp ( Primrec.fst.comp ( Primrec.fst ) );
     · have h_pred : Primrec
-          (fun (p : (ℕ × BitString × ℕ × ℕ) × ℕ) =>
-            decide (p.1.2.2.1 + logSlack p.1.2.2.2 p.1.1 < decodeCurve p.1.2.1 p.2)) := by
+          (fun (p : (ℕ × BitString × ℕ × ℕ) × ℕ) => decide (p.1.2.2.1 + logSlack
+              p.1.2.2.2 p.1.1 < decodeCurve p.1.2.1 p.2))
+          := by
         have hc : Primrec (fun (p : (ℕ × BitString × ℕ × ℕ) × ℕ) => p.1.2.2.2) :=
           Primrec.snd.comp (Primrec.snd.comp (Primrec.snd.comp Primrec.fst))
         have hn : Primrec (fun (p : (ℕ × BitString × ℕ × ℕ) × ℕ) => p.1.1) :=
@@ -2494,7 +2457,8 @@ theorem badSetsUpToTimeList_primrec (c : Nat.Partrec.Code) :
         have hcurve : Primrec (fun (p : (ℕ × BitString × ℕ × ℕ) × ℕ) => p.1.2.1) :=
           Primrec.fst.comp (Primrec.snd.comp Primrec.fst)
         have h_rhs := decodeCurve_primrec.comp hcurve Primrec.snd
-        exact (PrimrecPred.decide (Primrec.nat_lt.comp h_lhs h_rhs)).of_eq (fun _ => rfl)
+        exact (PrimrecPred.decide (Primrec.nat_lt.comp h_lhs h_rhs)).of_eq
+          (fun _ => rfl)
       exact (h_pred.comp (Primrec.pair (Primrec.fst.comp Primrec.fst) Primrec.snd)).of_eq
         (fun _ => rfl)
   have h_flatMap : Primrec
@@ -2522,32 +2486,24 @@ theorem badSetsUpToTimeList_primrec (c : Nat.Partrec.Code) :
           have h_flatMap : Primrec
               (fun p : (ℕ × BitString × ℕ × ℕ) × ℕ => p.1.2.2.1 + logSlack p.1.2.2.2
                   p.1.1) := by
-            exact Primrec.nat_add.comp
-              (Primrec.fst.comp (Primrec.snd.comp (Primrec.snd.comp Primrec.fst)))
-              (logSlack_primrec.comp
-                (Primrec.snd.comp (Primrec.snd.comp (Primrec.snd.comp Primrec.fst)))
-                (Primrec.fst.comp Primrec.fst))
-          exact Primrec.of_eq
-            (Primrec.nat_sub.comp
-              (‹Primrec fun p : (ℕ × BitString × ℕ × ℕ) × ℕ =>
-                  decodeCurve p.1.2.1 p.2›.comp
-                (Primrec.fst.comp Primrec.id |>
-                  Primrec.pair <| Primrec.snd.comp <| Primrec.snd.comp Primrec.id))
-              (h_flatMap.comp
-                (Primrec.fst.comp Primrec.id |>
-                  Primrec.pair <| Primrec.snd.comp <| Primrec.snd.comp Primrec.id)))
-            (by intro p; rfl)
-      exact Primrec.of_eq (snapshotDescList_primrec c |> Primrec.comp <| h_flatMap)
-        (by intro p; rfl)
+            exact Primrec.nat_add.comp ( Primrec.fst.comp ( Primrec.snd.comp (
+                Primrec.snd.comp ( Primrec.fst ) ) ) ) ( logSlack_primrec.comp (
+                Primrec.snd.comp ( Primrec.snd.comp ( Primrec.snd.comp ( Primrec.fst ) ) ) ) (
+                Primrec.fst.comp ( Primrec.fst ) ) )
+          refine (Primrec.nat_sub.comp ( ‹Primrec fun p : ( ℕ × BitString × ℕ × ℕ )
+              × ℕ => decodeCurve p.1.2.1 p.2›.comp ( Primrec.fst.comp Primrec.id |>
+              Primrec.pair <| Primrec.snd.comp <| Primrec.snd.comp Primrec.id ) ) (
+              h_flatMap.comp ( Primrec.fst.comp Primrec.id |> Primrec.pair <| Primrec.snd.comp
+              <| Primrec.snd.comp Primrec.id ) )).of_eq (by intro p; rfl)
+      exact (snapshotDescList_primrec c).comp h_flatMap
     convert Primrec.list_flatMap _ _ using 1;
     all_goals try infer_instance;
     · exact h_filter;
-    · exact Primrec.of_eq
-        (h_flatMap.comp
-          (Primrec.pair (Primrec.fst.comp Primrec.fst)
-            (Primrec.pair (Primrec.snd.comp Primrec.fst) Primrec.snd)))
-        (by intro p; rfl)
-  exact Primrec.of_eq (localDedup_gen_primrec.comp h_flatMap) (by intro p; rfl)
+    · refine (h_flatMap.comp ( show Primrec ( fun p : ( ( ℕ × BitString × ℕ × ℕ ) ×
+        ℕ ) × ℕ => ( p.1.1, p.1.2, p.2 ) ) from ?_ )).of_eq (by intro p; rfl)
+      exact Primrec.pair ( Primrec.fst.comp ( Primrec.fst ) ) ( Primrec.pair ( Primrec.snd.comp
+          ( Primrec.fst ) ) ( Primrec.snd ) );
+  exact list_dedup_gen_primrec.comp h_flatMap
 
 theorem badSetsUpToTimeList_computable (c : Nat.Partrec.Code) :
     Computable (fun p : (ℕ × BitString × ℕ × ℕ) × ℕ => badSetsUpToTimeList c p.1.1
@@ -2571,31 +2527,26 @@ theorem newBadSetsAtTimeList_primrec (c : Nat.Partrec.Code) :
       := by
     refine Primrec.ite ?_ ?_ ?_;
     · exact Primrec.eq.comp ( Primrec.snd ) ( Primrec.const 0 );
-    · exact Primrec.of_eq
-        ((badSetsUpToTimeList_primrec c).comp
-          (Primrec.pair Primrec.fst (Primrec.const 0)))
-        (by intro p; rfl)
+    · convert (badSetsUpToTimeList_primrec c).comp
+          (Primrec.pair Primrec.fst (Primrec.const 0)) using 1
     · have h_current : Primrec
-          (fun p : (ℕ × BitString × ℕ × ℕ) × ℕ =>
-            badSetsUpToTimeList c p.1.1 p.1.2.1 p.1.2.2.1 p.1.2.2.2 p.2) := by
-        convert badSetsUpToTimeList_primrec c using 1
+        (fun p : (ℕ × BitString × ℕ × ℕ) × ℕ => badSetsUpToTimeList c p.1.1 p.1.2.1
+            p.1.2.2.1 p.1.2.2.2 p.2)
+        := by
+        convert badSetsUpToTimeList_primrec c using 1;
       have h_previous : Primrec
-          (fun p : (ℕ × BitString × ℕ × ℕ) × ℕ =>
-            badSetsUpToTimeList c p.1.1 p.1.2.1 p.1.2.2.1 p.1.2.2.2 (p.2 - 1)) := by
-        exact Primrec.of_eq
-          (h_current.comp
-            (Primrec.fst.comp Primrec.id |>
-              Primrec.pair <|
-                Primrec.nat_sub.comp (Primrec.snd.comp Primrec.id) (Primrec.const 1)))
+          (fun p : (ℕ × BitString × ℕ × ℕ) × ℕ => badSetsUpToTimeList c p.1.1
+              p.1.2.1 p.1.2.2.1 p.1.2.2.2 (p.2 - 1))
+          := by
+        refine (h_current.comp ( Primrec.fst.comp ( Primrec.id ) |> Primrec.pair <|
+            Primrec.nat_sub.comp ( Primrec.snd.comp ( Primrec.id ) ) ( Primrec.const 1 ) )).of_eq
           (by intro p; rfl)
-      convert list_filter_primrec _ _ using 1
-      · exact h_current
-      · exact Primrec.of_eq
-          (Primrec.not.comp
-            (list_mem_decide_primrec.comp Primrec.snd (h_previous.comp Primrec.fst)))
-          (by intro p; simp)
-  exact Primrec.of_eq h_cond
-    (by intro p; cases p.2 <;> simp +decide [newBadSetsAtTimeList])
+      refine (list_filter_primrec ?_ ?_).of_eq (by intro p; rfl)
+      · exact h_current;
+      · refine (Primrec.not.comp ?_).of_eq (by intro p; rfl)
+        refine (list_mem_decide_primrec.comp ( Primrec.snd )
+          ( h_previous.comp ( Primrec.fst ) )).of_eq (by intro p; simp)
+  refine (h_cond).of_eq (by intro p; cases p.2 <;> simp +decide [ newBadSetsAtTimeList ])
 
 theorem newBadSetsAtTimeList_computable (c : Nat.Partrec.Code) :
     Computable (fun p : (ℕ × BitString × ℕ × ℕ) × ℕ => newBadSetsAtTimeList c p.1.1
@@ -2612,14 +2563,11 @@ theorem temporalBadEnumListList_primrec (c : Nat.Partrec.Code) :
         := by
   have := @newBadSetsAtTimeList_primrec;
   specialize this c;
-  have hf : Primrec (fun p : (ℕ × BitString × ℕ × ℕ) × ℕ => List.range (p.2 + 1)) :=
-    Primrec.of_eq (Primrec.list_range.comp (Primrec.succ.comp Primrec.snd)) (by intro p; rfl)
-  have hg : Primrec₂ (fun (p : (ℕ × BitString × ℕ × ℕ) × ℕ) (j : ℕ) =>
-      newBadSetsAtTimeList c p.1.1 p.1.2.1 p.1.2.2.1 p.1.2.2.2 j) :=
-    Primrec.of_eq
-      (this.comp (Primrec.fst.comp Primrec.fst |> Primrec.pair <| Primrec.snd))
-      (by intro p; rfl)
-  exact Primrec.of_eq (Primrec.list_flatMap hf hg) (by intro p; simp [temporalBadEnumListList])
+  apply Primrec.list_flatMap
+  · refine (Primrec.comp ( Primrec.list_range )
+      ( Primrec.succ.comp ( Primrec.snd ) )).of_eq (by intro p; rfl)
+  · exact this.comp ( Primrec.fst.comp ( Primrec.fst ) |> Primrec.pair <| Primrec.snd ) |>
+      Primrec.comp <| Primrec.id
 
 theorem temporalBadEnumListList_computable (c : Nat.Partrec.Code) :
     Computable (fun p : (ℕ × BitString × ℕ × ℕ) × ℕ => temporalBadEnumListList c
@@ -2643,13 +2591,15 @@ theorem take_eq_filterMap {α} (l : List α) (k : ℕ) :
 /-- `List.take` is primitive recursive in the list and the length. -/
 theorem list_take_primrec {α} [Primcodable α] :
     Primrec₂ (fun (l : List α) (n : ℕ) => l.take n) := by
-  have h : Primrec₂ (fun (l : List α) (n : ℕ) => (List.range n).filterMap (fun i => l[i]?)) :=
+  have h : Primrec₂ (fun (l : List α) (n : ℕ) => (List.range n).filterMap (fun i => l[i]?))
+      :=
     Primrec.listFilterMap (Primrec.list_range.comp Primrec.snd)
       (Primrec.list_getElem?.comp (Primrec.fst.comp Primrec.fst) Primrec.snd)
   exact h.of_eq (fun l n => (take_eq_filterMap l n).symm)
 
 /-- `List.all` is primitive recursive (dual of `list_any_primrec`). -/
-theorem list_all_primrec {α β} [Primcodable α] [Primcodable β] {f : α → List β} {p : α → β → Bool}
+theorem list_all_primrec {α β} [Primcodable α] [Primcodable β] {f : α → List β} {p : α
+    → β → Bool}
     (hf : Primrec f) (hp : Primrec₂ p) : Primrec (fun a => (f a).all (p a)) := by
   have heq : (fun a => (f a).all (p a))
       = (fun a => (f a).foldr (fun b acc => p a b && acc) true) := by
@@ -2663,12 +2613,27 @@ theorem list_all_primrec {α β} [Primcodable α] [Primcodable β] {f : α → L
       (fun a q => by cases p a q.1 <;> simp)
   exact Primrec.list_foldr hf (Primrec.const true) hstep
 
-/-- The list implementation of one `greedyWindowStep` is primitive recursive. -/
+/-- The project-local `List.dedup` agrees with Mathlib's `_root_.List.dedup`. -/
+theorem list_dedup_eq_root (l : List BitString) : List.dedup l = _root_.List.dedup l := by
+  induction l with
+  | nil => rfl
+  | cons a t ih =>
+    unfold List.dedup
+    rw [ih]
+    by_cases h : a ∈ t
+    · rw [if_pos (List.mem_dedup.mpr h), _root_.List.dedup_cons_of_mem h]
+    · rw [if_neg (fun hc => h (List.mem_dedup.mp hc)), _root_.List.dedup_cons_of_notMem h]
+
+/-- The project-local `List.dedup` is primitive recursive. -/
+theorem local_dedup_primrec : Primrec (fun l : List BitString => List.dedup l) :=
+  dedup_primrec.of_eq (fun l => (list_dedup_eq_root l).symm)
+
 theorem greedyWindowStepList_primrec :
     Primrec (fun p : (List BitString × ℕ) × (List BitString × List BitString × ℕ) ×
         List BitString =>
       greedyWindowStepList p.1.1 p.1.2 p.2.1 p.2.2) := by
-  set P := (List BitString × ℕ) × (List BitString × List BitString × ℕ) × List BitString with hP
+  set P := (List BitString × ℕ) × (List BitString × List BitString × ℕ) × List
+      BitString with hP
   have hG : Primrec (fun p : P => p.1.1) := Primrec.fst.comp Primrec.fst
   have hsize : Primrec (fun p : P => p.1.2) := Primrec.snd.comp Primrec.fst
   have hst1 : Primrec (fun p : P => p.2.1.1) := Primrec.fst.comp (Primrec.fst.comp Primrec.snd)
@@ -2683,39 +2648,39 @@ theorem greedyWindowStepList_primrec :
       (bitString_mem_primrec.comp Primrec.snd (Primrec.fst.comp (Primrec.fst.comp Primrec.fst)))
   -- deleted := dedup (st.1 ++ d.filter (· ∈ G))
   have hdel : Primrec (fun p : P =>
-      List.localDedup (p.2.1.1 ++ p.2.2.filter (fun x => decide (x ∈ p.1.1)))) :=
+      List.dedup (p.2.1.1 ++ p.2.2.filter (fun x => decide (x ∈ p.1.1)))) :=
     local_dedup_primrec.comp (Primrec.list_append.comp hst1 hfilt)
   -- membership in `deleted` (decide form)
   have hmemdel : Primrec₂ (fun (p : P) (x : BitString) =>
-      decide (x ∈ List.localDedup (p.2.1.1 ++ p.2.2.filter (fun x => decide (x ∈ p.1.1))))) :=
+      decide (x ∈ List.dedup (p.2.1.1 ++ p.2.2.filter (fun x => decide (x ∈ p.1.1))))) :=
     bitString_mem_primrec.comp Primrec.snd (hdel.comp Primrec.fst)
   -- test: window ⊆ deleted
   have htest : Primrec (fun p : P =>
       p.2.1.2.1.all (fun x =>
-        decide (x ∈ List.localDedup (p.2.1.1 ++ p.2.2.filter (fun x => decide (x ∈ p.1.1)))))) :=
+        decide (x ∈ List.dedup (p.2.1.1 ++ p.2.2.filter (fun x => decide (x ∈ p.1.1)))))) :=
     list_all_primrec hst21 hmemdel
   -- refreshed window: (G.filter (· ∉ deleted)).take size
   have hnewwin : Primrec (fun p : P =>
       ((p.1.1).filter (fun x =>
-        ! decide (x ∈ List.localDedup
-          (p.2.1.1 ++ p.2.2.filter (fun x => decide (x ∈ p.1.1)))))).take p.1.2) :=
+        ! decide (x ∈ List.dedup (p.2.1.1 ++ p.2.2.filter (fun x => decide (x ∈
+            p.1.1)))))).take p.1.2) :=
     list_take_primrec.comp (list_filter_primrec hG (Primrec.not.comp hmemdel)) hsize
   -- assemble
   have hthen : Primrec (fun p : P =>
-      (List.localDedup (p.2.1.1 ++ p.2.2.filter (fun x => decide (x ∈ p.1.1))),
+      (List.dedup (p.2.1.1 ++ p.2.2.filter (fun x => decide (x ∈ p.1.1))),
         ((p.1.1).filter (fun x =>
-          ! decide (x ∈ List.localDedup
-            (p.2.1.1 ++ p.2.2.filter (fun x => decide (x ∈ p.1.1)))))).take p.1.2,
+          ! decide (x ∈ List.dedup (p.2.1.1 ++ p.2.2.filter (fun x => decide (x ∈
+              p.1.1)))))).take p.1.2,
         p.2.1.2.2 + 1)) :=
     Primrec.pair hdel (Primrec.pair hnewwin (Primrec.succ.comp hst22))
   have helse : Primrec (fun p : P =>
-      (List.localDedup (p.2.1.1 ++ p.2.2.filter (fun x => decide (x ∈ p.1.1))),
+      (List.dedup (p.2.1.1 ++ p.2.2.filter (fun x => decide (x ∈ p.1.1))),
         p.2.1.2.1, p.2.1.2.2)) :=
     Primrec.pair hdel (Primrec.pair hst21 hst22)
   have hcond : PrimrecPred (fun p : P =>
       (p.2.1.2.1.all (fun x =>
-        decide (x ∈ List.localDedup
-          (p.2.1.1 ++ p.2.2.filter (fun x => decide (x ∈ p.1.1)))))) = true) :=
+        decide (x ∈ List.dedup (p.2.1.1 ++ p.2.2.filter (fun x => decide (x ∈ p.1.1)))))) =
+            true) :=
     Primrec.eq.comp htest (Primrec.const true)
   refine (Primrec.ite hcond hthen helse).of_eq (fun p => ?_)
   simp only [greedyWindowStepList, List.elem_eq_mem]
@@ -2737,7 +2702,8 @@ theorem greedyWindowFoldList_computable :
       (Primrec.pair
         (list_take_primrec.comp (Primrec.fst.comp Primrec.fst) (Primrec.snd.comp Primrec.fst))
         (Primrec.const 0))
-  have hh : Primrec₂ (fun (p : Q) (sb : (List BitString × List BitString × ℕ) × List BitString) =>
+  have hh : Primrec₂ (fun (p : Q) (sb : (List BitString × List BitString × ℕ) × List
+      BitString) =>
       greedyWindowStepList p.1.1 p.1.2 sb.1 sb.2) :=
     greedyWindowStepList_primrec.comp (Primrec.pair (Primrec.fst.comp Primrec.fst) Primrec.snd)
   refine (Primrec.list_foldl hf hg hh).of_eq (fun p => ?_)
@@ -2770,19 +2736,16 @@ theorem temporalRefreshCountList_computable (c : Nat.Partrec.Code) :
           p.1.2.1 p.1.2.2.1 p.1.2.2.2.1 p.2)
       := by
     have := temporalBadEnumListList_computable c;
-    convert this.comp ( show Computable ( fun p : ( ℕ × BitString × ℕ × ℕ × ℕ ) ×
-        ℕ => ( ( p.1.1, p.1.2.1, p.1.2.2.1, p.1.2.2.2.1 ), p.2 ) ) from ?_ ) using 1;
+    refine (this.comp ( show Computable ( fun p : ( ℕ × BitString × ℕ × ℕ × ℕ ) ×
+        ℕ => ( ( p.1.1, p.1.2.1, p.1.2.2.1, p.1.2.2.2.1 ), p.2 ) ) from ?_ )).of_eq
+      (by intro p; rfl)
     exact Computable.pair ( Computable.pair ( Computable.fst.comp ( Computable.fst ) ) (
         Computable.pair ( Computable.fst.comp ( Computable.snd.comp ( Computable.fst ) ) ) (
         Computable.pair ( Computable.fst.comp ( Computable.snd.comp ( Computable.snd.comp (
         Computable.fst ) ) ) ) ( Computable.fst.comp ( Computable.snd.comp ( Computable.snd.comp
         ( Computable.snd.comp ( Computable.fst ) ) ) ) ) ) ) ) ( Computable.snd );
-  exact Computable.of_eq
-    (Computable.snd.comp
-      (Computable.snd.comp
-        (greedyWindowFoldList_computable.comp
-          (Computable.pair (Computable.pair hG hsize) hbad))))
-    (by intro p; rfl)
+  refine (Computable.snd.comp ( Computable.snd.comp ( greedyWindowFoldList_computable.comp (
+      Computable.pair ( Computable.pair hG hsize ) hbad ) ) )).of_eq (by intro p; rfl)
 
 /-- The computability of the temporal refresh count. -/
 theorem temporalRefreshCount_computable (c : Nat.Partrec.Code) :
@@ -2803,7 +2766,8 @@ which is also the representation used elsewhere in this development
 needed by `partrec_finalWindowFn`, whose window code is built through
 `codedUniformEncoder ∘ canonicalFinsetList`.  In contrast, `Finset.toList` uses
 the `Classical.choice`-based quotient representative and is not computable. -/
-theorem temporalWindowList_eq (c : Nat.Partrec.Code) (n : ℕ) (curve : BitString) (m c_gen i t : ℕ) :
+theorem temporalWindowList_eq (c : Nat.Partrec.Code) (n : ℕ) (curve : BitString) (m c_gen i t
+    : ℕ) :
     temporalWindowList c n curve m c_gen i t = canonicalFinsetList
         (temporalWindow c n (decodeCurve curve) m c_gen i t) := by
   unfold temporalWindowList temporalWindow
@@ -2830,13 +2794,13 @@ theorem temporalWindowList_computable (c : Nat.Partrec.Code) :
         by
       have hsize : Computable (fun p : (BitString × ℕ) => decodeCurve p.1 p.2) := by
         exact decodeCurve_primrec.to_comp;
-      convert hsize.comp ( Computable.fst.comp ( Computable.snd ) |> Computable.pair <|
+      refine (hsize.comp ( Computable.fst.comp ( Computable.snd ) |> Computable.pair <|
           Computable.snd.comp ( Computable.snd.comp ( Computable.snd.comp ( Computable.snd ) ) )
-          ) using 1;
-    convert Computable.comp ( show Computable ( fun n : ℕ => 2 ^ n ) from ?_ ) hsize using 1;
+          )).of_eq (by intro p; rfl)
+    refine (Computable.comp ( show Computable ( fun n : ℕ => 2 ^ n ) from ?_ ) hsize).of_eq
+      (by intro p; rfl)
     have h_exp : Primrec (fun n : ℕ => 2 ^ n) := by
-      exact Primrec.of_eq (natPow_primrec.comp ( Primrec.const 2 ) ( Primrec.id ))
-        (by intro p; rfl)
+      refine (natPow_primrec.comp ( Primrec.const 2 ) ( Primrec.id )).of_eq (by intro p; simp)
     exact h_exp.to_comp;
   have hp2 : Computable (fun p : (ℕ × BitString × ℕ × ℕ × ℕ) × ℕ =>
           ((p.1.1, p.1.2.1, p.1.2.2.1, p.1.2.2.2.1), p.2)) :=
@@ -2885,7 +2849,8 @@ theorem temporalWindow_nonempty_bool_computable (c : Nat.Partrec.Code) :
         have h_length_computable : Computable (fun n : ℕ => decide (n > 0)) := by
           have hsucc : Computable₂ (fun (_ _ : ℕ) => true) := Computable.const true
           refine Computable.of_eq
-            (Computable.nat_casesOn Computable.id (Computable.const false) hsucc) ?_
+            (Computable.nat_casesOn Computable.id (Computable.const false)
+              hsucc) ?_
           rintro (_ | _) <;> simp +decide
         exact h_length_computable.comp ( ‹Computable fun l : List BitString =>
             l.length›.comp ( temporalWindow_computable c ) );
@@ -2903,9 +2868,8 @@ theorem fwPacker_computable :
         ℕ × BitString × ℕ × ℕ × ℕ), s.2)) := by
   apply Computable.pair;
   · apply Computable.pair;
-    · exact Computable.of_eq
-        (Primrec.to_comp (decodeNatCode_primrec.comp (decodeFirst_primrec.comp Primrec.fst)))
-        (by intro p; rfl)
+    · refine (Primrec.to_comp (decodeNatCode_primrec.comp (decodeFirst_primrec.comp
+        Primrec.fst))).of_eq (by intro p; simp [fwNat_n])
     · apply Computable.pair;
       · have h_decodeSecond : Computable (fun s : BitString => decodeSecond s) := by
           exact decodeSecond_primrec.to_comp;
@@ -2949,7 +2913,8 @@ theorem finalWindowFn_window_nonempty_computable (c : Nat.Partrec.Code) :
     Computable (fun p : BitString × ℕ => decide ((temporalWindow c (fwNat_n p.1)
       (decodeCurve (fwCurveCode p.1)) (fwNat_m p.1) (fwNat_c_gen p.1) (fwNat_i p.1)
           p.2).Nonempty)) := by
-  refine Computable.of_eq ((temporalWindow_nonempty_bool_computable c).comp fwPacker_computable) ?_
+  refine Computable.of_eq ((temporalWindow_nonempty_bool_computable c).comp fwPacker_computable)
+      ?_
   intro p; dsimp only
 
 theorem finalWindowFn_version_computable :
@@ -3020,7 +2985,8 @@ theorem partrec_finalWindowFn (c : Nat.Partrec.Code) :
   -- predicate is a beta step and never forces `whnf` to evaluate the heavy `decide`.
   have heq2 : Computable₂ (fun a b : ℕ => decide (a = b)) :=
     (PrimrecPred.decide (Primrec.eq.comp Primrec.fst Primrec.snd)).to_comp
-  have hP := heq2.comp (finalWindowFn_refreshCount_computable c) finalWindowFn_version_computable
+  have hP := heq2.comp (finalWindowFn_refreshCount_computable c)
+      finalWindowFn_version_computable
   -- `finalWindowFn c` is *definitionally* `codedWindowDecoder P W`; unfolding exposes only the
   -- named decoder application, so matching the skeleton is structural.
   unfold finalWindowFn
@@ -3043,12 +3009,7 @@ theorem finalWindowFn_eval_decoded (c_U : Nat.Partrec.Code)
   simp only [Part.bind_some]
   simp [hne]
 
-/-- Decoder correctness for the intended curve `h`.
-
-This uses the current strengthened `ProfileCurve.curveDecodes` field, which gives full
-equality `decodeCurve hc.code = h`.  Older bounded-prefix variants of this field were too
-weak here because `temporalBadEnumList` scans all levels `j < n`; with full equality the
-decoded temporal process and the process for `h` are definitionally aligned after rewriting. -/
+/-- Coding a uniform distribution respects equality of its nonempty supporting finset. -/
 lemma codedUniformOn_congr {W1 W2 : Finset BitString} (hW : W1 = W2) (h1 : W1.Nonempty)
     (h2 : W2.Nonempty) :
     (codedUniformOn W1 h1).code = (codedUniformOn W2 h2).code := by
@@ -3082,15 +3043,14 @@ theorem finalWindowFn_eval (U : Map) (c_U : Nat.Partrec.Code) (hc_code : IsCodeF
     rw [hW]
     exact temporalWindow_nonempty U c_U hc_code n h m c_gen kx i T hrem
   have heval := finalWindowFn_eval_decoded c_U n m c_gen i T version hc.code hne hfind'
-  have heq : (codedUniformOn (temporalWindow c_U n (decodeCurve hc.code) m c_gen i T) hne).code =
+  have heq : (codedUniformOn (temporalWindow c_U n (decodeCurve hc.code) m c_gen i T) hne).code
+      =
              (codedUniformOn (temporalWindow c_U n h m c_gen i T) (temporalWindow_nonempty U c_U
                  hc_code n h m c_gen kx i T hrem)).code
                  := by
     apply codedUniformOn_congr
     rw [h_decode]
   rwa [heq] at heval
-
-
 
 theorem GreedyWindow_fold_count_mono {α : Type} [DecidableEq α] (G : Finset α)
     (first : Finset α → Finset α)
@@ -3148,8 +3108,7 @@ theorem exists_temporalWindowDecoder (U : Map) (hU : IsOptimalPrefixConditional 
             (temporalWindow_nonempty U c_U hc_code n h m c_gen kx i T hrem)).code
           ∈ enc (finalWindowInput n i m c_gen version hc.code) := by
   obtain ⟨c_U, hc_code⟩ : ∃ c_U : Nat.Partrec.Code, IsCodeFor c_U U := by
-    convert Nat.Partrec.Code.exists_code.mp hU.isDecompressor using 1
-    funext c_U; rfl
+    exact Nat.Partrec.Code.exists_code.mp hU.isDecompressor
   refine ⟨finalWindowFn c_U, partrec_finalWindowFn c_U, c_U, hc_code, ?_⟩
   intro c n kx m c_gen h hc i hrem
   obtain ⟨T, version, hbound, hT, hstable⟩ := temporalRefreshCount_stabilizes U c_U hc_code
@@ -3183,7 +3142,7 @@ theorem exists_temporalWindowDecoder (U : Map) (hU : IsOptimalPrefixConditional 
   refine ⟨version, hbound, T_find, hT_find, hstable_find, ?_⟩
   exact finalWindowFn_eval U c_U hc_code c n kx m c_gen i T_find version h hc hrem hT_find hfind
 
-/-- **Gate B5-core (the genuine Vereshchagin–Vitányi machine-model coding gate).**
+/- **Gate B5-core (the Vereshchagin–Vitányi machine-model coding gate).**
 
 This is the set-complexity content of the VV coding step: the final greedy window
 — a set of size `≤ 2^{h i}` — has set-complexity at most `i + m + O(log n)`.
@@ -3200,23 +3159,16 @@ Here `KPPlain(curve) ≤ m` (`hc.curveComplexity`), `KPPlain(n), KPPlain(i) = O(
 `bucket2_bound_of_curve`), so `KPPlain(r) = O(log r) = i + O(log n)`.  Summing gives
 the `i + m + O(log n)` bound.
 
-**Statement shape (fixed this pass).**  The `O(log n)` coding overhead is an
-*absolute* constant `c_code` coming from the (fixed) computable decoder — it depends
-only on `U`, **not** on the construction slack `c_gen` used to build `badEnumList`.
-The earlier statement wrote the bound as `logSlack c_gen n` and reused the *counting*
-constant `c_gen` (fixed to `3` by `sum_badSetsUnion_card_lt`).  That was the wrong
-shape: the coding overhead `KPPlain(n) + KPPlain(i) + KPPlain(r) + O(1) ≈ 5·log n`
-generally exceeds `logSlack 3 n = 3·(bits n).length + 3`, so the gate as previously
-stated was very likely *false*.  It is now `∃ c_code, ∀ …, setComplexity ≤
-i + m + logSlack c_code n` with `c_code` independent of the construction parameter
-`c_gen`; the caller then picks a working `c_gen ≥ max(3, c_code)` (counting still
-holds, via `sum_badSetsUnion_card_lt_of_le`, for that larger `c_gen`).
+The `O(log n)` coding overhead is an absolute constant `c_code` coming from the fixed
+computable decoder.  It depends only on `U`, not on the construction slack `c_gen`
+used to build `badEnumList`.  The caller can therefore choose
+`c_gen ≥ max 3 c_code`; the counting estimate continues to hold for this larger
+parameter by `sum_badSetsUnion_card_lt_of_le`.
 
-The hypotheses match the VV proof exactly: `hc : ProfileCurve` supplies both the
+The hypotheses match the VV proof: `hc : ProfileCurve` supplies both the
 curve budget `m` and the diagonal descent that bounds the version count; `hrem`
-supplies nonemptiness of the window.  The implementation below uses the concrete
-temporal simulation, rather than the false literal bridge
-`greedyWindow_version_count_eq_fold` documented above. -/
+supplies nonemptiness of the window.  The implementation uses the concrete temporal
+simulation. -/
 lemma ENat_add_five_mul (A B C D E F c_pair : ENat) :
   A + (B + (C + (D + (E + F + c_pair) + c_pair) + c_pair) + c_pair) + c_pair =
   A + B + C + D + E + F + (c_pair + c_pair + c_pair + c_pair + c_pair) := by
@@ -3341,7 +3293,8 @@ theorem firstElementsCube_setComplexity_le (U : Map) (hU : IsOptimalPrefixCondit
             have : (Nat.bits s).length ≤ (Nat.bits n).length := hsize
             have hb : (0 : ℕ) ≤ (Nat.bits n).length := Nat.zero_le _
             calc ((2 * (Nat.bits n).length + c_nat : ℕ) : ENat)
-                  + ((2 * (Nat.bits s).length + c_nat : ℕ) : ENat) + (c_pair : ENat) + (c : ENat)
+                  + ((2 * (Nat.bits s).length + c_nat : ℕ) : ENat) + (c_pair : ENat) + (c :
+                      ENat)
                 ≤ ((2 * (Nat.bits n).length + c_nat : ℕ) : ENat)
                   + ((2 * (Nat.bits n).length + c_nat : ℕ) : ENat) + (c_pair : ENat) + (c :
                       ENat) :=
@@ -3357,23 +3310,13 @@ theorem firstElementsCube_setComplexity_le (U : Map) (hU : IsOptimalPrefixCondit
   exact_mod_cast this
 
 /-
-**Statement repair (this pass): the `m ≤ n` regime.**  The general statement (any `m`)
-is *unprovable with the current decoder* `exists_temporalWindowDecoder`, whose input
-`finalWindowInput` contains `natCode m`; coding it costs `≈ 2·log m` plain-complexity bits,
-and `logSlack c_work n = c_work·(bits n).length + c_work` depends only on `n`, so `2·log m`
-cannot be absorbed once `m > n`.  This is not a mere Lean obstacle: for `m > n` the held
-temporal window is `firstElements (stringsOfLength n) (2^{h i})` (the bad-set list is empty,
-since `badEnumList` is nonempty only when some `h j > m + logSlack ≥ m`, while `h j ≤ h 0 ≤ n`),
-which is `m`-independent and would need a *different, `m`-free* decoder to code within budget.
-
-The restriction `m ≤ n` is faithful to the article: there `m = K(h)` is the complexity of the
-admissible curve `h`, which is a monotone function on `{0,…,n}` bounded by `h 0 ≤ n`, so
-`K(h) ≤ n + O(log n)`; the coding bound `i + m + O(log n)` is stated exactly in that regime.
-Under `m ≤ n` we have `log m ≤ log n`, which the current decoder can absorb into `logSlack`.
-The unrestricted main-theorem chain uses this lemma only in the internal `m ≤ n` branch;
-the complementary `m > n` branch is discharged directly by the `m`-free first-elements
-decoder.
+The decoder input `finalWindowInput` contains `natCode m`, whose plain-complexity
+cost is logarithmic in `m`.  The hypothesis `m ≤ n` lets `logSlack c_work n`
+absorb this cost.  In the main theorem this lemma is used only in the `m ≤ n`
+branch; the `m > n` branch uses the `m`-free first-elements decoder.
 -/
+/-- The temporal final window has complexity at most `i + m + O(log n)`, uniformly in
+the profile curve and construction parameters. -/
 theorem temporalWindow_setComplexity_le (U : Map) (hU : IsOptimalPrefixConditional U) :
     ∃ _c_code c_work : ℕ, 3 ≤ c_work ∧
     (∀ (n s : ℕ) (hne : (firstElements (stringsOfLength n) (2 ^ s)).Nonempty),
@@ -3398,7 +3341,8 @@ theorem temporalWindow_setComplexity_le (U : Map) (hU : IsOptimalPrefixCondition
   -- `c_work` must be large enough to absorb the *self-encoding* cost of `c_work` itself:
   -- the decoder input `finalWindowInput` contains `natCode c_work`, costing `≈ 2·log c_work`
   -- bits, and this must fit inside `logSlack c_work n` even when `n` is small (`B = 0, 1`).
-  -- Taking `c_work = base + 2·size base + 300` guarantees `2·size c_work ≤ 2·size base + O(1)`,
+  -- Taking `c_work = base + 2·size base + 300` guarantees `2·size c_work ≤ 2·size base +
+  -- O(1)`,
   -- which the `+300` slack covers.
   let base := 5 * c_pair + 4 * c_nat + c_len + c_sim + c_fe
   let c_work := base + 2 * Nat.size base + 300
@@ -3469,10 +3413,7 @@ theorem temporalWindow_setComplexity_le (U : Map) (hU : IsOptimalPrefixCondition
               ℕ) :=
           by
         rw [ENat_add_five_mul, ENat_five_mul]
-  -- We have `version ≤ 2 ^ (i + 1) + n * 2 ^ (i + 1) + 1` from `h_version_bound`.
-  -- The bit-length arithmetic is now isolated in `version_bits_length_le`; closing
-  -- this line still needs the matching plain-complexity coding lemma for raw
-  -- binary numerals, or a slightly larger slack constant using `KPPlain_le_length_add_log`.
+  -- Convert the version bound into a binary-length bound.
   have h_version_bits := version_bits_length_le n i version h_version_bound
   have h_len_version : (KPPlain U (Nat.bits version) : ENat) ≤
       (i + (Nat.bits (n + 1)).length + 2 + 2 * (Nat.bits (Nat.bits version).length).length +
@@ -3489,7 +3430,8 @@ theorem temporalWindow_setComplexity_le (U : Map) (hU : IsOptimalPrefixCondition
   have h_n : KPPlain U (natCode n) ≤ 2 * (Nat.bits n).length + c_nat := hc_nat n
   have h_i : KPPlain U (natCode i) ≤ 2 * (Nat.bits i).length + c_nat := hc_nat i
   have h_m_code : KPPlain U (natCode m) ≤ 2 * (Nat.bits m).length + c_nat := hc_nat m
-  have h_c_work : KPPlain U (natCode c_work) ≤ 2 * (Nat.bits c_work).length + c_nat := hc_nat c_work
+  have h_c_work : KPPlain U (natCode c_work) ≤ 2 * (Nat.bits c_work).length + c_nat := hc_nat
+      c_work
   -- Final absorption: under `hmn : m ≤ n` every non-`i`, non-`m` term is `O(log n)`, and the
   -- self-referential `natCode c_work` cost `2·log c_work` is covered by the `+300` slack in
   -- `c_work`.  The bit-length arithmetic is packaged in the `have`s below.
@@ -3500,8 +3442,8 @@ theorem temporalWindow_setComplexity_le (U : Map) (hU : IsOptimalPrefixCondition
     · have := Nat.size_le.mp ( show Nat.size k ≤ k / 2 + 3 from ?_ );
       · have := Nat.size_le.mpr this; omega;
       · rw [ Nat.size_le ];
-        rw [ ← Nat.mod_add_div k 2 ] ; have := Nat.mod_lt k two_pos
-        interval_cases k % 2 <;> norm_num at hk ⊢;
+        rw [ ← Nat.mod_add_div k 2 ] ; have := Nat.mod_lt k two_pos; interval_cases k % 2 <;>
+            norm_num at hk ⊢;
         · exact Nat.recOn (k / 2) (by norm_num) fun n ihn => by
             norm_num [Nat.pow_succ'] at ihn ⊢
             linarith
@@ -3562,25 +3504,12 @@ theorem temporalWindow_setComplexity_le (U : Map) (hU : IsOptimalPrefixCondition
     Nat.mul_le_mul_right n.size hc_work_ge
   omega
 
-/- Gate B5 (corrected): The final visited window is an `(i + m + O(log n), h i)`-description.
-This is the machine-model coding step of Vereshchagin-Vitanyi. By targeting specifically
-the final visited window at `v = L.length`, we avoid the vacuous over-generalization to all `v`.
-
-To bound the complexity by `i + m + O(log n)`, one must code this window by its
-*true visited version number* (which is bounded by `poly(n) * 2^i` via finite combinatorics),
-along with the parameters `n, i` and the curve `h` (which costs `m`). The proof requires
-a computable, dove-tailed simulation of the greedy process to map the bounded version
-number back to the window, applying `setComplexity_le_of_computable_code`.
-
-Old statement `mem_coverableSet_of_window` was technically true but misleading,
-as coding the literal large index `v` does not fit in `O(log n)` bits.
-
-**Statement repair (this pass).**  The earlier version of this gate carried no
-`ProfileCurve` hypothesis, which made it *under-hypothesized to the point of being
-false*: the coding bound `setComplexity ≤ i + m + O(log n)` genuinely needs (a)
-`m` to be an actual description budget for the curve `h` — supplied by `hc.curveComplexity`. -/
-
-
+/- Gate B5: The final visited window is an `(i + m + O(log n), h i)`-description.
+This is the machine-model coding step of Vereshchagin-Vitányi.  The window is coded
+by its visited version number, bounded by `poly(n) * 2^i`, together with `n`, `i`,
+and the curve.  A computable dovetailed simulation maps this bounded version number
+back to the window.  The `ProfileCurve` hypothesis supplies the curve-description
+budget through `hc.curveComplexity`. -/
 
 theorem badEnumList_nil_of_m_eq_n (U : Map) (n : ℕ) (h : ℕ → ℕ) (c_gen kx : ℕ)
     (h_top : h 0 ≤ n) (h_antitone : Antitone h) :
@@ -3598,7 +3527,8 @@ theorem badEnumList_nil_of_m_eq_n (U : Map) (n : ℕ) (h : ℕ → ℕ) (c_gen k
 
 theorem temporalBadEnumList_eq_nil_of_m_eq_n (U : Map) (c_U : Nat.Partrec.Code)
     (hc_code : IsCodeFor c_U U)
-    (n : ℕ) (h : ℕ → ℕ) (c_gen kx t : ℕ) (h_empty : badEnumList U n h n c_gen kx = []) :
+    (n : ℕ) (h : ℕ → ℕ) (c_gen kx t : ℕ) (h_empty : badEnumList U n h n c_gen kx = [])
+        :
     temporalBadEnumList c_U n h n c_gen t = [] := by
   have h_sub := temporalBadEnumList_sublist_badEnumList U c_U hc_code n h n c_gen kx t
   cases h_temp : temporalBadEnumList c_U n h n c_gen t with
@@ -3609,8 +3539,10 @@ theorem temporalBadEnumList_eq_nil_of_m_eq_n (U : Map) (c_U : Nat.Partrec.Code)
     rw [h_empty] at h_bad
     contradiction
 
-theorem temporalWindow_zero_m_eq_n (U : Map) (c_U : Nat.Partrec.Code) (hc_code : IsCodeFor c_U U)
-    (n : ℕ) (h : ℕ → ℕ) (c_work kx i : ℕ) (h_empty : badEnumList U n h n c_work kx = []) :
+theorem temporalWindow_zero_m_eq_n (U : Map) (c_U : Nat.Partrec.Code) (hc_code : IsCodeFor c_U
+    U)
+    (n : ℕ) (h : ℕ → ℕ) (c_work kx i : ℕ) (h_empty : badEnumList U n h n c_work kx =
+        []) :
     temporalWindow c_U n h n c_work i 0 = firstElements (stringsOfLength n) (2 ^ h i) := by
   unfold temporalWindow
   have h_temp := temporalBadEnumList_eq_nil_of_m_eq_n U c_U hc_code n h c_work kx 0 h_empty
@@ -3639,10 +3571,12 @@ theorem finalWindow_mem_coverableSet (U : Map) (hU : IsOptimalPrefixConditional 
         (badEnumList U n h m c_work kx).length).Nonempty),
       ∃ S, lexLeastSurvivor U n h m c_work kx ∈ S ∧
            S ∈ descriptionsWithComplexityLeAndSizeLe U (i + m + logSlack c_work n) (h i) := by
-  -- Use the temporal decoder code (`temporalWindow_setComplexity_le`) to bypass the static greedy
+  -- Use the temporal decoder code (`temporalWindow_setComplexity_le`) to bypass the static
+  -- greedy
   -- window entirely. The coded temporal window maintains the required set complexity, and
   -- `temporalWindow_contains_survivor` ensures the realizing point is within the output.
-  obtain ⟨c_code, c_work, hc_work, h_firstEl, h_temp⟩ := temporalWindow_setComplexity_le U hU
+  obtain ⟨c_code, c_work, hc_work, h_firstEl, h_temp⟩ := temporalWindow_setComplexity_le U
+      hU
   refine ⟨c_work, hc_work, fun c n kx m h hc i hi hrem => ?_⟩
   by_cases hmn : m ≤ n
   · obtain ⟨c_U, hc_code_U, T, h_stable, h_comp⟩ := h_temp c n kx m h hc i hi hmn hrem
@@ -3678,7 +3612,8 @@ theorem finalWindow_mem_coverableSet (U : Map) (hU : IsOptimalPrefixConditional 
         have h_eq_nil : (firstElements (stringsOfLength n) 1).toList = [] := by
           by_contra h_not_nil
           exact h_ne2 h_not_nil
-        have h_empty : firstElements (stringsOfLength n) 1 = ∅ := Finset.toList_eq_nil.mp h_eq_nil
+        have h_empty : firstElements (stringsOfLength n) 1 = ∅ := Finset.toList_eq_nil.mp
+            h_eq_nil
         have h_card := firstElements_card (stringsOfLength n) 1
         rw [h_empty] at h_card
         have h_pos : 0 < (stringsOfLength n).card := Finset.card_pos.mpr h_ne
@@ -3752,14 +3687,11 @@ theorem survivor_set_nonempty (U : Map) (n : ℕ) (h : ℕ → ℕ) (m c_gen kx 
   · rw [ badUnionUpTo_full_eq ];
     exact Finset.card_biUnion_le
 
--- `lexLeastSurvivor_mem_rem` moved earlier (needed by `temporalWindow_contains_survivor`).
-
 /-- Existence of a string in all coverable sets avoiding all bad sets.
 This is the joint counting/greedy heart of Vereshchagin–Vitányi.
 
-The *lower/avoidance* half is already fully proved without this gate
-(`exists_string_avoiding_curve`, a pure counting argument via
-`sum_badSetsUnion_card_lt`).  The remaining content is the *membership* clause
+The lower/avoidance half comes from `exists_string_avoiding_curve`, via
+`sum_badSetsUnion_card_lt`.  The greedy construction supplies the membership clause
 `x ∈ coverableSet U i (h i)` for every budget `i ≤ kx + logSlack c n`.
 
 That clause genuinely requires the Vereshchagin–Vitányi greedy/staircase
@@ -3786,7 +3718,8 @@ jointly with `x` (via the survival/greedy argument), not read off `x`'s prefix. 
 theorem exists_point_in_all_coverableSets (U : Map) (hU : IsOptimalPrefixConditional U) :
     ∃ c_gen, ∀ c n kx m h, ProfileCurve U c n kx m h →
       ∃ x : BitString, x.length = n ∧
-        (∀ i, i ≤ kx + logSlack c n → x ∈ coverableSet U (i + m + logSlack c_gen n) (h i)) ∧
+        (∀ i, i ≤ kx + logSlack c n → x ∈ coverableSet U (i + m + logSlack c_gen n) (h
+            i)) ∧
         (∀ i, x ∉ badSetsUnion U n h m c_gen i ∨ h i ≤ m + logSlack c_gen n) := by
   -- Use the single construction slack chosen by the final-window coding gate; it is
   -- large enough for both counting (`≥ 3`) and machine-model coding overhead.
@@ -3823,7 +3756,8 @@ theorem exists_point_in_all_coverableSets (U : Map) (hU : IsOptimalPrefixConditi
         omega
       rw [hn_zero] at h_Sn_code
       rw [h_zero]
-      have hmem_n := descriptionsWithComplexityLeAndSizeLe_subset_of_le_left U 0 hile_n h_Sn_code
+      have hmem_n := descriptionsWithComplexityLeAndSizeLe_subset_of_le_left U 0 hile_n
+          h_Sn_code
       unfold coverableSet
       rw [Finset.mem_biUnion]
       exact ⟨S_n, hmem_n, h_mem_Sn⟩
@@ -3859,7 +3793,8 @@ theorem setComplexity_le_of_computable_code (U : Map) (hU : IsOptimalPrefixCondi
 so its profile contains the curve up to logarithmic slack. -/
 theorem realization_upper (U : Map) :
     ∃ c_up, ∀ c_in c n kx m h, ProfileCurve U c n kx m h → ∀ x,
-      (∀ i, i ≤ kx + logSlack c n → x ∈ coverableSet U (i + m + logSlack c_in n) (h i)) →
+      (∀ i, i ≤ kx + logSlack c n → x ∈ coverableSet U (i + m + logSlack c_in n) (h i))
+          →
       ∀ i, i ≤ kx + logSlack c n → InDescriptionProfile U x (i + m + logSlack (c_in +
           c_up) n)
           (h i + logSlack (c_in + c_up) n) := by
@@ -3895,7 +3830,8 @@ clause is exactly the *lower* half. -/
 theorem exists_string_with_profile (U : Map) (hU : IsOptimalPrefixConditional U) :
     ∃ c_real, ∀ c n kx m h, ProfileCurve U c n kx m h →
       ∃ x : BitString, x.length = n ∧
-        (∀ i, InDescriptionProfile U x (i + m + logSlack c_real n) (h i + logSlack c_real n)) ∧
+        (∀ i, InDescriptionProfile U x (i + m + logSlack c_real n) (h i + logSlack c_real n))
+            ∧
         (∀ i, ¬ InDescriptionProfile U x i (h i - (m + logSlack c_real n)) ∨ h i ≤ m +
             logSlack c_real n)
             := by
@@ -3911,7 +3847,8 @@ theorem exists_string_with_profile (U : Map) (hU : IsOptimalPrefixConditional U)
     by_cases hle : i ≤ kx + logSlack c n
     · exact hup c_gen c n kx m h hcurve x (fun j hj => hxmem j hj) i hle
     · have h_k_le : kx + logSlack c n ≤ kx + logSlack c n := le_rfl
-      have hF_k := hup c_gen c n kx m h hcurve x (fun j hj => hxmem j hj) (kx + logSlack c n) h_k_le
+      have hF_k := hup c_gen c n kx m h hcurve x (fun j hj => hxmem j hj) (kx + logSlack c n)
+          h_k_le
       have hi_gt := not_le.mp hle
       have hi_le : kx + logSlack c n ≤ i := le_of_lt hi_gt
       have hF_k' : InDescriptionProfile U x (i + m + logSlack (c_gen + c_up) n) (h (kx +
@@ -3927,7 +3864,8 @@ theorem exists_string_with_profile (U : Map) (hU : IsOptimalPrefixConditional U)
       exact hF_k'
   · -- Lower half: relax the generic point's avoidance clause to the larger slack.
     rcases hxavoid i with hno | hle
-    · -- No `(i, h i - (m + logSlack c_gen n))`-description ⟹ none with the larger subtrahend.
+    · -- No `(i, h i - (m + logSlack c_gen n))`-description exists with the larger
+      -- subtrahend.
       refine Or.inl (fun hcontra => hno ?_)
       have h_prof : InDescriptionProfile U x i (h i - (m + logSlack c_gen n)) :=
         hcontra.mono_j (Nat.sub_le_sub_left (Nat.add_le_add_left hslack_gen m) (h i))
@@ -3980,7 +3918,8 @@ theorem antiCurveOfTriple_computable : Computable antiCurveOfTriple := by
     decodeNatCode_primrec.comp (decodeFirst_primrec.comp decodeSecond_primrec)
   have hK : Primrec (fun w => decodeNatCode (decodeSecond (decodeSecond w))) :=
     decodeNatCode_primrec.comp (decodeSecond_primrec.comp decodeSecond_primrec)
-  have hrange : Primrec (fun w => List.range (decodeNatCode (decodeSecond (decodeSecond w)) + 1)) :=
+  have hrange : Primrec (fun w => List.range (decodeNatCode (decodeSecond (decodeSecond w)) +
+      1)) :=
     Primrec.list_range.comp (Primrec.succ.comp hK)
   have hg : Primrec₂ (fun (w : BitString) (i : ℕ) =>
       if i < decodeNatCode (decodeFirst (decodeSecond w))
@@ -3988,7 +3927,8 @@ theorem antiCurveOfTriple_computable : Computable antiCurveOfTriple := by
     apply Primrec.ite (Primrec.nat_lt.comp Primrec.snd (hk.comp Primrec.fst))
     · exact Primrec.nat_sub.comp (hn.comp Primrec.fst) Primrec.snd
     · exact Primrec.const 0
-  have hmap : Primrec (fun w => (List.range (decodeNatCode (decodeSecond (decodeSecond w)) + 1)).map
+  have hmap : Primrec (fun w => (List.range (decodeNatCode (decodeSecond (decodeSecond w)) +
+      1)).map
       (fun i => if i < decodeNatCode (decodeFirst (decodeSecond w))
                 then decodeNatCode (decodeFirst w) - i else 0)) :=
     Primrec.list_map hrange hg
@@ -4013,7 +3953,8 @@ theorem exists_antistochastic_curve_code (U : Map) (hU : IsOptimalPrefixConditio
       ∃ code : BitString,
         (∀ i, decodeCurve code i = if i < k then n - i else 0) ∧
         KPPlain U code ≤ (logSlack c_code (n + K) : ENat) := by
-  obtain ⟨c_map, hc_map⟩ := KPPlain_map_le U hU antiCurveOfTriple antiCurveOfTriple_computable
+  obtain ⟨c_map, hc_map⟩ := KPPlain_map_le U hU antiCurveOfTriple
+      antiCurveOfTriple_computable
   obtain ⟨c_pair, hc_pair⟩ := KPPair_le_KPPlain_add_KPPlain U hU
   obtain ⟨c_nat, hc_nat⟩ := KPPlain_natCode_le_log U hU
   refine ⟨6 + (3*c_nat + 2*c_pair + c_map), fun n k K hk hkK => ?_⟩
@@ -4060,7 +4001,8 @@ theorem exists_antistochastic_curve_code (U : Map) (hU : IsOptimalPrefixConditio
       + (3*c_nat + 2*c_pair + c_map) ≤ logSlack (6 + (3*c_nat + 2*c_pair + c_map)) (n+K) := by
     unfold logSlack
     set L := (Nat.bits (n+K)).length
-    have h6 : 6 * L ≤ (6 + (3*c_nat + 2*c_pair + c_map)) * L := Nat.mul_le_mul_right L (by omega)
+    have h6 : 6 * L ≤ (6 + (3*c_nat + 2*c_pair + c_map)) * L := Nat.mul_le_mul_right L (by
+        omega)
     nlinarith [hL, hLk, hLK]
   exact_mod_cast hnat
 
@@ -4086,7 +4028,8 @@ theorem antistochastic_slack (c_real c_code c_plain c_sing c_len : ℕ) :
   obtain ⟨C_M, hC_M⟩ := logSlack_linear_bound c_code 4 b_r
   obtain ⟨b_M, hb_M⟩ := logSlack_le_add_const C_M
   obtain ⟨C_P, hC_P⟩ := logSlack_linear_bound c_plain 5 (b_M + 2 * b_r)
-  refine ⟨C_M + 2 * c_real + C_P + c_sing + c_real + (2 * C_M + c_len + 2), C_M, fun n k hk => ?_⟩
+  refine ⟨C_M + 2 * c_real + C_P + c_sing + c_real + (2 * C_M + c_len + 2), C_M, fun n k hk =>
+      ?_⟩
   have hM : logSlack c_code (n + max (k + logSlack c_real n) n) ≤ logSlack C_M n := by
     have harg : n + max (k + logSlack c_real n) n ≤ 4 * n + b_r := by have := hb_r n; omega
     exact le_trans (logSlack_mono_right _ harg) (hC_M n)
@@ -4095,7 +4038,8 @@ theorem antistochastic_slack (c_real c_code c_plain c_sing c_len : ℕ) :
   have hP : logSlack c_plain
       (n + (k + logSlack c_code (n + max (k + logSlack c_real n) n) + logSlack c_real n)
         + logSlack c_real n) ≤ logSlack C_P n := by
-    have harg : n + (k + logSlack c_code (n + max (k + logSlack c_real n) n) + logSlack c_real n)
+    have harg : n + (k + logSlack c_code (n + max (k + logSlack c_real n) n) + logSlack c_real
+        n)
         + logSlack c_real n ≤ 5 * n + (b_M + 2 * b_r) := by
       have h1 := hb_r n; have h2 := hMlin; omega
     exact le_trans (logSlack_mono_right _ harg) (hC_P n)

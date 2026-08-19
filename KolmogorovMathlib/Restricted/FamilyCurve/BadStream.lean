@@ -1,19 +1,6 @@
-/-
-Copyright (c) 2024 Alexey Milovanov. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey Milovanov
--/
-
 import KolmogorovMathlib.Restricted.FamilyCurve.Basic
 import KolmogorovMathlib.Restricted.Improving
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.SlackArith
-
-/-!
-# Bad-description streams for restricted family curves
-
-This file encodes sampled grids and enumerates the descriptions that violate their prescribed
-restricted-profile bounds.
--/
 
 namespace Kolmogorov
 
@@ -92,7 +79,7 @@ lemma restrictedSampledBadCodeStream_nodup (c : Code) (gridCode : BitString)
     (𝒜 : PreDescriptionFamily) (gridSteps Δ t : ℕ) :
     (restrictedSampledBadCodeStream c gridCode 𝒜 gridSteps Δ t).Nodup := by
   cases t <;> simp [restrictedSampledBadCodeStream,
-    restrictedSampledBadCodesUpToTime, CodedFiniteDistribution.eraseDups_bitstring_nodup]
+    restrictedSampledBadCodesUpToTime, nodup_eraseDups_bitString]
 
 /-- The chronological stream grows monotonically with time. -/
 lemma restrictedSampledBadCodeStream_mono (c : Code) (gridCode : BitString)
@@ -127,7 +114,7 @@ lemma restrictedSampledBadCodesUpToTime_sound (c : Code) (gridCode : BitString)
       IsFamilyModelCode 𝒜
         ((decode_restrictedCurveGridCode_sample gridCode s).2 - (Δ + 1)) w := by
   exact restrictedSampledBadCodesRaw_sound c gridCode 𝒜 gridSteps Δ t
-    (List.mem_eraseDups.mp hw)
+    (mem_eraseDups_bitString.mp hw)
 
 /-- Every event in the chronological stream is a genuine family-model code at
 the advertised size bound of one sampled interval. -/
@@ -141,7 +128,7 @@ lemma restrictedSampledBadCodeStream_sound (c : Code) (gridCode : BitString)
   | zero =>
       exact restrictedSampledBadCodesUpToTime_sound c gridCode 𝒜 gridSteps Δ 0 hw
   | succ t ih =>
-      have hw' := List.mem_eraseDups.mp hw
+      have hw' := mem_eraseDups_bitString.mp hw
       rcases List.mem_append.mp hw' with hprev | hcurrent
       · exact ih hprev
       · exact restrictedSampledBadCodesUpToTime_sound c gridCode 𝒜
@@ -244,13 +231,13 @@ lemma restrictedSampledBadCodeStream_computable (c : Code) (gridCode : BitString
         restrictedSampledBadCodesUpToTime c gridCode 𝒜 gridSteps Δ (t + 1)).eraseDups)
       n
   have hf : Computable f := by
-    exact Computable.nat_rec Computable.id
+    exact (Computable.nat_rec Computable.id
         (Computable.const
           (restrictedSampledBadCodesUpToTime c gridCode 𝒜 gridSteps Δ 0))
         (((Primrec.to_comp eraseDups_bitstring_primrec).comp
           (Computable.list_append.comp (Computable.snd.comp Computable.snd)
             (hstage.comp (Computable.succ.comp
-              (Computable.fst.comp Computable.snd))))).to₂)
+              (Computable.fst.comp Computable.snd))))).to₂)).of_eq (fun a => rfl)
   refine hf.of_eq (fun n => ?_)
   dsimp [f]
   induction n with
@@ -300,7 +287,7 @@ lemma mem_restrictedSampledBadCodeStream_of_mem_upToTime
   cases t with
   | zero => exact hw
   | succ t =>
-      exact List.mem_eraseDups.mpr (List.mem_append_right _ hw)
+      exact mem_eraseDups_bitString.mpr (List.mem_append_right _ hw)
 
 /-- Any bad description is eventually caught by the stream. -/
 lemma restrictedSampledBadCodeStream_catches_violation
@@ -364,7 +351,7 @@ lemma restrictedSampledBadCodeStream_catches_violation
   have hwUpTo : w ∈ restrictedSampledBadCodesUpToTime c
       (restrictedCurveGridCode grid) 𝒜.toPre gridSteps Δ stage := by
     unfold restrictedSampledBadCodesUpToTime restrictedSampledBadCodesRaw
-    apply List.mem_eraseDups.mpr
+    apply mem_eraseDups_bitString.mpr
     rw [List.mem_flatMap]
     refine ⟨s, List.mem_range.mpr hs, ?_⟩
     simpa [decode_restrictedCurveGridCode_sample_eq grid hs_le,

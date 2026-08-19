@@ -1,9 +1,3 @@
-/-
-Copyright (c) 2024 Alexey Milovanov. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey Milovanov
--/
-
 import KolmogorovMathlib.Restricted.FamilyCurve.Basic
 import KolmogorovMathlib.Restricted.FamilyCurve.RunCoding
 import KolmogorovMathlib.Restricted.FamilyCurve.EffectiveRun
@@ -13,13 +7,6 @@ import KolmogorovMathlib.Restricted.FamilyCurve.VersionDecoder
 import KolmogorovMathlib.Restricted.FamilyCurve.VersionClose
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.PaperTheorems
 import KolmogorovMathlib.Restricted.HammingGap
-
-/-!
-# Restricted family-curve realization
-
-This aggregate develops the final restricted profile-curve realization theorem from the
-effective sampled run, version decoder, and Hamming-gap estimates.
--/
 
 namespace Kolmogorov
 open scoped ENNReal

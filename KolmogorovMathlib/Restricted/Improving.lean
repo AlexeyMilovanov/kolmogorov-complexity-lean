@@ -1,9 +1,3 @@
-/-
-Copyright (c) 2024 Alexey Milovanov. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey Milovanov
--/
-
 import KolmogorovMathlib.Restricted.Selection
 import KolmogorovMathlib.Restricted.EffectiveSelection
 import KolmogorovMathlib.Restricted.BasicProfile
@@ -258,17 +252,17 @@ theorem eraseDups_bitString_length_le (L : List BitString) :
     L.eraseDups.length ≤ L.length := by
   have hfin : L.eraseDups.toFinset = L.toFinset := by
     ext w
-    simp [List.mem_eraseDups]
+    simp
   calc L.eraseDups.length
       = L.eraseDups.toFinset.card :=
-        (List.toFinset_card_of_nodup (eraseDups_bitstring_nodup L)).symm
+        (List.toFinset_card_of_nodup (nodup_eraseDups_bitString L)).symm
     _ = L.toFinset.card := by rw [hfin]
     _ ≤ L.length := List.toFinset_card_le _
 
 theorem exists_rank_getD_eraseDups (L : List BitString) {w : BitString}
     (hw : w ∈ L) :
     ∃ r, r < L.eraseDups.length ∧ L.eraseDups.getD r [] = w := by
-  have hw' : w ∈ L.eraseDups := List.mem_eraseDups.mpr hw
+  have hw' : w ∈ L.eraseDups := mem_eraseDups_bitString.mpr hw
   rw [List.mem_iff_getElem] at hw'
   rcases hw' with ⟨r, hr, hget⟩
   refine ⟨r, hr, ?_⟩
@@ -600,8 +594,8 @@ theorem selectionStrategyOnline_primrec_uniform :
     have hs : Primrec (fun r : (((ℕ × ℕ × ℕ × ℕ) × List BitString) × ℕ) × ℕ => r.2) := Primrec.snd
     have hwin : Primrec (fun r : (((ℕ × ℕ × ℕ × ℕ) × List BitString) × ℕ) × ℕ =>
         (r.1.1.2.take (r.1.2 + 1)).drop ((r.1.2 + 1) - 2 ^ r.2)) :=
-      Primrec.list_drop_listFirst.comp (Primrec.list_take_listFirst.comp hS (Primrec.succ.comp hm))
-        (Primrec.nat_sub.comp (Primrec.succ.comp hm) (primrec_two_pow.comp hs))
+      Primrec.list_drop.comp (Primrec.nat_sub.comp (Primrec.succ.comp hm) (primrec_two_pow.comp hs))
+        (Primrec.list_take.comp (Primrec.succ.comp hm) hS)
     have htuple : Primrec (fun r : (((ℕ × ℕ × ℕ × ℕ) × List BitString) × ℕ) × ℕ =>
         ((r.1.1.1.1, r.1.1.1.2.1, r.1.1.1.2.2.1, r.1.1.1.2.2.2, r.2),
           (r.1.1.2.take (r.1.2 + 1)).drop ((r.1.2 + 1) - 2 ^ r.2))) :=
@@ -717,8 +711,8 @@ theorem familyStageModelCodesList_computable_uniform
   | zero => rfl
   | succ n ih =>
     change familyStageModelCodesList_hh_fun c 𝒜 (i, j, n)
-      (n, Nat.rec (familyStageModelCodesList_hg_fun c 𝒜 (i, j, n))
-        (fun y IH => familyStageModelCodesList_hh_fun c 𝒜 (i, j, n) (y, IH)) n) =
+        (n, Nat.rec (familyStageModelCodesList_hg_fun c 𝒜 (i, j, n))
+          (fun y IH => familyStageModelCodesList_hh_fun c 𝒜 (i, j, n) (y, IH)) n) =
       familyStageModelCodesList c i 𝒜 j (n + 1)
     rw [ih, familyStageModelCodesList_hh_fun, familyStageModelCodesList]
 

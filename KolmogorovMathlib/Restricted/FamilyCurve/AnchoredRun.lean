@@ -1,9 +1,3 @@
-/-
-Copyright (c) 2024 Alexey Milovanov. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey Milovanov
--/
-
 import KolmogorovMathlib.Restricted.FamilyCurve.EffectiveRunSemantics
 
 /-!
@@ -241,16 +235,16 @@ lemma restrictedEffectiveAnchoredInitialState_generic_spec
   obtain ⟨predecessorCode, tail, hcodes⟩ :=
     List.exists_cons_of_ne_nil hcodes_ne
   have codes_ne_nil : ∀ {idx Acode_s Ccode_s codes}
-      (ht : RestrictedEffectiveRebuildCodeTrace 𝒜 (𝒜.overhead ambientLength) sizes Acode Acode
-        idx Acode_s Ccode_s codes),
+      (ht : RestrictedEffectiveRebuildCodeTrace 𝒜 (𝒜.overhead ambientLength) sizes Acode Acode idx
+        Acode_s Ccode_s codes),
       codes ≠ [] := by
     intro idx Acode_s Ccode_s codes ht
     induction ht with
     | nil => simp
     | cons hprev _ => simp
   have codes_head_eq : ∀ {idx Acode_s Ccode_s codes}
-      (ht : RestrictedEffectiveRebuildCodeTrace 𝒜 (𝒜.overhead ambientLength) sizes Acode Acode
-        idx Acode_s Ccode_s codes),
+      (ht : RestrictedEffectiveRebuildCodeTrace 𝒜 (𝒜.overhead ambientLength) sizes Acode Acode idx
+        Acode_s Ccode_s codes),
       codes.headI = Acode := by
     intro idx Acode_s Ccode_s codes ht
     induction ht with
@@ -313,8 +307,8 @@ lemma restrictedEffectiveAnchoredInitialState_generic_spec
     · simpa [hcodes_eq] using hBnextCode
     · rw [hcodes_eq] at hCprevCode
       simp only [stateLiveCodes]
-      show decodeCoverCodeList ((restrictedEffectiveRebuildLiveCodes Acode stateModelCodes).getD
-        (s + 1) []) = _
+      show decodeCoverCodeList
+        ((restrictedEffectiveRebuildLiveCodes Acode stateModelCodes).getD (s + 1) []) = _
       rw [restrictedEffectiveRebuildLiveCodes_succ_getD Acode
           stateModelCodes s (by omega)]
       simpa [hcodes_eq] using
@@ -420,8 +414,9 @@ lemma restrictedEffectiveAnchoredInitialState_generic_spec
         have hsLE : s ≤ N := by omega
         obtain ⟨Bprev, Cprev, Bnext, hBnextCode, hliveCode, hliveCode_s, hBnextMem, hBnextCard,
           hCprevLength, _⟩ := hstepData s hsLE
-        have hdecodedLive_s : decodeCoverCodeList (stateLiveCodes.getD s []) =
-          canonicalFinsetList Cprev := hliveCode_s
+        have hdecodedLive_s :
+            decodeCoverCodeList (stateLiveCodes.getD s []) = canonicalFinsetList Cprev :=
+          hliveCode_s
         dsimp [decodedLive]
         rw [hliveCode, hdecodedLive_s, canonicalFinsetList_toFinset, canonicalFinsetList_toFinset]
         exact Finset.inter_subset_left
@@ -445,7 +440,7 @@ lemma restrictedEffectiveAnchoredInitialState_generic_spec
         simp only [hdecodedLive_s, hdecodedLive_sp]
         -- hdensity: sizes.getD s 0 * Cprev.card ≤
         --   (𝒜.overhead * (if s = 0 then 2^ambientLength else sizes.getD (s-1) 0)) *
-        --     (Bnext ∩ Cprev).card
+        --   (Bnext ∩ Cprev).card
         -- Need: (2 ^ t (s + 1)) * Cprev.card ≤ (2 * overhead * 2 ^ t s) * (Cprev ∩ Bnext).card
         have hsizes_eq : sizes.getD s 0 = 2 ^ t (s + 1) := hpowers s (by omega)
         rw [← hsizes_eq, Finset.inter_comm]

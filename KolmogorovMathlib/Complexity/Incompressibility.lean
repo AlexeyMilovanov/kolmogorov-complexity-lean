@@ -1,14 +1,8 @@
-/-
-Copyright (c) 2024 Alexey Milovanov. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey Milovanov
--/
-
-import KolmogorovMathlib.Core.Basic
+import Mathlib.Data.List.Basic
 import Mathlib.Data.Finset.Basic
 import Mathlib.Data.Finset.Card
 import Mathlib.Data.Fintype.List
-import Mathlib.Data.List.Basic
+import KolmogorovMathlib.Core.Basic
 
 /-!
 # Incompressibility and the Pigeonhole Principle
@@ -113,7 +107,7 @@ lemma mem_programsLe (k : ℕ) (p : BitString) (h : p.length ≤ k) : p ∈ prog
 open Classical in
 /-- The set of compressible words (words with complexity ≤ k). -/
 noncomputable def compressibleWords (D : Map) (y : BitString) (k : ℕ) : Finset BitString :=
-  (generatedWords D y k).filter (fun x ↦ condK D x y ≤ (k : ENat))
+  (generatedWords D y k).filter (fun x => condK D x y ≤ (k : ENat))
 
 /-- The fundamental bound: The number of compressible words is strictly less than 2^(k+1). -/
 theorem cardCompressibleWordsLt (D : Map) (y : BitString) (k : ℕ) :
@@ -163,8 +157,8 @@ lemma allStrings_nodup (n : ℕ) : (allStrings n).Nodup := by
   | succ n ih =>
     unfold allStrings
     apply List.nodup_append.mpr
-    refine ⟨List.Nodup.map (fun _ _ h ↦ by injection h) ih,
-           List.Nodup.map (fun _ _ h ↦ by injection h) ih, ?_⟩
+    refine ⟨List.Nodup.map (fun _ _ h => by injection h) ih,
+           List.Nodup.map (fun _ _ h => by injection h) ih, ?_⟩
     intro x hx y hy h_eq
     rw [List.mem_map] at hx; obtain ⟨a, _, rfl⟩ := hx
     rw [List.mem_map] at hy; obtain ⟨b, _, rfl⟩ := hy

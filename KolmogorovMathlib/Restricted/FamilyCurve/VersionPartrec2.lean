@@ -1,9 +1,3 @@
-/-
-Copyright (c) 2024 Alexey Milovanov. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey Milovanov
--/
-
 import KolmogorovMathlib.Restricted.FamilyCurve.VersionPartrec
 
 /-!
@@ -192,8 +186,8 @@ lemma restrictedSampledBadCodesRaw_codes_packed (c : Code) (𝒜 : PreDescriptio
   induction gs with
   | zero => simp [restrictedSampledBadCodesRaw]
   | succ gs ih =>
-      simp only [listCode_nil, restrictedSampledBadCodesRaw, List.range_succ, List.flatMap_append,
-        List.flatMap_cons, List.flatMap_nil, List.append_nil] at ih ⊢
+      simp only [listCode_nil, restrictedSampledBadCodesRaw, List.range_succ,
+        List.flatMap_append, List.flatMap_cons, List.flatMap_nil, List.append_nil] at ih ⊢
       rw [ih, decodeListCode_listCode]
 
 /-- Blob raw enumeration with the time split into an explicit component. -/

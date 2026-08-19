@@ -1,20 +1,7 @@
-/-
-Copyright (c) 2024 Alexey Milovanov. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey Milovanov
--/
-
 import KolmogorovMathlib.Restricted.BasicProfile
 import KolmogorovMathlib.Restricted.FamilyCurve.SampledRun
 import KolmogorovMathlib.Restricted.FamilyCurve.Selector
 import KolmogorovMathlib.Encoding.Tuples
-
-/-!
-# Restricted family-curve foundations
-
-This file defines the target curve, its restricted-profile approximation, and the balanced
-finite grids used by the sampled construction.
--/
 
 namespace Kolmogorov
 open scoped ENNReal
@@ -333,8 +320,9 @@ lemma restrictedCurveGrid_scale_budget (C d : ℕ) (hC : 0 < C) :
           obtain ⟨c, hc⟩ := polynomialOverhead_bits_le_logSlack C d hC;
           use c;
           intro n;
-          exact Nat.le_trans (log2_succ_le_bits_length_add_one _)
-            (Nat.add_le_add_right (hc n) 1)
+          have h_len := hc n
+          unfold logSlack at h_len
+          exact Nat.le_trans ( log2_succ_le_bits_length_add_one _ ) ( Nat.add_le_add_right h_len 1 )
         use 4 * ( c + 1 );
         intro n overhead N h_overhead hN
         have h_log2 : Nat.log2 (overhead n) + 1 ≤ c * (Nat.bits n).length + c + 1 := by
@@ -656,7 +644,7 @@ lemma exists_cover_member_large_intersection (𝒜 : DescriptionFamily)
       c * C.card ≤ (𝒜.overhead n * A.card) * (B ∩ C).card := by
   classical
   by_cases hC_empty : C = ∅
-  · refine ⟨{[]}, 𝒜.singleton_mem [], hc_pos, ?_⟩
+  · refine ⟨{[]}, 𝒜.singleton_mem [], by simp; omega, ?_⟩
     simp [hC_empty]
   · have hC_nonempty : C.Nonempty := Finset.nonempty_iff_ne_empty.mpr hC_empty
     obtain ⟨cover, hsmall, hcover, hcover_card⟩ :=
@@ -815,15 +803,13 @@ lemma restricted_rebuild_suffix_pointwise_core (𝒜 : DescriptionFamily)
                         rfl) (by rfl) hc_le.2.2.1 hc_le.2.2.2.1 hc_le.2.2.2.2 hc_le.2.1 hc_le.1
         have h_dom :
             (restrictedMaxIntersectionCoverSelector 𝒜
-              (restrictedCoverSelectorInput Acode Ccode
-                (2 ^ t (i + 1)) (𝒜.overhead n))).Dom := by
+              (restrictedCoverSelectorInput Acode Ccode (2 ^ t (i + 1)) (𝒜.overhead n))).Dom := by
           obtain ⟨ Bcode, B, h_eq, _ ⟩ := h_spec
           rw [h_eq]
           trivial
         let Bcode :=
             (restrictedMaxIntersectionCoverSelector 𝒜
-              (restrictedCoverSelectorInput Acode Ccode
-                (2 ^ t (i + 1)) (𝒜.overhead n))).get h_dom
+              (restrictedCoverSelectorInput Acode Ccode (2 ^ t (i + 1)) (𝒜.overhead n))).get h_dom
         (decodeCoverCodeList Bcode).toFinset
       else
         if hex2 : ∃ B', nextOK i A' C' B' then Classical.choose hex2 else A_s
@@ -852,15 +838,13 @@ lemma restricted_rebuild_suffix_pointwise_core (𝒜 : DescriptionFamily)
                       rfl) (by rfl) hc_le.2.2.1 hc_le.2.2.2.1 hc_le.2.2.2.2 hc_le.2.1 hc_le.1
       have h_dom :
           (restrictedMaxIntersectionCoverSelector 𝒜
-            (restrictedCoverSelectorInput Acode Ccode
-              (2 ^ t (i + 1)) (𝒜.overhead n))).Dom := by
+            (restrictedCoverSelectorInput Acode Ccode (2 ^ t (i + 1)) (𝒜.overhead n))).Dom := by
         obtain ⟨ Bcode, B, h_eq, _ ⟩ := h_spec
         rw [h_eq]
         trivial
       generalize hget :
           (restrictedMaxIntersectionCoverSelector 𝒜
-            (restrictedCoverSelectorInput Acode Ccode
-              (2 ^ t (i + 1)) (𝒜.overhead n))).get h_dom =
+            (restrictedCoverSelectorInput Acode Ccode (2 ^ t (i + 1)) (𝒜.overhead n))).get h_dom =
             Bcode_ex
       obtain ⟨ Bcode, B, h_eq, hB_eq, hB_mem, hB_card, hB_dens ⟩ := h_spec
       have hget_eq : Bcode_ex = Bcode := by
@@ -1560,10 +1544,9 @@ lemma RestrictedCoupledOutput.mono_slack
     exact_mod_cast Nat.add_le_add_left ( sqrtSlack_mono_left hcc' n ) s);
   · exact fun x hx =>
       le_trans ( candidate_complexity x hx ) ( by gcongr ; exact sqrtSlack_mono_left hcc' n );
-  · intro h
-    contrapose! survivor_not_bad
-    simp_all +decide only [KPPlain_eq_KP, restrictedProfileBadSet, gt_iff_lt,
-      Finset.mem_filter, true_and]
+  · intro h; contrapose! survivor_not_bad
+    simp_all +decide only [KPPlain_eq_KP, restrictedProfileBadSet, gt_iff_lt, Finset.mem_filter,
+      true_and]
     obtain ⟨ i, hi, hi', hi'' ⟩ := h; use i, hi; refine ⟨ lt_of_le_of_lt ?_ hi', ?_ ⟩;
     · exact sqrtSlack_mono_left hcc' n;
     · exact InDescriptionProfileIn.mono_j

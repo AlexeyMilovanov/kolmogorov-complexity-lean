@@ -1,9 +1,3 @@
-/-
-Copyright (c) 2024 Alexey Milovanov. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey Milovanov
--/
-
 import KolmogorovMathlib.AlgorithmicProbability.Bounds
 
 /-!
@@ -58,7 +52,7 @@ theorem tsum_mixture_eq (w : ℕ → ℝ≥0∞) (μ : ℕ → BitString → Bit
     (∑' x : BitString, mixture w μ x y) = ∑' i, w i * (∑' x : BitString, μ i x y) := by
   simp only [mixture]
   rw [ENNReal.tsum_comm]
-  exact tsum_congr fun i ↦ ENNReal.tsum_mul_left
+  exact tsum_congr fun i => ENNReal.tsum_mul_left
 
 /-- **Domination.** Each weighted component lies below the mixture: it is a single
 term of the defining `tsum`. This one-term bound is the measure-theoretic core of
@@ -80,7 +74,7 @@ theorem mixture_isConditionalSemimeasure
   rw [tsum_mixture_eq]
   calc
     (∑' i, w i * (∑' x : BitString, μ i x y)) ≤ ∑' i, w i * 1 :=
-      ENNReal.tsum_le_tsum fun i ↦ by gcongr; exact hμ i y
+      ENNReal.tsum_le_tsum fun i => by gcongr; exact hμ i y
     _ = ∑' i, w i := by simp
     _ ≤ 1 := hw
 
@@ -91,8 +85,8 @@ via `aprioriMeasure_isConditionalSemimeasure`. -/
 theorem mixture_aprioriMeasure_isConditionalSemimeasure
     (w : ℕ → ℝ≥0∞) (M : ℕ → Map) (hw : (∑' i, w i) ≤ 1)
     (hM : ∀ i, IsPrefixMachine (M i)) :
-    IsConditionalSemimeasure (mixture w (fun i ↦ aprioriMeasure (M i))) :=
-  mixture_isConditionalSemimeasure w (fun i ↦ aprioriMeasure (M i)) hw
-    (fun i ↦ aprioriMeasure_isConditionalSemimeasure (M i) (hM i))
+    IsConditionalSemimeasure (mixture w (fun i => aprioriMeasure (M i))) :=
+  mixture_isConditionalSemimeasure w (fun i => aprioriMeasure (M i)) hw
+    (fun i => aprioriMeasure_isConditionalSemimeasure (M i) (hM i))
 
 end Kolmogorov

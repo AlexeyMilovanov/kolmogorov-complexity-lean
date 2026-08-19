@@ -1,11 +1,5 @@
-/-
-Copyright (c) 2024 Alexey Milovanov. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey Milovanov
--/
-
-import KolmogorovMathlib.AlgorithmicStatistics.CodedComputability
 import KolmogorovMathlib.AlgorithmicStatistics.Deficiency
+import KolmogorovMathlib.AlgorithmicStatistics.CodedComputability
 import KolmogorovMathlib.Prefix.OptimalExistence
 import KolmogorovMathlib.Prefix.Properties
 
@@ -55,7 +49,8 @@ theorem isStochastic_mono {U : Map} {x : BitString} {alpha alpha' beta beta' : �
 
 /-- Any explicit model that fits `x` witnesses its stochasticity. -/
 theorem isStochastic_of_model (U : Map) (x : BitString) (P : CodedFiniteDistribution)
-    (alpha beta : ℕ) (hprob : P.IsProbability)
+    (alpha beta : ℕ)
+    (hprob : P.IsProbability)
     (hcomp : P.complexity U ≤ (alpha : ENat)) (hdef : DeficiencyLe U P x beta) :
     IsStochastic U x alpha beta :=
   ⟨P, hprob, hcomp, hdef⟩
@@ -75,8 +70,8 @@ theorem isStochastic_dirac_self (U : Map) (x : BitString) (alpha : ℕ)
   exact le_of_eq h
 
 /-- Every string of length `n` is weakly stochastic under the length-uniform model. -/
-theorem isStochastic_lengthUniform (U : Map) (x : BitString) (n : ℕ)
-    (_ : x.length = n) (alpha beta : ℕ)
+theorem isStochastic_lengthUniform (U : Map) (x : BitString) (n : ℕ) (_ : x.length = n)
+    (alpha beta : ℕ)
     (hcomp : (codedLengthUniform n).complexity U ≤ (alpha : ENat))
     (hdef : DeficiencyLe U (codedLengthUniform n) x beta) :
     IsStochastic U x alpha beta :=
@@ -97,7 +92,7 @@ theorem lengthUniformCode_eq (n : ℕ) :
 theorem lengthUniformCode_computable : Computable lengthUniformCode :=
   (CodedFiniteDistribution.codedLengthUniform_code_primrec.to_comp.comp
     (((Primrec.list_findIdx Primrec.id (Primrec.not.comp Primrec.snd).to₂).of_eq
-      (fun z ↦ (takeWhile_id_length_eq_findIdx z).symm)).to_comp)).of_eq (fun _ ↦ rfl)
+      (fun z => (takeWhile_id_length_eq_findIdx z).symm)).to_comp)).of_eq (fun _ => rfl)
 
 /-- Every string is stochastic under the length-uniform model with complexity bounded
 logarithmically in its length. -/
@@ -123,6 +118,7 @@ theorem isStochastic_lengthUniform_log (U : Map) (hU : IsOptimalPrefixConditiona
       _ = (2 * (Nat.bits x.length).length + (c1 + c2 : Nat) : ENat) := by
           rw [Nat.cast_add]
           simp [add_comm, add_assoc]
-  exact isStochastic_lengthUniform U x x.length rfl _ _ h_comp hdef
+  exact isStochastic_lengthUniform U x x.length rfl
+    (2 * (Nat.bits x.length).length + (c1 + c2)) beta h_comp hdef
 
 end Kolmogorov

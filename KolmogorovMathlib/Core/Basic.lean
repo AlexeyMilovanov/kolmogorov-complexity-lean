@@ -1,12 +1,5 @@
-/-
-Copyright (c) 2024 Alexey Milovanov. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey Milovanov
--/
-
 import Mathlib.Computability.Partrec
 import Mathlib.Data.ENat.Lattice
-import Mathlib.Data.List.Basic
 
 /-!
 # Core Definitions of Algorithmic Information Theory

@@ -1,15 +1,9 @@
-/-
-Copyright (c) 2024 Alexey Milovanov. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey Milovanov
--/
-
-import KolmogorovMathlib.Core.Basic
-import KolmogorovMathlib.Foundation.RecursivelyEnumerable
-import KolmogorovMathlib.Foundation.UnboundedSearch
 import Mathlib.Computability.Partrec
-import Mathlib.Data.ENat.Lattice
 import Mathlib.Data.List.Basic
+import Mathlib.Data.ENat.Lattice
+import KolmogorovMathlib.Core.Basic
+import KolmogorovMathlib.Foundation.UnboundedSearch
+import KolmogorovMathlib.Foundation.RecursivelyEnumerable
 
 /-!
 # Basic Properties of Kolmogorov Complexity
@@ -53,7 +47,7 @@ lemma condKEqTopIff (D : Map) (x y : BitString) :
 /-- Plain complexity of a string is bounded by its length plus a constant. -/
 theorem plainKLeLength (U : Map) (hU : isOptimalConditional U) :
     ∃ c : ℕ, ∀ x, plainK U x ≤ (programLength x : ENat) + c := by
-  let id_decompressor : Map := fun (p, _) ↦ Part.some p
+  let id_decompressor : Map := fun (p, _) => Part.some p
   obtain ⟨c, hc⟩ := hU.2 id_decompressor (Computable.partrec Computable.fst)
   use c; intro x
   apply le_trans (hc x [])
@@ -64,7 +58,7 @@ theorem plainKLeLength (U : Map) (hU : isOptimalConditional U) :
 /-- The conditional complexity of a string given itself is bounded by a constant. -/
 theorem condKSelf (U : Map) (hU : isOptimalConditional U) :
     ∃ c : ℕ, ∀ x, condK U x x ≤ (c : ENat) := by
-  let ctx_decompressor : Map := fun (_, y) ↦ Part.some y
+  let ctx_decompressor : Map := fun (_, y) => Part.some y
   obtain ⟨c, hc⟩ := hU.2 ctx_decompressor (Computable.partrec Computable.snd)
   use c; intro x
   calc
@@ -78,7 +72,7 @@ theorem condKSelf (U : Map) (hU : isOptimalConditional U) :
 /-- Conditioning only reduces complexity. -/
 theorem condKLePlainK (U : Map) (hU : isOptimalConditional U) :
     ∃ c : ℕ, ∀ x y, condK U x y ≤ plainK U x + (c : ENat) := by
-  let D : Map := fun p ↦ U (p.1, [])
+  let D : Map := fun p => U (p.1, [])
   have hD : isDecompressor D :=
     Partrec.comp hU.1 (Computable.pair Computable.fst (Computable.const []))
   obtain ⟨c, hc⟩ := hU.2 D hD
@@ -89,7 +83,7 @@ theorem condKLePlainK (U : Map) (hU : isOptimalConditional U) :
 theorem condKComp (U : Map) (hU : isOptimalConditional U)
     (f : BitString → BitString) (hf : Computable f) :
     ∃ c : ℕ, ∀ x, condK U (f x) x ≤ (c : ENat) := by
-  let f_decompressor : Map := fun (_, y) ↦ Part.some (f y)
+  let f_decompressor : Map := fun (_, y) => Part.some (f y)
   have hF : isDecompressor f_decompressor :=
     Computable.partrec (Computable.comp hf Computable.snd)
   obtain ⟨c, hc⟩ := hU.2 f_decompressor hF
@@ -106,7 +100,7 @@ theorem condKComp (U : Map) (hU : isOptimalConditional U)
 theorem condKMapLe (U : Map) (hU : isOptimalConditional U)
     (f : BitString → BitString) (hf : Computable f) :
     ∃ c : ℕ, ∀ x y, condK U (f x) y ≤ condK U x y + (c : ENat) := by
-  let D : Map := fun pair ↦ (U pair).map f
+  let D : Map := fun pair => (U pair).map f
   have hD : isDecompressor D := Partrec.map hU.1 (Computable.comp hf Computable.snd)
   obtain ⟨c, hc⟩ := hU.2 D hD
   use c; intro x y
@@ -120,7 +114,7 @@ theorem condKMapLe (U : Map) (hU : isOptimalConditional U)
 theorem plainKMapLe (U : Map) (hU : isOptimalConditional U)
     (f : BitString → BitString) (hf : Computable f) :
     ∃ c : ℕ, ∀ x, plainK U (f x) ≤ plainK U x + (c : ENat) := by
-  let D : Map := fun pair ↦ (U (pair.1, [])).map f
+  let D : Map := fun pair => (U (pair.1, [])).map f
   have hD : isDecompressor D := Partrec.map
     (Partrec.comp hU.1 (Computable.pair Computable.fst (Computable.const [])))
     (Computable.comp hf Computable.snd)
@@ -144,7 +138,7 @@ lemma condKLeIff (D : Map) (x y : BitString) (N : ℕ) :
     have h_bound : ∀ n ∈ candidateLengths D x y, ((N + 1 : ℕ) : ENat) ≤ n := by
       rintro _ ⟨p, hp_prod, rfl⟩
       have h_gt : N + 1 ≤ programLength p := by
-        have h_contra : ¬ (programLength p ≤ N) := fun hp_len ↦ h_not p hp_len hp_prod
+        have h_contra : ¬ (programLength p ≤ N) := fun hp_len => h_not p hp_len hp_prod
         omega
       exact_mod_cast h_gt
     have h_le_inf : ((N + 1 : ℕ) : ENat) ≤ sInf (candidateLengths D x y) := le_sInf h_bound
@@ -167,12 +161,12 @@ lemma condKGtIff (D : Map) (x y : BitString) (N : ℕ) :
 
 /-- The underlying relation `produces` is RE over the full tuple of arguments. -/
 lemma producesIsRe (U : Map) (hU_partrec : Partrec U) :
-    IsRE (fun (args : (BitString × BitString × ℕ) × BitString) ↦
+    IsRE (fun (args : (BitString × BitString × ℕ) × BitString) =>
       produces U args.2 args.1.2.1 args.1.1) := by
   obtain ⟨f, hf_partrec, hf_dom⟩ := Partrec.graphIsRe U hU_partrec
-  use fun args ↦ f ((args.2, args.1.2.1), args.1.1)
+  use fun args => f ((args.2, args.1.2.1), args.1.1)
   constructor
-  · have h_trans : Computable (fun (args : (BitString × BitString × ℕ) × BitString) ↦
+  · have h_trans : Computable (fun (args : (BitString × BitString × ℕ) × BitString) =>
         ((args.2, args.1.2.1), args.1.1)) :=
       Computable.pair
         (Computable.pair Computable.snd (Computable.fst.comp (Computable.snd.comp Computable.fst)))
@@ -186,11 +180,11 @@ lemma producesIsRe (U : Map) (hU_partrec : Partrec U) :
 
 /-- The set of triples `(x, y, N)` such that `K_U(x|y) ≤ N` is computably enumerable. -/
 theorem condKLeIsRe (U : Map) (hU : isOptimalConditional U) :
-    IsRE (fun (trip : BitString × BitString × ℕ) ↦
+    IsRE (fun (trip : BitString × BitString × ℕ) =>
     condK U trip.1 trip.2.1 ≤ (trip.2.2 : ENat)) := by
-  have h_equiv : (fun (trip : BitString × BitString × ℕ) ↦
+  have h_equiv : (fun (trip : BitString × BitString × ℕ) =>
       condK U trip.1 trip.2.1 ≤ (trip.2.2 : ENat)) =
-      (fun trip ↦ ∃ p ∈ boundedPrograms trip.2.2, produces U p trip.2.1 trip.1) := by
+      (fun trip => ∃ p ∈ boundedPrograms trip.2.2, produces U p trip.2.1 trip.1) := by
     ext ⟨x, y, N⟩
     simp only
     rw [condKLeIff]
@@ -200,25 +194,25 @@ theorem condKLeIsRe (U : Map) (hU : isOptimalConditional U) :
     · rintro ⟨p, hmem, hprod⟩
       exact ⟨p, (mem_boundedPrograms_iff p N).mp hmem, hprod⟩
   rw [h_equiv]
-  have h_bound_comp : Computable (fun (trip : BitString × BitString × ℕ) ↦
+  have h_bound_comp : Computable (fun (trip : BitString × BitString × ℕ) =>
       boundedPrograms trip.2.2) :=
     Computable.boundedPrograms.comp (Computable.snd.comp Computable.snd)
   exact IsRE.existsInList (producesIsRe U hU.1) _ h_bound_comp
 
 /-- The set of pairs `(x, N)` such that `K_U(x) > N` is co-computably enumerable. -/
 theorem plainKGtIsCore (U : Map) (hU : isOptimalConditional U) :
-    IsCoRE (fun (pair : BitString × ℕ) ↦ (pair.2 : ENat) < plainK U pair.1) := by
+    IsCoRE (fun (pair : BitString × ℕ) => (pair.2 : ENat) < plainK U pair.1) := by
   unfold IsCoRE
-  have h_equiv : (fun (pair : BitString × ℕ) ↦ ¬((pair.2 : ENat) < plainK U pair.1)) =
-                 (fun (pair : BitString × ℕ) ↦ plainK U pair.1 ≤ (pair.2 : ENat)) := by
+  have h_equiv : (fun (pair : BitString × ℕ) => ¬((pair.2 : ENat) < plainK U pair.1)) =
+                 (fun (pair : BitString × ℕ) => plainK U pair.1 ≤ (pair.2 : ENat)) := by
     ext pair
     simp only [not_lt]
   rw [h_equiv]
   obtain ⟨f, hf_partrec, hf_dom⟩ := condKLeIsRe U hU
-  let f_plain : BitString × ℕ →. Unit := fun p ↦ f (p.1, [], p.2)
+  let f_plain : BitString × ℕ →. Unit := fun p => f (p.1, [], p.2)
   use f_plain
   constructor
-  · have h_tuple : Computable (fun (p : BitString × ℕ) ↦ (p.1, ([] : BitString), p.2)) :=
+  · have h_tuple : Computable (fun (p : BitString × ℕ) => (p.1, ([] : BitString), p.2)) :=
       Computable.pair Computable.fst
         (Computable.pair (Computable.const ([] : BitString)) Computable.snd)
     exact Partrec.comp hf_partrec h_tuple

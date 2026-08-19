@@ -1,9 +1,8 @@
 /-
-Copyright (c) 2024 Alexey Milovanov. All rights reserved.
+Copyright (c) 2026 Alexey Milovanov. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Alexey Milovanov
 -/
-
 import KolmogorovMathlib.Restricted.Family
 
 /-!
@@ -151,8 +150,7 @@ theorem mask_card (m : Mask) : (maskSet m).card = 2 ^ maskWild m := by
       rw [H_eq, Finset.card_union_of_disjoint H_disj]
       have H_inj_false : Function.Injective (List.cons false) := fun x y h => by injection h
       have H_inj_true : Function.Injective (List.cons true) := fun x y h => by injection h
-      rw [Finset.card_image_of_injective _ H_inj_false,
-        Finset.card_image_of_injective _ H_inj_true]
+      rw [Finset.card_image_of_injective _ H_inj_false, Finset.card_image_of_injective _ H_inj_true]
       rw [ih, Nat.pow_succ']
       ring
     | some b =>
@@ -274,24 +272,19 @@ theorem mask_cover_pieces (m : Mask) (keep : ℕ) (hkeep : keep ≤ maskWild m) 
       (∀ B ∈ 𝒞, maskFamilyMem B ∧ B.card = 2 ^ keep) ∧
       (∀ x ∈ maskSet m, ∃ B ∈ 𝒞, x ∈ B) ∧
       𝒞.length = 2 ^ (maskWild m - keep) := by
-  refine ⟨(fixWildcards m keep).map maskSet, ?_, ?_, ?_⟩
-  · intro B hB
-    obtain ⟨m', hm', rfl⟩ := List.mem_map.mp hB
-    refine ⟨⟨m', rfl⟩, ?_⟩
-    rw [mask_card, fixWildcards_maskWild m keep m' hm', min_eq_left hkeep]
-  · intro x hx
-    obtain ⟨m', hm', hm''⟩ := fixWildcards_cover m keep x hx
-    refine ⟨maskSet m', ?_, hm''⟩
-    simp only [List.mem_map]
-    exact ⟨m', hm', rfl⟩
-  · rw [List.length_map, fixWildcards_length]
+  refine ⟨ ( fixWildcards m keep ).map maskSet, ?_, ?_, ?_ ⟩;
+  · simp +zetaDelta only [List.mem_map, forall_exists_index, and_imp,
+      forall_apply_eq_imp_iff₂] at *
+    exact fun x hx =>
+        ⟨ ⟨ x, rfl ⟩, by rw [ mask_card, fixWildcards_maskWild m keep x hx, min_eq_left hkeep ] ⟩;
+  · intro x hx; obtain ⟨ m', hm', hm'' ⟩ := fixWildcards_cover m keep x hx; use maskSet m'; aesop;
+  · rw [ List.length_map, fixWildcards_length ]
 
 /-- All strings matching a mask `m`, as an explicit list. -/
 def maskList : Mask → List BitString
   | [] => [[]]
   | some b :: t => (maskList t).map (fun x => b :: x)
-  | none :: t =>
-      (maskList t).map (fun x => false :: x) ++ (maskList t).map (fun x => true :: x)
+  | none :: t => (maskList t).map (fun x => false :: x) ++ (maskList t).map (fun x => true :: x)
 
 theorem maskList_toFinset (m : Mask) : (maskList m).toFinset = maskSet m := by
   ext y
@@ -345,28 +338,24 @@ def decodeMask (w : BitString) : Mask := (decodeListCode w).map decodeOptionBool
 def encodeMask (m : Mask) : BitString := listCode (m.map encodeOptionBool)
 
 theorem decodeMask_encodeMask (m : Mask) : decodeMask (encodeMask m) = m := by
-  unfold decodeMask encodeMask
-  rw [decodeListCode_listCode]
-  induction m with
-  | nil => rfl
-  | cons h t ih =>
-    rw [List.map_cons, List.map_cons]
-    have ih' : (t.map encodeOptionBool).map decodeOptionBool = t := ih
-    rw [ih']
-    cases h <;> rfl
+  unfold decodeMask encodeMask;
+  rw [ decodeListCode_listCode ];
+  induction m <;> simp_all +decide only [List.map_cons, List.map_map, List.cons.injEq, and_true]
+  rename_i k hk ih; cases k <;> rfl;
 
 theorem maskSet_nonempty (m : Mask) : (maskSet m).Nonempty :=
   maskFamilyMem_nonempty ⟨m, rfl⟩
 
 theorem decodeOptionBool_primrec : Primrec decodeOptionBool := by
   refine .of_eq (f := fun w => if w = [] then none else some ( w.head! )) ?_ ?_;
-  · convert Primrec.list_head? using 1;
-    exact funext fun x => by cases x <;> rfl;
+  · exact Primrec.of_eq Primrec.list_head? (fun (x : List Bool) => by cases x <;> rfl)
   · intro n; cases n <;> rfl;
 
-theorem decodeMask_primrec : Primrec decodeMask :=
-  (Primrec.list_map decodeListCode_primrec
-    (Primrec.to₂ (decodeOptionBool_primrec.comp Primrec.snd))).of_eq fun _ => rfl
+theorem decodeMask_primrec : Primrec decodeMask := by
+  exact Primrec.of_eq
+    (Primrec.list_map decodeListCode_primrec
+      (decodeOptionBool_primrec.comp (Primrec.snd) |> Primrec.to₂))
+    (fun _ => rfl)
 
 theorem maskList_primrec : Primrec maskList := by
   have hstep : Primrec₂ (fun (_ : Mask) (p : Option Bool × List BitString) =>
@@ -392,55 +381,48 @@ theorem maskList_primrec : Primrec maskList := by
 noncomputable def maskCode (w : BitString) : BitString :=
   canonicalUniformCodeOfList (canonicalFinsetList (maskList (decodeMask w)).toFinset)
 
-theorem maskCode_primrec : Primrec maskCode :=
-  (canonicalUniformCodeOfList_primrec.comp
-    (canonicalFinsetList_toFinset_primrec.comp
-      (maskList_primrec.comp decodeMask_primrec))).of_eq fun _ => rfl
+theorem maskCode_primrec : Primrec maskCode := by
+  exact Primrec.of_eq
+    (Primrec.comp canonicalUniformCodeOfList_primrec
+      (Primrec.comp canonicalFinsetList_toFinset_primrec
+        (maskList_primrec.comp decodeMask_primrec)))
+    (fun _ => rfl)
 
 theorem maskCode_eq_code (w : BitString) :
     maskCode w = (codedUniformOn (maskSet (decodeMask w)) (maskSet_nonempty _)).code := by
-  unfold maskCode
-  generalize h_eq : (maskList (decodeMask w)).toFinset = S
-  have hS_eq : S = maskSet (decodeMask w) := by
-    rw [← h_eq]
-    exact maskList_toFinset (decodeMask w)
-  subst hS_eq
-  exact canonicalUniformCodeOfList_canonicalFinsetList (maskSet (decodeMask w))
-    (maskSet_nonempty (decodeMask w))
+      dsimp [maskCode]
+      rw [maskList_toFinset]
+      exact canonicalUniformCodeOfList_canonicalFinsetList
+        (maskSet (decodeMask w)) (maskSet_nonempty (decodeMask w))
 
 /-- Stage `t` of the mask enumeration. -/
 noncomputable def maskEnum (t : ℕ) : List BitString := (boundedPrograms t).map maskCode
 
 theorem maskEnum_computable : Computable maskEnum := by
   unfold maskEnum
-  exact (Primrec.list_map primrec_boundedPrograms
-    ((maskCode_primrec.comp Primrec.snd).to₂)).to_comp
+  exact (Primrec.list_map primrec_boundedPrograms ((maskCode_primrec.comp Primrec.snd).to₂)).to_comp
 
 theorem maskEnum_mono (t : ℕ) : maskEnum t <+: maskEnum (t + 1) := by
+  -- By definition of `maskEnum`, we know that `maskEnum t = (boundedPrograms t).map maskCode`.
   simp only [maskEnum]
-  rw [boundedPrograms_succ]
-  simp only [List.map_append, List.prefix_append]
+  rw [ boundedPrograms_succ ];
+  simp +decide [ List.map_append ]
 
 theorem maskEnum_sound (t : ℕ) : ∀ w ∈ maskEnum t,
     ∃ (S : Finset BitString) (hS : S.Nonempty),
       maskFamilyMem S ∧ w = (codedUniformOn S hS).code := by
-        intro w hw
-        unfold maskEnum at hw
-        obtain ⟨v, hv, rfl⟩ := List.mem_map.mp hw
-        exact ⟨_, maskSet_nonempty _, ⟨_, rfl⟩, maskCode_eq_code _⟩
+        intros w hw
+        obtain ⟨v, hv⟩ : ∃ v, w = maskCode v ∧ v ∈ boundedPrograms t := by
+          unfold maskEnum at hw; aesop;
+        exact ⟨ _, maskSet_nonempty _, ⟨ _, rfl ⟩, hv.1.trans ( maskCode_eq_code _ ) ⟩
 
 theorem maskEnum_complete : ∀ (S : Finset BitString) (hS : S.Nonempty),
     maskFamilyMem S → ∃ t, (codedUniformOn S hS).code ∈ maskEnum t := by
-  intro S hS hS'
-  obtain ⟨m, hm⟩ := hS'
-  subst hm
-  use (encodeMask m).length
-  unfold maskEnum
-  have H_mem : encodeMask m ∈ boundedPrograms (encodeMask m).length :=
-    (mem_boundedPrograms_iff _ _).mpr le_rfl
-  have H_code : maskCode (encodeMask m) = (codedUniformOn (maskSet m) hS).code := by
-    rw [maskCode_eq_code, decodeMask_encodeMask]
-  exact H_code ▸ List.mem_map_of_mem H_mem
+      intro S hS hS';
+      obtain ⟨ m, rfl ⟩ := hS';
+      use (encodeMask m).length;
+      exact List.mem_map.mpr ⟨encodeMask m, (mem_boundedPrograms_iff _ _).mpr le_rfl,
+        by rw [maskCode_eq_code, decodeMask_encodeMask]⟩
 
 /-- The mask family enumeration is computable and complete. -/
 noncomputable def maskFamilyEnumeration : FamilyEnumeration maskFamilyMem where
@@ -453,43 +435,35 @@ noncomputable def maskFamilyEnumeration : FamilyEnumeration maskFamilyMem where
 /-
 The mask family covering property.
 -/
-theorem maskFamily_cover {A : Finset BitString} (hA : maskFamilyMem A) (n c : ℕ)
-    (hc_pos : 0 < c) (hc_le : c ≤ A.card) :
+theorem maskFamily_cover {A : Finset BitString} (hA : maskFamilyMem A) (n c : ℕ) (hc_pos : 0 < c)
+    (hc_le : c ≤ A.card) :
   ∃ 𝒞 : List (Finset BitString),
     (∀ B ∈ 𝒞, maskFamilyMem B ∧ B.card ≤ c) ∧
     (∀ x ∈ A, x.length = n → ∃ B ∈ 𝒞, x ∈ B) ∧
     𝒞.length * c ≤ maskOverhead n * A.card :=
   by
-    obtain ⟨m, hm⟩ : ∃ m : Mask, A = maskSet m := hA
-    by_cases hn : n = m.length
-    · have hA_card : A.card = 2 ^ maskWild m := by
-        rw [hm, mask_card]
+    by_cases hn : n = (hA.choose).length;
+    · obtain ⟨m, hm⟩ : ∃ m : Mask, A = maskSet m := hA
+      have hA_card : A.card = 2 ^ maskWild m := by
+        rw [ hm, mask_card ];
       obtain ⟨r, hr⟩ : ∃ r : ℕ, 2 ^ r ≤ c ∧ c < 2 ^ (r + 1) ∧ r ≤ maskWild m := by
-        refine ⟨Nat.log 2 c, Nat.pow_le_of_le_log (by linarith) (by linarith),
-          Nat.lt_pow_of_log_lt (by linarith) (by linarith), Nat.le_trans
-            (Nat.log_mono_right hc_le) (by rw [hA_card, Nat.log_pow (by linarith)])⟩
-      obtain ⟨𝒞, h𝒞1, h𝒞2, h𝒞3⟩ := mask_cover_pieces m r hr.2.2
-      refine ⟨𝒞, ?_, ?_, ?_⟩
-      · intro B hB
-        obtain ⟨hB1, hB2⟩ := h𝒞1 B hB
-        exact ⟨hB1, by rw [hB2]; exact hr.1⟩
-      · intro x hx hx_len
-        rw [hm] at hx
-        exact h𝒞2 x hx
-      · rw [hA_card, h𝒞3, maskOverhead]
-        have H2 : 2 ^ (maskWild m - r) * c ≤ 2 ^ (maskWild m - r) * 2 ^ (r + 1) :=
-          Nat.mul_le_mul_left _ hr.2.1.le
-        have H3 : 2 ^ (maskWild m - r) * 2 ^ (r + 1) = 2 * 2 ^ maskWild m := by
-          rw [← pow_add]
-          have h_pow : maskWild m - r + (r + 1) = maskWild m + 1 := by omega
-          rw [h_pow, pow_add, pow_one, mul_comm]
-        rw [← H3]
-        exact H2
+        exact ⟨ Nat.log 2 c, Nat.pow_le_of_le_log ( by linarith ) ( by linarith ),
+            Nat.lt_pow_of_log_lt ( by linarith ) ( by linarith ), Nat.le_trans
+                ( Nat.log_mono_right hc_le ) ( by rw [ hA_card, Nat.log_pow ( by linarith ) ] ) ⟩;
+      obtain ⟨𝒞, h𝒞⟩ := mask_cover_pieces m r hr.2.2;
+      refine ⟨ 𝒞, ?_, ?_, ?_ ⟩ <;> simp_all +decide only [and_self, implies_true, maskOverhead]
+      have H := Nat.mul_le_mul_left (2 ^ (maskWild m - r)) hr.2.1.le
+      have H2 : 2 ^ (maskWild m - r) * 2 ^ (r + 1) = 2 * 2 ^ maskWild m := by
+        rw [← pow_add]
+        have h3 : maskWild m - r + (r + 1) = maskWild m + 1 := by omega
+        rw [h3, pow_add, pow_one, mul_comm]
+      rw [H2] at H
+      exact H
     · refine ⟨[], by simp, ?_, by simp [maskOverhead]⟩
-      intro x hx hx_len
-      rw [hm, mem_maskSet] at hx
-      have hx_len' : x.length = m.length := hx.1
-      omega
+      intro x hx hxn
+      have hxlen : x.length = (hA.choose).length :=
+        (mem_maskSet (hA.choose) x).mp (hA.choose_spec ▸ hx) |>.1
+      exact (hn (hxn.symm.trans hxlen)).elim
 
 /-- The description family of masks. -/
 noncomputable def maskFamily : DescriptionFamily where

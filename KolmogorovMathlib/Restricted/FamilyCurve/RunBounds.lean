@@ -1,19 +1,6 @@
-/-
-Copyright (c) 2024 Alexey Milovanov. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey Milovanov
--/
-
 import KolmogorovMathlib.Restricted.FamilyCurve.EffectiveRun
 import KolmogorovMathlib.Restricted.FamilyCurve.BadStream
 import KolmogorovMathlib.Restricted.FamilyCurve.AnchoredRun
-
-/-!
-# Bounds for the effective sampled run
-
-This file relates decoded bad-code unions to the run state and proves the cardinality and
-rebuild bounds used by the anchored chain.
--/
 
 namespace Kolmogorov
 
@@ -232,9 +219,9 @@ lemma restrictedSampledBadCodeStream_mem_raw
     w ∈ restrictedSampledBadCodesRaw c gridCode 𝒜 gridSteps Δ t := by
   induction t with
   | zero =>
-      exact List.mem_eraseDups.mp hw
+      exact mem_eraseDups_bitString.mp hw
   | succ t ih =>
-      have hw' := List.mem_eraseDups.mp hw
+      have hw' := mem_eraseDups_bitString.mp hw
       rcases List.mem_append.mp hw' with hprevious | hcurrent
       · rw [restrictedSampledBadCodesRaw, List.mem_flatMap] at ih ⊢
         obtain ⟨s, hs, hcode⟩ := ih hprevious
@@ -244,7 +231,7 @@ lemma restrictedSampledBadCodeStream_mem_raw
             𝒜
             ((decode_restrictedCurveGridCode_sample gridCode s).2 - (Δ + 1))
             t).subset hcode⟩
-      · exact List.mem_eraseDups.mp hcurrent
+      · exact mem_eraseDups_bitString.mp hcurrent
 
 /-- Concrete bad-union bound for the anchored run.  Every processed code is
 already present in the raw interval enumeration at the preceding stream stage,

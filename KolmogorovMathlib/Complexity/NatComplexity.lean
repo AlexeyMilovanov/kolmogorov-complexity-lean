@@ -1,16 +1,10 @@
-/-
-Copyright (c) 2024 Alexey Milovanov. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey Milovanov
--/
-
-import KolmogorovMathlib.Complexity.Incompressibility
-import KolmogorovMathlib.Complexity.Properties
+import Mathlib.Computability.Partrec
+import Mathlib.Data.List.Basic
+import Mathlib.Data.ENat.Lattice
 import KolmogorovMathlib.Core.Basic
 import KolmogorovMathlib.Foundation.NatEncoding
-import Mathlib.Computability.Partrec
-import Mathlib.Data.ENat.Lattice
-import Mathlib.Data.List.Basic
+import KolmogorovMathlib.Complexity.Properties
+import KolmogorovMathlib.Complexity.Incompressibility
 
 /-!
 # Complexity of Natural Numbers
@@ -42,6 +36,7 @@ noncomputable def condKNat (U : Map) (n : ℕ) (y : BitString) : ENat :=
     This follows directly from the generalized Pigeonhole Principle. -/
 theorem existsPlainKNatGt (U : Map) (L : ℕ) :
     ∃ n : ℕ, plainKNat U n > (L : ENat) := by
+  -- Updated the identifier to match the new CamelCase name from Incompressibility.lean
   exact existsComplexInjective natBitsInjective U L
 
 /-! ### Upper Bounds (Logarithmic Bound) -/
@@ -51,7 +46,7 @@ theorem existsPlainKNatGt (U : Map) (L : ℕ) :
 lemma plainKNatLeLength (U : Map) (hU : isOptimalConditional U) :
     ∃ c : ℕ, ∀ n : ℕ, plainKNat U n ≤ (programLength (Nat.bits n) : ENat) + c := by
   obtain ⟨c, hc⟩ := plainKLeLength U hU
-  exact ⟨c, fun n ↦ hc (Nat.bits n)⟩
+  exact ⟨c, fun n => hc (Nat.bits n)⟩
 
 /-! ### Invariance of Encoding (Universality) -/
 
@@ -63,6 +58,6 @@ theorem plainKNatInvariance (U : Map) (hU : isOptimalConditional U)
     (h_map : ∀ n, e n = f (Nat.bits n)) :
     ∃ c : ℕ, ∀ n : ℕ, plainK U (e n) ≤ plainKNat U n + (c : ENat) := by
   obtain ⟨c, hc⟩ := plainKMapLe U hU f hf
-  exact ⟨c, fun n ↦ by rw [h_map n]; exact hc (Nat.bits n)⟩
+  exact ⟨c, fun n => by rw [h_map n]; exact hc (Nat.bits n)⟩
 
 end Kolmogorov

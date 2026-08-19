@@ -1,9 +1,3 @@
-/-
-Copyright (c) 2024 Alexey Milovanov. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey Milovanov
--/
-
 import KolmogorovMathlib.Prefix.CountableKraft
 
 /-!
@@ -17,7 +11,7 @@ prefix machine (`tsum_aprioriMeasure_le_one`). This module closes the remaining
   hence `m_M(x | y) ≤ 1` and finiteness `m_M(x | y) ≠ ⊤` for a prefix machine;
 * a reusable predicate `IsConditionalSemimeasure` packaging "every conditional
   total mass is `≤ 1`", satisfied by `aprioriMeasure M` for a prefix machine;
-* a concrete **witness** `fun _ ↦ Part.none` of `IsPrefixMachine`, so the whole
+* a concrete **witness** `fun _ => Part.none` of `IsPrefixMachine`, so the whole
   prefix-machine theory is demonstrably non-vacuous (its semimeasure is `0`).
 
 Everything stays in `ℝ≥0∞`: only elementary inequalities, no logarithms, no real
@@ -67,13 +61,13 @@ semimeasure interface — this is exactly the normalization milestone
 `tsum_aprioriMeasure_le_one`, repackaged through the predicate. -/
 theorem aprioriMeasure_isConditionalSemimeasure (M : Map) (hM : IsPrefixMachine M) :
     IsConditionalSemimeasure (aprioriMeasure M) :=
-  fun y ↦ tsum_aprioriMeasure_le_one M y hM
+  fun y => tsum_aprioriMeasure_le_one M y hM
 
 /-! ### Non-vacuity: the empty prefix machine -/
 
 /-- The empty (never-halting) map has empty halting domain in every context. -/
 theorem domainAt_const_none (y : BitString) :
-    domainAt (fun _ ↦ Part.none) y = (∅ : Set BitString) := by
+    domainAt (fun _ => Part.none) y = (∅ : Set BitString) := by
   rw [Set.eq_empty_iff_forall_notMem]
   intro p hp
   exact hp.elim
@@ -82,7 +76,7 @@ theorem domainAt_const_none (y : BitString) :
 is empty in every context, and the empty set is prefix-free. This exhibits a
 concrete inhabitant of `IsPrefixMachine`, so every prefix-machine theorem above is
 non-vacuous. -/
-theorem isPrefixMachine_const_none : IsPrefixMachine (fun _ ↦ Part.none) := by
+theorem isPrefixMachine_const_none : IsPrefixMachine (fun _ => Part.none) := by
   intro y
   rw [domainAt_const_none]
   exact isPrefixFree_empty
@@ -90,11 +84,11 @@ theorem isPrefixMachine_const_none : IsPrefixMachine (fun _ ↦ Part.none) := by
 /-- **Sanity check.** The a priori semimeasure of the never-halting map is
 identically `0`: no program produces any output, so every summand vanishes. -/
 theorem aprioriMeasure_const_none (x y : BitString) :
-    aprioriMeasure (fun _ ↦ Part.none) x y = 0 := by
+    aprioriMeasure (fun _ => Part.none) x y = 0 := by
   classical
   rw [aprioriMeasure]
   have hzero : ∀ p : BitString,
-      (if produces (fun _ ↦ Part.none) p y x then progWeight p else 0) = 0 := by
+      (if produces (fun _ => Part.none) p y x then progWeight p else 0) = 0 := by
     intro p
     rw [if_neg]
     exact Part.notMem_none x

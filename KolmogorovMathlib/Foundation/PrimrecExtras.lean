@@ -1,28 +1,24 @@
-/-
-Copyright (c) 2024 Alexey Milovanov. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey Milovanov
--/
-
 import Mathlib.Computability.Partrec
 import Mathlib.Computability.Primrec.List
 
 /-!
 # Primitive-recursion toolkit
 
-This file extends Mathlib's `Primrec` API with generic list and iteration
-lemmas used throughout the development. It also provides list-first wrappers
-for Mathlib's number-first `Primrec.list_drop` and `Primrec.list_take` results.
+Mathlib's `Primrec` API misses several list/iteration lemmas that this
+development needs constantly; before this file they were re-derived locally
+(specialised to `BitString` or `List BitString`) in `Prefix/TwoStage.lean`,
+`TwoPart/DescriptionShift.lean`, `NormalizedCodedFiniteDistribution.lean`, and
+`Encoding/Tuples.lean`. This file is the single home for such lemmas, stated
+generically. **Add new general-purpose `Primrec` lemmas here, not next to
+their first use.**
 
-Provided: `Primrec.list_drop_listFirst`, `Primrec.list_take_listFirst`,
+Provided: `Primrec.list_drop`, `Primrec.list_take`, `Primrec.list_takeWhile`,
 `Primrec.list_replicate`, `Primrec.nat_iterate'`, and the best-effort tactic
-macro `primrec_auto`. Mathlib provides `Primrec.list_takeWhile` directly.
+macro `primrec_auto`.
 
-`Mathlib.Computability.Partrec` is imported for `Primrec.to_comp`, which
-`primrec_auto` uses to reduce a `Computable` goal to a `Primrec` one. No
-declaration in this file mentions it, but a tactic quotation resolves its
-identifiers against the macro's declaration site, so dropping the import
-would make every `primrec_auto` expansion fail.
+`Mathlib.Computability.Partrec` provides `Primrec.to_comp`, which is used by
+the `primrec_auto` quotation and must therefore be available at the macro's
+declaration site.
 -/
 
 namespace Kolmogorov
@@ -31,15 +27,6 @@ open Primrec
 
 variable {α : Type*} [Primcodable α]
 
-/-- List-first compatibility form of Mathlib's number-first `Primrec.list_drop`. -/
-theorem _root_.Primrec.list_drop_listFirst :
-    Primrec₂ (fun (l : List α) (n : ℕ) => l.drop n) := by
-  exact (Primrec.list_drop (α := α)).comp Primrec.snd Primrec.fst
-
-/-- List-first compatibility form of Mathlib's number-first `Primrec.list_take`. -/
-theorem _root_.Primrec.list_take_listFirst :
-    Primrec₂ (fun (l : List α) (n : ℕ) => l.take n) := by
-  exact (Primrec.list_take (α := α)).comp Primrec.snd Primrec.fst
 
 /-- `List.replicate` is primitive recursive in both arguments. -/
 theorem _root_.Primrec.list_replicate :
@@ -82,8 +69,7 @@ macro "primrec_auto" : tactic =>
       Primrec.pair, Primrec.succ, Primrec.pred, Primrec.nat_add,
       Primrec.nat_sub, Primrec.nat_mul, Primrec.list_cons, Primrec.list_append,
       Primrec.list_reverse, Primrec.list_length, Primrec.list_tail,
-      Primrec.list_drop, Primrec.list_take, Primrec.list_drop_listFirst,
-      Primrec.list_take_listFirst, Primrec.list_replicate,
+      Primrec.list_drop, Primrec.list_take, Primrec.list_replicate,
       Primrec.to_comp, Primrec.to₂])
 
 end Kolmogorov

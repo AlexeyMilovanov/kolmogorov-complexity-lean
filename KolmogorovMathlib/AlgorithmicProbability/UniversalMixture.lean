@@ -1,9 +1,3 @@
-/-
-Copyright (c) 2024 Alexey Milovanov. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey Milovanov
--/
-
 import KolmogorovMathlib.AlgorithmicProbability.Domination
 import Mathlib.Analysis.SpecificLimits.Basic
 
@@ -81,9 +75,9 @@ family. This ties the concrete universal mixture to the prefix-machine theory vi
 `aprioriMeasure_isConditionalSemimeasure`. -/
 theorem mixture_dyadicWeight_aprioriMeasure_isUniversalFor
     (M : ℕ → Map) (hM : ∀ i, IsPrefixMachine (M i)) :
-    IsUniversalFor (mixture dyadicWeight (fun i ↦ aprioriMeasure (M i)))
-      (fun i ↦ aprioriMeasure (M i)) :=
-  mixture_dyadicWeight_isUniversalFor (fun i ↦ aprioriMeasure (M i))
-    (fun i ↦ aprioriMeasure_isConditionalSemimeasure (M i) (hM i))
+    IsUniversalFor (mixture dyadicWeight (fun i => aprioriMeasure (M i)))
+      (fun i => aprioriMeasure (M i)) :=
+  mixture_dyadicWeight_isUniversalFor (fun i => aprioriMeasure (M i))
+    (fun i => aprioriMeasure_isConditionalSemimeasure (M i) (hM i))
 
 end Kolmogorov

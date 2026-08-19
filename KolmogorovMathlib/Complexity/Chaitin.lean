@@ -1,10 +1,10 @@
-/-
-Copyright (c) 2024 Alexey Milovanov. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey Milovanov
--/
-
+import Mathlib.Computability.PartrecCode
+import Mathlib.Computability.Partrec
+import KolmogorovMathlib.Core.Basic
+import KolmogorovMathlib.Complexity.Properties
+import KolmogorovMathlib.Complexity.NatComplexity
 import KolmogorovMathlib.Complexity.Uncomputability
+import KolmogorovMathlib.Foundation.UnboundedSearch
 
 /-!
 # Chaitin's Incompleteness Theorem
@@ -27,18 +27,13 @@ namespace Kolmogorov
     It requires a computable enumerator of theorems and a computable parser for statements
     of the form `K(x) > L`. -/
 structure FormalSystem (U : Map) where
-  /-- The type of formulas in the formal system. -/
   Formula : Type
   enc : Primcodable Formula
-  /-- The provability relation for formulas. -/
   provable : Formula → Prop
-  /-- The enumerator for theorems in the system. -/
   enumThm : ℕ → Option Formula
   hEnumComp : Computable enumThm
   hEnumExact : ∀ φ, provable φ ↔ ∃ i, enumThm i = some φ
-  /-- Formula representing the statement that K(x) > L. -/
   exprKGt : ℕ → ℕ → Formula
-  /-- Parser that attempts to extract `(x, L)` from a formula asserting `K(x) > L`. -/
   parseKGt : Formula → Option (ℕ × ℕ)
   hParseComp : Computable parseKGt
   hParseForward : ∀ x L, parseKGt (exprKGt x L) = some (x, L)
@@ -53,8 +48,7 @@ namespace FormalSystem
 
 variable {U : Map} (F : FormalSystem U)
 
-/-- Combines the theorem enumerator with the parser to directly enumerate proven
-bounds `(x, L)`. -/
+/-- Combines the theorem enumerator with the parser to directly enumerate proven bounds `(x, L)`. -/
 def enumBounds (i : ℕ) : Option (ℕ × ℕ) :=
   (F.enumThm i).bind F.parseKGt
 
@@ -66,57 +60,37 @@ def isBoundGt (M i : ℕ) : Bool :=
 
 /-- The bound enumerator is computable since it is a composition of computable functions. -/
 lemma enumBoundsComputable : Computable F.enumBounds := by
-  have h_eq : F.enumBounds = fun i ↦ Option.casesOn (F.enumThm i) none F.parseKGt := by
-    funext i
-    dsimp [enumBounds, Option.bind]
-    cases F.enumThm i <;> rfl
+  have h_eq : F.enumBounds = fun i => Option.casesOn (F.enumThm i) none F.parseKGt := by
+    funext i; dsimp [enumBounds, Option.bind]; cases F.enumThm i <;> rfl
   rw [h_eq]
   exact Computable.option_casesOn F.hEnumComp
     (Computable.const none)
     (F.hParseComp.comp (@Computable.snd ℕ F.Formula _ _))
 
 /-- The threshold checker is computable. -/
-lemma isBoundGtComputable : Computable (fun p : ℕ × ℕ ↦ F.isBoundGt p.1 p.2) := by
-  have h_eq : (fun p : ℕ × ℕ ↦ F.isBoundGt p.1 p.2) =
-    fun p ↦ Option.casesOn (F.enumBounds p.2) false (fun xL ↦ decide (p.1 < xL.2)) := by
-    funext p
-    dsimp [isBoundGt]
-    cases F.enumBounds p.2 <;> rfl
+lemma isBoundGtComputable : Computable (fun p : ℕ × ℕ => F.isBoundGt p.1 p.2) := by
+  have h_eq : (fun p : ℕ × ℕ => F.isBoundGt p.1 p.2) =
+    fun p => Option.casesOn (F.enumBounds p.2) false (fun xL => decide (p.1 < xL.2)) := by
+    funext p; dsimp [isBoundGt]; cases F.enumBounds p.2 <;> rfl
   rw [h_eq]
-  have h_opt : Computable (fun p : ℕ × ℕ ↦ F.enumBounds p.2) := by
+  have h_opt : Computable (fun p : ℕ × ℕ => F.enumBounds p.2) := by
     change Computable (F.enumBounds ∘ Prod.snd)
     exact F.enumBoundsComputable.comp Computable.snd
-  have h_def : Computable (fun p : ℕ × ℕ ↦ false) :=
+  have h_def : Computable (fun p : ℕ × ℕ => false) :=
     Computable.const false
-  have h_fst_fst : Computable (fun p : (ℕ × ℕ) × (ℕ × ℕ) ↦ p.1.1) := by
+  have h_fst_fst : Computable (fun p : (ℕ × ℕ) × (ℕ × ℕ) => p.1.1) := by
     change Computable (Prod.fst ∘ Prod.fst)
     exact Computable.fst.comp Computable.fst
-  have h_snd_snd : Computable (fun p : (ℕ × ℕ) × (ℕ × ℕ) ↦ p.2.2) := by
+  have h_snd_snd : Computable (fun p : (ℕ × ℕ) × (ℕ × ℕ) => p.2.2) := by
     change Computable (Prod.snd ∘ Prod.snd)
     exact Computable.snd.comp Computable.snd
-  have h_pair : Computable (fun p : (ℕ × ℕ) × (ℕ × ℕ) ↦ (p.1.1, p.2.2)) :=
+  have h_pair : Computable (fun p : (ℕ × ℕ) × (ℕ × ℕ) => (p.1.1, p.2.2)) :=
     h_fst_fst.pair h_snd_snd
-  have h_some : Computable (fun p : (ℕ × ℕ) × (ℕ × ℕ) ↦ decide (p.1.1 < p.2.2)) := by
-    let Lt := fun q : ℕ × ℕ ↦ decide (q.1 < q.2)
-    let Pair := fun p : (ℕ × ℕ) × (ℕ × ℕ) ↦ (p.1.1, p.2.2)
+  have h_some : Computable (fun p : (ℕ × ℕ) × (ℕ × ℕ) => decide (p.1.1 < p.2.2)) := by
+    let Lt := fun q : ℕ × ℕ => decide (q.1 < q.2)
+    let Pair := fun p : (ℕ × ℕ) × (ℕ × ℕ) => (p.1.1, p.2.2)
     change Computable (Lt ∘ Pair)
     exact Computable.natLt.comp h_pair
-  exact Computable.option_casesOn h_opt h_def h_some
-
-/-- Extracting the first component from the bound enumerator along a computable
-search function is computable. -/
-lemma enumBoundsFirstComputable (F : FormalSystem U) (search : ℕ → ℕ)
-    (hsearch : Computable search) :
-    Computable (fun k : ℕ ↦
-      Option.casesOn (motive := fun _ ↦ ℕ) (F.enumBounds (search k)) 0
-        (fun xL : ℕ × ℕ ↦ xL.1)) := by
-  have h_opt : Computable (fun k : ℕ ↦ F.enumBounds (search k)) := by
-    change Computable (F.enumBounds ∘ search)
-    exact F.enumBoundsComputable.comp hsearch
-  have h_def : Computable (fun _ : ℕ ↦ 0) := Computable.const 0
-  have h_some : Computable (fun p : ℕ × (ℕ × ℕ) ↦ p.2.1) := by
-    change Computable (Prod.fst ∘ Prod.snd)
-    exact Computable.fst.comp Computable.snd
   exact Computable.option_casesOn h_opt h_def h_some
 
 /-- If the enumerator outputs a bound, that bound is sound (true) in the underlying metric. -/
@@ -124,9 +98,7 @@ lemma enumBoundsSound (i x L : ℕ) (h : F.enumBounds i = some (x, L)) :
     (L : ENat) < plainKNat U x := by
   unfold enumBounds at h
   cases h_thm : F.enumThm i with
-  | none =>
-    rw [h_thm] at h
-    contradiction
+  | none => rw [h_thm] at h; contradiction
   | some phi =>
     rw [h_thm] at h
     change F.parseKGt phi = some (x, L) at h
@@ -136,26 +108,26 @@ lemma enumBoundsSound (i x L : ℕ) (h : F.enumBounds i = some (x, L)) :
     exact F.hSound x L h_prov
 
 lemma Computable.decide_eq_true {α : Type*} [Primcodable α] {f : α → Bool} (hf : Computable f) :
-  Computable (fun a ↦ decide (f a = true)) :=
-  hf.of_eq (fun a ↦ (Bool.decide_coe (f a)).symm)
+  Computable (fun a => decide (f a = true)) :=
+  hf.of_eq (fun a => (Bool.decide_coe (f a)).symm)
 
 -- The decidable predicate used in the Chaitin diagonal search is computable.
 lemma isBoundGtSearchPredicateComputable :
-    Computable (fun p : ℕ × ℕ ↦ F.isBoundGt (2 ^ p.1) p.2) := by
-  have hpair : Computable (fun p : ℕ × ℕ ↦ (2 ^ p.1, p.2)) :=
+    Computable (fun p : ℕ × ℕ => F.isBoundGt (2 ^ p.1) p.2) := by
+  have hpair : Computable (fun p : ℕ × ℕ => (2 ^ p.1, p.2)) :=
     (Computable.pow2.comp Computable.fst).pair Computable.snd
   apply Computable.comp
-    (f := fun p : ℕ × ℕ ↦ F.isBoundGt p.1 p.2)
-    (g := fun p : ℕ × ℕ ↦ (2 ^ p.1, p.2))
+    (f := fun p : ℕ × ℕ => F.isBoundGt p.1 p.2)
+    (g := fun p : ℕ × ℕ => (2 ^ p.1, p.2))
   · exact F.isBoundGtComputable
   · exact hpair
 
 lemma isBoundGtSearchComputable
     (h_exists : ∀ M : ℕ, ∃ i, F.isBoundGt M i = true) :
-    Computable (fun k : ℕ ↦ Nat.find (h_exists (2 ^ k))) := by
+    Computable (fun k : ℕ => Nat.find (h_exists (2 ^ k))) := by
   exact Computable.natFind
     (Computable.decide_eq_true (isBoundGtSearchPredicateComputable F))
-    (fun k ↦ h_exists (2 ^ k))
+    (fun k => h_exists (2 ^ k))
 
 /-! ### Chaitin's Bound -/
 
@@ -167,7 +139,7 @@ lemma isBoundGtSearchComputable
 theorem chaitinBound (hU : isOptimalConditional U) :
     ∃ c : ℕ, ∀ i x L, F.enumBounds i = some (x, L) → L ≤ c := by
   by_contra h_unb_inf
-  -- Push the negation inward: `¬ ∀ …, L ≤ c` becomes `∃ …, c < L`.
+  -- Push the negation inward: `¬ ∀ ..., L ≤ c` becomes `∃ ..., c < L`.
   push Not at h_unb_inf
   have h_exists (M : ℕ) : ∃ i, F.isBoundGt M i = true := by
     obtain ⟨i, x, L, h_eq, h_gt⟩ := h_unb_inf M
@@ -185,14 +157,19 @@ theorem chaitinBound (hU : isOptimalConditional U) :
     F.isBoundGtSearchComputable h_exists
   -- 2. Computability of the final extractor function
   have hg_comp : Computable g := by
-    have h_eq : g = fun k : ℕ ↦
-        Option.casesOn (motive := fun _ ↦ ℕ) (F.enumBounds (search k)) 0
-          (fun xL : ℕ × ℕ ↦ xL.1) := by
+    have h_eq : g = fun k => Option.casesOn (F.enumBounds (search k)) 0 (fun xL => xL.1) := by
       funext k; dsimp [g]; cases F.enumBounds (search k) <;> rfl
     rw [h_eq]
-    exact F.enumBoundsFirstComputable search h_search_comp
+    have h_opt : Computable (fun k : ℕ => F.enumBounds (search k)) := by
+      change Computable (F.enumBounds ∘ search)
+      exact F.enumBoundsComputable.comp h_search_comp
+    have h_def : Computable (fun _ : ℕ => 0) := Computable.const 0
+    have h_some : Computable (fun p : ℕ × (ℕ × ℕ) => p.2.1) := by
+      change Computable (Prod.fst ∘ Prod.snd)
+      exact Computable.fst.comp Computable.snd
+    exact Computable.option_casesOn h_opt h_def h_some
   -- 3. Constructing the paradox
-  let fMap := fun s ↦ Nat.bits (g (decodeBits s))
+  let fMap := fun s => Nat.bits (g (decodeBits s))
   have hf_comp : Computable fMap := natBitsComputable.comp (hg_comp.comp decodeBitsComputable)
   obtain ⟨cG, h_bound_g⟩ := plainKMapLe U hU fMap hf_comp
   obtain ⟨cLen, h_bound_len⟩ := plainKNatLeLength U hU
@@ -216,8 +193,7 @@ theorem chaitinBound (hU : isOptimalConditional U) :
     have h_low : (2^k : ENat) < plainKNat U (g k) := by
       rw [hg_val]
       exact lt_trans (ENat.coe_lt_coe.mpr h_gt) h_sound
-    have h_top :
-        plainKNat U (g k) ≤ (programLength (Nat.bits k) : ENat) + (cTotal : ENat) := by
+    have h_top : plainKNat U (g k) ≤ (programLength (Nat.bits k) : ENat) + (cTotal : ENat) := by
       have h1 := h_bound_g (Nat.bits k)
       dsimp [fMap] at h1
       rw [decodeBits_natBits] at h1

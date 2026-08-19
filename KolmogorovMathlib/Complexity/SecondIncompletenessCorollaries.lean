@@ -1,9 +1,8 @@
 /-
-Copyright (c) 2024 Alexey Milovanov. All rights reserved.
+Copyright (c) 2026 Alexey Milovanov. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Alexey Milovanov
 -/
-
 import KolmogorovMathlib.Complexity.SecondIncompleteness
 
 /-!
@@ -26,27 +25,18 @@ namespace Kolmogorov
     upper bound directly from Lean's mathematical truth. -/
 structure PeanoLikeSystem (U : Map) extends FormalSystem U where
   -- 1. Basic Propositional Logic
-  /-- Logical implication between formulas. -/
   impl : Formula → Formula → Formula
-  /-- Logical negation of a formula. -/
   not : Formula → Formula
   mp : ∀ A B, provable (impl A B) → provable A → provable B
   mt : ∀ A B, provable (impl A B) → provable (not B) → provable (not A)
 
   -- 2. Vocabulary
-  /-- Formula asserting the consistency of the system. -/
   exprCon : Formula
-  /-- Formula asserting that there are at least `i` strings of length `<= L+1`
-  with complexity `> L`. -/
   exprMGt : ℕ → ℕ → Formula
-  /-- Formula asserting that there are exactly `i` strings of length `<= L+1`
-  with complexity `> L`. -/
   exprMEq : ℕ → ℕ → Formula
-  /-- Formula asserting that the system proves `K(x) > L` for some `x`. -/
   exprExistsProvKGt : ℕ → Formula
 
   -- 3. Semantics & Soundness (The Semantic Bridge)
-  /-- The standard semantic interpretation of a formula. -/
   eval : Formula → Prop
   soundness : ∀ φ, provable φ → eval φ
 
@@ -90,7 +80,7 @@ def PeanoLikeSystem.toKRFormalSystem {U : Map} (sys : PeanoLikeSystem U) : KRFor
   krStep4 := sys.sigma1Eq2
   krMSplit := sys.arithSplit
   -- WE DERIVE THE KR_BOUND AUTOMATICALLY HERE:
-  krBound := fun L hProv ↦ by
+  krBound := fun L hProv => by
     -- 1. If the system proved it, it must be true in reality (soundness)
     have hEval := sys.soundness _ hProv
     -- 2. The mathematical meaning implies the count cannot exceed the range

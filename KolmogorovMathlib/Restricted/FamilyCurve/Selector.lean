@@ -1,9 +1,3 @@
-/-
-Copyright (c) 2024 Alexey Milovanov. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey Milovanov
--/
-
 import KolmogorovMathlib.Restricted.Family
 import KolmogorovMathlib.Restricted.CoverSearch
 import KolmogorovMathlib.AlgorithmicStatistics.NonStochastic
@@ -553,12 +547,12 @@ theorem restrictedMaxIntersectionCoverSelector_KPPlain_le
 lemma familyEnumeration_prefix_of_le {mem : Finset BitString → Prop}
     (E : FamilyEnumeration mem) {s t : ℕ} (hst : s ≤ t) :
     E.enum s <+: E.enum t := by
-  obtain ⟨k, hk⟩ := Nat.exists_eq_add_of_le hst
-  subst hk
+  obtain ⟨ k, hk ⟩ := Nat.exists_eq_add_of_le hst;
+  subst hk;
   induction k <;>
     simp_all only [add_zero, le_refl, List.prefix_rfl, le_add_iff_nonneg_right,
       zero_le, forall_const]
-  exact List.IsPrefix.trans ‹_› (E.mono _)
+  exact List.IsPrefix.trans ‹_› ( E.mono _ )
 
 lemma DescriptionFamily.exists_nonempty_cover {𝒜 : DescriptionFamily}
     {A : Finset BitString} (hA : 𝒜.mem A) (n c : ℕ)
@@ -568,15 +562,15 @@ lemma DescriptionFamily.exists_nonempty_cover {𝒜 : DescriptionFamily}
       (∀ B ∈ cover, 𝒜.mem B ∧ B.card ≤ c) ∧
       (∀ x ∈ A, x.length = n → ∃ B ∈ cover, x ∈ B) ∧
       cover.length * c ≤ 𝒜.overhead n * A.card := by
-  obtain ⟨cover, hcover₁, hcover₂, hcover₃⟩ := 𝒜.cover hA n c hc_pos hc_le
+  obtain ⟨ cover, hcover₁, hcover₂, hcover₃ ⟩ := 𝒜.cover hA n c hc_pos hc_le;
   by_cases h : cover = [] <;>
     simp_all only [List.not_mem_nil, IsEmpty.forall_iff, implies_true, false_and,
       exists_const, imp_false, List.length_nil, zero_mul, zero_le, ne_eq,
       not_isEmpty_of_nonempty, IsEmpty.exists_iff, true_and]
-  · refine ⟨[{[]}], ?_, ?_, ?_⟩ <;> norm_num
-    · exact ⟨DescriptionFamily.singleton_mem 𝒜 _, hc_pos⟩
-    · nlinarith [show 0 < 𝒜.overhead n from 𝒜.overhead_pos n]
-  · exact ⟨cover, h, hcover₁, hcover₂, hcover₃⟩
+  · refine ⟨ [ { [ ] } ], ?_, ?_, ?_ ⟩ <;> norm_num;
+    · exact ⟨ DescriptionFamily.singleton_mem 𝒜 _, hc_pos ⟩;
+    · nlinarith [ show 0 < 𝒜.overhead n from 𝒜.overhead_pos n ];
+  · exact ⟨ cover, h, hcover₁, hcover₂, hcover₃ ⟩
 
 lemma exists_restrictedCoverValidBool_witness (𝒜 : DescriptionFamily)
     (Acode Ccode : BitString) (n c q0 : ℕ)
@@ -687,14 +681,14 @@ theorem restrictedMaxIntersectionCoverSelector_spec (𝒜 : DescriptionFamily)
           (restrictedCoverSelectorInput Acode Ccode c q0) p0) ∧
       restrictedSelectorCheck 𝒜
           (restrictedCoverSelectorInput Acode Ccode c q0) p0 = true := by
-    unfold restrictedMaxIntersectionCoverSelector
+    unfold restrictedMaxIntersectionCoverSelector;
     obtain ⟨p0, hp0⟩ : ∃ p0,
         Nat.rfind (fun p => Part.some (restrictedSelectorCheck 𝒜
           (restrictedCoverSelectorInput Acode Ccode c q0) p)) = Part.some p0 := by
       simp +decide only [Nat.rfind]
       simp +decide only [Part.eq_some_iff, Part.mem_mk_iff, Part.mem_some_iff,
         Bool.true_eq, Part.some_dom, implies_true, and_true, ↓existsAndEq, exists_prop]
-      use p
+      use p;
     have hp0_mem : p0 ∈ Nat.rfind (fun p => Part.some (restrictedSelectorCheck 𝒜
         (restrictedCoverSelectorInput Acode Ccode c q0) p)) := Part.eq_some_iff.mp hp0
     have hp0_spec := Nat.mem_rfind.mp hp0_mem

@@ -1,8 +1,3 @@
-/-
-Copyright (c) 2024 Alexey Milovanov. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey Milovanov
--/
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.Deficiencies
 import KolmogorovMathlib.Complexity.NatComplexity
 import KolmogorovMathlib.Complexity.Incompressibility
@@ -12,14 +7,6 @@ import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.DescriptionShift
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.GapCounting
 import KolmogorovMathlib.AlgorithmicStatistics.NormalizedCodedFiniteDistribution
 import KolmogorovMathlib.AlgorithmicStatistics.Selector
-
-/-!
-# Description Profiles and Structure Functions
-
-This file packages two-part description profiles as upper sets and proves the
-basic structure-function frontier statements used by the Section 3 realization
-modules.
--/
 
 namespace Kolmogorov
 
@@ -38,8 +25,8 @@ theorem decodeElement_computable : Computable decodeElement := by
       ((decodeDistributionData (decodeFirst t)).map CodedDistributionEntry.point).drop
         (bitsToNat (decodeSecond t))) := by
     have h_drop : Primrec₂ (fun (l : List BitString) (n : ℕ) => l.drop n) := by
-      have h : (fun (l : List BitString) (n : ℕ) => l.drop n) =
-          fun l n => Nat.rec l (fun _ ih => ih.tail) n := by
+      have h : (fun (l : List BitString) (n : ℕ) => l.drop n)
+          = fun l n => Nat.rec l (fun _ ih => ih.tail) n := by
         funext l n; induction n with | zero => rfl | succ n ih => rw [← List.tail_drop, ih]
       rw [h]
       exact Primrec.nat_rec' Primrec.snd Primrec.fst
@@ -71,8 +58,8 @@ theorem decodeElement_eq (S : Finset BitString) (hS : S.Nonempty) (x : BitString
   have h_idx_val : blockIdx < (canonicalFinsetList S).length := by
     dsimp [blockIdx]
     rw [List.findIdx_lt_length]; exact ⟨x, h_mem, by simp⟩
-  have h_drop : ((canonicalFinsetList S).drop blockIdx) =
-      (canonicalFinsetList S)[blockIdx] :: ((canonicalFinsetList S).drop (blockIdx + 1)) := by
+  have h_drop : ((canonicalFinsetList S).drop blockIdx)
+      = (canonicalFinsetList S)[blockIdx] :: ((canonicalFinsetList S).drop (blockIdx + 1)) := by
     apply List.drop_eq_getElem_cons
   rw [h_drop]
   have h_get : (canonicalFinsetList S)[blockIdx] = x := by
@@ -90,12 +77,12 @@ def descriptionProfileSet (U : Map) (x : BitString) : Set (ℕ × ℕ) :=
 noncomputable def structureFunction (U : Map) (x : BitString) (i : ℕ) : ℕ∞ :=
   ⨅ j ∈ { j | InDescriptionProfile U x i j }, (j : ℕ∞)
 
-/-- Curve admissibility (A1)–(A5) *as originally stated by a previous pass*.
+/-- Curve admissibility (A1)–(A5) in an inconsistent form.
 
 **Warning (mathematically flawed – kept only to document the fix).**  This
 predicate is **unsatisfiable**: no `h : ℕ → ℕ` can meet all five fields at once, so
-any `∃ h, AdmissibleCurve n h` claim (e.g. the old `profile_is_admissible`, now
-commented out below) is false.  See `AdmissibleCurve_unsatisfiable`.
+any `∃ h, AdmissibleCurve n h` claim is false.  See
+`AdmissibleCurve_unsatisfiable`.
 
 The defect is the interaction of `antitone` + `bottom` + `sufficient`: `bottom`
 gives a zero `k₀`, `antitone` propagates it to `k₀ + 1`, and `sufficient` at
@@ -163,9 +150,8 @@ theorem KPPlain_le_of_inDescriptionProfile (U : Map) (hU : IsOptimalPrefixCondit
     have h := hc_len z
     rw [hz_len] at h
     exact h
-  calc
-    KPPlain U x =
-        KPPlain U (decodeElement (pairCode (codedUniformOn S hS).code z)) := by rw [h_dec]
+  calc KPPlain U x = KPPlain U (decodeElement (pairCode (codedUniformOn S hS).code z)) := by
+        rw [h_dec]
     _ ≤ KPPlain U (pairCode (codedUniformOn S hS).code z) + c_map := hc_map _
     _ = KPPair U (codedUniformOn S hS).code z + c_map := by
         rw [KPPlain_eq_KP, KPPair_eq_KP_pairCode]
@@ -178,14 +164,13 @@ theorem KPPlain_le_of_inDescriptionProfile (U : Map) (hU : IsOptimalPrefixCondit
     _ ≤ ((i : ENat) + ((j : ENat) + 2 * (Nat.bits j).length + c_len) + c_pair) + c_map := by
         gcongr
     _ = ((i + j + 2 * (Nat.bits j).length + c_len + c_pair + c_map : ℕ) : ENat) := by
-        push_cast
-        ring
+        push_cast; ring
     _ ≤ (i + j + logSlack c (n + i + j) : ENat) := by
         have h_mono : (Nat.bits j).length ≤ (Nat.bits (n + i + j)).length :=
           length_natBits_mono (by omega)
         have h_c : c = c_map + c_pair + c_len + 2 := rfl
-        have h_le : i + j + 2 * (Nat.bits j).length + c_len + c_pair + c_map ≤
-            i + j + logSlack c (n + i + j) := by
+        have h_le : i + j + 2 * (Nat.bits j).length + c_len + c_pair + c_map
+            ≤ i + j + logSlack c (n + i + j) := by
           unfold logSlack
           nlinarith
         exact_mod_cast h_le
@@ -309,7 +294,7 @@ theorem structureFunction_eq_zero_of_ge_complexity
   have hmem : InDescriptionProfile U x (kx + logSlack c n) 0 := hc x n kx hn hk
   have hle : structureFunction U x (kx + logSlack c n) ≤ (0 : ℕ) :=
     (inDescriptionProfile_iff_structureFunction_le U x _ 0).mp hmem
-  exact le_antisymm (by exact_mod_cast hle) zero_le
+  exact le_antisymm (by exact_mod_cast hle) (zero_le)
 
 /-! ### Corrected Section-3 admissibility (replacing the false `profile_is_admissible`)
 
@@ -375,7 +360,7 @@ theorem structureFunction_admissible (U : Map) (hU : IsOptimalPrefixConditional 
           unfold logSlack; nlinarith [Nat.zero_le ((Nat.bits n).length)]
         omega)
     rw [h0] at hmono
-    exact le_antisymm hmono zero_le
+    exact le_antisymm hmono (zero_le)
   · -- (A4) sufficiency line
     intro i j hij
     have hcast : KPPlain U x ≤ (i + j + logSlack c_suf (n + i + j) : ENat) := hsuf x n i j hn hij

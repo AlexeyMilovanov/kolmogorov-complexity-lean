@@ -1,15 +1,14 @@
-/-
-Copyright (c) 2024 Alexey Milovanov. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey Milovanov
--/
-
 import KolmogorovMathlib.AlgorithmicStatistics.Selector
-import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.ImprovingDescriptions
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.ModelsToSets2
+import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.ImprovingDescriptions
+
+namespace Kolmogorov
+
+open Kolmogorov.CodedFiniteDistribution
+open Nat.Partrec (Code)
 
 /-!
-# Snapshot Enumeration for Rich Descriptions
+# Description Snapshot (Phase D infrastructure)
 
 This module builds the computable enumeration bridge for the description
 universe. It mirrors the `snapshotCodes` machinery to the level of
@@ -17,15 +16,11 @@ universe. It mirrors the `snapshotCodes` machinery to the level of
 showing that these rich elements can be isolated computably given the halting
 count.
 -/
-namespace Kolmogorov
-
-open Kolmogorov.CodedFiniteDistribution
-open Nat.Partrec (Code)
 
 /-- Computable test if a code represents a canonical uniform distribution. -/
 def isCanonicalUniformCodeBool (c : BitString) : Bool :=
   let S := ((decodeDistributionData c).map CodedDistributionEntry.point).toFinset
-  decide (S.Nonempty ∧ c = codedDistributionDataCode ((canonicalFinsetList S).map fun x ↦
+  decide (S.Nonempty ∧ c = codedDistributionDataCode ((canonicalFinsetList S).map fun x =>
     { point := x, mass := ratMassInvNat (max 1 S.card) (by positivity) }))
 
 /-
@@ -125,7 +120,7 @@ theorem isCanonicalUniformCodeBool_primrec : Primrec isCanonicalUniformCodeBool 
 /-- Supports of the canonical-uniform codes appearing in `snapshotCodes c i t`. -/
 def snapshotDescriptions (c : Code) (i t : ℕ) : Finset (Finset BitString) :=
   ((snapshotCodes c i t).filter isCanonicalUniformCodeBool).toFinset.image
-    (fun w ↦ ((decodeDistributionData w).map CodedDistributionEntry.point).toFinset)
+    (fun w => ((decodeDistributionData w).map CodedDistributionEntry.point).toFinset)
 
 /-- `snapshotDescriptions` is primitive recursive.
 
@@ -157,7 +152,7 @@ theorem snapshotDescriptions_primrec (c : Code) :
 
 /-- Computable mirror of `descriptionsWithComplexityLeAndSizeLe`. -/
 def snapshotDescriptionsAndSizeLe (c : Code) (i j t : ℕ) : Finset (Finset BitString) :=
-  (snapshotDescriptions c i t).filter (fun S ↦ S.card ≤ 2 ^ j)
+  (snapshotDescriptions c i t).filter (fun S => S.card ≤ 2 ^ j)
 
 /-- `snapshotDescriptionsAndSizeLe` is primitive recursive.
 
@@ -205,24 +200,25 @@ theorem snapshotDescriptionsAndSizeLe_primrec (c : Code) :
 /-- Computable mirror of `richDescriptionElements`. -/
 def snapshotRichElements (c : Code) (i j k t : ℕ) : Finset BitString :=
   ((snapshotDescriptionsAndSizeLe c i j t).biUnion id).filter
-    (fun y ↦ 2 ^ k ≤ ((snapshotDescriptionsAndSizeLe c i j t).filter (fun S ↦ y ∈ S)).card)
+    (fun y => 2 ^ k ≤ ((snapshotDescriptionsAndSizeLe c i j t).filter (fun S => y ∈ S)).card)
 
 /-- Computable list mirror of the size-restricted description universe:
 the canonical list of canonical-uniform codes, each mapped to the canonical list
 of its support, filtered by the size budget.  Each entry is `canonicalFinsetList`
 of a description appearing in `snapshotDescriptionsAndSizeLe`. -/
 def snapshotDescList (c : Code) (i j t : ℕ) : List (List BitString) :=
-  ((canonicalFinsetList ((snapshotCodes c i t).filter isCanonicalUniformCodeBool).toFinset).map
-      (fun w ↦ canonicalFinsetList
-        (((decodeDistributionData w).map CodedDistributionEntry.point).toFinset))).filter
-        (fun S ↦ decide (S.length ≤ 2 ^ j))
+  ((canonicalFinsetList ((snapshotCodes c i t).filter
+    isCanonicalUniformCodeBool).toFinset).map
+      (fun w => canonicalFinsetList (((decodeDistributionData w).map
+        CodedDistributionEntry.point).toFinset))).filter
+          (fun S => decide (S.length ≤ 2 ^ j))
 
 /-- Computable list mirror of `snapshotRichElements`: flatten the description
 lists and keep the points contained in at least `2 ^ k` distinct descriptions
 (counted via `List.countP` on the nodup description list). -/
 def snapshotRichElementsList (c : Code) (i j k t : ℕ) : List BitString :=
   (snapshotDescList c i j t).flatten.filter
-    (fun y ↦ decide (2 ^ k ≤ (snapshotDescList c i j t).countP (fun S ↦ decide (y ∈ S))))
+    (fun y => decide (2 ^ k ≤ (snapshotDescList c i j t).countP (fun S => decide (y ∈ S))))
 
 /-
 The list-of-lists mirror `snapshotDescList`, read as a finset of finsets via
@@ -291,34 +287,31 @@ primitive-recursive list construction stand in for the abstract rich set.
 theorem snapshotRichElementsList_toFinset (c : Code) (i j k t : ℕ) :
     (snapshotRichElementsList c i j k t).toFinset = snapshotRichElements c i j k t := by
   ext y
-  simp only [snapshotRichElementsList, List.filter_flatten, List.mem_toFinset,
-    List.mem_flatten, List.mem_map, exists_exists_and_eq_and, List.mem_filter,
-    decide_eq_true_eq, snapshotRichElements, Finset.mem_filter, Finset.mem_biUnion, id_eq]
+  simp only [snapshotRichElementsList, List.filter_flatten, List.mem_toFinset, List.mem_flatten,
+    List.mem_map, exists_exists_and_eq_and, List.mem_filter, decide_eq_true_eq,
+    snapshotRichElements, Finset.mem_filter, Finset.mem_biUnion, id_eq]
   constructor <;> intro h
   · obtain ⟨l, hl_mem, hy_mem, h_count_le⟩ := h
     constructor
     · use l.toFinset
       have h_nodup := snapshotDescList_nodup_map_toFinset c i j t
-      simp_all +decide only [snapshotDescriptionsAndSizeLe, Finset.mem_filter,
-        snapshotDescList, List.toFinset_filter, List.mem_filter, List.mem_map,
-        mem_canonicalFinsetList, List.mem_toFinset, decide_eq_true_eq, and_true]
-      unfold snapshotDescriptions
-      aesop
+      simp_all +decide only [snapshotDescriptionsAndSizeLe, Finset.mem_filter, snapshotDescList,
+        List.toFinset_filter, List.mem_filter, List.mem_map, mem_canonicalFinsetList,
+        List.mem_toFinset, decide_eq_true_eq, and_true]
+      unfold snapshotDescriptions; aesop
     · have h_countP_eq_card : ∀ (l : List (List BitString)),
           List.Nodup (List.map List.toFinset l) → ∀
           (y : BitString), List.countP (fun S => decide (y ∈ S)) l = Finset.card
-          (Finset.filter (fun S => y ∈ S)
-            (List.toFinset (List.map List.toFinset l))) := by
+          (Finset.filter (fun S => y ∈ S) (List.toFinset (List.map List.toFinset l))) := by
         intros l hl y
-        induction l <;> simp_all +decide only [List.countP_nil, List.map_nil,
-          List.toFinset_nil, Finset.filter_empty, Finset.card_empty, List.map_cons,
-          List.nodup_cons, List.mem_map, not_exists, not_and, List.countP_cons,
-          decide_eq_true_eq, List.toFinset_cons, forall_const]
-        split_ifs <;> simp_all +decide only [Finset.filter_insert, List.mem_toFinset,
-          ↓reduceIte, Finset.mem_filter, List.mem_map, and_true, not_exists, not_and,
-          not_false_eq_true, implies_true, Finset.card_insert_of_notMem, add_zero]
-      rw [h_countP_eq_card _
-        (snapshotDescList_nodup_map_toFinset c i j t |>.1) y] at h_count_le
+        induction l <;> simp_all +decide only [List.countP_nil, List.map_nil, List.toFinset_nil,
+          Finset.filter_empty, Finset.card_empty, List.map_cons, List.nodup_cons, List.mem_map,
+          not_exists, not_and, List.countP_cons, decide_eq_true_eq, List.toFinset_cons,
+          forall_const]
+        split_ifs <;> simp_all +decide only [Finset.filter_insert, List.mem_toFinset, ↓reduceIte,
+          Finset.mem_filter, List.mem_map, and_true, not_exists, not_and, not_false_eq_true,
+          implies_true, Finset.card_insert_of_notMem, add_zero]
+      rw [h_countP_eq_card _ (snapshotDescList_nodup_map_toFinset c i j t |>.1) y] at h_count_le
       rw [snapshotDescList_nodup_map_toFinset c i j t |>.2] at h_count_le
       exact h_count_le
   · obtain ⟨⟨S, hS₁, hS₂⟩, hS₃⟩ := h
@@ -331,30 +324,21 @@ theorem snapshotRichElementsList_toFinset (c : Code) (i j k t : ℕ) :
       obtain ⟨a, ha, haS⟩ := List.mem_map.mp (List.mem_toFinset.mp hS_mem)
       exact ⟨a, ha, haS.symm⟩
     obtain ⟨a, ha₁, rfl⟩ := hS₄
-    have h_card_le_length : ∀ {l : List (List BitString)},
-        List.Nodup (List.map List.toFinset l) → ∀ y,
-        (Finset.filter (fun S => y ∈ S)
-          (List.toFinset (List.map List.toFinset l))).card ≤
+    have h_card_le_length : ∀ {l : List (List BitString)}, List.Nodup (List.map List.toFinset l) → ∀
+        y, (Finset.filter (fun S => y ∈ S) (List.toFinset (List.map List.toFinset l))).card ≤
         (List.filter (fun S => decide (y ∈ S)) l).length := by
       intros l hl y
       induction l <;> simp_all +decide only [List.map_nil, List.toFinset_nil,
         Finset.filter_empty, Finset.card_empty, List.filter_nil, List.length_nil,
         le_refl, List.map_cons, List.nodup_cons, List.mem_map, not_exists, not_and,
         List.toFinset_cons, List.filter_cons, decide_eq_true_eq, forall_const]
-      split_ifs <;> simp_all +decide only [Finset.filter_insert, List.mem_toFinset,
-        ↓reduceIte, Finset.mem_filter, List.mem_map, and_true, not_exists, not_and,
-        not_false_eq_true, implies_true, Finset.card_insert_of_notMem, List.length_cons,
-        add_le_add_iff_right]
-    have h_le := h_card_le_length
-      (snapshotDescList_nodup_map_toFinset c i j t |>.1) y
+      split_ifs <;> simp_all +decide only [Finset.filter_insert, List.mem_toFinset, ↓reduceIte,
+        Finset.mem_filter, List.mem_map, and_true, not_exists, not_and, not_false_eq_true,
+        implies_true, Finset.card_insert_of_notMem, List.length_cons, add_le_add_iff_right]
+    have h_le := h_card_le_length (snapshotDescList_nodup_map_toFinset c i j t |>.1) y
     rw [snapshotDescList_nodup_map_toFinset c i j t |>.2] at h_le
     rw [← List.countP_eq_length_filter] at h_le
     exact ⟨a, ha₁, List.mem_toFinset.mp hS₂, le_trans hS₃ h_le⟩
-
-theorem snapshotDescList_primrec (c : Code) :
-    Primrec (fun p : (ℕ × ℕ) × ℕ => snapshotDescList c p.1.1 p.2 p.1.2) := by
-  convert snapshotDescriptionsAndSizeLe_primrec c using 1
-  ext p; rfl
 
 /-
 The list mirror `snapshotRichElementsList` is primitive recursive in its
@@ -362,55 +346,49 @@ numeric parameters.  Pure `Primrec` plumbing over the already-established
 `snapshotDescriptionsAndSizeLe_primrec`, `list_filter_primrec`,
 `list_countP_primrec`, and `Primrec.list_flatten`.
 -/
+theorem snapshotDescList_primrec (c : Code) :
+    Primrec (fun p : (ℕ × ℕ) × ℕ => snapshotDescList c p.1.1 p.2 p.1.2) :=
+  (snapshotDescriptionsAndSizeLe_primrec c).of_eq (fun _ => rfl)
+
 theorem snapshotRichElementsList_primrec (c : Code) :
-    Primrec (fun p : (ℕ × ℕ) × (ℕ × ℕ) ↦
+    Primrec (fun p : (ℕ × ℕ) × (ℕ × ℕ) =>
       snapshotRichElementsList c p.1.1 p.1.2 p.2.1 p.2.2) := by
   apply Primrec.of_eq;
   rotate_right;
-  · exact fun p ↦
-      (snapshotDescList c p.1.1 p.1.2 p.2.2).flatten.filter
-        (fun y ↦ decide
-          (2 ^ p.2.1 ≤ (snapshotDescList c p.1.1 p.1.2 p.2.2).countP
-            (fun S ↦ decide (y ∈ S))))
-  · convert list_filter_primrec _ _ using 1;
-    · have h1 : Primrec (fun p : (ℕ × ℕ) × ℕ ↦
-          ((canonicalFinsetList
-            ((snapshotCodes c p.1.1 p.1.2).filter
-              isCanonicalUniformCodeBool).toFinset).map
-            (fun w ↦ canonicalFinsetList
-              (((decodeDistributionData w).map
+  · exact fun p => (snapshotDescList c p.1.1 p.1.2 p.2.2).flatten.filter
+      (fun y => decide (2 ^ p.2.1 ≤
+        (snapshotDescList c p.1.1 p.1.2 p.2.2).countP (fun S => decide (y ∈ S))))
+  · refine (list_filter_primrec ?_ ?_).of_eq (fun _ => rfl)
+    · have h1 : Primrec (fun p : (ℕ × ℕ) × ℕ =>
+          ((canonicalFinsetList ((snapshotCodes c p.1.1 p.1.2).filter
+            isCanonicalUniformCodeBool).toFinset).map
+              (fun w => canonicalFinsetList (((decodeDistributionData w).map
                 CodedDistributionEntry.point).toFinset))).filter
-              (fun S ↦ S.length ≤ 2 ^ p.2)) := by
-                convert snapshotDescriptionsAndSizeLe_primrec c using 1;
-      exact Primrec.list_flatten.comp
-        (h1.comp (Primrec.pair
-          (Primrec.pair (Primrec.fst.comp Primrec.fst)
-            (Primrec.snd.comp Primrec.snd))
-          (Primrec.snd.comp Primrec.fst)))
-    · have h_countP : Primrec₂
-          (fun (p : (ℕ × ℕ) × ℕ × ℕ) (y : BitString) ↦
-            (snapshotDescList c p.1.1 p.1.2 p.2.2).countP
-              (fun S ↦ decide (y ∈ S))) := by
-        apply list_countP_primrec;
-        · convert snapshotDescriptionsAndSizeLe_primrec c using 1;
-          constructor <;> intro h;
-          · convert snapshotDescriptionsAndSizeLe_primrec c using 1;
-          · convert h.comp _ using 1;
-            rotate_left;
-            · exact fun p ↦ ( ( p.1.1.1, p.1.2.2 ), p.1.1.2 );
-            · exact Primrec.pair
-                (Primrec.pair
-                  (Primrec.fst.comp (Primrec.fst.comp Primrec.fst))
-                  (Primrec.snd.comp (Primrec.snd.comp Primrec.fst)))
-                (Primrec.snd.comp (Primrec.fst.comp Primrec.fst))
-            · exact funext fun x ↦ rfl;
-        · exact bitString_mem_primrec.comp ( Primrec.snd.comp ( Primrec.fst ) ) ( Primrec.snd );
-      have h_twoPow : Primrec (fun (p : (ℕ × ℕ) × ℕ × ℕ) ↦ 2 ^ p.2.1) := by
-        exact twoPow_primrec.comp ( Primrec.fst.comp ( Primrec.snd ) );
-      exact PrimrecPred.decide
-        (Primrec.nat_le.comp (h_twoPow.comp Primrec.fst)
-          (h_countP.comp Primrec.fst Primrec.snd))
-  · unfold snapshotRichElementsList; aesop;
+                  (fun S => S.length ≤ 2 ^ p.2)) :=
+        (snapshotDescriptionsAndSizeLe_primrec c).of_eq (fun _ => rfl)
+      refine (Primrec.list_flatten.comp (h1.comp (Primrec.pair
+        (Primrec.fst.comp Primrec.fst |> Primrec.pair <|
+          Primrec.snd.comp Primrec.snd) <| Primrec.snd.comp Primrec.fst))).of_eq (fun _ => rfl)
+    · have h_countP : Primrec₂ (fun (p : (ℕ × ℕ) × ℕ × ℕ) (y : BitString) =>
+          (snapshotDescList c p.1.1 p.1.2 p.2.2).countP
+            (fun S => decide (y ∈ S))) := by
+        apply list_countP_primrec
+        · convert snapshotDescriptionsAndSizeLe_primrec c using 1
+          constructor <;> intro h
+          · convert snapshotDescriptionsAndSizeLe_primrec c using 1
+          · convert h.comp _ using 1
+            rotate_left
+            · exact fun p => ((p.1.1.1, p.1.2.2), p.1.1.2)
+            · exact Primrec.pair (Primrec.pair (Primrec.fst.comp (Primrec.fst.comp
+                Primrec.fst)) (Primrec.snd.comp (Primrec.snd.comp Primrec.fst)))
+                  (Primrec.snd.comp (Primrec.fst.comp Primrec.fst))
+            · exact funext fun x => rfl
+        · exact bitString_mem_primrec.comp (Primrec.snd.comp Primrec.fst) Primrec.snd
+      have h_twoPow : Primrec (fun (p : (ℕ × ℕ) × ℕ × ℕ) => 2 ^ p.2.1) := by
+        exact twoPow_primrec.comp (Primrec.fst.comp Primrec.snd)
+      exact PrimrecPred.decide (Primrec.nat_le.comp (h_twoPow.comp Primrec.fst)
+        (h_countP.comp Primrec.fst Primrec.snd))
+  · unfold snapshotRichElementsList; aesop
 
 /-- `snapshotRichElements` is primitive recursive.
 
@@ -434,6 +412,7 @@ theorem snapshotRichElements_primrec (c : Code) :
 computable snapshot description universe coincides with the abstract description
 universe `descriptionsWithComplexityLe`.  Both inclusions go through the
 canonical-uniform characterization `isCanonicalUniformCodeBool_iff`:
+* a canonical-uniform code in `modelsWithComplexityLe U i` is the output
   `modelCodeOfProgram U p` of a bounded program; being a real probability code it
   halts, so `code_mem_snapshot_of_max` places it into `snapshotCodes c i t₀`;
 * conversely a canonical-uniform code in `snapshotCodes c i t₀` is
@@ -459,22 +438,19 @@ theorem snapshotDescriptions_eq_descriptionsWithComplexityLe {c : Code} {U : Map
     refine ⟨ ⟨ p, hp₁, ?_ ⟩, ?_ ⟩;
     · have := runOut_sound hc hp₂
       simp_all +decide only [modelCodeOfProgram]
-      cases this; aesop;
+      cases this ; aesop;
     · rw [ if_pos ];
-      · rw [ isCanonicalUniformCodeBool_iff ] at ha₂;
-        obtain ⟨ hSne, hc ⟩ := ha₂;
-        rw [Finset.mem_singleton]
-        conv_lhs => rw [hc, dataPoints_codedUniformOn]
-        exact canonicalFinsetList_toFinset _
+      · rw [isCanonicalUniformCodeBool_iff] at ha₂
+        obtain ⟨hSne, hc⟩ := ha₂
+        rw [Finset.mem_singleton, hc, dataPoints_codedUniformOn, canonicalFinsetList_toFinset,
+          probModelOfCode_eq (codedUniformOn_isProbability _ _), codedUniformOn_support]
       · exact isCanonicalUniformCodeBool_iff a |>.1 ha₂;
-  · obtain ⟨c', hc', hc'_T⟩ :
-        ∃ c' ∈ modelsWithComplexityLe U i, isCanonicalUniformCode c' ∧
-          (probModelOfCode c').support = T := by
-      rw [descriptionsWithComplexityLe, Finset.mem_biUnion] at hT
-      obtain ⟨c', hc', hT'⟩ := hT
-      split_ifs at hT' with h_can
-      · exact ⟨c', hc', h_can, (Finset.mem_singleton.mp hT').symm⟩
-      · contradiction
+  · obtain ⟨c', hc', hc'_T⟩ : ∃ c' ∈ modelsWithComplexityLe U i, isCanonicalUniformCode c' ∧
+      (probModelOfCode c').support = T := by
+      contrapose! hT
+      simp_all +decide only [ne_eq, descriptionsWithComplexityLe, Finset.mem_biUnion, not_exists,
+        not_and]
+      grind;
     obtain ⟨p, hp, hp'⟩ : ∃ p ∈ boundedPrograms i, produces U p [] c' := by
       obtain ⟨ p, hp, hp' ⟩ := Finset.mem_image.mp hc';
       unfold modelCodeOfProgram at hp'
@@ -485,25 +461,20 @@ theorem snapshotDescriptions_eq_descriptionsWithComplexityLe {c : Code} {U : Map
         simp_all +decide only [isCanonicalUniformCode, List.nil_eq]
         obtain ⟨ h, hh ⟩ := this
         have := congr_arg List.length hh
-        simp +decide only [codedUniformOn_code_eq, List.length_nil,
-          List.length_eq_zero_iff] at this
-        cases h : canonicalFinsetList T <;>
-          simp_all +decide only [exists_const, and_self, List.map_nil,
-            codedDistributionDataCode, List.cons_ne_self, List.map_cons, reduceCtorEq]
-    have h_code : c' ∈ snapshotCodes c i t₀ := by
+        simp +decide only [codedUniformOn_code_eq, List.length_nil, List.length_eq_zero_iff] at this
+        cases h : canonicalFinsetList T <;> simp_all +decide only [exists_const, and_self,
+          List.map_nil, codedDistributionDataCode, List.cons_ne_self, List.map_cons, reduceCtorEq]
+    have h_code_mem_snapshot : c' ∈ snapshotCodes c i t₀ := by
       exact code_mem_snapshot_of_max hc i t₀ hmax hp hp';
-    have h_can : isCanonicalUniformCodeBool c' := by
+    have h_code_mem_snapshot2 : isCanonicalUniformCodeBool c' := by
       exact isCanonicalUniformCodeBool_iff c' |>.2 hc'_T.1;
-    have h_code_eq :
+    have h_code_mem_snapshot3 :
         ((decodeDistributionData c').map CodedDistributionEntry.point).toFinset =
-          (probModelOfCode c').support := by
-      obtain ⟨hSne, hc⟩ := hc'_T.left;
-      conv_lhs => rw [hc, dataPoints_codedUniformOn]
-      exact canonicalFinsetList_toFinset _
-    unfold snapshotDescriptions
-    rw [Finset.mem_image]
-    refine ⟨c', ?_, h_code_eq.trans hc'_T.2⟩
-    exact List.mem_dedup.mpr (List.mem_filter.mpr ⟨h_code, h_can⟩)
+        (probModelOfCode c').support := by
+      obtain ⟨hSne, hc⟩ := hc'_T.left
+      rw [hc, dataPoints_codedUniformOn, canonicalFinsetList_toFinset,
+        probModelOfCode_eq (codedUniformOn_isProbability _ _), codedUniformOn_support]
+    unfold snapshotDescriptions; aesop;
 
 /-- The size-restricted snapshot universe coincides with the abstract one at the
 stabilization time, by filtering both sides of
@@ -526,23 +497,25 @@ theorem snapshotRichElements_eq_richDescriptionElements {c : Code} {U : Map} (hc
   unfold snapshotRichElements richDescriptionElements
   rw [snapshotDescriptionsAndSizeLe_eq_descriptionsWithComplexityLeAndSizeLe hc i j t₀ hmax]
 
-/-- Packs the rich selection parameters into a single bitstring. -/
 def richInput (i j k h : ℕ) : BitString :=
   selectorInput i j k h
 
 @[simp] theorem selNat_richInput (i j k h : ℕ) :
-    selNat (richInput i j k h) = i := selNat_selectorInput _ _ _ _
+    selNat (richInput i j k h) = i := by
+  simp [richInput]
 
 @[simp] theorem selAlpha_richInput (i j k h : ℕ) :
-    selAlpha (richInput i j k h) = j := selAlpha_selectorInput _ _ _ _
+    selAlpha (richInput i j k h) = j := by
+  simp [richInput]
 
 @[simp] theorem selMaxK_richInput (i j k h : ℕ) :
-    selMaxK (richInput i j k h) = k := selMaxK_selectorInput _ _ _ _
+    selMaxK (richInput i j k h) = k := by
+  simp [richInput]
 
 @[simp] theorem selH_richInput (i j k h : ℕ) :
-    selH (richInput i j k h) = h := selH_selectorInput _ _ _ _
+    selH (richInput i j k h) = h := by
+  simp [richInput]
 
-/-- The selector function that searches for the correct rich element snapshot. -/
 noncomputable def richSelectorFn (c : Code) : BitString →. BitString := fun s =>
   (Nat.rfind (fun t => Part.some (decide (countHalts c (selNat s) t = selH s)))).bind
     (fun t => Part.some
@@ -577,8 +550,8 @@ theorem partrec_richSelectorFn (c : Code) : Partrec (richSelectorFn c) := by
 theorem exists_partrec_richSet_code (U : Map) (hU : IsOptimalPrefixConditional U) :
     ∃ f : BitString →. BitString, Partrec f ∧
       ∀ i j k (hne : (richDescriptionElements U i j k).Nonempty),
-        ∃ h < 2 ^ (i + 1), f (richInput i j k h) =
-          Part.some ((codedUniformOn (richDescriptionElements U i j k) hne).code) := by
+        ∃ h < 2 ^ (i + 1), f (richInput i j k h) = Part.some
+            ((codedUniformOn (richDescriptionElements U i j k) hne).code) := by
   obtain ⟨c, hc⟩ : ∃ c : Code, IsCodeFor c U :=
     Nat.Partrec.Code.exists_code.mp hU.isDecompressor
   refine ⟨ richSelectorFn c, partrec_richSelectorFn c, ?_ ⟩;
@@ -591,19 +564,19 @@ theorem exists_partrec_richSet_code (U : Map) (hU : IsOptimalPrefixConditional U
   have ht0 : countHalts c i t₀ = h := by
     exact Nat.find_spec ( ⟨ t_star, rfl ⟩ : ∃ t, countHalts c i t = h )
   have ht0_min : ∀ m < t₀, countHalts c i m ≠ h := by
-    exact fun m mn ↦ fun hm ↦ mn.not_ge <| Nat.find_min' _ hm
+    exact fun m mn => fun hm => mn.not_ge <| Nat.find_min' _ hm
   have hmax0 : ∀ t', countHalts c i t' ≤ countHalts c i t₀ := by
     grind
   use h, h_lt;
   convert Part.eq_some_iff.mpr _ using 1;
   unfold richSelectorFn
-  simp +decide only [selNat_richInput, selH_richInput, selAlpha_richInput,
-    selMaxK_richInput, length_canonicalFinsetList, Part.mem_bind_iff, Nat.mem_rfind,
-    Part.mem_some_iff, true_eq_decide_iff, false_eq_decide_iff]
+  simp +decide only [selNat_richInput, selH_richInput, selAlpha_richInput, selMaxK_richInput,
+    length_canonicalFinsetList, Part.mem_bind_iff, Nat.mem_rfind, Part.mem_some_iff,
+    true_eq_decide_iff, false_eq_decide_iff]
   use t₀
   simp_all +decide only [ne_eq, implies_true, not_false_eq_true, and_self,
-    snapshotRichElements_eq_richDescriptionElements hc i j k t₀ hmax0,
-    Finset.one_le_card, sup_of_le_right, true_and]
+    snapshotRichElements_eq_richDescriptionElements hc i j k t₀ hmax0, Finset.one_le_card,
+    sup_of_le_right, true_and]
   convert codedUniformOn_code_eq _ hne using 1
 
 theorem richInput_KPPlain_le (U : Map) (hU : IsOptimalPrefixConditional U) (c_partrec : ℕ) :
@@ -680,7 +653,7 @@ theorem inDescriptionProfile_of_many (U : Map) (hU : IsOptimalPrefixConditional 
     ∃ c : ℕ, ∀ (x : BitString) (i j k : ℕ), ManyIJDescriptions U x i j k →
       InDescriptionProfile U x ((i + 1) + logSlack c (i + j + k)) (i + 1 + j - k) := by
   obtain ⟨c, hc⟩ := setComplexity_richDescriptionElements_le U hU
-  refine ⟨c, fun x i j k hmany ↦ ?_⟩
+  refine ⟨c, fun x i j k hmany => ?_⟩
   have hx : x ∈ richDescriptionElements U i j k :=
     mem_richDescriptionElements_of_many U x i j k hmany
   have hne : (richDescriptionElements U i j k).Nonempty := ⟨x, hx⟩
@@ -724,7 +697,7 @@ theorem logSlack_one_add_le_two_mul (c₄ A B : ℕ) (h : A ≤ 2 * B) :
     1 + logSlack c₄ A ≤ logSlack (2 * c₄ + 1) B := by
   unfold logSlack; ring_nf;
   have h_bits : (Nat.bits A).length ≤ (Nat.bits (2 * B)).length := by
-    rw [ Nat.size_eq_bits_len, Nat.size_eq_bits_len ]; exact Nat.size_le_size h;
+    rw [ Nat.size_eq_bits_len, Nat.size_eq_bits_len ] ; exact Nat.size_le_size h;
   rcases B with ( _ | B ) <;> simp_all +decide;
   · linarith;
   · nlinarith
@@ -822,69 +795,74 @@ theorem mem_listChunk_of_mem {α : Type*} (L : List α) (a b : ℕ)
   refine ⟨k / b, ?_, ?_⟩
   · exact Nat.div_lt_of_lt_mul <| by linarith [Fin.is_lt k]
   · rw [← hk, List.mem_iff_get]
-    refine ⟨⟨k % b, ?_⟩, ?_⟩ <;>
-      simp +decide only [List.length_take, List.length_drop, lt_inf_iff,
-        List.get_eq_getElem, List.getElem_take, List.getElem_drop, Nat.div_add_mod']
-    exact ⟨Nat.mod_lt _ hb, lt_tsub_iff_left.mpr (by linarith [Nat.mod_add_div k b, k.2])⟩
+    refine ⟨⟨k % b, ?_⟩, ?_⟩
+    · simp only [List.length_take, List.length_drop, lt_inf_iff]
+      exact ⟨Nat.mod_lt _ hb,
+        lt_tsub_iff_left.mpr (by linarith [Nat.mod_add_div k b, k.2])⟩
+    · simp only [List.get_eq_getElem, List.getElem_take, List.getElem_drop]
+      exact getElem_congr rfl (Nat.div_add_mod' k b) _
 
-/-- `emittedHalfRichChunksFoldStep` processes a single new rich element `x`.
+/-- `emittedHalfRichChunks_fold_step` processes a single new rich element `x`.
 If `x` is already placed, it does nothing. Otherwise, it extracts the currently
 unplaced half-rich elements, forms a new chunk of size at most `2^j` with `x` at
 the head, and appends it to the emitted chunks list. -/
-def emittedHalfRichChunksFoldStep (j : ℕ) (half_rich : List BitString)
+def emittedHalfRichChunks_fold_step (j : ℕ) (half_rich : List BitString)
     (chunks : List (List BitString)) (x : BitString) : List (List BitString) :=
   bif decide (x ∈ chunks.flatten) then
     chunks
   else
-    let unplaced_half := half_rich.filter (fun y ↦
+    let unplaced_half := half_rich.filter (fun y =>
       bif decide (y ∈ chunks.flatten) then false else true)
-    let new_chunk := (x :: unplaced_half.filter (fun y ↦
+    let new_chunk := (x :: unplaced_half.filter (fun y =>
       bif decide (y = x) then false else true)).take (2 ^ j)
     chunks ++ [new_chunk]
 
-theorem emittedHalfRichChunksFoldStep_primrec :
-    Primrec₂ (fun (p : ℕ × List BitString × List (List BitString)) (x : BitString) ↦
-      emittedHalfRichChunksFoldStep p.1 p.2.1 p.2.2 x) := by
+theorem emittedHalfRichChunks_fold_step_primrec :
+    Primrec₂ (fun (p : ℕ × List BitString × List (List BitString)) (x : BitString) =>
+      emittedHalfRichChunks_fold_step p.1 p.2.1 p.2.2 x) := by
+  -- Primitive-recursive plumbing for the online half-rich stream: the step
+  -- function is a composition of primitive recursive functions.
   have h_step_primrec : Primrec
-      (fun p : ℕ × (List BitString × (List (List BitString) × BitString)) ↦
-        emittedHalfRichChunksFoldStep p.1 p.2.1 p.2.2.1 p.2.2.2) := by
-    unfold emittedHalfRichChunksFoldStep
-    apply Primrec.cond
-    · have h_mem :
-          Primrec₂ (fun (x : BitString) (L : List BitString) ↦ decide (x ∈ L)) :=
-        bitString_mem_primrec.comp Primrec.fst Primrec.snd
-      exact h_mem.comp (Primrec.snd.comp (Primrec.snd.comp Primrec.snd))
-        (Primrec.list_flatten.comp
-          (Primrec.fst.comp (Primrec.snd.comp Primrec.snd)))
-    · exact Primrec.fst.comp (Primrec.snd.comp Primrec.snd)
-    · refine Primrec.list_append.comp (Primrec.fst.comp (Primrec.snd.comp Primrec.snd)) ?_
-      refine Primrec.list_cons.comp ?_ (Primrec.const [])
-      · apply primrec_listBitString_take.comp
-        · refine Primrec.list_cons.comp (Primrec.snd.comp (Primrec.snd.comp Primrec.snd)) ?_
-          apply list_filter_primrec
-          · apply list_filter_primrec
-            · exact Primrec.fst.comp Primrec.snd
-            · apply Primrec.cond
-              · apply bitString_mem_primrec.comp
-                · exact Primrec.snd
-                · exact Primrec.list_flatten.comp
-                    (Primrec.fst.comp
-                      (Primrec.snd.comp (Primrec.snd.comp Primrec.fst)))
-              · exact Primrec.const false
-              · exact Primrec.const true
-          · apply Primrec.cond
-            · apply PrimrecPred.decide
-                (Primrec.eq.comp Primrec.snd
-                  (Primrec.snd.comp
-                    (Primrec.snd.comp (Primrec.snd.comp Primrec.fst))))
-            · exact Primrec.const false
-            · exact Primrec.const true
-        · exact twoPow_primrec.comp Primrec.fst
-  exact h_step_primrec.comp
-    (Primrec.pair (Primrec.fst.comp Primrec.fst)
-      (Primrec.pair (Primrec.fst.comp (Primrec.snd.comp Primrec.fst))
-        (Primrec.pair
-          (Primrec.snd.comp (Primrec.snd.comp Primrec.fst)) Primrec.snd)))
+      (fun p : ℕ × (List BitString × (List (List BitString) × BitString)) =>
+        emittedHalfRichChunks_fold_step p.1 p.2.1 p.2.2.1 p.2.2.2) := by
+    have h_append_primrec : Primrec
+          (fun p : List (List BitString) × (Nat × BitString × List BitString) => p.1 ++ [List.take (
+            2 ^ p.2.1) (p.2.2.1 :: List.filter (fun y => bif decide (
+              y = p.2.2.1) then false else true) (List.filter (fun y => bif decide (
+                y ∈ p.1.flatten) then false else true) p.2.2.2))]) := by
+        refine Primrec.list_append.comp Primrec.fst ?_
+        refine Primrec.list_cons.comp ?_ (Primrec.const [])
+        refine Primrec.list_take.comp (twoPow_primrec.comp (Primrec.fst.comp Primrec.snd)) ?_
+        refine Primrec.list_cons.comp (Primrec.fst.comp (Primrec.snd.comp Primrec.snd)) ?_
+        refine (list_filter_primrec ?_ ?_).of_eq (fun _ => rfl)
+        · refine (list_filter_primrec (Primrec.snd.comp (Primrec.snd.comp Primrec.snd))
+            ?_).of_eq (fun _ => rfl)
+          refine (Primrec.cond (bitString_mem_primrec.comp Primrec.snd
+            (Primrec.list_flatten.comp (Primrec.fst.comp Primrec.fst)))
+            (Primrec.const false) (Primrec.const true)).of_eq (fun _ => rfl)
+        · refine (Primrec.cond (PrimrecPred.decide (Primrec.eq.comp Primrec.snd
+            (Primrec.fst.comp (Primrec.snd.comp (Primrec.snd.comp Primrec.fst)))))
+            (Primrec.const false) (Primrec.const true)).of_eq (fun _ => rfl)
+    have h_false_branch := h_append_primrec.comp (Primrec.pair
+        (Primrec.fst.comp (Primrec.snd.comp Primrec.snd))
+        (Primrec.pair Primrec.fst (Primrec.pair
+          (Primrec.snd.comp (Primrec.snd.comp Primrec.snd))
+          (Primrec.fst.comp Primrec.snd))))
+    refine (Primrec.cond (bitString_mem_primrec.comp (Primrec.snd.comp
+      (Primrec.snd.comp Primrec.snd)) (Primrec.list_flatten.comp (Primrec.fst.comp
+      (Primrec.snd.comp Primrec.snd))))
+      (Primrec.fst.comp (Primrec.snd.comp Primrec.snd))
+      h_false_branch).of_eq ?_
+    · intro p; cases p; rfl
+  convert h_step_primrec.comp _ using 1;
+  rotate_left;
+  · exact ( ℕ × List BitString × List ( List BitString ) ) × BitString;
+  · exact inferInstance;
+  · exact fun p => ( p.1.1, p.1.2.1, p.1.2.2, p.2 );
+  · exact Primrec.pair ( Primrec.fst.comp ( Primrec.fst ) ) ( Primrec.pair ( Primrec.fst.comp (
+    Primrec.snd.comp ( Primrec.fst ) ) ) ( Primrec.pair ( Primrec.snd.comp ( Primrec.snd.comp (
+      Primrec.fst ) ) ) ( Primrec.snd ) ) );
+  · bound
 
 /-
 General `foldl` combinator: a left fold with a primitive-recursive step
@@ -894,23 +872,22 @@ is primitive recursive.
 theorem list_foldl_primrec {α β σ} [Primcodable α] [Primcodable β] [Primcodable σ]
     {f : α → List β} {g : α → σ} {h : α → σ → β → σ}
     (hf : Primrec f) (hg : Primrec g)
-    (hh : Primrec (fun p : (α × σ) × β ↦ h p.1.1 p.1.2 p.2)) :
-    Primrec (fun a ↦ (f a).foldl (h a) (g a)) := by
+    (hh : Primrec (fun p : (α × σ) × β => h p.1.1 p.1.2 p.2)) :
+    Primrec (fun a => (f a).foldl (h a) (g a)) := by
   refine Primrec.list_foldl hf hg
-    (show Primrec₂ (fun (a : α) (p : σ × β) ↦ h a p.1 p.2) from ?_)
+    (show Primrec₂ (fun (a : α) (p : σ × β) => h a p.1 p.2) from ?_)
   exact hh.comp (Primrec.pair (Primrec.pair Primrec.fst (Primrec.fst.comp Primrec.snd))
     (Primrec.snd.comp Primrec.snd))
 
-/-- Computes one step of the half-rich chunks emitted up to time `t`. -/
-def emittedHalfRichChunksStep (c : Code) (i j k : ℕ) (t : ℕ) (chunks : List (List BitString)) :
+def emittedHalfRichChunks_step (c : Code) (i j k : ℕ) (t : ℕ) (chunks : List (List BitString)) :
     List (List BitString) :=
   let rich := (snapshotRichElementsList c i j k t).eraseDups
   let half_rich := (snapshotRichElementsList c i j (k - 1) t).eraseDups
-  rich.foldl (emittedHalfRichChunksFoldStep j half_rich) chunks
+  rich.foldl (emittedHalfRichChunks_fold_step j half_rich) chunks
 
-theorem emittedHalfRichChunksStep_primrec (c : Code) :
+theorem emittedHalfRichChunks_step_primrec (c : Code) :
     Primrec (fun p : ((ℕ × ℕ) × ℕ) × ℕ × List (List BitString) =>
-      emittedHalfRichChunksStep c p.1.1.1 p.1.1.2 p.1.2 p.2.1 p.2.2) := by
+      emittedHalfRichChunks_step c p.1.1.1 p.1.1.2 p.1.2 p.2.1 p.2.2) := by
   -- Compose the primitive-recursive rich and half-rich snapshot lists with the
   -- fold step.
   apply list_foldl_primrec;
@@ -922,7 +899,7 @@ theorem emittedHalfRichChunksStep_primrec (c : Code) :
               Primrec.fst.comp ( Primrec.fst ) ) ) ) ( Primrec.pair ( Primrec.snd.comp (
                 Primrec.fst ) ) ( Primrec.fst.comp ( Primrec.snd ) ) ) );
   · exact Primrec.snd.comp ( Primrec.snd );
-  · convert emittedHalfRichChunksFoldStep_primrec.comp _ _ using 1;
+  · convert emittedHalfRichChunks_fold_step_primrec.comp _ _ using 1;
     rotate_left;
     · exact fun p => ( p.1.1.1.1.2, ( snapshotRichElementsList c p.1.1.1.1.1 p.1.1.1.1.2 (
         p.1.1.1.2 - 1 ) p.1.1.2.1 ).eraseDups, p.1.2 );
@@ -947,10 +924,9 @@ theorem emittedHalfRichChunksStep_primrec (c : Code) :
     · exact Primrec.snd;
     · rfl
 
-/-- The list of half-rich chunks emitted up to time `t`. -/
 def emittedHalfRichChunksList (c : Code) (i j k : ℕ) : ℕ → List (List BitString)
-| 0 => emittedHalfRichChunksStep c i j k 0 []
-| t + 1 => emittedHalfRichChunksStep c i j k (t + 1) (emittedHalfRichChunksList c i j k t)
+| 0 => emittedHalfRichChunks_step c i j k 0 []
+| t + 1 => emittedHalfRichChunks_step c i j k (t + 1) (emittedHalfRichChunksList c i j k t)
 
 theorem emittedHalfRichChunksList_primrec (c : Code) :
     Primrec (fun p : ((
@@ -959,17 +935,17 @@ theorem emittedHalfRichChunksList_primrec (c : Code) :
   apply Primrec.of_eq;
   rotate_right;
   · exact fun p => ( List.foldl (
-      fun chunks t => emittedHalfRichChunksStep c p.1.1.1 p.1.1.2 p.1.2 ( t + 1 ) chunks ) (
-        emittedHalfRichChunksStep c p.1.1.1 p.1.1.2 p.1.2 0 [ ] ) ( List.range p.2 ) );
+      fun chunks t => emittedHalfRichChunks_step c p.1.1.1 p.1.1.2 p.1.2 ( t + 1 ) chunks ) (
+        emittedHalfRichChunks_step c p.1.1.1 p.1.1.2 p.1.2 0 [ ] ) ( List.range p.2 ) );
   · apply list_foldl_primrec;
     · exact Primrec.list_range.comp ( Primrec.snd );
-    · convert emittedHalfRichChunksStep_primrec c |> Primrec.comp <| _ using 1;
+    · convert emittedHalfRichChunks_step_primrec c |> Primrec.comp <| _ using 1;
       rotate_left;
       · exact fun p => ( p.1, 0, [ ] );
       · exact Primrec.pair ( Primrec.fst ) ( Primrec.pair ( Primrec.const 0 ) ( Primrec.const [
         ] ) );
       · grind;
-    · convert emittedHalfRichChunksStep_primrec c |> Primrec.comp <| _ using 1;
+    · convert emittedHalfRichChunks_step_primrec c |> Primrec.comp <| _ using 1;
       rotate_left;
       · exact fun p => ( p.1.1.1, p.2 + 1, p.1.2 );
       · exact Primrec.pair
@@ -980,16 +956,15 @@ theorem emittedHalfRichChunksList_primrec (c : Code) :
     · rfl;
     · rfl
 
-/-- The list of half-rich chunks emitted up to time `t`, as Finsets. -/
 def emittedHalfRichChunks (c : Code) (i j k : ℕ) (t : ℕ) : List (Finset BitString) :=
   (emittedHalfRichChunksList c i j k t).map List.toFinset
 
-/-- A single `emittedHalfRichChunksFoldStep` either leaves the accumulator
+/-- A single `emittedHalfRichChunks_fold_step` either leaves the accumulator
 unchanged or appends one new chunk, so a left fold over it always extends the
 accumulator by some suffix. -/
 theorem emittedHalfRichChunks_foldStep_append (j : ℕ) (half_rich L : List BitString)
     (acc : List (List BitString)) :
-    ∃ r, L.foldl (emittedHalfRichChunksFoldStep j half_rich) acc = acc ++ r := by
+    ∃ r, L.foldl (emittedHalfRichChunks_fold_step j half_rich) acc = acc ++ r := by
   induction L using List.reverseRecOn generalizing acc
   case' nil => exact ⟨[], by simp⟩
   case' append_singleton xs x ih =>
@@ -997,24 +972,24 @@ theorem emittedHalfRichChunks_foldStep_append (j : ℕ) (half_rich L : List BitS
       rw [List.foldl_append, List.foldl_cons, List.foldl_nil, hr]
       rcases Bool.eq_false_or_eq_true
           (decide (x ∈ (acc ++ r).flatten)) with h | h <;>
-        simp only [emittedHalfRichChunksFoldStep, h, cond_true, cond_false]
+        simp only [emittedHalfRichChunks_fold_step, h, cond_true, cond_false]
       · exact ⟨r, rfl⟩
       · exact ⟨_, (List.append_assoc _ _ _)⟩
 
-/-- Every chunk produced by a left fold of `emittedHalfRichChunksFoldStep` has
+/-- Every chunk produced by a left fold of `emittedHalfRichChunks_fold_step` has
 length at most `2 ^ j`, provided the starting accumulator does. -/
 theorem emittedHalfRichChunks_foldStep_length (j : ℕ) (half_rich L : List BitString)
     (acc : List (List BitString)) (hacc : ∀ l ∈ acc, l.length ≤ 2 ^ j) :
-    ∀ l ∈ L.foldl (emittedHalfRichChunksFoldStep j half_rich) acc, l.length ≤ 2 ^ j := by
+    ∀ l ∈ L.foldl (emittedHalfRichChunks_fold_step j half_rich) acc, l.length ≤ 2 ^ j := by
   induction L using List.reverseRecOn generalizing acc
   case' nil => simpa using hacc
   case' append_singleton xs x ih =>
       intro l hl
       rw [List.foldl_append, List.foldl_cons, List.foldl_nil] at hl
-      set acc' := xs.foldl (emittedHalfRichChunksFoldStep j half_rich) acc with hacc'
+      set acc' := xs.foldl (emittedHalfRichChunks_fold_step j half_rich) acc with hacc'
       have hacc'_len : ∀ l ∈ acc', l.length ≤ 2 ^ j := ih acc hacc
       rcases Bool.eq_false_or_eq_true (decide (x ∈ acc'.flatten)) with h | h <;>
-        simp only [emittedHalfRichChunksFoldStep, h, cond_true, cond_false] at hl
+        simp only [emittedHalfRichChunks_fold_step, h, cond_true, cond_false] at hl
       · exact hacc'_len l hl
       · rw [List.mem_append, List.mem_singleton] at hl
         rcases hl with hl | hl
@@ -1030,7 +1005,7 @@ theorem emittedHalfRichChunks_mono (c : Code) (i j k : ℕ) (t : ℕ) :
     ((snapshotRichElementsList c i j k (t + 1)).eraseDups)
     (emittedHalfRichChunksList c i j k t)
   refine ⟨r.map List.toFinset, ?_⟩
-  simp only [emittedHalfRichChunks, emittedHalfRichChunksList, emittedHalfRichChunksStep, hr,
+  simp only [emittedHalfRichChunks, emittedHalfRichChunksList, emittedHalfRichChunks_step, hr,
     List.map_append]
 
 theorem emittedHalfRichChunks_card_le (c : Code) (i j k t : ℕ) (S : Finset BitString)
@@ -1039,40 +1014,40 @@ theorem emittedHalfRichChunks_card_le (c : Code) (i j k t : ℕ) (S : Finset Bit
     intro tt
     induction tt
     case' zero =>
-        simp only [emittedHalfRichChunksList, emittedHalfRichChunksStep]
+        simp only [emittedHalfRichChunksList, emittedHalfRichChunks_step]
         exact emittedHalfRichChunks_foldStep_length j _ _ [] (by simp)
     case' succ n ih =>
-        simp only [emittedHalfRichChunksList, emittedHalfRichChunksStep]
+        simp only [emittedHalfRichChunksList, emittedHalfRichChunks_step]
         exact emittedHalfRichChunks_foldStep_length j _ _ _ ih
   obtain ⟨l, hl_mem, hl_eq⟩ := List.mem_map.mp hS
   rw [← hl_eq]
   exact le_trans (List.toFinset_card_le l) (h_length t l hl_mem)
 
-/-- A left fold of `emittedHalfRichChunksFoldStep` only ever extends the
+/-- A left fold of `emittedHalfRichChunks_fold_step` only ever extends the
 flattened accumulator: the starting flatten is a subset of the final one. -/
 theorem emittedHalfRichChunks_foldStep_flatten_subset (j : ℕ) (half_rich L : List BitString)
     (acc : List (List BitString)) :
-    acc.flatten ⊆ (L.foldl (emittedHalfRichChunksFoldStep j half_rich) acc).flatten := by
+    acc.flatten ⊆ (L.foldl (emittedHalfRichChunks_fold_step j half_rich) acc).flatten := by
   obtain ⟨r, hr⟩ := emittedHalfRichChunks_foldStep_append j half_rich L acc
   rw [hr, List.flatten_append]
   exact List.subset_append_left _ _
 
 /-
 Every element of the rich list `L` ends up placed (i.e. in the flattened
-accumulator) after the left fold of `emittedHalfRichChunksFoldStep`, since each
+accumulator) after the left fold of `emittedHalfRichChunks_fold_step`, since each
 element either is already placed or becomes the head of a freshly emitted chunk
 (and `2 ^ j ≥ 1`).
 -/
 theorem emittedHalfRichChunks_foldStep_mem_flatten (j : ℕ) (half_rich L : List BitString)
     (acc : List (List BitString)) (y : BitString) (hy : y ∈ L) :
-    y ∈ (L.foldl (emittedHalfRichChunksFoldStep j half_rich) acc).flatten := by
+    y ∈ (L.foldl (emittedHalfRichChunks_fold_step j half_rich) acc).flatten := by
   induction L generalizing acc
   case' nil => simp at hy
   case' cons a as ih =>
       rw [List.foldl_cons]
       rcases List.mem_cons.mp hy with rfl | hmem
       · refine emittedHalfRichChunks_foldStep_flatten_subset j half_rich as _ ?_
-        unfold emittedHalfRichChunksFoldStep
+        unfold emittedHalfRichChunks_fold_step
         rcases Bool.eq_false_or_eq_true (decide (y ∈ acc.flatten)) with h | h <;>
           simp only [h, cond_true, cond_false]
         · exact of_decide_eq_true h
@@ -1083,6 +1058,52 @@ theorem emittedHalfRichChunks_foldStep_mem_flatten (j : ℕ) (half_rich L : List
           simp only [List.flatten_cons, List.flatten_nil, List.append_nil, hm,
             List.take_succ_cons, List.mem_cons, true_or]
       · exact ih _ hmem
+
+private theorem mem_eraseDups_iff {x : BitString} {L : List BitString} :
+    x ∈ L.eraseDups ↔ x ∈ L := by
+  induction L using List.reverseRecOn
+  case' nil => simp
+  case' append_singleton xs a ih =>
+    rw [List.eraseDups_append]
+    by_cases ha : a ∈ xs <;> simp_all [List.removeAll, List.eraseDups_cons]
+
+private theorem nodup_eraseDupsBy_loop (L acc : List BitString) (hacc : acc.Nodup) :
+    (List.eraseDupsBy.loop (fun x1 x2 => x1 == x2) L acc).Nodup := by
+  induction L generalizing acc with
+  | nil => simpa only [List.eraseDupsBy.loop] using List.nodup_reverse.mpr hacc
+  | cons x L ih =>
+    unfold List.eraseDupsBy.loop
+    split
+    · exact ih acc hacc
+    · apply ih
+      simp only [List.nodup_cons]
+      refine ⟨?_, hacc⟩
+      intro hx
+      rename_i h
+      exact List.any_eq_false.mp h x hx (by simp)
+
+private theorem nodup_eraseDups (L : List BitString) : L.eraseDups.Nodup :=
+  nodup_eraseDupsBy_loop L [] (by simp)
+
+private theorem emittedHalfRichChunks_fold_step_mem_ne_nil (j : ℕ) (half_rich : List BitString)
+    (M : List BitString) (acc : List (List BitString)) (hacc : ∀ l ∈ acc, l ≠ []) :
+    ∀ l ∈ List.foldl (emittedHalfRichChunks_fold_step j half_rich) acc M, l ≠ [] := by
+  induction M generalizing acc with
+  | nil => simpa using hacc
+  | cons x M ih =>
+    rw [List.foldl_cons]
+    apply ih
+    intro l hl
+    by_cases hx : x ∈ acc.flatten
+    · exact hacc l (by simpa [emittedHalfRichChunks_fold_step, hx] using hl)
+    · have hdecide : decide (x ∈ acc.flatten) = false := by simp [hx]
+      simp only [emittedHalfRichChunks_fold_step, hdecide, cond_false, List.mem_append,
+        List.mem_cons, List.not_mem_nil, or_false] at hl
+      rcases hl with hl | rfl
+      · exact hacc l hl
+      · obtain ⟨n, hn⟩ : ∃ n, 2 ^ j = n + 1 :=
+          ⟨2 ^ j - 1, by have := Nat.one_le_two_pow (n := j); omega⟩
+        simp [hn]
 
 /-
 Every rich element appears in some emitted chunk at some time `t`.
@@ -1102,17 +1123,14 @@ theorem emittedHalfRichChunks_cover_rich (U : Map) (c : Code) (hc : IsCodeFor c 
     rw [snapshotRichElementsList_toFinset]
     exact h_snapshot
   have h_eraseDups : x ∈ (snapshotRichElementsList c i j k t₀).eraseDups :=
-    List.mem_eraseDups.mpr <| List.mem_toFinset.mp h_snapshot_list
+    mem_eraseDups_iff.mpr <| List.mem_toFinset.mp h_snapshot_list
   -- By `emittedHalfRichChunks_foldStep_mem_flatten`, `x ∈ (emittedHalfRichChunksList c i j k
   --   t₀).flatten`.
   have h_flatten : x ∈ (emittedHalfRichChunksList c i j k t₀).flatten := by
-    cases ht : t₀ with
-    | zero =>
-      rw [ht] at h_eraseDups
-      exact emittedHalfRichChunks_foldStep_mem_flatten j _ _ _ _ h_eraseDups
-    | succ t₀_pred =>
-      rw [ht] at h_eraseDups
-      exact emittedHalfRichChunks_foldStep_mem_flatten j _ _ _ _ h_eraseDups
+    cases t₀ with
+    | zero => exact emittedHalfRichChunks_foldStep_mem_flatten j _ _ _ _ h_eraseDups
+    | succ t₀ =>
+        exact emittedHalfRichChunks_foldStep_mem_flatten j _ _ _ _ h_eraseDups
   rw [List.mem_flatten] at h_flatten
   obtain ⟨l, hl₁, hl₂⟩ := h_flatten
   exact ⟨t₀, l.toFinset, List.mem_map.mpr ⟨l, hl₁, rfl⟩, by simpa using hl₂⟩
@@ -1130,7 +1148,7 @@ theorem snapshotDescList_length_le (c : Code) (i j : ℕ) (t : ℕ) :
   exact le_of_lt (length_boundedPrograms_lt i)
 
 /-
-Every element placed by a left fold of `emittedHalfRichChunksFoldStep`
+Every element placed by a left fold of `emittedHalfRichChunks_fold_step`
 lies in `half_rich`, provided the seed list `L` and the starting accumulator do.
 Indeed each new chunk is `(x :: filtered_half_rich).take (2^j)`, where the head
 `x ∈ L ⊆ half_rich` and the tail is filtered from `half_rich`.
@@ -1139,56 +1157,48 @@ theorem emittedHalfRichChunks_foldStep_flatten_mem (j : ℕ) (half_rich : List B
     (L : List BitString) (acc : List (List BitString))
     (hL : ∀ y ∈ L, y ∈ half_rich)
     (hacc : ∀ y ∈ acc.flatten, y ∈ half_rich) :
-    ∀ y ∈ (L.foldl (emittedHalfRichChunksFoldStep j half_rich) acc).flatten,
+    ∀ y ∈ (L.foldl (emittedHalfRichChunks_fold_step j half_rich) acc).flatten,
       y ∈ half_rich := by
-  have h_ind : ∀ (xs : List BitString) (acc : List (List BitString)),
-      (∀ y ∈ xs, y ∈ half_rich) →
+  have h_ind : ∀ (xs : List BitString) (acc : List (List BitString)), (∀ y ∈ xs, y ∈ half_rich) →
       (∀ y ∈ acc.flatten, y ∈ half_rich) →
-      (∀ y ∈ (xs.foldl (emittedHalfRichChunksFoldStep j half_rich) acc).flatten,
+      (∀ y ∈ (xs.foldl (emittedHalfRichChunks_fold_step j half_rich) acc).flatten,
         y ∈ half_rich) := by
     intros xs acc hxs hacc y hy; induction xs using List.reverseRecOn generalizing acc
     case' nil => exact hacc y hy
     case' append_singleton xs x ih =>
       simp only [List.foldl_append, List.foldl_cons, List.foldl_nil,
-        List.mem_flatten] at hy
-      obtain ⟨l, hl₁, hl₂⟩ := hy
-      unfold emittedHalfRichChunksFoldStep at hl₁
-      by_cases hx :
-          x ∈ (List.foldl (emittedHalfRichChunksFoldStep j half_rich) acc xs).flatten
+        List.mem_flatten] at hy; obtain ⟨ l, hl₁,
+          hl₂ ⟩ := hy; unfold emittedHalfRichChunks_fold_step at hl₁; by_cases hx : x ∈ (
+              List.foldl (
+                  emittedHalfRichChunks_fold_step j half_rich ) acc xs ).flatten
       · simp_all +decide only [List.mem_flatten, forall_exists_index, and_imp,
           List.mem_append, List.mem_cons, List.not_mem_nil, or_false, true_or,
           implies_true, forall_const, Bool.cond_true_right, Bool.or_false,
           List.filter_filter]
-        convert ih acc hacc l _ hl₂ using 1
-        unfold emittedHalfRichChunksFoldStep at *
-        aesop
+        convert ih acc hacc l _ hl₂ using 1;
+        unfold emittedHalfRichChunks_fold_step at *; aesop;
       · simp_all +decide only [List.mem_flatten, forall_exists_index, and_imp,
           List.mem_append, List.mem_cons, List.not_mem_nil, or_false, true_or,
           implies_true, forall_const, Bool.cond_true_right, Bool.or_false,
           List.filter_filter, not_exists, not_and]
-        unfold emittedHalfRichChunksFoldStep at *
-        by_cases hx : ∃ l ∈ List.foldl
-            (fun chunks x => bif decide (∃ l ∈ chunks, x ∈ l) then chunks else
-              chunks ++ [List.take (2 ^ j) (x :: List.filter
-                (fun a => !decide (a = x) &&
-                  !decide (∃ l ∈ chunks, a ∈ l)) half_rich)])
-            acc xs, x ∈ l
-        · simp_all +decide only [List.mem_flatten, Bool.cond_true_right,
-            Bool.or_false, List.filter_filter, decide_true, cond_true]
+        unfold emittedHalfRichChunks_fold_step at *; by_cases hx : ∃ l ∈ List.foldl (
+          fun chunks x => bif decide ( ∃ l ∈ chunks, x ∈ l ) then chunks else chunks ++ [
+            List.take ( 2 ^ j ) ( x :: List.filter ( fun a => !decide ( a = x ) && !decide (
+              ∃ l ∈ chunks, a ∈ l ) ) half_rich ) ] ) acc xs, x ∈ l
+        · simp_all +decide only [List.mem_flatten, Bool.cond_true_right, Bool.or_false,
+            List.filter_filter, decide_true, cond_true]
           grind
-        · simp_all +decide only [List.mem_flatten, Bool.cond_true_right,
-            Bool.or_false, List.filter_filter, decide_false, cond_false,
-            List.mem_append, List.mem_cons, List.not_mem_nil, or_false,
-            not_exists, not_and, not_false_eq_true, implies_true]
-          rcases hl₁ with (hl₁ | rfl)
-          · exact ih acc hacc _ hl₁ hl₂
-          · have := List.mem_of_mem_take hl₂
-            aesop
+        · simp_all +decide only [List.mem_flatten, Bool.cond_true_right, Bool.or_false,
+            List.filter_filter, decide_false, cond_false, List.mem_append, List.mem_cons,
+            List.not_mem_nil, or_false, not_exists, not_and, not_false_eq_true, implies_true]
+          rcases hl₁ with ( hl₁ | rfl );
+          · exact ih acc hacc _ hl₁ hl₂;
+          · have := List.mem_of_mem_take hl₂; aesop;
   exact h_ind L acc hL hacc
 
 /-
 The flattened accumulator stays `Nodup` through a left fold of
-`emittedHalfRichChunksFoldStep`, when `half_rich` is `Nodup` and the starting
+`emittedHalfRichChunks_fold_step`, when `half_rich` is `Nodup` and the starting
 accumulator's flatten is `Nodup`.  Each appended chunk consists of fresh elements
 (not already in the flattened accumulator) drawn without repetition from
 `half_rich`, so it is internally `Nodup` and disjoint from the accumulator.
@@ -1196,36 +1206,30 @@ accumulator's flatten is `Nodup`.  Each appended chunk consists of fresh element
 theorem emittedHalfRichChunks_foldStep_flatten_nodup (j : ℕ) (half_rich : List BitString)
     (hhr : half_rich.Nodup) (L : List BitString) (acc : List (List BitString))
     (hacc : acc.flatten.Nodup) :
-    (L.foldl (emittedHalfRichChunksFoldStep j half_rich) acc).flatten.Nodup := by
+    (L.foldl (emittedHalfRichChunks_fold_step j half_rich) acc).flatten.Nodup := by
   induction L using List.reverseRecOn generalizing acc
   case' nil => exact hacc
   case' append_singleton L ih ih_hyp =>
-    unfold emittedHalfRichChunksFoldStep at *
-    by_cases hx :
-        ih ∈ (List.foldl (emittedHalfRichChunksFoldStep j half_rich) acc L).flatten <;>
+    unfold emittedHalfRichChunks_fold_step at *
+    by_cases hx : ih ∈ (List.foldl (emittedHalfRichChunks_fold_step j half_rich) acc L).flatten <;>
       simp_all +decide only [List.mem_flatten, Bool.cond_true_right, Bool.or_false,
         List.filter_filter, List.foldl_append, List.foldl_cons, List.foldl_nil]
-    · unfold emittedHalfRichChunksFoldStep at *
-      aesop
+    · unfold emittedHalfRichChunks_fold_step at *; aesop;
     · rw [decide_eq_false]
-      · simp_all +decide only [not_exists, not_and, cond_false,
-          List.flatten_append, List.flatten_cons, List.flatten_nil, List.append_nil]
-        rw [List.nodup_append]
-        refine ⟨?_, ?_, ?_⟩
-        · grind +splitIndPred
-        · refine List.Nodup.sublist (List.take_sublist _ _) ?_
-          grind
-        · intro a ha b hb hab
-          have := List.mem_of_mem_take hb
+      · simp_all +decide only [not_exists, not_and, cond_false, List.flatten_append,
+          List.flatten_cons, List.flatten_nil, List.append_nil]
+        rw [ List.nodup_append ];
+        refine ⟨ ?_, ?_, ?_ ⟩;
+        · grind +splitIndPred;
+        · refine List.Nodup.sublist ( List.take_sublist _ _ ) ?_;
+          grind;
+        · intro a ha b hb hab; have := List.mem_of_mem_take hb
           simp_all +decide only [List.mem_flatten, List.mem_cons, List.mem_filter,
-            decide_true, Bool.not_true, Bool.and_false, Bool.false_eq_true,
-            and_false, or_false]
-          unfold emittedHalfRichChunksFoldStep at *
-          aesop
+            decide_true, Bool.not_true, Bool.and_false, Bool.false_eq_true, and_false, or_false]
+          unfold emittedHalfRichChunks_fold_step at *; aesop;
       · simp_all +decide only [not_exists, not_and]
-        convert hx using 1
-        unfold emittedHalfRichChunksFoldStep
-        aesop
+        convert hx using 1;
+        unfold emittedHalfRichChunks_fold_step; aesop;
 
 /-
 The flatten of all emitted chunks is `Nodup`: the chunks are pairwise
@@ -1235,11 +1239,10 @@ theorem emittedHalfRichChunksList_flatten_nodup (c : Code) (i j k t : ℕ) :
     ((emittedHalfRichChunksList c i j k t).flatten).Nodup := by
   induction t with
   | zero =>
-    exact emittedHalfRichChunks_foldStep_flatten_nodup j _
-      (eraseDups_bitstring_nodup _) _ _ (by simp +decide)
+    exact emittedHalfRichChunks_foldStep_flatten_nodup j _ (nodup_eraseDups _) _ _ (
+      by simp)
   | succ t ih =>
-    exact emittedHalfRichChunks_foldStep_flatten_nodup j _
-      (eraseDups_bitstring_nodup _) _ _ ih
+    exact emittedHalfRichChunks_foldStep_flatten_nodup j _ (nodup_eraseDups _) _ _ ih
 
 /-
 A halting output of `runOut` is preserved under a larger step budget.
@@ -1247,31 +1250,30 @@ A halting output of `runOut` is preserved under a larger step budget.
 theorem runOut_mono {c : Code} {t t' : ℕ} (h : t ≤ t') {p w : BitString}
     (hw : runOut c t p = some w) : runOut c t' p = some w := by
   unfold runOut at hw ⊢
-  rw [Option.bind_eq_some_iff] at hw
-  obtain ⟨a, ha₁, ha₂⟩ := hw
-  rw [Option.bind_eq_some_iff]
-  exact ⟨a, Nat.Partrec.Code.evaln_mono h ha₁, ha₂⟩
+  rw [Option.bind_eq_some_iff] at hw ⊢
+  obtain ⟨a, ha_eval, ha_decode⟩ := hw
+  exact ⟨a, Nat.Partrec.Code.evaln_mono h ha_eval, ha_decode⟩
 
 /-
 `snapshotCodes` only grows with the step budget.
 -/
 theorem snapshotCodes_mem_of_le {c : Code} {alpha t t' : ℕ} (h : t ≤ t') {w : BitString}
     (hw : w ∈ snapshotCodes c alpha t) : w ∈ snapshotCodes c alpha t' := by
-  unfold snapshotCodes at hw ⊢
-  rw [List.mem_filterMap] at hw ⊢
-  obtain ⟨p, hp, hp_eq⟩ := hw
-  exact ⟨p, hp, runOut_mono h hp_eq⟩
+  unfold snapshotCodes at hw ⊢;
+  grind +suggestions
 
 /-
 `snapshotDescriptions` only grows with the step budget.
 -/
 theorem snapshotDescriptions_subset_of_le (c : Code) (i : ℕ) {t t' : ℕ} (h : t ≤ t') :
     snapshotDescriptions c i t ⊆ snapshotDescriptions c i t' := by
-  unfold snapshotDescriptions;
-  simp_all +decide only [List.toFinset_filter, Finset.subset_iff,
-    Finset.mem_image, Finset.mem_filter, List.mem_toFinset, forall_exists_index,
-    and_imp];
-  exact fun x y hy₁ hy₂ hy₃ ↦ ⟨ y, ⟨ snapshotCodes_mem_of_le h hy₁, hy₂ ⟩, hy₃ ⟩
+  unfold snapshotDescriptions
+  intro S hS
+  rw [Finset.mem_image] at hS ⊢
+  obtain ⟨w, hw, rfl⟩ := hS
+  refine ⟨w, ?_, rfl⟩
+  simp only [List.mem_toFinset, List.mem_filter] at hw ⊢
+  exact ⟨snapshotCodes_mem_of_le h hw.1, hw.2⟩
 
 /-
 `snapshotDescriptionsAndSizeLe` only grows with the step budget.
@@ -1279,8 +1281,9 @@ theorem snapshotDescriptions_subset_of_le (c : Code) (i : ℕ) {t t' : ℕ} (h :
 theorem snapshotDescriptionsAndSizeLe_subset_of_le (c : Code) (i j : ℕ) {t t' : ℕ} (h : t ≤ t') :
     snapshotDescriptionsAndSizeLe c i j t ⊆ snapshotDescriptionsAndSizeLe c i j t' := by
   unfold snapshotDescriptionsAndSizeLe
-  simp_all +decide only [Finset.subset_iff, Finset.mem_filter, and_true, and_imp]
-  intro x hx hx'; exact snapshotDescriptions_subset_of_le c i h hx;
+  intro S hS
+  rw [Finset.mem_filter] at hS ⊢
+  exact ⟨snapshotDescriptions_subset_of_le c i h hS.1, hS.2⟩
 
 /-
 The multiplicity of `y` in the size-restricted description list equals the number
@@ -1300,8 +1303,8 @@ theorem snapshotDescList_countP_eq_card (c : Code) (i j t : ℕ) (y : BitString)
 The multiplicity of `y` is monotone in the step budget.
 -/
 theorem snapshotDescList_countP_mono (c : Code) (i j : ℕ) (y : BitString) {t t' : ℕ} (h : t ≤ t') :
-    (snapshotDescList c i j t).countP (fun S ↦ decide (y ∈ S)) ≤
-      (snapshotDescList c i j t').countP (fun S ↦ decide (y ∈ S)) := by
+    (snapshotDescList c i j t).countP (fun S => decide (y ∈ S)) ≤
+      (snapshotDescList c i j t').countP (fun S => decide (y ∈ S)) := by
   -- Apply `snapshotDescList_countP_eq_card` to both sides.
   rw [snapshotDescList_countP_eq_card, snapshotDescList_countP_eq_card];
   exact Finset.card_mono <| Finset.filter_subset_filter _ <|
@@ -1312,7 +1315,7 @@ Membership in the `m`-rich element list yields multiplicity at least `2^m`.
 -/
 theorem mem_snapshotRichElementsList_multiplicity (c : Code) (i j m t : ℕ) {y : BitString}
     (hy : y ∈ snapshotRichElementsList c i j m t) :
-    2 ^ m ≤ (snapshotDescList c i j t).countP (fun S ↦ decide (y ∈ S)) := by
+    2 ^ m ≤ (snapshotDescList c i j t).countP (fun S => decide (y ∈ S)) := by
   contrapose! hy;
   unfold snapshotRichElementsList; aesop;
 
@@ -1324,41 +1327,31 @@ accumulator or in `half_rich`.
 theorem emittedHalfRichChunks_foldStep_flatten_mem_or (j : ℕ) (half_rich : List BitString)
     (L : List BitString) (acc : List (List BitString))
     (hL : ∀ y ∈ L, y ∈ half_rich) :
-    ∀ y ∈ (L.foldl (emittedHalfRichChunksFoldStep j half_rich) acc).flatten,
+    ∀ y ∈ (L.foldl (emittedHalfRichChunks_fold_step j half_rich) acc).flatten,
       y ∈ acc.flatten ∨ y ∈ half_rich := by
-  revert hL
+  revert hL;
   induction L using List.reverseRecOn generalizing acc with
   | nil => aesop
   | append_singleton L ih =>
-    unfold emittedHalfRichChunksFoldStep
+    unfold emittedHalfRichChunks_fold_step
     simp +decide only [List.mem_append, List.mem_cons, List.not_mem_nil, or_false,
       List.mem_flatten, Bool.cond_true_right, Bool.or_false, List.filter_filter,
       List.foldl_append, List.foldl_cons, List.foldl_nil, forall_exists_index, and_imp]
-    rename_i h
-    intro h' y x hx hy
-    by_cases h : ∃ l ∈ List.foldl
-        (fun chunks x => bif decide (∃ l ∈ chunks, x ∈ l) then chunks else
-          chunks ++ [List.take (2 ^ j) (x :: List.filter
-            (fun a => !decide (a = x) &&
-              !decide (∃ l ∈ chunks, a ∈ l)) half_rich)])
-        acc L, ih ∈ l
+    rename_i h; intro h' y x hx hy; by_cases h : ∃ l ∈ List.foldl ( fun chunks x => bif decide (
+        ∃ l ∈ chunks, x ∈ l ) then chunks else chunks ++ [ List.take ( 2 ^ j ) ( x :: List.filter (
+          fun a => !decide ( a = x ) && !decide ( ∃ l ∈ chunks, a ∈ l ) ) half_rich ) ] ) acc L,
+            ih ∈ l
     · simp_all +decide only [true_or, implies_true, List.mem_flatten,
         forall_exists_index, and_imp, forall_const, decide_true, cond_true]
-      unfold emittedHalfRichChunksFoldStep at *
-      aesop
+      unfold emittedHalfRichChunks_fold_step at *; aesop;
     · simp_all +decide only [true_or, implies_true, List.mem_flatten,
         forall_exists_index, and_imp, forall_const, decide_false, cond_false,
-        List.mem_append, List.mem_cons, List.not_mem_nil, or_false,
-        not_exists, not_and]
-      rcases hx with (hx | rfl)
-      · rename_i h''
-        specialize h'' acc y x
+        List.mem_append, List.mem_cons, List.not_mem_nil, or_false, not_exists, not_and]
+      rcases hx with ( hx | rfl );
+      · rename_i h''; specialize h'' acc y x
         simp_all +decide only [forall_const]
-        exact h'' (by
-          unfold emittedHalfRichChunksFoldStep
-          aesop)
-      · have := List.mem_of_mem_take hy
-        aesop
+        exact h'' ( by unfold emittedHalfRichChunks_fold_step; aesop );
+      · have := List.mem_of_mem_take hy; aesop;
 
 /-
 The `m`-rich element list shrinks as the multiplicity threshold `m` grows.
@@ -1379,34 +1372,34 @@ stay above threshold by monotonicity of the multiplicity.
 -/
 theorem emittedHalfRichChunksList_flatten_half_rich (c : Code) (i j k t : ℕ) :
     ∀ y ∈ (emittedHalfRichChunksList c i j k t).flatten,
-      2 ^ (k - 1) ≤ (snapshotDescList c i j t).countP (fun S ↦ decide (y ∈ S)) := by
-  have hRich : ∀ s z, z ∈ (snapshotRichElementsList c i j k s).eraseDups →
-      z ∈ (snapshotRichElementsList c i j (k - 1) s).eraseDups := by
+      2 ^ (k - 1) ≤ (snapshotDescList c i j t).countP (fun S => decide (y ∈ S)) := by
+  -- The two invariants used at every time `s` do not depend on `t`: every rich
+  -- element is `(k-1)`-rich (`hRich`), and every `(k-1)`-rich element has
+  -- multiplicity at least `2^(k-1)` in the description list (`hMult`).
+  have hRich : ∀ s z, z ∈ (snapshotRichElementsList c i j k s).eraseDups → z ∈
+      (snapshotRichElementsList c i j (k - 1) s).eraseDups := by
     intro s z hz
-    exact List.mem_eraseDups.mpr
-      (snapshotRichElementsList_subset_threshold c i j s (Nat.sub_le k 1)
-        (List.mem_eraseDups.mp hz))
-  have hMult : ∀ s z, z ∈ (snapshotRichElementsList c i j (k - 1) s).eraseDups →
-      2 ^ (k - 1) ≤
-        (snapshotDescList c i j s).countP (fun S ↦ decide (z ∈ S)) :=
-    fun s z hz ↦ mem_snapshotRichElementsList_multiplicity c i j (k - 1) s
-      (List.mem_eraseDups.mp hz)
+    have hz' : z ∈ snapshotRichElementsList c i j k s := mem_eraseDups_iff.mp hz
+    exact mem_eraseDups_iff.mpr
+      (snapshotRichElementsList_subset_threshold c i j s (Nat.sub_le k 1) hz')
+  have hMult : ∀ s z, z ∈ (snapshotRichElementsList c i j (k - 1) s).eraseDups → 2 ^ (k - 1) ≤
+      (snapshotDescList c i j s).countP (fun S => decide (z ∈ S)) := fun s z hz =>
+    mem_snapshotRichElementsList_multiplicity c i j (k - 1) s (mem_eraseDups_iff.mp hz)
   induction t with
   | zero =>
     intro y hy
-    simp only [emittedHalfRichChunksList, emittedHalfRichChunksStep] at hy
-    rcases emittedHalfRichChunks_foldStep_flatten_mem_or
-      j _ _ [] (hRich 0) y hy with h | h
+    simp only [emittedHalfRichChunksList, emittedHalfRichChunks_step] at hy
+    rcases emittedHalfRichChunks_foldStep_flatten_mem_or j _ _ [] (hRich 0) y hy with h | h
     · simp at h
     · exact hMult 0 y h
   | succ t ih =>
     intro y hy
     rw [emittedHalfRichChunksList] at hy
-    unfold emittedHalfRichChunksStep at hy
+    unfold emittedHalfRichChunks_step at hy
     rw [List.mem_flatten] at hy
     obtain ⟨l, hl₁, hl₂⟩ := hy
-    have h_ind : y ∈ (emittedHalfRichChunksList c i j k t).flatten ∨
-        y ∈ (snapshotRichElementsList c i j (k - 1) (t + 1)).eraseDups :=
+    have h_ind : y ∈ (emittedHalfRichChunksList c i j k t).flatten ∨ y ∈
+        (snapshotRichElementsList c i j (k - 1) (t + 1)).eraseDups :=
       emittedHalfRichChunks_foldStep_flatten_mem_or j _ _ _ (hRich (t + 1)) y
         (List.mem_flatten.mpr ⟨l, hl₁, hl₂⟩)
     cases h_ind with
@@ -1420,36 +1413,13 @@ theorem emittedHalfRichChunksList_flatten_half_rich (c : Code) (i j k t : ℕ) :
 /-
 Each emitted chunk list is nonempty (its first element is the triggering element).
 -/
-private theorem emittedHalfRichChunksFoldStep_mem_ne_nil
-    (j : ℕ) (half_rich : List BitString)
-    (M : List BitString) (acc : List (List BitString))
-    (hacc : ∀ l ∈ acc, l ≠ []) :
-    ∀ l ∈ List.foldl (emittedHalfRichChunksFoldStep j half_rich) acc M, l ≠ [] := by
-  induction M generalizing acc with
-  | nil => simpa only [List.foldl_nil] using hacc
-  | cons x M ih =>
-    rw [List.foldl_cons]
-    apply ih
-    intro l hl
-    by_cases hx : x ∈ acc.flatten
-    · exact hacc l (by
-        simpa only [emittedHalfRichChunksFoldStep, hx, decide_true, cond_true] using hl)
-    · have hdecide : decide (x ∈ acc.flatten) = false := decide_eq_false hx
-      simp only [emittedHalfRichChunksFoldStep, hdecide, cond_false, List.mem_append,
-        List.mem_cons, List.not_mem_nil, or_false] at hl
-      rcases hl with hl | rfl
-      · exact hacc l hl
-      · obtain ⟨n, hn⟩ : ∃ n, 2 ^ j = n + 1 :=
-          ⟨2 ^ j - 1, by
-            have := Nat.one_le_two_pow (n := j)
-            omega⟩
-        simp [hn]
-
 theorem emittedHalfRichChunksList_mem_ne_nil (c : Code) (i j k t : ℕ) :
     ∀ l ∈ emittedHalfRichChunksList c i j k t, l ≠ [] := by
   induction t with
-  | zero => exact emittedHalfRichChunksFoldStep_mem_ne_nil j _ _ [] (by simp)
-  | succ t ih => exact emittedHalfRichChunksFoldStep_mem_ne_nil j _ _ _ ih
+  | zero =>
+    exact emittedHalfRichChunks_fold_step_mem_ne_nil j _ _ [] (by simp)
+  | succ t ih =>
+    exact emittedHalfRichChunks_fold_step_mem_ne_nil j _ _ _ ih
 
 /-
 The list of emitted chunks (as finsets) has no duplicates: the chunks are
@@ -1458,18 +1428,29 @@ pairwise disjoint and nonempty, hence distinct as finsets.
 theorem emittedHalfRichChunks_nodup (c : Code) (i j k t : ℕ) :
     (emittedHalfRichChunks c i j k t).Nodup := by
   unfold emittedHalfRichChunks;
-  have h_nodup :
-      List.Nodup (emittedHalfRichChunksList c i j k t).flatten ∧
-        ∀ l ∈ emittedHalfRichChunksList c i j k t, l ≠ [] := by
-    exact ⟨emittedHalfRichChunksList_flatten_nodup c i j k t,
-      emittedHalfRichChunksList_mem_ne_nil c i j k t⟩
-  apply List.pairwise_map.mpr
-  refine List.Pairwise.imp_of_mem ?_ ( List.nodup_flatten.mp h_nodup.1 |>.2 )
-  intro a b ha hb hab h
-  have := List.disjoint_iff_ne.mp hab
-  simp_all +decide only [ne_eq, Finset.ext_iff, List.mem_toFinset]
-  exact h_nodup.2 b hb ( List.eq_nil_iff_forall_not_mem.mpr fun x hx ↦ this x hx x hx rfl )
-
+  have h_nodup : List.Nodup (emittedHalfRichChunksList c i j k t).flatten ∧ ∀ l ∈
+      emittedHalfRichChunksList c i j k t, l ≠ [] := by
+    exact ⟨ emittedHalfRichChunksList_flatten_nodup c i j k t,
+      emittedHalfRichChunksList_mem_ne_nil c i j k t ⟩;
+  have h_disjoint : List.Pairwise List.Disjoint _ := (List.nodup_flatten.mp h_nodup.1).2
+  have H : List.Pairwise (fun a b => a.toFinset ≠ b.toFinset)
+      (emittedHalfRichChunksList c i j k t) := by
+    apply List.Pairwise.imp_of_mem _ h_disjoint
+    intro a b ha hb hab heq
+    have h_not_disj : ¬ List.Disjoint a b := by
+      intro h_disj
+      have h_sub : a ⊆ b := by
+        intro x hx
+        have hx2 : x ∈ a.toFinset := List.mem_toFinset.mpr hx
+        rw [heq] at hx2
+        exact List.mem_toFinset.mp hx2
+      cases a with
+      | nil => exact h_nodup.2 _ ha rfl
+      | cons x xs =>
+        have hx : x ∈ x :: xs := List.Mem.head _
+        exact h_disj hx (h_sub hx)
+    exact h_not_disj hab
+  exact List.pairwise_map.mpr H
 /-
 The size-restricted description list has no duplicate descriptions.
 -/
@@ -1622,7 +1603,7 @@ theorem snapshotDescList_length_eq_card (c : Code) (i j t : ℕ) :
 
 /-
 Fold helper.  If some `half_rich` element `y` remains unplaced at the end of a
-`emittedHalfRichChunksFoldStep` left fold, then every chunk appended during the
+`emittedHalfRichChunks_fold_step` left fold, then every chunk appended during the
 fold (present in the result but not in the starting accumulator `acc`) is full,
 i.e. has length `2 ^ j`.  Contrapositively: a single non-full appended chunk
 forces *every* `half_rich` element to be placed.
@@ -1630,35 +1611,34 @@ forces *every* `half_rich` element to be placed.
 theorem emittedHalfRichChunks_foldStep_unplaced_full (j : ℕ) (half_rich L : List BitString)
     (acc : List (List BitString)) (y : BitString)
     (hy_hr : y ∈ half_rich)
-    (hy_unplaced : y ∉ (L.foldl (emittedHalfRichChunksFoldStep j half_rich) acc).flatten) :
-    ∀ S ∈ L.foldl (emittedHalfRichChunksFoldStep j half_rich) acc,
+    (hy_unplaced : y ∉ (L.foldl (emittedHalfRichChunks_fold_step j half_rich) acc).flatten) :
+    ∀ S ∈ L.foldl (emittedHalfRichChunks_fold_step j half_rich) acc,
       S ∉ acc → S.length = 2 ^ j := by
   induction L using List.reverseRecOn generalizing acc y
   case' nil => simp_all +decide
-  case' append_singleton L ih _ =>
-    simp_all +decide only [List.mem_flatten, not_exists, not_and,
-      List.foldl_append, List.foldl_cons, emittedHalfRichChunksFoldStep,
-      Bool.cond_true_right, Bool.or_false, List.filter_filter, List.foldl_nil]
+  case' append_singleton L ih _ => simp_all +decide only [List.mem_flatten, not_exists,
+    not_and, List.foldl_append, List.foldl_cons, emittedHalfRichChunks_fold_step,
+    Bool.cond_true_right, Bool.or_false, List.filter_filter, List.foldl_nil]
   rename_i h
   specialize h acc y hy_hr
-  by_cases h' :
-      ∃ l ∈ List.foldl (emittedHalfRichChunksFoldStep j half_rich) acc L, ih ∈ l
-  · simp_all +decide only [decide_true, cond_true, not_false_eq_true,
-      implies_true, forall_const]
-  · simp_all +decide only [decide_false, cond_false, List.mem_append,
-      List.mem_cons, List.not_mem_nil, or_false, true_or, not_false_eq_true,
-      implies_true, forall_const, not_exists, not_and]
-    by_contra h_contra
+  by_cases h' : ∃ l ∈ List.foldl (emittedHalfRichChunks_fold_step j half_rich) acc L,
+      ih ∈ l
+  · simp_all +decide only [decide_true, cond_true, not_false_eq_true, implies_true,
+      forall_const]
+  · simp_all +decide only [decide_false, cond_false, List.mem_append, List.mem_cons,
+      List.not_mem_nil, or_false, true_or, not_false_eq_true, implies_true, forall_const,
+      not_exists, not_and]
+    by_contra h_contra;
     have h_new_chunk_length : y ∈ List.take (2 ^ j)
-        (ih :: List.filter (fun a => !decide (a = ih) && !decide
-          (∃ l ∈ List.foldl (emittedHalfRichChunksFoldStep j half_rich) acc L,
+        (ih :: List.filter (fun a => !decide (a = ih) && !decide (
+          ∃ l ∈ List.foldl (emittedHalfRichChunks_fold_step j half_rich) acc L,
             a ∈ l)) half_rich) := by
-      rw [List.take_of_length_le] <;> grind
-    exact hy_unplaced _ (Or.inr rfl) h_new_chunk_length
+      rw [ List.take_of_length_le ]; all_goals grind;
+    exact hy_unplaced _ ( Or.inr rfl ) h_new_chunk_length
 
 /-
-A chunk is emitted at time `t` if it appears in `emittedHalfRichChunks` at
-time `t` but not at `t-1` (or is present at time 0).
+A chunk is emitted at time `t` if it appears in `emittedHalfRichChunks` at time
+`t` but not at `t-1` (or is present at time 0).
 At the emission time of a non-full chunk, all half-rich elements are placed.
 -/
 theorem nonfull_chunk_emit_time (c : Code) (i j k : ℕ) (t : ℕ) (S : Finset BitString)
@@ -1672,8 +1652,8 @@ theorem nonfull_chunk_emit_time (c : Code) (i j k : ℕ) (t : ℕ) (S : Finset B
   have h_l_nodup : l.Nodup := by
     have := emittedHalfRichChunksList_flatten_nodup c i j k t;
     exact List.Nodup.sublist ( List.sublist_flatten_of_mem hl.1 ) this;
-  have h_l_not_in_acc :
-      l ∉ (if t > 0 then emittedHalfRichChunksList c i j k (t - 1) else []) := by
+  have h_l_not_in_acc : l ∉ (if t > 0 then
+      emittedHalfRichChunksList c i j k (t - 1) else []) := by
     by_cases ht : t > 0
     · simp only [ht, if_true]
       intro h_prev
@@ -1682,23 +1662,26 @@ theorem nonfull_chunk_emit_time (c : Code) (i j k : ℕ) (t : ℕ) (S : Finset B
       exact List.mem_map.mpr ⟨l, h_prev, hl.2⟩
     · simp only [ht, if_false, List.not_mem_nil]
       exact not_false
-  by_contra h_contra
-  push Not at h_contra
+  by_contra h_contra; push Not at h_contra;
   obtain ⟨x, hx_rich, hx_unplaced⟩ := h_contra
-  have hx_half_rich :
-      x ∈ (snapshotRichElementsList c i j (k - 1) t).eraseDups :=
-    List.mem_eraseDups.mpr hx_rich
+  have hx_half_rich : x ∈ (snapshotRichElementsList c i j (k - 1) t).eraseDups := by
+    have h_eraseDups : ∀ {L : List BitString}, x ∈ L → x ∈ L.eraseDups := by
+      intros L hL; induction L using List.reverseRecOn
+      case' nil => simp_all +decide
+      case' append_singleton L ih _ => simp_all +decide [ List.eraseDups_append ]
+      grind
+    exact h_eraseDups hx_rich
   have hx_unplaced_fold : x ∉ (List.foldl
-      (emittedHalfRichChunksFoldStep j
+      (emittedHalfRichChunks_fold_step j
         (snapshotRichElementsList c i j (k - 1) t).eraseDups)
       (if t > 0 then emittedHalfRichChunksList c i j k (t - 1) else [])
       (snapshotRichElementsList c i j k t).eraseDups).flatten := by
     cases t with
     | zero =>
-      simpa only [emittedHalfRichChunksList, emittedHalfRichChunksStep, gt_iff_lt,
+      simpa only [emittedHalfRichChunksList, emittedHalfRichChunks_step, gt_iff_lt,
         lt_self_iff_false, ↓reduceIte] using hx_unplaced
     | succ t =>
-      simpa only [emittedHalfRichChunksList, emittedHalfRichChunksStep, gt_iff_lt,
+      simpa only [emittedHalfRichChunksList, emittedHalfRichChunks_step, gt_iff_lt,
         lt_add_iff_pos_left, Order.lt_add_one_iff, zero_le, ↓reduceIte,
         add_tsub_cancel_right] using hx_unplaced
   have h_l_length : l.length = 2 ^ j := by
@@ -1707,20 +1690,20 @@ theorem nonfull_chunk_emit_time (c : Code) (i j k : ℕ) (t : ℕ) (S : Finset B
       (snapshotRichElementsList c i j k t).eraseDups
       (if t > 0 then emittedHalfRichChunksList c i j k (t - 1) else []) x
       hx_half_rich hx_unplaced_fold l (by
-        cases t <;> simp_all +decide only [emittedHalfRichChunksList, gt_iff_lt,
-          lt_add_iff_pos_left, Order.lt_add_one_iff, zero_le, ↓reduceIte,
-          add_tsub_cancel_right]
-        · unfold emittedHalfRichChunksStep at hl
-          aesop
-        · exact hl.1) h_l_not_in_acc
+    cases t <;> simp_all +decide only [emittedHalfRichChunksList, gt_iff_lt,
+      lt_add_iff_pos_left, Order.lt_add_one_iff, zero_le, ↓reduceIte,
+      add_tsub_cancel_right]
+    · unfold emittedHalfRichChunks_step at hl; aesop;
+    · exact hl.1) (by
+    exact h_l_not_in_acc)
   have h_l_card : S.card = 2 ^ j := by
-    rw [← hl.2, List.toFinset_card_of_nodup h_l_nodup, h_l_length]
+    rw [ ← hl.2, List.toFinset_card_of_nodup h_l_nodup, h_l_length ]
   linarith [h_nonfull]
 
 /-
 A trigger element that moves from not-half-rich to rich must gain at least
-2^(k-1) fresh descriptions in `snapshotDescriptionsAndSizeLe` during that time
-interval.
+`2^(k-1)` fresh descriptions in `snapshotDescriptionsAndSizeLe` during that
+time interval.
 -/
 theorem trigger_gains_fresh_finset (c : Code) (i j k : ℕ) (t₁ t₂ : ℕ) (y : BitString)
     (h_not_half_rich : y ∉ snapshotRichElementsList c i j (k - 1) t₁)
@@ -1763,43 +1746,21 @@ theorem trigger_gains_fresh_finset (c : Code) (i j k : ℕ) (t₁ t₂ : ℕ) (y
     simp only [Nat.succ_sub_one, pow_succ'] at h_count_lt h_count_ge ⊢
     omega
 
-
 /-- The emission time of the `m`-th nonfull chunk up to time `t`.
 Returns 0 if `m` is out of bounds. -/
 def nonfullChunkEmissionTime (c : Code) (i j k t m : ℕ) : ℕ :=
   let chunks := emittedHalfRichChunksList c i j k t
-  let nonfull := chunks.filter (fun l ↦ l.length < 2 ^ j)
+  let nonfull := chunks.filter (fun l => l.length < 2 ^ j)
   match (nonfull.drop m).head? with
   | none => 0
   | some l =>
-    (List.range (t + 1)).find? (fun τ ↦ l ∈ emittedHalfRichChunksList c i j k τ) |>.getD 0
+    (List.range (t + 1)).find? (fun τ => l ∈ emittedHalfRichChunksList c i j k τ) |>.getD 0
 
 /-- The trigger element of the `m`-th nonfull chunk up to time `t`.
 Returns an empty list (default bitstring) if `m` is out of bounds. -/
-theorem emittedHalfRichChunksFoldStep_true (j : ℕ) (X : List BitString)
-    (chunks : List (List BitString)) (x : BitString) (h : x ∈ chunks.flatten) :
-    emittedHalfRichChunksFoldStep j X chunks x = chunks := by
-  unfold emittedHalfRichChunksFoldStep
-  have h_dec : decide (x ∈ chunks.flatten) = true := decide_eq_true h
-  rw [h_dec]
-  rfl
-
-theorem emittedHalfRichChunksFoldStep_false (j : ℕ) (X : List BitString)
-    (chunks : List (List BitString)) (x : BitString) (h : x ∉ chunks.flatten) :
-    emittedHalfRichChunksFoldStep j X chunks x =
-      chunks ++ [List.take (2 ^ j)
-        (x :: List.filter (fun y ↦ bif decide (y = x) then false else true)
-          (List.filter (fun y ↦
-            bif decide (y ∈ chunks.flatten) then false else true) X))] := by
-  unfold emittedHalfRichChunksFoldStep
-  have h_dec : decide (x ∈ chunks.flatten) = false := decide_eq_false h
-  rw [h_dec]
-  rfl
-
-/-- The trigger element of the `m`-th nonfull chunk up to time `t`. -/
 def nonfullChunkTrigger (c : Code) (i j k t m : ℕ) : BitString :=
   let chunks := emittedHalfRichChunksList c i j k t
-  let nonfull := chunks.filter (fun l ↦ l.length < 2 ^ j)
+  let nonfull := chunks.filter (fun l => l.length < 2 ^ j)
   match (nonfull.drop m).head? with
   | none => []
   | some [] => []
@@ -1855,7 +1816,7 @@ theorem emittedHalfRichChunksList_succ_append (c : Code) (i j k t : ℕ) :
     ((snapshotRichElementsList c i j (k - 1) (t + 1)).eraseDups)
     ((snapshotRichElementsList c i j k (t + 1)).eraseDups)
     (emittedHalfRichChunksList c i j k t)
-  exact ⟨r, by simpa [emittedHalfRichChunksList, emittedHalfRichChunksStep] using hr⟩
+  exact ⟨r, by simpa [emittedHalfRichChunksList, emittedHalfRichChunks_step] using hr⟩
 
 /-- The emitted online stream list is monotone: any later stage extends an
 earlier one by a suffix. -/
@@ -1891,18 +1852,17 @@ theorem emittedHalfRichChunksList_filter_prefix (c : Code) (i j k : ℕ) {t t' :
 /-- The number of nonfull chunks (list form) is monotone in time. -/
 theorem emittedHalfRichChunksList_numNonfull_mono (c : Code) (i j k : ℕ) {t t' : ℕ}
     (h : t ≤ t') :
-    ((emittedHalfRichChunksList c i j k t).filter (fun l ↦ l.length < 2 ^ j)).length
-      ≤ ((emittedHalfRichChunksList c i j k t').filter (fun l ↦ l.length < 2 ^ j)).length := by
+    ((emittedHalfRichChunksList c i j k t).filter (fun l => l.length < 2 ^ j)).length
+      ≤ ((emittedHalfRichChunksList c i j k t').filter (fun l => l.length < 2 ^ j)).length := by
   obtain ⟨rest, hrest⟩ :=
-    emittedHalfRichChunksList_filter_prefix c i j k h
-      (fun l ↦ l.length < 2 ^ j)
+    emittedHalfRichChunksList_filter_prefix c i j k h (fun l => l.length < 2 ^ j)
   rw [hrest, List.length_append]
   exact Nat.le_add_right _ _
 
 /-
 **Fold-level: a single online step appends at most one nonfull chunk.**
 Processing the rich stream `L` (all of whose elements are half-rich, `hL`)
-by `emittedHalfRichChunksFoldStep` from accumulator `acc` increases the number
+by `emittedHalfRichChunks_fold_step` from accumulator `acc` increases the number
 of nonfull (length `< 2^j`) chunks by at most one; and if it does increase the
 count, then afterwards every half-rich element has been placed into the flatten.
 The second conjunct is the invariant that makes the induction go through: once a
@@ -1911,14 +1871,14 @@ so no further chunk can ever be opened in the same step.
 -/
 theorem emittedHalfRichChunks_foldStep_nonfull_count (j : ℕ) (half_rich : List BitString)
     (L : List BitString) (acc : List (List BitString)) (hL : ∀ x ∈ L, x ∈ half_rich) :
-    ((L.foldl (emittedHalfRichChunksFoldStep j half_rich) acc).filter
-        (fun l ↦ l.length < 2 ^ j)).length
-      ≤ (acc.filter (fun l ↦ l.length < 2 ^ j)).length + 1
-    ∧ ((acc.filter (fun l ↦ l.length < 2 ^ j)).length + 1
-        ≤ ((L.foldl (emittedHalfRichChunksFoldStep j half_rich) acc).filter
-            (fun l ↦ l.length < 2 ^ j)).length
+    ((L.foldl (emittedHalfRichChunks_fold_step j half_rich) acc).filter
+        (fun l => l.length < 2 ^ j)).length
+      ≤ (acc.filter (fun l => l.length < 2 ^ j)).length + 1
+    ∧ ((acc.filter (fun l => l.length < 2 ^ j)).length + 1
+        ≤ ((L.foldl (emittedHalfRichChunks_fold_step j half_rich) acc).filter
+            (fun l => l.length < 2 ^ j)).length
       → ∀ y ∈ half_rich,
-          y ∈ (L.foldl (emittedHalfRichChunksFoldStep j half_rich) acc).flatten) := by
+          y ∈ (L.foldl (emittedHalfRichChunks_fold_step j half_rich) acc).flatten) := by
   induction L using List.reverseRecOn generalizing acc with
   | nil => simp_all +decide
   | append_singleton L x ih =>
@@ -1927,7 +1887,7 @@ theorem emittedHalfRichChunks_foldStep_nonfull_count (j : ℕ) (half_rich : List
         exact hL y (List.mem_append.mpr (Or.inl hy))
       have hx_half : x ∈ half_rich :=
         hL x (List.mem_append.mpr (Or.inr (List.mem_singleton_self x)))
-      let prev := List.foldl (emittedHalfRichChunksFoldStep j half_rich) acc L
+      let prev := List.foldl (emittedHalfRichChunks_fold_step j half_rich) acc L
       have ih' := ih acc hL'
       change
         ((prev.filter (fun l => l.length < 2 ^ j)).length ≤
@@ -1938,16 +1898,16 @@ theorem emittedHalfRichChunks_foldStep_nonfull_count (j : ℕ) (half_rich : List
       by_cases hx_prev : x ∈ prev.flatten
       · have hdec : decide (x ∈ prev.flatten) = true := decide_eq_true hx_prev
         simpa only [List.foldl_append, List.foldl_cons, List.foldl_nil,
-          emittedHalfRichChunksFoldStep, prev, hdec, cond_true] using ih'
+          emittedHalfRichChunks_fold_step, prev, hdec, cond_true] using ih'
       · have hdec : decide (x ∈ prev.flatten) = false := decide_eq_false hx_prev
         let unplaced := half_rich.filter (fun y =>
           bif decide (y ∈ prev.flatten) then false else true)
         let base := x :: unplaced.filter (fun y =>
           bif decide (y = x) then false else true)
         let newChunk := base.take (2 ^ j)
-        have hstep : emittedHalfRichChunksFoldStep j half_rich prev x =
+        have hstep : emittedHalfRichChunks_fold_step j half_rich prev x =
             prev ++ [newChunk] := by
-          simp only [emittedHalfRichChunksFoldStep, hdec, cond_false, unplaced,
+          simp only [emittedHalfRichChunks_fold_step, hdec, cond_false, unplaced,
             base, newChunk]
         rw [List.foldl_append, List.foldl_cons, List.foldl_nil, hstep]
         by_cases hnew : newChunk.length < 2 ^ j
@@ -2004,35 +1964,41 @@ theorem emittedHalfRichChunks_foldStep_nonfull_count (j : ℕ) (half_rich : List
 A single online time step appends at most one nonfull chunk.
 -/
 theorem emittedHalfRichChunksList_numNonfull_succ_le (c : Code) (i j k t : ℕ) :
-    ((emittedHalfRichChunksList c i j k (t + 1)).filter (fun l ↦ l.length < 2 ^ j)).length
-      ≤ ((emittedHalfRichChunksList c i j k t).filter (fun l ↦ l.length < 2 ^ j)).length + 1 := by
-  exact (emittedHalfRichChunks_foldStep_nonfull_count j _ _ _
-    (fun x hx ↦ List.mem_eraseDups.mpr
-      (snapshotRichElementsList_subset_threshold _ _ _ _ (Nat.sub_le _ _)
-        (List.mem_eraseDups.mp hx)))).left
+    ((emittedHalfRichChunksList c i j k (t + 1)).filter (fun l => l.length < 2 ^ j)).length
+      ≤ ((emittedHalfRichChunksList c i j k t).filter (fun l => l.length < 2 ^ j)).length + 1 := by
+  have h_eraseDups : ∀ {L : List BitString} {x : BitString}, x ∈ L.eraseDups ↔ x ∈ L := by
+    intros L x; induction L using List.reverseRecOn generalizing x
+    case' nil => simp_all +decide
+    case' append_singleton L ih _ => simp_all +decide [ List.eraseDups_append ]
+    simp_all +decide [ List.removeAll ];
+    grind;
+  exact emittedHalfRichChunks_foldStep_nonfull_count j _ _ _ (fun x hx =>
+    h_eraseDups.mpr
+    (snapshotRichElementsList_subset_threshold _ _ _ _ (Nat.sub_le _ _)
+      (h_eraseDups.mp hx))) |>.left
 
 /-
 At time `0` at most one nonfull chunk exists (the first online step opens at
 most one nonfull chunk from the empty accumulator).
 -/
 theorem emittedHalfRichChunksList_numNonfull_zero_le (c : Code) (i j k : ℕ) :
-    ((emittedHalfRichChunksList c i j k 0).filter (fun l ↦ l.length < 2 ^ j)).length ≤ 1 := by
-  unfold emittedHalfRichChunksList
-  simp [emittedHalfRichChunksStep, snapshotRichElementsList_zero]
+    ((emittedHalfRichChunksList c i j k 0).filter (fun l => l.length < 2 ^ j)).length ≤ 1 := by
+  simp only [emittedHalfRichChunksList, emittedHalfRichChunks_step,
+    snapshotRichElementsList_zero, List.eraseDups_nil, List.foldl_nil,
+    List.filter_nil, List.length_nil, Nat.zero_le]
 
 /-
 The finset-form and list-form counts of nonfull chunks agree.
 -/
 theorem emittedHalfRich_nonfull_len_eq (c : Code) (i j k t : ℕ) :
-    ((emittedHalfRichChunks c i j k t).filter (fun S ↦ S.card < 2 ^ j)).length
-      = ((emittedHalfRichChunksList c i j k t).filter (fun l ↦ l.length < 2 ^ j)).length := by
+    ((emittedHalfRichChunks c i j k t).filter (fun S => S.card < 2 ^ j)).length
+      = ((emittedHalfRichChunksList c i j k t).filter (fun l => l.length < 2 ^ j)).length := by
   rw [ emittedHalfRichChunks, List.filter_map ];
   rw [ List.length_map, List.filter_congr ];
-  intro x hx
-  specialize hx
+  intro x hx;
   have := List.Nodup.sublist (List.sublist_flatten_of_mem hx)
-    (emittedHalfRichChunksList_flatten_nodup c i j k t)
-  simp_all +decide [List.toFinset_card_of_nodup]
+    (emittedHalfRichChunksList_flatten_nodup c i j k t);
+  simp_all +decide [ List.toFinset_card_of_nodup ];
 
 /-
 Emission times of consecutive nonfull chunks are strictly increasing.
@@ -2309,24 +2275,24 @@ theorem nonfullChunkTrigger_rich_curr (c : Code) (i j k t m : ℕ)
   have h_l_head : ∃ x ∈ (snapshotRichElementsList c i j k τ).eraseDups,
       l ≠ [] ∧ l.head? = some x := by
     have h_l_head : ∀ {L : List BitString} {acc : List (List BitString)}, l ∈ List.foldl
-        (emittedHalfRichChunksFoldStep j ((snapshotRichElementsList c i j (k - 1) τ).eraseDups))
+        (emittedHalfRichChunks_fold_step j ((snapshotRichElementsList c i j (k - 1) τ).eraseDups))
         acc L → l ∉ acc → ∃ x ∈ L, l ≠ [] ∧ l.head? = some x := by
       intros L acc hl hacc
       induction L using List.reverseRecOn generalizing acc with
       | nil => exact (hacc hl).elim
       | append_singleton L x ih =>
           rw [List.foldl_append, List.foldl_cons, List.foldl_nil] at hl
-          let acc' := List.foldl (emittedHalfRichChunksFoldStep j
+          let acc' := List.foldl (emittedHalfRichChunks_fold_step j
             (snapshotRichElementsList c i j (k - 1) τ).eraseDups) acc L
-          change l ∈ emittedHalfRichChunksFoldStep j
+          change l ∈ emittedHalfRichChunks_fold_step j
             (snapshotRichElementsList c i j (k - 1) τ).eraseDups acc' x at hl
           by_cases hx : x ∈ acc'.flatten
           · have hdec : decide (x ∈ acc'.flatten) = true := decide_eq_true hx
-            simp only [emittedHalfRichChunksFoldStep, hdec, cond_true] at hl
+            simp only [emittedHalfRichChunks_fold_step, hdec, cond_true] at hl
             obtain ⟨y, hy, hne, hhead⟩ := ih hl hacc
             exact ⟨y, List.mem_append.mpr (Or.inl hy), hne, hhead⟩
           · have hdec : decide (x ∈ acc'.flatten) = false := decide_eq_false hx
-            simp only [emittedHalfRichChunksFoldStep, hdec, cond_false,
+            simp only [emittedHalfRichChunks_fold_step, hdec, cond_false,
               List.mem_append, List.mem_singleton] at hl
             rcases hl with hl | hl
             · obtain ⟨y, hy, hne, hhead⟩ := ih hl hacc
@@ -2340,7 +2306,7 @@ theorem nonfullChunkTrigger_rich_curr (c : Code) (i j k t m : ℕ)
               · simp only [hq, List.take_succ_cons, List.head?_cons]
     rcases τ with _ | τ
     · have : l ∈ ([] : List (List BitString)) := by
-        simpa only [emittedHalfRichChunksList, emittedHalfRichChunksStep,
+        simpa only [emittedHalfRichChunksList, emittedHalfRichChunks_step,
           snapshotRichElementsList_zero, List.eraseDups_nil, List.foldl_nil]
           using hτ.2.1
       exact (List.not_mem_nil this).elim
@@ -2384,7 +2350,7 @@ theorem nonfullChunkTrigger_rich_curr (c : Code) (i j k t m : ℕ)
 below the number of nonfull chunks, `τ a < τ b`. -/
 theorem nonfullChunkEmissionTime_lt_of_lt (c : Code) (i j k t : ℕ) {a : ℕ} : ∀ {b : ℕ},
     a < b →
-    b < ((emittedHalfRichChunks c i j k t).filter (fun S ↦ S.card < 2 ^ j)).length →
+    b < ((emittedHalfRichChunks c i j k t).filter (fun S => S.card < 2 ^ j)).length →
     nonfullChunkEmissionTime c i j k t a < nonfullChunkEmissionTime c i j k t b
   | 0, hab, _ => absurd hab (by omega)
   | n + 1, hab, hb => by
@@ -2397,14 +2363,14 @@ theorem nonfullChunkEmissionTime_lt_of_lt (c : Code) (i j k t : ℕ) {a : ℕ} :
 /-- Weak monotonicity of nonfull-chunk emission times. -/
 theorem nonfullChunkEmissionTime_mono (c : Code) (i j k t : ℕ) {a b : ℕ}
     (hab : a ≤ b)
-    (hb : b < ((emittedHalfRichChunks c i j k t).filter (fun S ↦ S.card < 2 ^ j)).length) :
+    (hb : b < ((emittedHalfRichChunks c i j k t).filter (fun S => S.card < 2 ^ j)).length) :
     nonfullChunkEmissionTime c i j k t a ≤ nonfullChunkEmissionTime c i j k t b := by
   rcases lt_or_eq_of_le hab with h | h
   · exact le_of_lt (nonfullChunkEmissionTime_lt_of_lt c i j k t h hb)
   · exact le_of_eq (by rw [h])
 
 /-- Between any two non-full chunks, there is at least one trigger element that
-moves from not-half-rich to rich, requiring `2^(k-1)` fresh descriptions on
+moves from not-half-rich to rich, requiring 2^(k-1) fresh descriptions on
 disjoint time intervals.
 
 Assembled from the indexed helpers: each nonfull chunk `m` (index `< F`) has a
@@ -2498,7 +2464,8 @@ theorem nonfull_chunk_fresh_descriptions (c : Code) (i j k : ℕ) (t : ℕ) :
         obtain ⟨m, hm, hsm⟩ := hs
         exact subset m hm hsm
 
-/-- Non-full chunks are bounded by the number of fresh occurrences needed, `<= 2^(i - k + O(1))`. -/
+/-- Non-full chunks are bounded by the number of fresh occurrences needed,
+`<= 2^(i - k + O(1))`. -/
 theorem emittedHalfRichChunks_nonfull_count_le (U : Map) (c : Code) (_hc : IsCodeFor c U)
     (i j k : ℕ) (t : ℕ) :
     ((emittedHalfRichChunks c i j k t).filter
@@ -2725,9 +2692,9 @@ statement `A -> C`: many `(i,j)` descriptions imply an `(i-k,j)` description, up
 to visible logarithmic slack.  The size-improvement statement should be derived
 from this one rather than proved by an independent size selector.
 
-The intended construction is the online half-rich covering stream: enumerate
-chunks as they are created and address a chunk by its ordinal, not by a final
-snapshot/halt-count.
+The intended construction is the online half-rich covering stream described in
+`docs/section3-online-half-rich-cover.md`: enumerate chunks as they are created
+and address a chunk by its ordinal, not by a final snapshot/halt-count.
 
 The complexity-improvement analogue of `richSizePortion_selector_correct`, with
 batches of size `≤ 2 ^ j` addressed by `h < 2 ^ (i - k + 4)`.  This is proved
@@ -2744,17 +2711,16 @@ theorem halfRichComplexityPortion_selector_correct (U : Map) (hU : IsOptimalPref
             x ∈ S ∧
             S.card ≤ 2 ^ j ∧
             f (richInput i j k h) = Part.some ((codedUniformOn S hS).code) := by
-  -- Controlled Section 3 obligation.  This must be proved from the effective
-  -- `emittedHalfRichChunks` stream above: coverage of rich elements, the
-  -- full/non-full online counting bounds, and a partial-recursive ordinal
-  -- selector that runs until the requested chunk is emitted.
+  -- Proved from the effective `emittedHalfRichChunks` stream above: coverage of
+  -- rich elements, the full/non-full online counting bounds, and a
+  -- partial-recursive ordinal selector that runs until the requested chunk is
+  -- emitted.
   obtain ⟨c, hc⟩ : ∃ c : Code, IsCodeFor c U :=
     Nat.Partrec.Code.exists_code.mp hU.isDecompressor
   refine ⟨ _, partrec_onlineHalfRichChunkSelectorFn c, ?_ ⟩;
   intro x n i j k hx hmany hk;
-  obtain ⟨t, S, hS₁, hS₂⟩ :=
-    emittedHalfRichChunks_cover_rich U c hc i j k x
-      (mem_richDescriptionElements_of_many U x i j k hmany)
+  obtain ⟨t, S, hS₁, hS₂⟩ := emittedHalfRichChunks_cover_rich U c hc i j k x
+    (mem_richDescriptionElements_of_many U x i j k hmany);
   obtain ⟨ h, hh₁, hh₂ ⟩ := List.mem_map.mp hS₁;
   obtain ⟨ h', hh'₁, hh'₂ ⟩ := List.mem_iff_getElem.mp hh₁;
   refine ⟨ h', ?_, S, ?_, ?_, ?_, ?_ ⟩;
@@ -2762,18 +2728,22 @@ theorem halfRichComplexityPortion_selector_correct (U : Map) (hU : IsOptimalPref
   any_goals exact Finset.nonempty_of_ne_empty ( by rintro rfl; simp_all +decide );
   · exact lt_of_lt_of_le hh'₁ (by
       simpa [emittedHalfRichChunks] using
-        emittedHalfRichChunks_length_le U c hc i j k t |>.trans
-          (Nat.pow_le_pow_right (by decide) (by omega)))
+        emittedHalfRichChunks_length_le U c hc i j k t |> le_trans <|
+          Nat.pow_le_pow_right (by decide) <| by omega);
   · exact emittedHalfRichChunks_card_le c i j k t S hS₁;
-  · have h_eq : (emittedHalfRichChunksList c i j k t).get ⟨h', hh'₁⟩ = h := by exact hh'₂
-    have hne : ((emittedHalfRichChunksList c i j k t).get ⟨h', hh'₁⟩).toFinset.Nonempty := by
-      rw [h_eq, hh₂]
-      exact ⟨x, hS₂⟩
-    have H_fn := onlineHalfRichChunkSelectorFn_eq_of_mem c i j k h' t hh'₁ hne
-    rw [H_fn]
-    congr 2
-    congr 1
-    rw [h_eq, hh₂]
+  · have hset :
+        ((emittedHalfRichChunksList c i j k t).get ⟨h', hh'₁⟩).toFinset = S := by
+      change (emittedHalfRichChunksList c i j k t)[h'].toFinset = S
+      rw [hh'₂, hh₂]
+    have hne :
+        ((emittedHalfRichChunksList c i j k t).get ⟨h', hh'₁⟩).toFinset.Nonempty :=
+      hset.symm ▸ Finset.nonempty_of_ne_empty (by rintro rfl; simp_all +decide)
+    calc
+      onlineHalfRichChunkSelectorFn c (richInput i j k h') =
+          Part.some ((codedUniformOn _ hne).code) :=
+        onlineHalfRichChunkSelectorFn_eq_of_mem c i j k h' t hh'₁ hne
+      _ = Part.some ((codedUniformOn S _).code) :=
+        congrArg Part.some (codedUniformOn_code_congr hne _ hset)
 
 /-- Half-rich dump bound: the objects with many descriptions are few.  This is
 the proved whole-rich cardinality estimate; the genuine complexity-half work is
@@ -2803,7 +2773,7 @@ theorem setComplexity_halfRichComplexityPortion_le (U : Map) (hU : IsOptimalPref
   obtain ⟨f, hf, hf_spec⟩ := halfRichComplexityPortion_selector_correct U hU
   obtain ⟨c₃, hc₃⟩ := KPPlain_partrec_map_le U hU f hf
   obtain ⟨c₄, hc₄⟩ := richInput_KPPlain_le_addr U hU c₃
-  refine ⟨4 * c₄ + 4, fun x n i j k hn hmany hk ↦ ?_⟩
+  refine ⟨4 * c₄ + 4, fun x n i j k hn hmany hk => ?_⟩
   obtain ⟨h, hh, S, hS, hxS, hcard, hfeq⟩ := hf_spec x n i j k hn hmany hk
   refine ⟨S, hS, hxS, ?_, hcard⟩
   have hmem : (codedUniformOn S hS).code ∈ f (richInput i j k h) := by
@@ -2819,7 +2789,7 @@ theorem setComplexity_halfRichComplexityPortion_le (U : Map) (hU : IsOptimalPref
   gcongr
   exact_mod_cast habs
 
-/-- Selector/coding gate for the complexity-improvement half. -/
+/-- Selector/coding interface for the complexity-improvement half. -/
 theorem exists_halfRichComplexityRefinedSet_logSlack (U : Map) (hU : IsOptimalPrefixConditional U) :
     ∃ c : ℕ, ∀ x n i j k,
       x.length = n → ManyIJDescriptions U x i j k → k ≤ i →
@@ -2827,7 +2797,7 @@ theorem exists_halfRichComplexityRefinedSet_logSlack (U : Map) (hU : IsOptimalPr
         setComplexity U S hS ≤ (i - k + logSlack c (n + i + j) : ENat) ∧
         S.card ≤ 2 ^ (j + logSlack c (n + i + j)) := by
   obtain ⟨c, hc⟩ := setComplexity_halfRichComplexityPortion_le U hU
-  refine ⟨c, fun x n i j k hn hmany hk ↦ ?_⟩
+  refine ⟨c, fun x n i j k hn hmany hk => ?_⟩
   obtain ⟨S, hS, hx, hcomp, hcard⟩ := hc x n i j k hn hmany hk
   refine ⟨S, hS, hx, hcomp, ?_⟩
   exact hcard.trans (Nat.pow_le_pow_right (by decide) (by omega))
@@ -2837,7 +2807,7 @@ theorem exists_description_smaller_complexity_of_many_logSlack
     (U : Map) (hU : IsOptimalPrefixConditional U) :
     ImprovingDescriptionsComplexityLogSlack U := by
   obtain ⟨c, hc⟩ := exists_halfRichComplexityRefinedSet_logSlack U hU
-  refine ⟨c, fun x n i j k hn hmany hk ↦ ?_⟩
+  refine ⟨c, fun x n i j k hn hmany hk => ?_⟩
   obtain ⟨S, hS, hxS, hcomp, hcard⟩ := hc x n i j k hn hmany hk
   exact ⟨S, hS, hxS, hcomp, hcard⟩
 
@@ -2863,7 +2833,7 @@ theorem improvingDescriptionsSize_of_complexity (U : Map)
     ImprovingDescriptionsSizeLogSlack U := by
   obtain ⟨c1, hC⟩ := hC
   obtain ⟨c0, hportion⟩ := inDescriptionProfile_portion U hU
-  refine ⟨c1 + c0 + 3, fun x n i j k hn hmany hk ↦ ?_⟩
+  refine ⟨c1 + c0 + 3, fun x n i j k hn hmany hk => ?_⟩
   have hk_le : k ≤ i + 1 := hmany.le_succ
   set k₀ := min k i with hk0
   have hk0k : k₀ ≤ k := min_le_left k i

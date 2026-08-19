@@ -1,9 +1,3 @@
-/-
-Copyright (c) 2024 Alexey Milovanov. All rights reserved.
-Released under Apache 2.0 license as described in the file LICENSE.
-Authors: Alexey Milovanov
--/
-
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.Profile
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.ModelsToSets2
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.DescriptionSnapshot
@@ -74,10 +68,9 @@ prefix complexity of `x` up to logarithmic slack.  Proof: the map
 -/
 theorem singletonSetComplexityGate (U : Map) (hU : IsOptimalPrefixConditional U) :
     SingletonSetComplexityGate U := by
-  obtain ⟨ c, hc ⟩ := KPPlain_map_le U hU
-    (fun x => canonicalUniformCodeOfList [x]) (by
-      exact canonicalUniformCodeOfList_computable.comp
-        (Computable.list_cons.comp Computable.id (Computable.const [])))
+  obtain ⟨ c, hc ⟩ := KPPlain_map_le U hU ( fun x => canonicalUniformCodeOfList [ x ] ) ( by
+    exact canonicalUniformCodeOfList_computable.comp
+        ( Computable.list_cons.comp Computable.id ( Computable.const [] ) ) );
   refine ⟨c, fun x n kx hn hk => le_trans ?_ (le_trans (hc x) ?_)⟩
   · rw [show setComplexity U {x} _
         = KPPlain U (codedUniformOn {x} _ |> CodedFiniteDistribution.code) from rfl]
@@ -100,27 +93,27 @@ theorem fullSetComplexityGate (U : Map) (hU : IsOptimalPrefixConditional U) :
   obtain ⟨c₁, hc₁⟩ := KPPlain_map_le U hU (fun w =>
       canonicalUniformCodeOfList
         (canonicalFinsetList (stringsOfLength (decodeNatCode w)))) (by
-    exact canonicalUniformCodeOfList_computable.comp (by
-      have h1 : (fun w => canonicalFinsetList (stringsOfLength (decodeNatCode w))) =
-          (fun w => canonicalFinsetList (allStrings (decodeNatCode w)).toFinset) := rfl
-      rw [h1]
-      exact canonicalFinsetList_toFinset_primrec.comp
-          (allStrings_primrec.comp decodeNatCode_primrec) |>.to_comp))
+    exact (canonicalUniformCodeOfList_computable.comp
+      (canonicalFinsetList_toFinset_primrec.comp
+        (allStrings_primrec.comp decodeNatCode_primrec) |> Primrec.to_comp)).of_eq (fun _ => rfl))
   obtain ⟨c₂, hc₂⟩ := KPPlain_natCode_le_log U hU
   use c₁ + c₂ + 2
   intro n hn
-  have hsc : setComplexity U (stringsOfLength n) hn =
-      KPPlain U (canonicalUniformCodeOfList (canonicalFinsetList (stringsOfLength n))) := by
-    rw [setComplexity, ← canonicalUniformCodeOfList_canonicalFinsetList (stringsOfLength n) hn]
+  have h_eq : KP U (codedUniformOn (stringsOfLength n) hn).code [] =
+      KP U (canonicalUniformCodeOfList (canonicalFinsetList (stringsOfLength n))) [] := by
+    rw [canonicalUniformCodeOfList_canonicalFinsetList]
+  have h_le := hc₁ (natCode n)
+  simp only [decodeNatCode_natCode, KPPlain_eq_KP] at h_le
+  have h_le2 := hc₂ n
+  simp only [KPPlain_eq_KP] at h_le2
   calc setComplexity U (stringsOfLength n) hn
-    _ = KPPlain U (canonicalUniformCodeOfList (canonicalFinsetList (stringsOfLength n))) := hsc
-    _ ≤ KPPlain U (natCode n) + (c₁ : ENat) := by
-      have := hc₁ (natCode n)
-      rwa [decodeNatCode_natCode] at this
-    _ ≤ (2 * (Nat.bits n).length + (c₂ : ENat)) + (c₁ : ENat) := by gcongr; exact hc₂ n
-    _ ≤ (logSlack (c₁ + c₂ + 2) n : ENat) := by
+    _ = KP U (canonicalUniformCodeOfList (canonicalFinsetList (stringsOfLength n))) [] := h_eq
+    _ ≤ KP U (natCode n) [] + (c₁ : ENat) := h_le
+    _ ≤ (2 * (n.bits.length : ENat) + c₂) + c₁ := add_le_add h_le2 le_rfl
+    _ ≤ logSlack (c₁ + c₂ + 2) n := by
       unfold logSlack
-      exact_mod_cast (by nlinarith)
+      norm_cast
+      nlinarith [Nat.zero_le (List.length (Nat.bits n))]
 
 /-! ### Unconditional profile endpoints -/
 
@@ -164,7 +157,7 @@ theorem structureFunction_eq_zero_of_ge_of_optimal
   have hmono : structureFunction U x i ≤ structureFunction U x (kx + logSlack c n) :=
     structureFunction_antitone U x hi
   rw [h0] at hmono
-  exact le_antisymm hmono zero_le
+  exact le_antisymm hmono (zero_le)
 
 /-- Right tail of the description profile, unconditional for an optimal
 prefix-conditional machine: for *every* budget `i ≥ K(x) + O(log n)` the zero-log-size
