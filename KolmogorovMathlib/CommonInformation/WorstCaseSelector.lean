@@ -881,8 +881,7 @@ theorem muchnikSelector_spec
         Part.some (muchnikMergedStageCount c (muchnikSelectorN input) t ==
           muchnikSelectorTotal input)) := by
     simp only [hInputN, hInputTotal]
-    rw [Nat.mem_rfind]
-    refine ⟨?_, ?_⟩
+    refine Nat.mem_rfind.mpr ⟨?_, ?_⟩
     · simp [ht₀Count]
     · intro m hm
       have hne : muchnikMergedStageCount c n m ≠ muchnikAdviceCount V n :=

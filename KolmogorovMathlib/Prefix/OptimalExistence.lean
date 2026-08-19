@@ -180,18 +180,26 @@ theorem mem_prefixFiltered_iff {c : Code} {p y x : BitString} :
         x ∈ (c.eval (Encodable.encode (p, y))).map
               (fun r => (Encodable.decode r : Option BitString).getD []) := by
   unfold prefixFiltered
-  simp only [Part.mem_bind_iff, Nat.mem_rfind, Part.mem_some_iff]
+  simp only [Part.mem_bind_iff]
   constructor
-  · rintro ⟨N, ⟨hN, hlt⟩, hmem⟩
+  · rintro ⟨N, hrf, hmem⟩
+    obtain ⟨hN, hlt⟩ := Nat.mem_rfind.mp hrf
+    rw [Part.mem_some_iff] at hN
     refine ⟨N, ⟨of_decide_eq_true hN.symm, ?_⟩, ?_⟩
-    · intro m hm; exact of_decide_eq_false (hlt hm).symm
+    · intro m hm
+      have hfalse := hlt hm
+      rw [Part.mem_some_iff] at hfalse
+      exact of_decide_eq_false hfalse.symm
     · cases hb : acceptBefore c y p N with
       | true => rw [hb] at hmem; exact ⟨rfl, by simpa using hmem⟩
       | false => rw [hb] at hmem; simp at hmem
   · rintro ⟨N, ⟨hN, hlt⟩, hacc, hmem⟩
-    refine ⟨N, ⟨?_, ?_⟩, ?_⟩
-    · rw [hN]; exact (decide_eq_true rfl).symm
-    · intro m hm; exact (decide_eq_false (hlt m hm)).symm
+    refine ⟨N, ?_, ?_⟩
+    · refine Nat.mem_rfind.mpr ⟨?_, ?_⟩
+      · rw [Part.mem_some_iff, hN]; exact (decide_eq_true rfl).symm
+      · intro m hm
+        rw [Part.mem_some_iff]
+        exact (decide_eq_false (hlt m hm)).symm
     · rw [hacc]; simpa using hmem
 
 /-! ### The filter is a prefix machine -/

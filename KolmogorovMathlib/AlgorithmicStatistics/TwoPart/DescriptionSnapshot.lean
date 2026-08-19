@@ -573,11 +573,13 @@ theorem exists_partrec_richSet_code (U : Map) (hU : IsOptimalPrefixConditional U
   simp +decide only [selNat_richInput, selH_richInput, selAlpha_richInput, selMaxK_richInput,
     length_canonicalFinsetList, Part.mem_bind_iff, Nat.mem_rfind, Part.mem_some_iff,
     true_eq_decide_iff, false_eq_decide_iff]
-  use t₀
-  simp_all +decide only [ne_eq, implies_true, not_false_eq_true, and_self,
-    snapshotRichElements_eq_richDescriptionElements hc i j k t₀ hmax0, Finset.one_le_card,
-    sup_of_le_right, true_and]
-  convert codedUniformOn_code_eq _ hne using 1
+  refine ⟨t₀, Nat.mem_rfind.mpr ⟨?_, fun {m} hm => ?_⟩, ?_⟩
+  · exact Part.mem_some_iff.mpr (decide_eq_true ht0).symm
+  · exact Part.mem_some_iff.mpr (decide_eq_false (ht0_min m hm)).symm
+  · simp_all +decide only [ne_eq, implies_true, not_false_eq_true, and_self,
+      snapshotRichElements_eq_richDescriptionElements hc i j k t₀ hmax0, Finset.one_le_card,
+      sup_of_le_right, true_and]
+    convert codedUniformOn_code_eq _ hne using 1
 
 theorem richInput_KPPlain_le (U : Map) (hU : IsOptimalPrefixConditional U) (c_partrec : ℕ) :
     ∃ c : ℕ, ∀ i j k h, h < 2 ^ (i + 1) →
@@ -2636,7 +2638,10 @@ theorem onlineHalfRichChunkSelectorFn_eq (c : Code) (i j k h t : ℕ)
     Part.mem_bind_iff, Nat.mem_rfind, Part.mem_some_iff, true_eq_decide_iff,
     false_eq_decide_iff, not_lt];
   refine ⟨ t, ?_, ?_ ⟩;
-  · exact ⟨ h_lt, fun { m } hm => le_of_not_gt fun h => h_first m hm h ⟩;
+  · refine Nat.mem_rfind.mpr ⟨?_, fun { m } hm => ?_⟩
+    · exact Part.mem_some_iff.mpr (decide_eq_true h_lt).symm
+    · exact Part.mem_some_iff.mpr
+        (decide_eq_false fun hlt => h_first m hm hlt).symm
   · have hcard : max 1
         (emittedHalfRichChunksList c i j k t)[h].toFinset.card =
         (emittedHalfRichChunksList c i j k t)[h].toFinset.card :=

@@ -483,8 +483,7 @@ theorem positionReconstructionSelector_recovers
         (positionReconstructionThreshold z₀ ≤
           (boundedOutputStage c₁
             (positionReconstructionM z₀) t).length))) := by
-    rw [Nat.mem_rfind]
-    refine ⟨by simpa using ht₁Spec, ?_⟩
+    refine Nat.mem_rfind.mpr ⟨by simpa using ht₁Spec, ?_⟩
     intro u hu
     have hnot := Nat.find_min hex₁ hu
     simpa using hnot
@@ -554,8 +553,7 @@ theorem positionReconstructionSelector_recovers
         (positionBlockSeen
           (positionReconstructionBlock c₁ z₀ t₁)
           (boundedOutputStage c₂ (positionReconstructionN z₀) t))) := by
-    rw [Nat.mem_rfind]
-    refine ⟨by simpa using ht₂Spec, ?_⟩
+    refine Nat.mem_rfind.mpr ⟨by simpa using ht₂Spec, ?_⟩
     intro u hu
     have hnot := Nat.find_min hex₂ hu
     simpa using hnot

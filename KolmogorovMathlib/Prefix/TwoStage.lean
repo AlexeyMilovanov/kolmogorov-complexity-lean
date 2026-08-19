@@ -471,9 +471,8 @@ theorem twoStageMap_dom_of_spec {U : Map} {ctx : BitString → Nat → BitString
     omega
   -- The dovetailing search therefore halts, and at its witness the output exists.
   have hrdom : (Nat.rfind (fun m => Part.some (twoStageCheck c ctx (p ++ q) m))).Dom := by
-    rw [Nat.rfind_dom]
-    exact ⟨Nat.pair p.length (max t1 t2), by rw [Part.mem_some_iff, hcheck],
-      fun {m} _ => Part.some_dom _⟩
+    exact Nat.rfind_dom.mpr ⟨Nat.pair p.length (max t1 t2),
+      by rw [Part.mem_some_iff, hcheck], fun {m} _ => Part.some_dom _⟩
   obtain ⟨n', hn'⟩ := Part.dom_iff_mem.mp hrdom
   have hcheck' : twoStageCheck c ctx (p ++ q) n' = true := by
     have h := (Nat.mem_rfind.mp hn').1

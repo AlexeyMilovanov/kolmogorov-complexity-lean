@@ -154,20 +154,17 @@ theorem exists_muchnikSurvivor
     intro hx
     apply hp₁
     dsimp [B₁, marginalBound]
-    rw [Finset.mem_filter]
-    exact ⟨hpU, hx⟩
+    exact Finset.mem_filter.mpr ⟨hpU, hx⟩
   have hyNotLow : ¬plainK V y ≤ ((2 * n - 1 : Nat) : ENat) := by
     intro hy
     apply hp₂
     dsimp [B₂, marginalBound]
-    rw [Finset.mem_filter]
-    exact ⟨hpU, hy⟩
+    exact Finset.mem_filter.mpr ⟨hpU, hy⟩
   have hxyNotLow : ¬pairPlainK V x y ≤ ((3 * n - 1 : Nat) : ENat) := by
     intro hxy
     apply hp₃
     dsimp [B₃, pairBound]
-    rw [Finset.mem_filter]
-    exact ⟨hpU, hxy⟩
+    exact Finset.mem_filter.mpr ⟨hpU, hxy⟩
   have hxComplex : (2 * n : ENat) ≤ plainK V x := by
     apply le_of_not_gt
     intro hx

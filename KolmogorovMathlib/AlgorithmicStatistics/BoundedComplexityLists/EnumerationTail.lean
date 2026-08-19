@@ -497,8 +497,7 @@ theorem enumerationTailLowerSelector_intended_input
         ((boundedOutputStage c m t).length ==
           ((boundedOutputStage c m lowerTime).length +
             enumerationTailCount c m s))) := by
-    rw [Nat.mem_rfind]
-    refine ⟨?_, ?_⟩
+    refine Nat.mem_rfind.mpr ⟨?_, ?_⟩
     · simp [hcompleteLength, hlowerTarget]
     · intro n hn
       have hne :
@@ -781,8 +780,7 @@ theorem enumerationTailUpperSelector_intended_input
       t ∈ Nat.rfind (fun t => Part.some
         (decide
           (blockEnd ≤ (boundedOutputStage c m t).length))) := by
-    rw [Nat.mem_rfind]
-    refine ⟨by simp [htSpec], ?_⟩
+    refine Nat.mem_rfind.mpr ⟨by simp [htSpec], ?_⟩
     intro n hn
     have hnot := Nat.find_min hex hn
     simp [hnot]

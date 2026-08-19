@@ -222,8 +222,7 @@ theorem mem_budgetedChargedHeavyGainDecoder
     budgetedChargedHeavyGainQ_program noiseLen baseBudget m r q hrm,
     Part.mem_bind_iff]
   refine ⟨t₀, ?_, ?_⟩
-  · rw [Nat.mem_rfind]
-    refine ⟨by simpa using ht₀P, ?_⟩
+  · refine Nat.mem_rfind.mpr ⟨by simpa using ht₀P, ?_⟩
     intro s hs
     have hs' : ¬ P s := Nat.find_min hex hs
     simpa using Nat.le_of_not_lt hs'

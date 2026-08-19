@@ -809,10 +809,12 @@ theorem indexSelectorFn_eq_code (c : Code) (i j : ℕ) (x : BitString) (code : B
   unfold indexSelectorFn
   simp only [Part.mem_bind_iff, Nat.mem_rfind, Part.mem_some_iff, hy, hi, hj, hr]
   refine ⟨Nat.find (⟨t0, hr_lt⟩ : ∃ t, r < (appearanceListCodes c i j x t).length),
-    ⟨?_, ?_⟩, ?_⟩
-  · exact (decide_eq_true (Nat.find_spec
+    Nat.mem_rfind.mpr ⟨?_, fun {m} hm => ?_⟩, ?_⟩
+  · exact Part.mem_some_iff.mpr (decide_eq_true (Nat.find_spec
       (⟨t0, hr_lt⟩ : ∃ t, r < (appearanceListCodes c i j x t).length))).symm
-  · intro m hm; contrapose! hm; aesop;
+  · refine Part.mem_some_iff.mpr (decide_eq_false ?_).symm
+    exact Nat.find_min (⟨t0, hr_lt⟩ :
+      ∃ t, r < (appearanceListCodes c i j x t).length) hm
   · have h_drop_eq :
         (appearanceListCodes c i j x
           (Nat.find (⟨t0, hr_lt⟩ : ∃ t, r < (appearanceListCodes c i j x t).length)))[r]! =

@@ -454,8 +454,7 @@ theorem completedDyadicBlockSelector_recovers_standardBlock
       t₀ ∈ Nat.rfind (fun t => Part.some
         (decide (blockEnd ≤
           (boundedOutputStage c m t).length))) := by
-    rw [Nat.mem_rfind]
-    refine ⟨by simpa using Nat.find_spec hex, ?_⟩
+    refine Nat.mem_rfind.mpr ⟨by simpa using Nat.find_spec hex, ?_⟩
     intro t ht
     simpa using Nat.find_min hex ht
   have hprefix :
@@ -923,8 +922,7 @@ theorem standardBlockFromMemberSelector_recovers
   have ht₀ :
       t₀ ∈ Nat.rfind (fun t => Part.some
         (standardBlockReady c x (standardBlockAdvice m j) t)) := by
-    rw [Nat.mem_rfind]
-    refine ⟨by simpa using Nat.find_spec hex, ?_⟩
+    refine Nat.mem_rfind.mpr ⟨by simpa using Nat.find_spec hex, ?_⟩
     intro t ht
     simpa using Nat.find_min hex ht
   let S := boundedOutputStage c m t₀
@@ -1229,8 +1227,7 @@ theorem standardBlockOmegaDecoder_recovers
       t₀ ∈ Nat.rfind (fun t => Part.some
         (SList.all (fun y =>
           (boundedOutputStage c m t).elem y))) := by
-    rw [Nat.mem_rfind]
-    refine ⟨by simpa using ht₀spec, ?_⟩
+    refine Nat.mem_rfind.mpr ⟨by simpa using ht₀spec, ?_⟩
     intro t ht
     simpa using Nat.find_min hex ht
   let count :=
@@ -1987,8 +1984,7 @@ theorem suffixCoordinate_lower_of_model_code
         t₀ ∈ Nat.rfind (fun t => Part.some
           (AList.all (fun y =>
             (boundedOutputStage c m t).elem y))) := by
-      rw [Nat.mem_rfind]
-      refine ⟨by simpa using ht₀spec, ?_⟩
+      refine Nat.mem_rfind.mpr ⟨by simpa using ht₀spec, ?_⟩
       intro t ht
       simpa using Nat.find_min hcover ht
     have hxList : x ∈ AList :=
@@ -2565,8 +2561,7 @@ theorem betterStandardBlockSelector_recovers
       t₀ ∈ Nat.rfind (fun t => Part.some
         (betterStandardModelSeen c ACode
           (betterStandardBlockAdvice m r false) t)) := by
-    rw [Nat.mem_rfind]
-    refine ⟨by simpa using Nat.find_spec hex, ?_⟩
+    refine Nat.mem_rfind.mpr ⟨by simpa using Nat.find_spec hex, ?_⟩
     intro t ht
     simpa using Nat.find_min hex ht
   let S := boundedOutputStage c m t₀
@@ -3404,8 +3399,7 @@ theorem omegaPrefixFromStandardBlockSelector_recovers
       t₀ ∈ Nat.rfind (fun t => Part.some
         (SList.all (fun y =>
           decide (y ∈ boundedOutputStage c m t)))) := by
-    rw [Nat.mem_rfind]
-    refine ⟨by simpa using ht₀spec, ?_⟩
+    refine Nat.mem_rfind.mpr ⟨by simpa using ht₀spec, ?_⟩
     intro t ht
     simpa using Nat.find_min hex ht
   have hcover :

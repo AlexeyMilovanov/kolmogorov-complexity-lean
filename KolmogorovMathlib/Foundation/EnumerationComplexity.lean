@@ -92,8 +92,7 @@ theorem F_eval (E : StagedEnumeration) (t k : ℕ) (hk : k < (E.distinctAt t).le
   let h_exists : ∃ t', k < (E.distinctAt t').length := ⟨t, hk⟩
   let t0 := Nat.find h_exists
   refine ⟨t0, ?_, ?_⟩
-  · rw [Nat.mem_rfind]
-    refine ⟨?_, ?_⟩
+  · refine Nat.mem_rfind.mpr ⟨?_, ?_⟩
     · simpa using Nat.find_spec h_exists
     · intro m hm
       have hnot := Nat.find_min h_exists hm
@@ -170,8 +169,7 @@ theorem condF_eval (enum : BitString → ℕ → List BitString)
   let h_exists : ∃ t', k < (condDistinctAt enum y t').length := ⟨t, hk⟩
   let t0 := Nat.find h_exists
   refine ⟨t0, ?_, ?_⟩
-  · rw [Nat.mem_rfind]
-    refine ⟨?_, ?_⟩
+  · refine Nat.mem_rfind.mpr ⟨?_, ?_⟩
     · simpa using Nat.find_spec h_exists
     · intro m hm
       have hnot := Nat.find_min h_exists hm
@@ -292,8 +290,7 @@ theorem condFFixedLength_eval (enum : BitString → ℕ → List BitString)
   let h_exists : ∃ t', k < (condDistinctAt enum y t').length := ⟨t, hk⟩
   let t0 := Nat.find h_exists
   refine ⟨t0, ?_, ?_⟩
-  · rw [Nat.mem_rfind]
-    refine ⟨?_, ?_⟩
+  · refine Nat.mem_rfind.mpr ⟨?_, ?_⟩
     · simpa using Nat.find_spec h_exists
     · intro m hm
       have hnot := Nat.find_min h_exists hm

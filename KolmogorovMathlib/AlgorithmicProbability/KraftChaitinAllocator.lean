@@ -860,6 +860,7 @@ lemma allocatorState_mass (req : ℕ → Option (BitString × ℕ)) (n : ℕ) (f
         simp_all +decide only [usedMass, reduceCtorEq, not_false_eq_true, Finset.sum_range_succ];
         simp_all +decide only [reqMass, ← add_assoc];
         rw [ add_right_comm, ← ih, ← ‹freeMass free' + 2⁻¹ ^ l = freeMass free₀› ]
+        rfl
 
 /-
 Each partial Kraft sum is bounded by the total.

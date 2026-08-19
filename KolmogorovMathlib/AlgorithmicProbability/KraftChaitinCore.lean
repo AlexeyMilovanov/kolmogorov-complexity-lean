@@ -1453,14 +1453,17 @@ lemma construct_prefix_machine (req : BitString → ℕ → Option (BitString ×
       decide_eq_true_eq, domainAt, implies_true, ne_eq]
     obtain ⟨n, hn₁, _⟩ := hp.1
     obtain ⟨m, hm₁, _⟩ := hq.1
+    simp only [Part.mem_some_iff, Bool.true_eq, Bool.and_eq_true,
+      decide_eq_true_eq] at hn₁ hm₁
+    obtain ⟨hn₁, -⟩ := hn₁
+    obtain ⟨hm₁, -⟩ := hm₁
     by_cases hnm : n = m
     · cases hnm; rw [hn₁] at hm₁; cases hm₁; rfl
     · exact (hprefix ctx n m p q hn₁ hm₁ hnm hpre).elim
   · intro ctx n o l c hreq halloc'
     have hn : n ∈ Nat.rfind
         (fun n ↦ Part.some (decide (alloc ctx n = some c ∧ (req ctx n).isSome = true))) := by
-      rw [Nat.mem_rfind];
-      refine ⟨?_, fun {m} hm ↦ ?_⟩;
+      refine Nat.mem_rfind.mpr ⟨?_, fun {m} hm ↦ ?_⟩;
       · simp only [Part.mem_some_iff, eq_comm (a := true), decide_eq_true_eq];
         exact ⟨halloc', by rw [hreq]; rfl⟩;
       · simp only [Part.mem_some_iff, eq_comm (a := false), decide_eq_false_iff_not,
@@ -1569,7 +1572,11 @@ lemma geomCross_decide_computable (approx : ℕ → BitString → BitString → 
     exact hdec.comp ( Computable.fst );
   rename_i h;
   convert Computable.cond hdec h ( Computable.const false ) using 1;
-  ext; simp [geomCross]
+  ext x
+  unfold geomCross
+  by_cases h1 : 1 ≤ x.1 <;>
+    by_cases h2 : 2 ^ x.2.1 ≤ approx x.2.1 x.2.2.1 x.2.2.2 * 2 ^ (x.1 - 1) <;>
+    simp [h1, h2]
 
 /-- The geometric request stream is computable (uniformly in `ctx`). -/
 lemma geomReq_computable (approx : ℕ → BitString → BitString → ℕ)

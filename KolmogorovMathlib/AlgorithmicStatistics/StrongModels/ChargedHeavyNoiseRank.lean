@@ -174,8 +174,7 @@ theorem mem_chargedHeavyRankDecoder_of_rank
     chargedRankJ_program, chargedRankR_program]
   rw [Part.mem_bind_iff]
   refine ⟨t₀, ?_, ?_⟩
-  · rw [Nat.mem_rfind]
-    refine ⟨by simpa using ht₀P, ?_⟩
+  · refine Nat.mem_rfind.mpr ⟨by simpa using ht₀P, ?_⟩
     intro m hm
     have hm' : ¬ P m := Nat.find_min hex hm
     simpa using Nat.le_of_not_lt hm'

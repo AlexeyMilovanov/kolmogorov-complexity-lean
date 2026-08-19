@@ -86,7 +86,7 @@ identically `0`: no program produces any output, so every summand vanishes. -/
 theorem aprioriMeasure_const_none (x y : BitString) :
     aprioriMeasure (fun _ => Part.none) x y = 0 := by
   classical
-  rw [aprioriMeasure]
+  unfold aprioriMeasure
   have hzero : ∀ p : BitString,
       (if produces (fun _ => Part.none) p y x then progWeight p else 0) = 0 := by
     intro p

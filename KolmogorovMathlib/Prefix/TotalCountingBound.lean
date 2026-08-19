@@ -538,12 +538,11 @@ lemma countingF_le_haltMass (U : Map) (c : Nat.Partrec.Code)
       = ∑ p ∈ (boundedPrograms (decodeBits out)).toFinset.filter (fun p ↦
           (Nat.Partrec.Code.evaln s c (Encodable.encode (p, ([] : BitString)))).isSome),
         (2 : ℝ≥0∞)⁻¹ ^ (decodeBits out) := by
-    simp +decide only [countingApprox, Encodable.encode_prod_val, Encodable.encode_list_nil,
-      Nat.cast_list_sum, List.map_map, Finset.sum_const, nsmul_eq_mul]
-    rw [ Finset.card_filter ];
+    simp +decide only [countingApprox, Nat.cast_list_sum, List.map_map, Finset.sum_const,
+      nsmul_eq_mul]
+    simp only [Finset.card_filter]
     rw [List.sum_toFinset]
     · simp only [Nat.cast_list_sum, List.map_map]
-      rfl
     · exact boundedPrograms_nodup _
   refine h_card ▸ le_trans ?_
     ( ENNReal.sum_le_tsum

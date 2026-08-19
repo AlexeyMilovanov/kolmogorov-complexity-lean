@@ -80,6 +80,7 @@ lemma mem_aprioriAcc {c : Nat.Partrec.Code} {s : ℕ} {x y p : BitString} :
         Nat.Partrec.Code.evaln s c (Encodable.encode (p, y)) = some (Encodable.encode x) := by
   unfold aprioriAcc;
   simp +decide [ aprioriAcceptedList, mem_boundedPrograms_iff ]
+  exact fun _ ↦ ⟨of_decide_eq_true, fun h ↦ decide_eq_true h⟩
 
 /-
 Producing `x` from `p` in context `y` is equivalent to some fuel making the staged
@@ -233,7 +234,15 @@ lemma aprioriApprox_computable (c : Nat.Partrec.Code) :
             2 ^ (q.1 - p.length)
           else 0)) from ?_) using 1
     · ext ⟨s, ⟨x, y⟩⟩; simp [aprioriApprox, aprioriAcceptedList];
-      induction ( boundedPrograms s ) <;> aesop;
+      induction ( boundedPrograms s ) with
+      | nil => simp
+      | cons head tail tail_ih =>
+        simp only [List.filter_cons, List.map_cons]
+        by_cases h : Nat.Partrec.Code.evaln s c
+            (Nat.pair (Encodable.encode head) (Encodable.encode y)) =
+            some (Encodable.encode x)
+        · simp [h, tail_ih]
+        · simp [h, tail_ih]
     · -- The sum of a list is primitive recursive.
       have h_sum : Primrec (fun l : List ℕ => l.foldr (· + ·) 0) :=
         Primrec.list_foldr Primrec.id (Primrec.const 0)

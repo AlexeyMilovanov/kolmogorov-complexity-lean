@@ -661,8 +661,7 @@ theorem completedDyadicBlockSelector_recovers
       t₀ ∈ Nat.rfind (fun t => Part.some
         (decide (blockEnd ≤
           (boundedOutputStage c (i + j) t).length))) := by
-    rw [Nat.mem_rfind]
-    refine ⟨by simpa using Nat.find_spec hex, ?_⟩
+    refine Nat.mem_rfind.mpr ⟨by simpa using Nat.find_spec hex, ?_⟩
     intro t ht
     simpa using Nat.find_min hex ht
   have hprefix :
@@ -988,8 +987,7 @@ theorem tail_characterization_forward
       t₀ ∈ Nat.rfind (fun t => Part.some
         (S_list.all
           (fun y => (boundedOutputStage c m t).elem y))) := by
-    rw [Nat.mem_rfind]
-    refine ⟨by simpa using ht₀spec, ?_⟩
+    refine Nat.mem_rfind.mpr ⟨by simpa using ht₀spec, ?_⟩
     intro t ht
     have hnot := Nat.find_min hcover ht
     simpa using hnot

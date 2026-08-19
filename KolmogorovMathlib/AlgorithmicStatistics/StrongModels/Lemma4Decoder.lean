@@ -382,8 +382,7 @@ theorem lemma4Decoder_eval
   have hfind : t ∈ Nat.rfind (fun t' => Part.some
       ((canonicalFinsetList D).all
         (fun z => decide (z ∈ boundedOutputStage q m t')))) := by
-    rw [Nat.mem_rfind]
-    refine ⟨by simp [hall], ?_⟩
+    refine Nat.mem_rfind.mpr ⟨by simp [hall], ?_⟩
     intro t' ht'
     simp [hnone t' ht']
   unfold lemma4Decoder

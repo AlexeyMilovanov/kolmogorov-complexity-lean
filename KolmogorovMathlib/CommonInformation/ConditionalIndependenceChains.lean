@@ -66,6 +66,7 @@ theorem sum_boolFinFour (F : (Fin 4 → Bool) → ℝ) :
   rw [← Equiv.sum_comp boolFinFourEquiv.symm F]
   simp only [Fintype.sum_prod_type, Fintype.sum_bool, boolFinFourEquiv,
     Equiv.coe_fn_symm_mk]
+  rfl
 
 /-! ### Chain distributions -/
 

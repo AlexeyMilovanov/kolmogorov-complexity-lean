@@ -308,8 +308,7 @@ theorem omegaDiagonalSelector_intended_input
   have ht0Search :
       t0 ∈ Nat.rfind (fun t => Part.some
         ((boundedOutputStage c M t).length == omegaCount c M)) := by
-    rw [Nat.mem_rfind]
-    refine ⟨?_, ?_⟩
+    refine Nat.mem_rfind.mpr ⟨?_, ?_⟩
     · simp [ht0Length]
     · intro t ht
       have hne : (boundedOutputStage c M t).length ≠ omegaCount c M :=

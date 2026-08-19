@@ -136,8 +136,7 @@ theorem muchnikRegionSelector_spec
           (muchnikSelectorN input) t ==
             muchnikSelectorTotal input)) := by
     simp only [hInputN, hInputTotal]
-    rw [Nat.mem_rfind]
-    refine ⟨?_, ?_⟩
+    refine Nat.mem_rfind.mpr ⟨?_, ?_⟩
     · simp [ht₀Count]
     · intro m hm
       have hne :

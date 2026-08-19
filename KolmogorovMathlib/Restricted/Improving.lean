@@ -805,8 +805,7 @@ theorem familyMarkedCodeSelectorFn_eq_of_rank (c : Code) (𝒜 : PreDescriptionF
     selK_familyMarkedInput, selR_familyMarkedInput]
   rw [Part.eq_some_iff, Part.mem_bind_iff]
   refine ⟨t, ?_, ?_⟩
-  · rw [Nat.mem_rfind]
-    constructor
+  · refine Nat.mem_rfind.mpr ⟨?_, ?_⟩
     · simp [h_lt]
     · intro m hm
       simp [h_first m hm]

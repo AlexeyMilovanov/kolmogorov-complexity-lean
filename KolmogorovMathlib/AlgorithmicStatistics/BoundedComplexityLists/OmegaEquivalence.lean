@@ -654,8 +654,7 @@ theorem omegaPrefixForwardSelector_intended_input
           (fixedWidthNatCode ((boundedOutputStage c k t').length + delta) (k + 1)))
   rw [Part.mem_bind_iff]
   refine ⟨t, ?_, ?_⟩
-  · rw [Nat.mem_rfind]
-    refine ⟨by simpa using Nat.find_spec hex, ?_⟩
+  · refine Nat.mem_rfind.mpr ⟨by simpa using Nat.find_spec hex, ?_⟩
     intro n hn
     have hnot := Nat.find_min hex hn
     simpa using hnot

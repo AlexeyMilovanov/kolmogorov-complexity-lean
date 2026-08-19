@@ -1121,7 +1121,7 @@ theorem IsStrongSetModel.exists_partition
           exact_mod_cast this
   · -- CT(A | A'): decompressor 1.
     have hheadmem : (canonicalPointListOfCode codeS').headI ∈ S' := by
-      rw [hcodeS'_def, canonicalPointListOfCode_codedUniformOn]
+      rw [hcodeS'_def]; erw [canonicalPointListOfCode_codedUniformOn]
       exact headI_mem_canonicalFinsetList hS'ne
     have hfhead : f ((canonicalPointListOfCode codeS').headI) = codeS := by
       rw [hS'_def, List.mem_toFinset] at hheadmem

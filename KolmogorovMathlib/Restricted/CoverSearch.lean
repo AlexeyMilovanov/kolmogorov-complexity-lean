@@ -271,6 +271,7 @@ theorem coverSelectorFun_getD_mem (𝒜 : DescriptionFamily) (Acode : BitString)
   unfold coverSelectorFun;
   simp_all +decide [ decodeFirst_pairCode, decodeSecond_pairCode, bitsToNat_bits,
                      bitsToNat_chunkAddress, coverAddress ];
-  grind +revert
+  exact ⟨p, Nat.mem_rfind.mpr ⟨Part.mem_some_iff.mpr hp.symm,
+    fun {m} hm => Part.mem_some_iff.mpr (hleast m hm).symm⟩, rfl⟩
 
 end Kolmogorov

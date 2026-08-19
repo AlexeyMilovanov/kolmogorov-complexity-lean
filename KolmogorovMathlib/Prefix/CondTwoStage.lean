@@ -384,9 +384,8 @@ theorem condTwoStageMap_dom_of_spec {U : Map} {ctx : BitString → BitString →
       List.length_append]
     omega
   have hrdom : (Nat.rfind (fun m => Part.some (condTwoStageCheck c ctx (p ++ q) r m))).Dom := by
-    rw [Nat.rfind_dom]
-    exact ⟨Nat.pair p.length (max t1 t2), by rw [Part.mem_some_iff, hcheck],
-      fun {m} _ => Part.some_dom _⟩
+    exact Nat.rfind_dom.mpr ⟨Nat.pair p.length (max t1 t2),
+      by rw [Part.mem_some_iff, hcheck], fun {m} _ => Part.some_dom _⟩
   obtain ⟨n', hn'⟩ := Part.dom_iff_mem.mp hrdom
   have hcheck' : condTwoStageCheck c ctx (p ++ q) r n' = true := by
     have h := (Nat.mem_rfind.mp hn').1

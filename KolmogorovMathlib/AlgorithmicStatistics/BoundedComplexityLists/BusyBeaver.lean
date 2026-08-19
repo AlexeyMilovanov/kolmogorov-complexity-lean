@@ -173,8 +173,7 @@ theorem completionFromOmega_omegaFixedCode (c : Code) (m : ℕ) :
     exact boundedOutputCompletionTime_spec c m
   have hTsearch : boundedOutputCompletionTime c m ∈ Nat.rfind (fun t => Part.some
       ((boundedOutputStage c m t).length == omegaCount c m)) := by
-    rw [Nat.mem_rfind]
-    refine ⟨by simp [hTlen], ?_⟩
+    refine Nat.mem_rfind.mpr ⟨by simp [hTlen], ?_⟩
     intro n hn
     have hne : (boundedOutputStage c m n).length ≠ omegaCount c m := by
       intro heq

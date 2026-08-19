@@ -225,8 +225,9 @@ def fstProjectionApprox (c : Nat.Partrec.Code) (s : ℕ) (z : BitString) (ctx : 
 theorem fstProjectionApprox_mono (c : Nat.Partrec.Code) (s : ℕ) (z : BitString) (ctx : BitString) :
     dyadicValue (fstProjectionApprox c s z ctx) s ≤
       dyadicValue (fstProjectionApprox c (s + 1) z ctx) (s + 1) := by
-  simp only [fstProjectionApprox, fstProjectionInputs, fstProjectionMassPair,
-    fstProjectionAprioriNumerator, fstProjectionAprioriArgs, fstProjectionScale]
+  unfold fstProjectionApprox fstProjectionInputs fstProjectionMassPair
+    fstProjectionAprioriNumerator fstProjectionAprioriArgs fstProjectionScale
+  dsimp only
   split_ifs with hzero
   · simp [dyadicValue]
   · let a := decodeFirst z
@@ -401,8 +402,9 @@ theorem fstProjectionApprox_iSup
     (z : BitString) (ctx : BitString) :
     (⨆ s, dyadicValue (fstProjectionApprox c s z ctx) s) =
       fstProjectionTestSemimeasure U z ctx := by
-  simp only [fstProjectionApprox, fstProjectionInputs, fstProjectionMassPair,
-    fstProjectionAprioriNumerator, fstProjectionAprioriArgs, fstProjectionScale]
+  unfold fstProjectionApprox fstProjectionInputs fstProjectionMassPair
+    fstProjectionAprioriNumerator fstProjectionAprioriArgs fstProjectionScale
+  dsimp only
   split_ifs with hzero
   · rw [show (⨆ s, dyadicValue 0 s) = 0 by simp [dyadicValue]]
     let P : CodedFiniteDistribution :=

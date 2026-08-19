@@ -357,7 +357,8 @@ lemma codeShearCoverList_code (n : Nat)
       exact concreteLineCode_injective n he ▸ hl, fun h => ⟨ed.2, h, rfl⟩⟩
   rw [Function.comp_apply]
   change (decide (concretePointCode n ed.1 ∈ _) && decide (concreteLineCode n ed.2 ∈ _)) = _
-  rw [← Bool.decide_and, decide_eq_decide, h1, h2, mem_interedges_iff_of_decidable]
+  refine Eq.trans (Bool.decide_and _ _).symm ?_
+  rw [decide_eq_decide, h1, h2, mem_interedges_iff_of_decidable]
   exact ⟨fun h => ⟨h.1, h.2, hinc⟩, fun h => ⟨h.1, h.2.1⟩⟩
 
 

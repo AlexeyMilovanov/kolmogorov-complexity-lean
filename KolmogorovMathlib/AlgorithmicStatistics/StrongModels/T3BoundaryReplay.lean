@@ -471,8 +471,8 @@ theorem t3BoundaryVersionDecoder_eval
   -- The rfind lands exactly on `m0`.
   have hfind : Nat.rfind (fun m => Part.some (decide
       (version ≤ (t3BoundaryDRun q n k epsilon delta m).rebuilds))) = Part.some m0 := by
-    rw [Part.eq_some_iff, Nat.mem_rfind]
-    exact ⟨by simpa using hm0_spec,
+    rw [Part.eq_some_iff]
+    exact Nat.mem_rfind.mpr ⟨by simpa using hm0_spec,
       fun {m} hm => by simpa using Nat.find_min hex hm⟩
   unfold t3BoundaryVersionDecoder
   simp only [hnparse, hkparse, heparse, hdparse, hversionParse]

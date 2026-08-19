@@ -294,8 +294,7 @@ lemma incidentCommonWitnessRankSelector_recovers
     ⟨stage, hrank⟩
   let t₀ := Nat.find hex
   refine ⟨t₀, ?_, ?_⟩
-  · rw [Nat.mem_rfind]
-    refine ⟨?_, ?_⟩
+  · refine Nat.mem_rfind.mpr ⟨?_, ?_⟩
     · simpa using Nat.find_spec hex
     · intro m hm
       have hnot := Nat.find_min hex hm

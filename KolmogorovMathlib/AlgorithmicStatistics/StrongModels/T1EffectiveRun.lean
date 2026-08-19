@@ -2019,7 +2019,7 @@ theorem t1RunStep_cPrime_eq
     t1RunStepParamsN, t1RunStepParamsCSparse,
     t1RunStepParamsK, t1RunStepParamsEpsilon,
     t1RunStepParamsQuota]
-  rfl
+  by_cases hw : w ∈ s.seenCDouble <;> simp [hw] <;> congr
 
 theorem t1RunStep_cPrime_seen_markingDataEq
     (cSparse n k epsilon quota : Nat)
@@ -2277,13 +2277,13 @@ theorem t1RunStep_cPrime_history
         t1RunAppendSeenCPrime, t1RunStepCPrimePoints,
         t1RunValidPoints, t1RunStepParamsState,
         t1RunStepParamsN]
-      rfl
+      exact ⟨by congr, by congr⟩
     · simp_all [t1RunStepCPrimeCharged, t1RunChargeC, t1RunHitCount,
         t1RunAppendC, t1RunStepCPrimeSeen,
         t1RunAppendSeenCPrime, t1RunStepCPrimePoints,
         t1RunValidPoints, t1RunStepParamsState,
         t1RunStepParamsN]
-      rfl
+      exact ⟨by congr, by congr⟩
   · simp [t1RunStep, t1RunStepCPrimeFn,
       t1RunStepCPrimeActive, hactive, t1RunStepCPrimeSeen,
       t1RunAppendSeenCPrime, t1RunStepParamsState]
@@ -2347,7 +2347,8 @@ theorem t1RunStep_dString_history
       t1RunRebuildTuple, t1RunRebuild, t1RunReplaceCurrent,
       t1RunStepDCharged, t1RunChargeD, t1RunAppendD,
       t1RunStepDValidPoints, t1RunStepDHitCount,
-      t1RunStepParamsState, t1RunStepParamsN]
+      t1RunStepParamsState, t1RunStepParamsN] <;>
+    try exact ⟨rfl, rfl⟩
 
 /-- A `D` event changes only the `D` marks, `D` charge, and possibly the
 current model/version counters. -/

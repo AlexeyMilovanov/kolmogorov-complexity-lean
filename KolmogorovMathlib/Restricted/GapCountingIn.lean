@@ -287,70 +287,67 @@ def familyIndexSelectorFn (c : Code) (𝒜 : PreDescriptionFamily) :
 
 theorem partrec_familyIndexSelectorFn (c : Code) (𝒜 : PreDescriptionFamily) :
     Partrec (fun p : BitString × BitString => familyIndexSelectorFn c 𝒜 p.2 p.1) := by
-  convert Partrec.bind ( Partrec.rfind _ ) _ using 1;
-  rotate_left;
-  · exact fun p t =>
-      Part.some ( ( familyAppearanceListCodes c ( selNat p.1 ) 𝒜 ( selAlpha p.1 )
-        ( decodeFirst p.2 ) t ).drop ( selH p.1 ) |> List.headI );
-  · exact fun p t =>
-      Part.some ( decide ( selH p.1 < ( familyAppearanceListCodes c ( selNat p.1 ) 𝒜
-        ( selAlpha p.1 ) ( decodeFirst p.2 ) t ).length ) );
-  · refine Computable.of_eq (f :=
-      fun n => decide ( selH n.1.1 < ( familyAppearanceListCodes c ( selNat n.1.1 ) 𝒜
-        ( selAlpha n.1.1 ) ( decodeFirst n.1.2 ) n.2 ).length )) ?_ ?_;
-    · -- The length of the list is computable.
+  have hpredC : Computable (fun n : (BitString × BitString) × ℕ =>
+      decide ( selH n.1.1 < ( familyAppearanceListCodes c ( selNat n.1.1 ) 𝒜
+        ( selAlpha n.1.1 ) ( decodeFirst n.1.2 ) n.2 ).length )) := by
+    have h_length_computable : Computable (fun (n : ((BitString × BitString) × ℕ)) =>
+        (familyAppearanceListCodes c (selNat n.1.1) 𝒜 (selAlpha n.1.1)
+          (decodeFirst n.1.2) n.2).length) := by
       have h_length_computable : Computable (fun (n : ((BitString × BitString) × ℕ)) =>
-          (familyAppearanceListCodes c (selNat n.1.1) 𝒜 (selAlpha n.1.1)
-            (decodeFirst n.1.2) n.2).length) := by
-        have h_length_computable : Computable (fun (n : ((BitString × BitString) × ℕ)) =>
-            familyAppearanceListCodes c (selNat n.1.1) 𝒜 (selAlpha n.1.1)
-              (decodeFirst n.1.2) n.2) := by
-          have := @familyAppearanceListCodes_computable c 𝒜;
-          convert this.comp ( Computable.pair ( Computable.pair (
-              selNat_primrec.to_comp.comp ( Computable.fst.comp ( Computable.fst ) ) )
-              ( selAlpha_primrec.to_comp.comp ( Computable.fst.comp ( Computable.fst ) ) ) )
-              ( decodeFirst_primrec.to_comp.comp ( Computable.snd.comp ( Computable.fst ) ) )
-            |> Computable.pair <| Computable.snd ) using 1;
-        exact Computable.list_length.comp h_length_computable;
-      have h_selH_computable : Computable (fun (n : BitString × BitString) => selH n.1) := by
-        exact Computable.comp ( selH_primrec.to_comp ) ( Computable.fst );
-      have h_decide_computable : Computable (fun (n : ℕ × ℕ) => decide (n.1 < n.2)) :=
-        (PrimrecPred.decide (Primrec.nat_lt.comp Primrec.fst Primrec.snd)).to_comp
-      convert h_decide_computable.comp ( Computable.pair ( h_selH_computable.comp (
-          Computable.fst ) ) h_length_computable ) using 1;
-    · exact fun _ => rfl;
-  · refine Computable.of_eq (f :=
-      fun p => List.headI ( List.drop ( selH p.1.1 ) ( familyAppearanceListCodes c
-        ( selNat p.1.1 ) 𝒜 ( selAlpha p.1.1 ) ( decodeFirst p.1.2 ) p.2 ) )) ?_ ?_;
-    · -- Dropping the prefix and taking the head are computable.
-      have h_drop_head : Computable (fun p : List BitString × ℕ =>
-          List.headI (List.drop p.2 p.1)) := by
-        have h_drop : Primrec (fun p : List BitString × ℕ => List.drop p.2 p.1) :=
-          Primrec.list_drop.comp Primrec.snd Primrec.fst
-        have h_headI : Primrec (fun l : List BitString => l.headI) := by
-          convert Primrec.list_headI using 1;
-        exact Computable.comp ( h_headI.to_comp ) ( h_drop.to_comp );
-      convert h_drop_head.comp ( Computable.pair _ _ ) using 1;
-      · convert familyAppearanceListCodes_computable c 𝒜 |> Computable.comp
-          <| Computable.pair _ _ using 1;
-        rotate_left;
-        · exact fun p => ( ( selNat p.1.1, selAlpha p.1.1 ), decodeFirst p.1.2 );
-        · exact fun p => p.2;
-        · exact Computable.pair ( Computable.pair ( selNat_primrec.to_comp.comp (
-            Computable.fst.comp ( Computable.fst ) ) ) ( selAlpha_primrec.to_comp.comp (
-              Computable.fst.comp ( Computable.fst ) ) ) ) ( decodeFirst_primrec.to_comp.comp (
-                Computable.snd.comp ( Computable.fst ) ) );
-        · exact Computable.snd;
-        · grind +revert;
-      · exact Computable.comp ( selH_primrec.to_comp )
-          ( Computable.fst.comp ( Computable.fst ) );
-    · exact fun _ => rfl;
-  · funext p;
-    unfold familyIndexSelectorFn;
-    congr! 2;
-    cases h : List.drop ( selH p.1 )
+          familyAppearanceListCodes c (selNat n.1.1) 𝒜 (selAlpha n.1.1)
+            (decodeFirst n.1.2) n.2) := by
+        have := @familyAppearanceListCodes_computable c 𝒜;
+        convert this.comp ( Computable.pair ( Computable.pair (
+            selNat_primrec.to_comp.comp ( Computable.fst.comp ( Computable.fst ) ) )
+            ( selAlpha_primrec.to_comp.comp ( Computable.fst.comp ( Computable.fst ) ) ) )
+            ( decodeFirst_primrec.to_comp.comp ( Computable.snd.comp ( Computable.fst ) ) )
+          |> Computable.pair <| Computable.snd ) using 1;
+      exact Computable.list_length.comp h_length_computable;
+    have h_selH_computable : Computable (fun (n : BitString × BitString) => selH n.1) := by
+      exact Computable.comp ( selH_primrec.to_comp ) ( Computable.fst );
+    have h_decide_computable : Computable (fun (n : ℕ × ℕ) => decide (n.1 < n.2)) :=
+      (PrimrecPred.decide (Primrec.nat_lt.comp Primrec.fst Primrec.snd)).to_comp
+    convert h_decide_computable.comp ( Computable.pair ( h_selH_computable.comp (
+        Computable.fst ) ) h_length_computable ) using 1;
+  have houtC : Computable (fun p : (BitString × BitString) × ℕ =>
+      List.headI ( List.drop ( selH p.1.1 ) ( familyAppearanceListCodes c
+        ( selNat p.1.1 ) 𝒜 ( selAlpha p.1.1 ) ( decodeFirst p.1.2 ) p.2 ) )) := by
+    have h_drop_head : Computable (fun p : List BitString × ℕ =>
+        List.headI (List.drop p.2 p.1)) := by
+      have h_drop : Primrec (fun p : List BitString × ℕ => List.drop p.2 p.1) :=
+        Primrec.list_drop.comp Primrec.snd Primrec.fst
+      have h_headI : Primrec (fun l : List BitString => l.headI) := by
+        convert Primrec.list_headI using 1;
+      exact Computable.comp ( h_headI.to_comp ) ( h_drop.to_comp );
+    convert h_drop_head.comp ( Computable.pair _ _ ) using 1;
+    · convert familyAppearanceListCodes_computable c 𝒜 |> Computable.comp
+        <| Computable.pair _ _ using 1;
+      rotate_left;
+      · exact fun (p : (BitString × BitString) × ℕ) =>
+          ( ( selNat p.1.1, selAlpha p.1.1 ), decodeFirst p.1.2 );
+      · exact fun (p : (BitString × BitString) × ℕ) => p.2;
+      · exact Computable.pair ( Computable.pair ( selNat_primrec.to_comp.comp (
+          Computable.fst.comp ( Computable.fst ) ) ) ( selAlpha_primrec.to_comp.comp (
+            Computable.fst.comp ( Computable.fst ) ) ) ) ( decodeFirst_primrec.to_comp.comp (
+              Computable.snd.comp ( Computable.fst ) ) );
+      · exact Computable.snd;
+      · grind +revert;
+    · exact Computable.comp ( selH_primrec.to_comp )
+        ( Computable.fst.comp ( Computable.fst ) );
+  have hbind : Partrec (fun p : BitString × BitString =>
+      (Nat.rfind (fun t => Part.some ( decide ( selH p.1 <
         ( familyAppearanceListCodes c ( selNat p.1 ) 𝒜 ( selAlpha p.1 )
-          ( decodeFirst p.2 ) ‹_› ) <;> aesop
+          ( decodeFirst p.2 ) t ).length ) ))).bind (fun t =>
+        Part.some ( ( familyAppearanceListCodes c ( selNat p.1 ) 𝒜 ( selAlpha p.1 )
+          ( decodeFirst p.2 ) t ).drop ( selH p.1 ) |> List.headI ))) :=
+    Partrec.bind (Partrec.rfind (Computable₂.partrec₂ hpredC))
+      (Computable₂.partrec₂ houtC)
+  refine hbind.of_eq fun p => ?_
+  unfold familyIndexSelectorFn;
+  congr! 2;
+  cases h : List.drop ( selH p.1 )
+      ( familyAppearanceListCodes c ( selNat p.1 ) 𝒜 ( selAlpha p.1 )
+        ( decodeFirst p.2 ) ‹_› ) <;> aesop
 
 theorem familyIndexSelectorFn_eq_code (c : Code) (i : ℕ) (𝒜 : PreDescriptionFamily) (j : ℕ)
     (x : BitString) (code : BitString) (t0 : ℕ)
@@ -368,9 +365,11 @@ theorem familyIndexSelectorFn_eq_code (c : Code) (i : ℕ) (𝒜 : PreDescriptio
     Part.mem_some_iff, true_eq_decide_iff, false_eq_decide_iff, not_lt];
   refine ⟨ Nat.find ( ⟨ t0, hr_lt ⟩ : ∃ t,
       r < ( familyAppearanceListCodes c i 𝒜 j x t ).length ), ?_, ?_ ⟩;
-  · exact ⟨ Nat.find_spec ( ⟨ t0, hr_lt ⟩ : ∃ t,
-      r < ( familyAppearanceListCodes c i 𝒜 j x t ).length ), fun { m } hm =>
-        not_lt.1 fun contra => hm.not_ge ( Nat.find_min' _ contra ) ⟩;
+  · refine Nat.mem_rfind.mpr ⟨?_, fun { m } hm => ?_⟩
+    · exact Part.mem_some_iff.mpr (decide_eq_true (Nat.find_spec ( ⟨ t0, hr_lt ⟩ :
+        ∃ t, r < ( familyAppearanceListCodes c i 𝒜 j x t ).length ))).symm
+    · exact Part.mem_some_iff.mpr (decide_eq_false fun contra =>
+        hm.not_ge ( Nat.find_min' _ contra )).symm
   · have h_prefix : familyAppearanceListCodes c i 𝒜 j x (Nat.find (⟨t0, hr_lt⟩ : ∃ t,
       r < (familyAppearanceListCodes c i 𝒜 j x t).length)) <+:
         familyAppearanceListCodes c i 𝒜 j x t0 := by

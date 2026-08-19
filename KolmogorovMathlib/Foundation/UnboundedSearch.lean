@@ -47,8 +47,8 @@ lemma Computable.natFind {α : Type*} [Primcodable α] {P : α → ℕ → Prop}
   have hr := Partrec.rfind hp2
   refine hr.of_eq (fun a => ?_)
   change (Nat.rfind fun n => Part.some (decide (P a n))) = Part.some (Nat.find (h a))
-  rw [Part.eq_some_iff, Nat.mem_rfind]
-  refine ⟨?_, ?_⟩
+  rw [Part.eq_some_iff]
+  refine Nat.mem_rfind.mpr ⟨?_, ?_⟩
   · simp only [Part.mem_some_iff]
     exact (decide_eq_true (Nat.find_spec (h a))).symm
   · intro m hm

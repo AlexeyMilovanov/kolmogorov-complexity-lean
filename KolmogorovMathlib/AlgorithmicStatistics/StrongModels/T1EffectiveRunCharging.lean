@@ -667,7 +667,7 @@ theorem t1RunFromEvents_external_eq
   | nil => simp [t1RunFromEvents]
   | append_singleton events event ih =>
       rw [t1RunFromEvents_append, t1RunStep_external_eq, ih]
-      cases event <;> simp [t1RunExternalEvent] <;> omega
+      cases event <;> simp [t1RunExternalEvent, List.filter_cons, List.filter_nil] <;> omega
 
 theorem t1RunFromEvents_totalD_le
     (cSparse n k epsilon quota : Nat)

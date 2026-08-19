@@ -741,7 +741,12 @@ theorem clogSearch_eq (m : Nat) : clogSearch m = Nat.clog 2 m := by
     (p := fun r => clogEqBool m r)
     (xs := List.range (m + 1)) (w := hfind)
   have hp : clogEqBool m (clogSearch m) = true := by
-    simpa [clogSearch] using hget
+    have h1 : (List.range (m + 1))[List.findIdx (fun r => clogEqBool m r)
+        (List.range (m + 1))]'hfind = List.findIdx (fun r => clogEqBool m r)
+        (List.range (m + 1)) := List.getElem_range _
+    unfold clogSearch
+    rw [← h1]
+    exact hget
   exact ((clogEqBool_iff m (clogSearch m)).1 hp).symm
 
 /-- Ceiling log-cardinality of the intersection decoded from two canonical

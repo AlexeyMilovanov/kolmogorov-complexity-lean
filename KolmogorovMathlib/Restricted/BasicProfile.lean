@@ -219,8 +219,10 @@ theorem exists_valid_coverAddress (𝒜 : DescriptionFamily) {A : Finset BitStri
           Nat.mod_lt A.card ( pow_pos ( by decide : 0 < 2 ) k ) ],
               by cases max_cases 1 ( A.card / 2 ^ k ) <;> linarith ⟩
     generalize_proofs at *; (
-    rw [ pow_succ' ] ; nlinarith [ Nat.zero_le ( 𝒜.overhead n ),
-        Nat.zero_le ( A.card / 2 ^ k ), Nat.zero_le ( max 1 ( A.card / 2 ^ k ) ) ] ;);
+    refine decide_eq_true ?_
+    rw [ pow_succ ]
+    nlinarith [ Nat.zero_le ( 𝒜.overhead n ), Nat.zero_le ( A.card / 2 ^ k ),
+        Nat.zero_le ( max 1 ( A.card / 2 ^ k ) ) ] ;);
   · intro x B hB hx; subst hx; simp +decide only [decodeCoverCodeList_code] ;
     rw [ List.dedup_eq_self.mpr, List.dedup_eq_self.mpr ] <;> norm_num [ h𝒞.1 B hB ];
     · exact Finset.sort_nodup _ _;

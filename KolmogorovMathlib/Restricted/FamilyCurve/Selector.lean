@@ -633,8 +633,9 @@ lemma exists_restrictedCoverValidBool_witness (𝒜 : DescriptionFamily)
   refine ⟨⟨?_, ?_⟩, ?_⟩
   all_goals generalize_proofs at *
   · convert hcover_bound using 1
-    rw [← length_canonicalFinsetList A, List.dedup_eq_self.mpr]
-    exact canonicalFinsetList_nodup A
+    rw [← length_canonicalFinsetList A,
+      List.dedup_eq_self.mpr (canonicalFinsetList_nodup A)]
+    simp
   · intro B hB
     specialize hcover_mem B hB
     simp_all only [canonicalFinsetList]

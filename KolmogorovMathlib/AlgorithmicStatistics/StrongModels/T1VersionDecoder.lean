@@ -36,8 +36,7 @@ theorem t1VersionDecoder_search_terminates_of_seen
       Part.some (decide (version <
         (t1RunAt c cDesc cSparse n k epsilon
           (2 ^ (k - epsilon)) m).versions.length))).Dom := by
-  rw [Nat.rfind_dom]
-  exact ⟨t, by simpa using hv, fun {_} _ => Part.some_dom _⟩
+  exact Nat.rfind_dom.mpr ⟨t, by simpa using hv, fun {_} _ => Part.some_dom _⟩
 
 /-- The historical-version list is computable uniformly in all run
 parameters. -/
@@ -274,8 +273,8 @@ theorem t1VersionDecoder_eval
       Part.some
         (decide (version < (run m).versions.length))) =
       Part.some t0 := by
-    rw [Part.eq_some_iff, Nat.mem_rfind]
-    exact ⟨by simpa using ht0, fun {m} hm => by
+    rw [Part.eq_some_iff]
+    exact Nat.mem_rfind.mpr ⟨by simpa using ht0, fun {m} hm => by
       simpa using Nat.find_min hex hm⟩
   have hget :
       (run t).versions.getD version [] =

@@ -1020,8 +1020,8 @@ lemma anchoredVersionDecoderAgainst_terminal
         (𝒢.overhead (n + logSlack 8 n)) s m).map
           (fun p => decide (v ≤ p.1))) =
       Part.some mstar := by
-    rw [Part.eq_some_iff, Nat.mem_rfind]
-    constructor
+    rw [Part.eq_some_iff]
+    refine Nat.mem_rfind.mpr ⟨?_, ?_⟩
     · rw [htrace mstar hmstarM, Part.map_some]
       simp [hcntstar]
     · intro q hq

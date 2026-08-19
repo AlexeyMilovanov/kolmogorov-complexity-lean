@@ -768,8 +768,8 @@ theorem t3VersionDecoder_eval
       Part.some
         (decide (version < (run m).versions.length))) =
       Part.some t0 := by
-    rw [Part.eq_some_iff, Nat.mem_rfind]
-    exact ⟨by simpa using ht0, fun {m} hm => by
+    rw [Part.eq_some_iff]
+    exact Nat.mem_rfind.mpr ⟨by simpa using ht0, fun {m} hm => by
       simpa using Nat.find_min hex hm⟩
   have hget :
       (run t).versions.getD version [] =

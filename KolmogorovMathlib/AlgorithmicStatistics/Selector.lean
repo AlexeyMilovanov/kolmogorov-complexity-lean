@@ -632,7 +632,18 @@ theorem exists_partrec_uncovered_selector (U : Map) (hU : IsOptimalPrefixConditi
     have hylen : y.length = n := by
       exact mem_allStrings n y |>.1 ( List.mem_of_find?_eq_some hy )
     have hxy : y ∈ selectorFn c s := by
-      unfold selectorFn; aesop;
+      unfold selectorFn
+      refine Part.mem_bind_iff.mpr ⟨t₀, ?_, ?_⟩
+      · refine Nat.mem_rfind.mpr ⟨?_, ?_⟩
+        · rw [Part.mem_some_iff]
+          exact (decide_eq_true (by simp [s, ht0])).symm
+        · intro m hm
+          rw [Part.mem_some_iff]
+          refine (decide_eq_false ?_).symm
+          simp only [s, selAlpha_selectorInput, selH_selectorInput]
+          exact ht0_min m hm
+      · rw [Part.mem_ofOption]
+        simpa [s, snap, pred] using hy
     use h, h_lt, y;
     refine ⟨ hxy, hylen, ?_ ⟩;
     intro P hP hcomp k hk hyk

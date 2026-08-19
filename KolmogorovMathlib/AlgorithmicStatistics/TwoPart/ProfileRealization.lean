@@ -2854,7 +2854,10 @@ theorem temporalWindow_nonempty_bool_computable (c : Nat.Partrec.Code) :
           rintro (_ | _) <;> simp +decide
         exact h_length_computable.comp ( ‹Computable fun l : List BitString =>
             l.length›.comp ( temporalWindow_computable c ) );
-      · simp +decide [ Finset.Nonempty ]
+      · intro a
+        refine decide_eq_decide.mpr ?_
+        rw [length_canonicalFinsetList]
+        exact Finset.card_pos
 
 /-
 Computability of the parameter packer for the final-window decoder: it maps the
@@ -3122,8 +3125,7 @@ theorem exists_temporalWindowDecoder (U : Map) (hU : IsOptimalPrefixConditional 
       T_find := by
     have h_mem : T_find ∈ Nat.rfind
         (fun t => Part.some (decide (temporalRefreshCount c_U n h m c_gen i t = version))) := by
-      rw [Nat.mem_rfind]
-      constructor
+      refine Nat.mem_rfind.mpr ⟨?_, ?_⟩
       · simp [hT_find]
       · intro m hm
         simp [Nat.find_min hrfind hm]
