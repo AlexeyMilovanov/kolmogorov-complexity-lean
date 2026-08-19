@@ -42,10 +42,10 @@ theorem plainK_add_condK_le_plainK_pair
   refine ⟨cB + cLin + (cLow + cNat + cRem + 2 * c1), ?_⟩
   intro x y N hxN hxyN
   obtain ⟨kx, hkx⟩ : ∃ k : Nat, plainK V x = (k : ENat) :=
-    ⟨(plainK V x).toNat, (ENat.coe_toNat (condK_ne_top_of_optimal V hV x [])).symm⟩
+    ⟨(plainK V x).toNat, (ENat.natCast_toNat (condK_ne_top_of_optimal V hV x [])).symm⟩
   obtain ⟨kxy, hkxy⟩ : ∃ k : Nat, plainK V (pairCode x y) = (k : ENat) :=
     ⟨(plainK V (pairCode x y)).toNat,
-      (ENat.coe_toNat (condK_ne_top_of_optimal V hV (pairCode x y) [])).symm⟩
+      (ENat.natCast_toNat (condK_ne_top_of_optimal V hV (pairCode x y) [])).symm⟩
   have hkxN : kx ≤ N := by rw [hkx] at hxN; exact_mod_cast hxN
   have hkxyN : kxy ≤ N := by rw [hkxy] at hxyN; exact_mod_cast hxyN
   -- The prefix complexity of `x` is finite and bounded by `N + O(log N)`.
@@ -54,9 +54,9 @@ theorem plainK_add_condK_le_plainK_pair
   have hKPxTop : KPPlain U x ≠ ⊤ := by
     intro htop
     rw [htop] at hKPx
-    exact ENat.coe_ne_top _ (top_le_iff.mp hKPx)
+    exact ENat.natCast_ne_top _ (top_le_iff.mp hKPx)
   set p : Nat := (KPPlain U x).toNat with hpdef
-  have hpval : (p : ENat) = KPPlain U x := ENat.coe_toNat hKPxTop
+  have hpval : (p : ENat) = KPPlain U x := ENat.natCast_toNat hKPxTop
   have hpvalue : HasPrefixComplexityValue U x p := hpval
   have hple : p ≤ kx + logSlack cB N := by
     have hcast : (p : ENat) ≤ ((kx + logSlack cB N : Nat) : ENat) := by
@@ -170,7 +170,7 @@ theorem plainK_pair_ge_plainK_add_length_of_random
       omega
     exact_mod_cast hlen
   obtain ⟨s, hs⟩ : ∃ k : Nat, condK V y x = (k : ENat) :=
-    ⟨(condK V y x).toNat, (ENat.coe_toNat (condK_ne_top_of_optimal V hV y x)).symm⟩
+    ⟨(condK V y x).toNat, (ENat.natCast_toNat (condK_ne_top_of_optimal V hV y x)).symm⟩
   have hys : y.length ≤ s + epsilon := by
     rw [hs] at hrandom
     exact_mod_cast hrandom

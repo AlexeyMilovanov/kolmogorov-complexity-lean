@@ -294,9 +294,9 @@ theorem manyIJDescriptions_of_heavyTruncation_information_gain
   have hcompl : setComplexity U H hHne ≤ ((i + logSlack cC threshold : ℕ) : ENat) :=
     hcC i j threshold B hB hBne hHne
   have hfin : setComplexity U H hHne ≠ ⊤ :=
-    ne_top_of_le_ne_top (ENat.coe_ne_top _) hcompl
+    ne_top_of_le_ne_top (ENat.natCast_ne_top _) hcompl
   set i1 := (setComplexity U H hHne).toNat with hi1def
-  have hi1 : setComplexity U H hHne = (i1 : ENat) := (ENat.coe_toNat hfin).symm
+  have hi1 : setComplexity U H hHne = (i1 : ENat) := (ENat.natCast_toNat hfin).symm
   have hi1le : i1 ≤ i + logSlack cC threshold := by
     have h : (i1 : ENat) ≤ ((i + logSlack cC threshold : ℕ) : ENat) := by
       rw [← hi1]; exact hcompl

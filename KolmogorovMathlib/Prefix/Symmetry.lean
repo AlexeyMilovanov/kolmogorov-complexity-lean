@@ -131,7 +131,7 @@ theorem KPPair_chain_upper (U : Map) (hU : IsOptimalPrefixConditional U) :
   intro x y kx hkx
   -- `K(x)` is finite (its natural witness is `kx`).
   have hKx : KPPlain U x ≠ ⊤ := by
-    rw [← hkx]; exact ENat.coe_ne_top kx
+    rw [← hkx]; exact ENat.natCast_ne_top kx
   obtain ⟨p, hp, hplen⟩ := exists_program_of_KP_ne_top (M := U) (x := x) (y := []) hKx
   -- `p.length = kx`.
   have hpl_eq : (p.length : ENat) = KPPlain U x := hplen

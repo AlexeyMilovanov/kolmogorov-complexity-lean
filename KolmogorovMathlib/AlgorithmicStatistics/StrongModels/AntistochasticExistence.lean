@@ -142,10 +142,10 @@ theorem exists_antistochastic_plain (V : Map) (hV : isOptimalConditional V) :
       refine this.trans ?_
       push_cast
       exact le_rfl
-    have hne : plainK V y ≠ ⊤ := ne_top_of_le_ne_top (ENat.coe_ne_top _) hle
-    refine ⟨(plainK V y).toNat, (ENat.coe_toNat hne).symm, ?_⟩
+    have hne : plainK V y ≠ ⊤ := ne_top_of_le_ne_top (ENat.natCast_ne_top _) hle
+    refine ⟨(plainK V y).toNat, (ENat.natCast_toNat hne).symm, ?_⟩
     have := hle
-    rw [← ENat.coe_toNat hne] at this
+    rw [← ENat.natCast_toNat hne] at this
     exact_mod_cast this
   by_cases hbig : u + s + 1 ≤ n
   · -- Main regime: realize the extremal curve at complexity `max k (u + s + 1)`.

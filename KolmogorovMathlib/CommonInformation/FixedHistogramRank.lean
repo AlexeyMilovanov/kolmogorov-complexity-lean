@@ -402,7 +402,7 @@ theorem condK_fixedHistogramWord_le_size_multinomial
           (c : ENat) := hc _ _
     _ ≤ (p.length : ENat) + (c : ENat) := by gcongr
     _ ≤ (Nat.size (Nat.multinomial univ f) : ENat) + (c : ENat) := by
-      exact add_le_add_left (ENat.coe_le_coe.mpr hp) _
+      exact add_le_add_left (ENat.natCast_le_natCast.mpr hp) _
 
 /-- The numeric fixed-histogram family built from a duplicate-free complete
 listing `L` of the alphabet is the numeric image of the fixed-histogram
@@ -1294,7 +1294,7 @@ theorem condK_fixedHistogramWord_given_projection_le
     _ ≤
         (Nat.size (∏ a ∈ univ, Nat.multinomial univ (fun b => f (a, b))) : ENat) +
           (c : ENat) := by
-      exact add_le_add_left (ENat.coe_le_coe.mpr hp) _
+      exact add_le_add_left (ENat.natCast_le_natCast.mpr hp) _
 
 /-! ### Maximality -/
 

@@ -145,7 +145,7 @@ theorem propAddNoise_of_remAddNoise
     have hkx : ∃ kx : Nat, plainK V x = (kx : ENat) := by
       have h := hcLen x
       cases hz : plainK V x with
-      | top => rw [hz] at h; exact False.elim (ENat.coe_ne_top _ (top_le_iff.mp h))
+      | top => rw [hz] at h; exact False.elim (ENat.natCast_ne_top _ (top_le_iff.mp h))
       | coe k => exact ⟨k, rfl⟩
     obtain ⟨kx, hkx_eq⟩ := hkx
     have hkx_le : kx ≤ baseBudget := by
@@ -168,7 +168,7 @@ theorem propAddNoise_of_remAddNoise
     have hkxy : ∃ kxy : Nat, plainK V (pairCode x y) = (kxy : ENat) := by
       have h := hcLen (pairCode x y)
       cases hz : plainK V (pairCode x y) with
-      | top => rw [hz] at h; exact False.elim (ENat.coe_ne_top _ (top_le_iff.mp h))
+      | top => rw [hz] at h; exact False.elim (ENat.natCast_ne_top _ (top_le_iff.mp h))
       | coe k => exact ⟨k, rfl⟩
     obtain ⟨kxy, hkxy_eq⟩ := hkxy
     have hRem_app := hcRem x y epsilon kx kxy hkx_eq hkxy_eq h_eps

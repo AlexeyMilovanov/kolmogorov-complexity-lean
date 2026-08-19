@@ -107,7 +107,7 @@ theorem purified_witness_pair_condition_bound
   let n := y.length
   let z := pairCode P.code (natCode n)
   have hPFinite : KP U P.code x ≠ ⊤ :=
-    ne_top_of_le_ne_top (ENat.coe_ne_top P_cond_x) hPCond
+    ne_top_of_le_ne_top (ENat.natCast_ne_top P_cond_x) hPCond
   obtain ⟨kP, hkP⟩ := ENat.ne_top_iff_exists.mp hPFinite
   have hPlainFinite : plainK V x ≠ ⊤ :=
     condK_ne_top_of_optimal V hV x []
@@ -137,7 +137,7 @@ theorem purified_witness_pair_condition_bound
               cPlainBridge + cCondition : Nat) : ENat) := by
               push_cast
               ring
-    exact ne_top_of_le_ne_top (ENat.coe_ne_top _) hbound
+    exact ne_top_of_le_ne_top (ENat.natCast_ne_top _) hbound
   obtain ⟨kx, hkx⟩ := ENat.ne_top_iff_exists.mp hXFinite
   have hkxBudget :
       kx ≤ baseBudget + 2 * (Nat.bits baseBudget).length + b := by

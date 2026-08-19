@@ -345,14 +345,14 @@ theorem t1PlainPolygon_mono
   unfold t1PlainPolygon at hp ⊢
   by_cases hq : q.1 < epsilon
   · have hpε : p.1 < epsilon := h₁.trans_lt hq
-    simp only [Set.mem_setOf_eq, if_pos hpε] at hp
-    simp only [Set.mem_setOf_eq, if_pos hq]
+    simp only [Set.mem_ofPred_eq, if_pos hpε] at hp
+    simp only [Set.mem_ofPred_eq, if_pos hq]
     omega
-  · simp only [Set.mem_setOf_eq, if_neg hq]
+  · simp only [Set.mem_ofPred_eq, if_neg hq]
     by_cases hpε : p.1 < epsilon
-    · simp only [Set.mem_setOf_eq, if_pos hpε] at hp
+    · simp only [Set.mem_ofPred_eq, if_pos hpε] at hp
       omega
-    · simp only [Set.mem_setOf_eq, if_neg hpε] at hp
+    · simp only [Set.mem_ofPred_eq, if_neg hpε] at hp
       omega
 
 /-- The solid Figure 6 polygon is upward closed in both coordinates. -/
@@ -379,8 +379,8 @@ theorem t1PlainPolygon_antitone_epsilon
   · have hpε' : p.1 < epsilon' := hpε.trans_le hε
     simpa [hpε, hpε'] using hp
   · by_cases hpε' : p.1 < epsilon'
-    · simp only [Set.mem_setOf_eq, if_pos hpε'] at hp
-      simp only [Set.mem_setOf_eq, if_neg hpε]
+    · simp only [Set.mem_ofPred_eq, if_pos hpε'] at hp
+      simp only [Set.mem_ofPred_eq, if_neg hpε]
       omega
     · simpa [hpε, hpε'] using hp
 
@@ -392,9 +392,9 @@ theorem t1PlainPolygon_antitone_n
   intro q hq
   unfold t1PlainPolygon at hq ⊢
   by_cases h : q.1 < epsilon
-  · simp only [Set.mem_setOf_eq, if_pos h] at hq ⊢
+  · simp only [Set.mem_ofPred_eq, if_pos h] at hq ⊢
     exact Nat.le_trans hn hq
-  · simp only [Set.mem_setOf_eq, if_neg h] at hq ⊢
+  · simp only [Set.mem_ofPred_eq, if_neg h] at hq ⊢
     exact hq
 
 /-- Increasing either boundary parameter can only shrink the solid Figure 6
@@ -421,11 +421,11 @@ theorem t1StrongPolygon_subset_t1PlainPolygon
   unfold t1StrongPolygon at hp
   unfold t1PlainPolygon
   by_cases hpε : p.1 < epsilon
-  · simp only [Set.mem_setOf_eq, if_pos hpε]
+  · simp only [Set.mem_ofPred_eq, if_pos hpε]
     rcases hp with hp | hp
     · omega
     · exact hp
-  · simp only [Set.mem_setOf_eq, if_neg hpε]
+  · simp only [Set.mem_ofPred_eq, if_neg hpε]
     rcases hp with hp | hp
     · omega
     · omega
@@ -835,13 +835,13 @@ theorem t1_plainProfile_to_polygon
   · by_cases hqepsilon : q.1 < epsilon
     · have hsum : q.1 + q.2 < n := by
         unfold t1PlainPolygon at hpolygon
-        simp only [Set.mem_setOf_eq, if_pos hqepsilon,
+        simp only [Set.mem_ofPred_eq, if_pos hqepsilon,
           not_le] at hpolygon
         exact hpolygon
       let q' : Nat × Nat := (q.1, n - q.1)
       refine ⟨q', ?_, ?_⟩
       · unfold t1PlainPolygon
-        simp only [Set.mem_setOf_eq, q', if_pos hqepsilon]
+        simp only [Set.mem_ofPred_eq, q', if_pos hqepsilon]
         omega
       · unfold natPairLInfDistance
         simp only [q', Nat.sub_self, zero_add]
@@ -850,13 +850,13 @@ theorem t1_plainProfile_to_polygon
         omega
       have hsum : q.1 + q.2 < k := by
         unfold t1PlainPolygon at hpolygon
-        simp only [Set.mem_setOf_eq, if_neg hqepsilon,
+        simp only [Set.mem_ofPred_eq, if_neg hqepsilon,
           not_le] at hpolygon
         exact hpolygon
       let q' : Nat × Nat := (q.1, k - q.1)
       refine ⟨q', ?_, ?_⟩
       · unfold t1PlainPolygon
-        simp only [Set.mem_setOf_eq, q', if_neg hqepsilon]
+        simp only [Set.mem_ofPred_eq, q', if_neg hqepsilon]
         omega
       · unfold natPairLInfDistance
         simp only [q', Nat.sub_self, zero_add]
@@ -1108,11 +1108,11 @@ theorem t1_not_cMarked_strongProfile_to_polygon
   · exact ⟨q, hpolygon, by simp [natPairLInfDistance]⟩
   · have hqk : q.1 < k := by
       unfold t1StrongPolygon at hpolygon
-      simp only [Set.mem_setOf_eq, not_or, not_le] at hpolygon
+      simp only [Set.mem_ofPred_eq, not_or, not_le] at hpolygon
       exact hpolygon.1
     have hqsum : q.1 + q.2 < n := by
       unfold t1StrongPolygon at hpolygon
-      simp only [Set.mem_setOf_eq, not_or, not_le] at hpolygon
+      simp only [Set.mem_ofPred_eq, not_or, not_le] at hpolygon
       exact hpolygon.2
     by_cases hknear : k ≤ q.1 + delta
     · let q' : Nat × Nat := (k, q.2)
@@ -1126,7 +1126,7 @@ theorem t1_not_cMarked_strongProfile_to_polygon
       · let q' : Nat × Nat := (q.1, n - q.1)
         refine ⟨q', ?_, ?_⟩
         · unfold t1StrongPolygon
-          simp only [Set.mem_setOf_eq, q']
+          simp only [Set.mem_ofPred_eq, q']
           exact Or.inr (by omega)
         · unfold natPairLInfDistance
           simp only [q', Nat.sub_self, zero_add]
@@ -1599,21 +1599,21 @@ theorem separationGrayProfile_endpoints (k : Nat) :
     (k, 2 * k) ∈ separationGrayProfile k ∧
     (3 * k, 0) ∈ separationGrayProfile k := by
   unfold separationGrayProfile
-  simp only [Set.mem_setOf_eq]
+  simp only [Set.mem_ofPred_eq]
   refine ⟨Or.inl ⟨by omega, by omega⟩, Or.inr ⟨by omega, by omega⟩, Or.inr ⟨by omega, by omega⟩⟩
 
 theorem separationGrayProfile_left_iff
     {k i j : Nat} (hi : i < k) :
     (i, j) ∈ separationGrayProfile k ↔ 4 * k ≤ i + j := by
   unfold separationGrayProfile
-  simp only [Set.mem_setOf_eq]
+  simp only [Set.mem_ofPred_eq]
   omega
 
 theorem separationGrayProfile_right_iff
     {k i j : Nat} (hi : k ≤ i) :
     (i, j) ∈ separationGrayProfile k ↔ 3 * k ≤ i + j := by
   unfold separationGrayProfile
-  simp only [Set.mem_setOf_eq]
+  simp only [Set.mem_ofPred_eq]
   omega
 
 

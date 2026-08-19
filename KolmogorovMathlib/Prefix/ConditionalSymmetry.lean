@@ -84,7 +84,7 @@ theorem KPCondPair_chain_upper (U : Map) (hU : IsOptimalPrefixConditional U) :
   intro x y z kx hkx
   have hKx : KP U x z ≠ ⊤ := by
     rw [← hkx]
-    exact ENat.coe_ne_top kx
+    exact ENat.natCast_ne_top kx
   obtain ⟨p, hp, hplen⟩ := exists_program_of_KP_ne_top (M := U) (x := x) (y := z) hKx
   have hpl_eq : (p.length : ENat) = KP U x z := hplen
   have hp_kx : p.length = kx := by

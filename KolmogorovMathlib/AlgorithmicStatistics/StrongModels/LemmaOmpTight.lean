@@ -110,9 +110,9 @@ theorem lemma_omp_tightComplexity (V : Map) (hV : isOptimalConditional V) :
     condK_omegaFixedCode_le_of_standardBlock_slack_np V hV q0 hq0 c_corner
   refine ⟨c_corner + c_br, ?_⟩
   intro P epsilon kp np mp_eps x q hadm hq heps hkP hnP hmpeps hxnb hxK
-  have hxfin : plainK V x ≠ ⊤ := ne_top_of_le_ne_top (ENat.coe_ne_top _) hxK
+  have hxfin : plainK V x ≠ ⊤ := ne_top_of_le_ne_top (ENat.natCast_ne_top _) hxK
   set m : Nat := (plainK V x).toNat with hm_def
-  have hm : plainK V x = (m : ENat) := (ENat.coe_toNat hxfin).symm
+  have hm : plainK V x = (m : ENat) := (ENat.natCast_toNat hxfin).symm
   have hmkp : m ≤ kp := by
     have h := hxK
     rw [hm] at h
@@ -131,12 +131,12 @@ theorem lemma_omp_tightComplexity (V : Map) (hV : isOptimalConditional V) :
         ((m - r + logSlack c_blk m : Nat) : ENat) := h_blk m r x hxblk
   have hbcfin :
       plainK V (codedUniformOn (standardBlock q0 m r x) ⟨x, hxblk⟩).code ≠ ⊤ :=
-    ne_top_of_le_ne_top (ENat.coe_ne_top _) hbcle
+    ne_top_of_le_ne_top (ENat.natCast_ne_top _) hbcle
   obtain ⟨i, hi⟩ :
       ∃ i : Nat,
         plainK V (codedUniformOn (standardBlock q0 m r x) ⟨x, hxblk⟩).code =
           (i : ENat) :=
-    ⟨_, (ENat.coe_toNat hbcfin).symm⟩
+    ⟨_, (ENat.natCast_toNat hbcfin).symm⟩
   have hile : i ≤ m - r + logSlack c_blk m := by
     have h := hbcle
     rw [hi] at h

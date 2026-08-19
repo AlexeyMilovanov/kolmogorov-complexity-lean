@@ -256,9 +256,9 @@ theorem lemma_lch_with_mem
   let f : Nat → Nat := fun r => (plainSetComplexity V (iter.A_seq r) (iter.hA_seq r)).toNat
   let gseq : Nat → Nat := fun r => (plainSetComplexity V (iter.B_seq r) (iter.hB_seq r)).toNat
   have hfval : ∀ r, plainSetComplexity V (iter.A_seq r) (iter.hA_seq r) = (f r : ENat) :=
-    fun r => (ENat.coe_toNat (hfinP _ _)).symm
+    fun r => (ENat.natCast_toNat (hfinP _ _)).symm
   have hgval : ∀ r, plainSetComplexity V (iter.B_seq r) (iter.hB_seq r) = (gseq r : ENat) :=
-    fun r => (ENat.coe_toNat (hfinP _ _)).symm
+    fun r => (ENat.natCast_toNat (hfinP _ _)).symm
   -- basic sqrt facts
   have hs_pos : 1 ≤ n.sqrt := by omega
   have hb_sqrt : (Nat.bits n).length ≤ n.sqrt + 2 := bits_length_le_sqrt_add_two n
@@ -267,7 +267,7 @@ theorem lemma_lch_with_mem
   -- `aA`, `jA` for `A`
   have haAfin : plainSetComplexity V A hA ≠ ⊤ := hfinP A hA
   set aA : Nat := (plainSetComplexity V A hA).toNat with haA_def
-  have haAval : plainSetComplexity V A hA = (aA : ENat) := (ENat.coe_toNat haAfin).symm
+  have haAval : plainSetComplexity V A hA = (aA : ENat) := (ENat.natCast_toNat haAfin).symm
   set jA : Nat := finiteSetLogCard A with hjA_def
   -- the descent step
   have hnext : ∀ r, f (r + 1) ≤ gseq r + alpha := by
@@ -359,7 +359,7 @@ theorem lemma_lch_with_mem
     have hswap : omegaFixedCode q
         (plainK V (codedUniformOn (iter.A_seq N) (iter.hA_seq N)).code).toNat =
         omegaFixedCode c_fix (f N) := by
-      rw [hHcode, ENat.toNat_coe]; exact omegaFixedCode_eq_of_isCodeFor hq hc_fix (f N)
+      rw [hHcode, ENat.toNat_natCast]; exact omegaFixedCode_eq_of_isCodeFor hq hc_fix (f N)
     rw [hswap]
     set Nbnd := n + epsilon + logSlack (c_strong + cR) n with hNbnd_def
     have hmono_ls : logSlack cR n ≤ logSlack (c_strong + cR) n := logSlack_mono_left (by omega) n

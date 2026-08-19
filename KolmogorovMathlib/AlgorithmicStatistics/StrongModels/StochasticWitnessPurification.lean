@@ -182,7 +182,7 @@ theorem standardBlock_witness_of_setOptimalityDeficiency
   refine ⟨C, fun x alpha beta A hA hxA hAComplexity hAOptimality => ?_⟩
   let M := x.length + alpha + beta
   have hIFinite : setComplexity U A hA ≠ ⊤ :=
-    ne_top_of_le_ne_top (ENat.coe_ne_top alpha) hAComplexity
+    ne_top_of_le_ne_top (ENat.natCast_ne_top alpha) hAComplexity
   obtain ⟨i, hi⟩ : ∃ i : ℕ, setComplexity U A hA = (i : ENat) :=
     (ENat.ne_top_iff_exists.mp hIFinite).imp fun _ h => h.symm
   have hiAlpha : i ≤ alpha := by
@@ -251,7 +251,7 @@ theorem standardBlock_witness_of_setOptimalityDeficiency
       _ ≤ (KPPlain U x + (beta : ENat)) + (1 : ENat) := by gcongr
       _ = KPPlain U x + ((beta + 1 : ℕ) : ENat) := by push_cast; ring
   have hBPlainFinite : plainK V (codedUniformOn B hB).code ≠ ⊤ :=
-    ne_top_of_le_ne_top (ENat.coe_ne_top (i + logSlack cBetter m)) hBPlain
+    ne_top_of_le_ne_top (ENat.natCast_ne_top (i + logSlack cBetter m)) hBPlain
   obtain ⟨b, hb⟩ : ∃ b : ℕ, plainK V (codedUniformOn B hB).code = (b : ENat) :=
     (ENat.ne_top_iff_exists.mp hBPlainFinite).imp fun _ h => h.symm
   have hbN : b ≤ N := by
@@ -320,10 +320,10 @@ theorem standardBlock_witness_of_setOptimalityDeficiency
       (beta + 1 + logSlack cBetter x.length + logSlack cBetter m +
         logSlack cExact N) := by
     have hBPrefixFinite : setComplexity U B hB ≠ ⊤ :=
-      ne_top_of_le_ne_top (ENat.coe_ne_top (b + logSlack cExact N)) hBPrefixExact
+      ne_top_of_le_ne_top (ENat.natCast_ne_top (b + logSlack cExact N)) hBPrefixExact
     let s := (setComplexity U B hB).toNat
     have hs : setComplexity U B hB = (s : ENat) :=
-      (ENat.coe_toNat hBPrefixFinite).symm
+      (ENat.natCast_toNat hBPrefixFinite).symm
     apply setOptimalityDeficiencyLe_of_profile hxB (le_of_eq hs) (le_of_eq hBCard)
     simpa [hs] using hBTotal
   have hBRandom := hRand (codedUniformOn B hB) x
@@ -376,7 +376,7 @@ theorem deficiencyLe_prop_better_std_block
     have h := hLen x
     refine ne_top_of_le_ne_top ?_ h
     rw [← Nat.cast_add]
-    exact ENat.coe_ne_top _
+    exact ENat.natCast_ne_top _
   obtain ⟨m, hmRaw⟩ := ENat.ne_top_iff_exists.mp hxFinite
   have hm : plainK V x = (m : ENat) := hmRaw.symm
   have hmn : m ≤ n + cLen := by

@@ -441,7 +441,7 @@ theorem plainKNat_omegaCount_le_of_stage_cover_nested
   dsimp only
   have hDfinite : plainK V (codedUniformOn D hD).code ≠ ⊤ := by
     exact ne_top_of_le_ne_top
-      (by exact_mod_cast (ENat.coe_ne_top
+      (by exact_mod_cast (ENat.natCast_ne_top
         ((codedUniformOn D hD).code.length + cLen)))
       (hLen (codedUniformOn D hD).code)
   obtain ⟨pD, hpD, hpDLength⟩ :=
@@ -449,7 +449,7 @@ theorem plainKNat_omegaCount_le_of_stage_cover_nested
       (M := V) (x := (codedUniformOn D hD).code) (y := []) hDfinite
   have hQfinite : plainK V (standardEnumeratorCode q) ≠ ⊤ := by
     exact ne_top_of_le_ne_top
-      (by exact_mod_cast (ENat.coe_ne_top
+      (by exact_mod_cast (ENat.natCast_ne_top
         ((standardEnumeratorCode q).length + cLen)))
       (hLen (standardEnumeratorCode q))
   obtain ⟨pQ, hpQ, hpQLength⟩ :=

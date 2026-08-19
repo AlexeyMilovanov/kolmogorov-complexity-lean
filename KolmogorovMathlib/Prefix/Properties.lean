@@ -939,7 +939,7 @@ theorem KP_le_plainK_value_given_value_code (U V : Map)
   have hK_ne_top : KP V x [] ≠ ⊤ := by
     change plainK V x ≠ ⊤
     rw [hfin]
-    exact ENat.coe_ne_top kC
+    exact ENat.natCast_ne_top kC
   obtain ⟨p, hp, hplen⟩ := exists_program_of_KP_ne_top (M := V) (x := x) (y := []) hK_ne_top
   have hp_len_nat : p.length = kC := by
     have : (p.length : ENat) = (kC : ENat) := by

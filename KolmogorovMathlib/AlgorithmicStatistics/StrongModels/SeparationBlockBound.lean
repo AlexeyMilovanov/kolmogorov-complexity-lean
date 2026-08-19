@@ -74,14 +74,14 @@ theorem enumerationBound_le_standardBlock_complexity
   obtain ⟨cLen, hLen⟩ := plainKLeLength V hV
   have hQfin : plainK V (standardEnumeratorCode q) ≠ ⊤ :=
     ne_top_of_le_ne_top
-      (by exact_mod_cast (ENat.coe_ne_top ((standardEnumeratorCode q).length + cLen)))
+      (by exact_mod_cast (ENat.natCast_ne_top ((standardEnumeratorCode q).length + cLen)))
       (hLen (standardEnumeratorCode q))
   obtain ⟨Qv, hQv⟩ := ENat.ne_top_iff_exists.mp hQfin
   have hQtoNat : (plainK V (standardEnumeratorCode q)).toNat = Qv := by
     rw [← hQv]; simp
   have hBfin : plainSetComplexity V B hB ≠ ⊤ :=
     ne_top_of_le_ne_top
-      (by exact_mod_cast (ENat.coe_ne_top ((codedUniformOn B hB).code.length + cLen)))
+      (by exact_mod_cast (ENat.natCast_ne_top ((codedUniformOn B hB).code.length + cLen)))
       (hLen (codedUniformOn B hB).code)
   obtain ⟨Bv, hBv⟩ := ENat.ne_top_iff_exists.mp hBfin
   have hBtoNat : (plainSetComplexity V B hB).toNat = Bv := by

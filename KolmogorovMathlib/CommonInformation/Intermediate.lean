@@ -127,14 +127,14 @@ theorem condK_chain_upper_values
     exact ne_top_of_le_ne_top
       (by
         rw [← Nat.cast_add]
-        exact ENat.coe_ne_top _)
+        exact ENat.natCast_ne_top _)
       hle
   have hkyzFinite : KP U y z ≠ ⊤ := by
     have hle := hBridge y z kyz hyz
     exact ne_top_of_le_ne_top
       (by
         rw [← Nat.cast_add]
-        exact ENat.coe_ne_top _)
+        exact ENat.natCast_ne_top _)
       hle
   obtain ⟨p, hp, hpLen⟩ :=
     exists_program_of_KP_ne_top (M := U) (x := z) (y := x) hkzxFinite

@@ -56,7 +56,7 @@ height function. -/
 theorem profileSet_eq_familyCurveTarget {V : Map} (b : ProfileBoundary V) :
     {q : ℕ × ℕ | FamilyCurveTarget b.k_P b.height q.1 q.2} = profileSet V b := by
   ext ⟨i, j⟩
-  simp only [Set.mem_setOf_eq, FamilyCurveTarget, profileSet]
+  simp only [Set.mem_ofPred_eq, FamilyCurveTarget, profileSet]
   constructor
   · intro h
     rcases Nat.lt_or_ge i b.k_P with hi | hi
@@ -134,7 +134,7 @@ theorem thm_card_normal_branch
   -- Complexity of the head.
   have hyFinite : plainK V y ≠ ⊤ := condK_ne_top_of_optimal V hV y []
   set ky := (plainK V y).toNat with hky
-  have hkyval : plainK V y = (ky : ENat) := (ENat.coe_toNat hyFinite).symm
+  have hkyval : plainK V y = (ky : ENat) := (ENat.natCast_toNat hyFinite).symm
   set e := sqrtSlack C5 bt.n_P with he
   have hkyup : ky ≤ mp + e := by
     rw [hkyval] at hkyUp

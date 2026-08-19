@@ -237,7 +237,7 @@ lemma splitNode_antichain (v : BitString) (l : ℕ) :
   unfold splitNode at *
   simp +zetaDelta only [List.append_assoc, List.toFinset_cons, Finset.coe_insert,
     List.coe_toFinset, List.mem_map, List.mem_range, Set.mem_insert_iff,
-    Set.mem_setOf_eq] at *
+    Set.mem_ofPred_eq] at *
   rcases hp with (rfl | ⟨a, ha, rfl⟩) <;>
     rcases hq with (rfl | ⟨b, hb, rfl⟩) <;>
       simp_all +decide only [List.prefix_append_right_inj, List.append_cancel_left_eq]

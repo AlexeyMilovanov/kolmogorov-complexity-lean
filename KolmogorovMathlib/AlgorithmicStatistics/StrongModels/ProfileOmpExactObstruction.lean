@@ -87,14 +87,14 @@ theorem profileSetsWithinNeighborhood_diagonal_ompObstructionProfile (E : Nat) :
       (diagonalProfileSet (6 * E)) (ompObstructionProfile E) E := by
   constructor
   · rintro ⟨a, b⟩ hq
-    simp only [diagonalProfileSet, Set.mem_setOf_eq] at hq
+    simp only [diagonalProfileSet, Set.mem_ofPred_eq] at hq
     refine ⟨(a, b + E), Or.inr (by simp only; omega), ?_⟩
     unfold natPairLInfDistance
     simp only
     omega
   · rintro ⟨a, b⟩ hp
     refine ⟨(a + E, b + E), ?_, ?_⟩
-    · simp only [diagonalProfileSet, Set.mem_setOf_eq]
+    · simp only [diagonalProfileSet, Set.mem_ofPred_eq]
       rcases hp with h | h <;> simp only at h <;> omega
     · unfold natPairLInfDistance
       simp only

@@ -121,7 +121,7 @@ lemma auxiliaryCurveCode_complexity
     condK_ne_top_of_optimal V hV b.code []
   have hbValue : plainK V b.code = (b.KP : ENat) := by
     rw [b.h_KP]
-    exact (ENat.coe_toNat hbFinite).symm
+    exact (ENat.natCast_toNat hbFinite).symm
   have hbExact : KP U b.code (pairCode [] (Nat.bits b.KP)) ≤
       ((b.KP + cExact : ℕ) : ENat) := by
     exact_mod_cast hExact b.code [] b.KP hbValue
@@ -214,7 +214,7 @@ lemma auxiliaryCurveCode_complexity
   have hnewFinite :
       plainK V (curveEncode (fun i => b.height i - offset) newK) ≠ ⊤ :=
     condK_ne_top_of_optimal V hV _ []
-  rw [← ENat.coe_toNat hnewFinite] at hbound
+  rw [← ENat.natCast_toNat hnewFinite] at hbound
   exact_mod_cast hbound
 
 lemma auxiliaryProfile_isAdmissible (P : Set (Nat × Nat)) (kp mp : ℕ)
@@ -227,7 +227,7 @@ lemma auxiliaryProfile_isAdmissible (P : Set (Nat × Nat)) (kp mp : ℕ)
   · simp [auxiliaryProfile]
   · intro ⟨a1, b1⟩ ⟨a2, b2⟩ hle hmem
     rcases Prod.mk_le_mk.mp hle with ⟨ha, _⟩
-    simp only [auxiliaryProfile, Set.mem_setOf_eq] at hmem ⊢
+    simp only [auxiliaryProfile, Set.mem_ofPred_eq] at hmem ⊢
     rcases hmem with ⟨_, hP⟩ | hmp_le
     · rcases Nat.lt_or_ge mp a2 with _ | _
       · right; omega
@@ -236,7 +236,7 @@ lemma auxiliaryProfile_isAdmissible (P : Set (Nat × Nat)) (kp mp : ℕ)
         apply hUp (Prod.mk_le_mk.mpr ⟨ha, by omega⟩) hP
     · right; omega
   · intro a b c habc
-    simp only [auxiliaryProfile, Set.mem_setOf_eq] at habc ⊢
+    simp only [auxiliaryProfile, Set.mem_ofPred_eq] at habc ⊢
     rcases habc with ⟨_, hP⟩ | hmp_le
     · rcases Nat.lt_or_ge mp (a + b) with _ | _
       · right; omega
@@ -511,7 +511,7 @@ lemma addNoiseProfileTransform_auxiliaryProfile :
     have hle : k_P P ≤ ((a + b : ℕ) : ENat) := sInf_le ⟨a + b, rfl, hstep'⟩
     rw [hkP] at hle; exact_mod_cast hle
   ext ⟨a, b⟩
-  simp only [AddNoiseProfileTransform, auxiliaryProfile, Set.mem_setOf_eq, Prod.mk.injEq]
+  simp only [AddNoiseProfileTransform, auxiliaryProfile, Set.mem_ofPred_eq, Prod.mk.injEq]
   constructor
   · rintro (⟨i, j, hi, hij, ha, hb⟩ | ⟨hmpa, hkab⟩)
     · subst ha

@@ -17,7 +17,7 @@ lemma auxiliaryProfile_isAdmissible (P : Set (Nat × Nat)) (kp mp : ℕ)
   · simp [auxiliaryProfile]
   · intro ⟨a1, b1⟩ ⟨a2, b2⟩ hle hmem
     rcases Prod.mk_le_mk.mp hle with ⟨ha, hb⟩
-    simp only [auxiliaryProfile, Set.mem_setOf_eq] at hmem ⊢
+    simp only [auxiliaryProfile, Set.mem_ofPred_eq] at hmem ⊢
     rcases hmem with ⟨ha1_le, hP⟩ | hmp_le
     · rcases Nat.lt_or_ge mp a2 with hlt | hge
       · right; omega
@@ -26,7 +26,7 @@ lemma auxiliaryProfile_isAdmissible (P : Set (Nat × Nat)) (kp mp : ℕ)
         apply hUp (Prod.mk_le_mk.mpr ⟨ha, by omega⟩) hP
     · right; omega
   · intro a b c habc
-    simp only [auxiliaryProfile, Set.mem_setOf_eq] at habc ⊢
+    simp only [auxiliaryProfile, Set.mem_ofPred_eq] at habc ⊢
     rcases habc with ⟨ha_le, hP⟩ | hmp_le
     · rcases Nat.lt_or_ge mp (a + b) with hlt | hge
       · right; omega

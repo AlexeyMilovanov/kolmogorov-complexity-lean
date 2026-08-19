@@ -201,7 +201,7 @@ theorem mem_descriptionProfileSet_singleton (U : Map) (h_gate : SingletonSetComp
   rcases h_gate with ⟨c, hc⟩
   refine ⟨c, fun x n kx hn hk => ?_⟩
   unfold descriptionProfileSet InDescriptionProfile
-  simp only [Set.mem_setOf_eq]
+  simp only [Set.mem_ofPred_eq]
   refine ⟨{x}, Finset.singleton_nonempty x, Finset.mem_singleton.mpr rfl, ?_, ?_⟩
   · exact hc x n kx hn hk
   · norm_num
@@ -212,7 +212,7 @@ theorem mem_descriptionProfileSet_full (U : Map) (h_gate : FullSetComplexityGate
   rcases h_gate with ⟨c, hc⟩
   refine ⟨c, fun x n hn => ?_⟩
   unfold descriptionProfileSet InDescriptionProfile
-  simp only [Set.mem_setOf_eq]
+  simp only [Set.mem_ofPred_eq]
   have h_mem : x ∈ stringsOfLength n := (memStringsOfLength n x).mpr hn
   have hn_nonempty : (stringsOfLength n).Nonempty := ⟨x, h_mem⟩
   refine ⟨stringsOfLength n, hn_nonempty, h_mem, ?_, ?_⟩
@@ -259,7 +259,7 @@ as the up-set determined by the antitone boundary `structureFunction`. -/
 theorem descriptionProfileSet_eq_epigraph (U : Map) (x : BitString) :
     descriptionProfileSet U x = { p : ℕ × ℕ | structureFunction U x p.1 ≤ (p.2 : ℕ∞) } := by
   ext ⟨i, j⟩
-  simp only [descriptionProfileSet, Set.mem_setOf_eq]
+  simp only [descriptionProfileSet, Set.mem_ofPred_eq]
   exact inDescriptionProfile_iff_structureFunction_le U x i j
 
 /-- **Gate D1 (proved): structure-function portion / slope ≥ −1.**  The genuine

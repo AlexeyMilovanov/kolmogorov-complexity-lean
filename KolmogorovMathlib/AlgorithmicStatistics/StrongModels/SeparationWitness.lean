@@ -152,7 +152,7 @@ lemma auxiliaryProfile_separationGrayProfile (k : Nat) :
     auxiliaryProfile (separationGrayProfile k) k (3 * k) =
       {q : Nat × Nat | k ≤ q.1 ∨ 2 * k ≤ q.1 + q.2} := by
   ext ⟨i, j⟩
-  simp only [auxiliaryProfile, separationGrayProfile, Set.mem_setOf_eq]
+  simp only [auxiliaryProfile, separationGrayProfile, Set.mem_ofPred_eq]
   omega
 
 lemma upperRegion_breakpoint_near (n k k' e : Nat)
@@ -178,7 +178,7 @@ lemma addNoiseProfileTransform_antistochastic_eq_separationGrayProfile :
       separationGrayProfile k := by
   intro k
   ext q
-  simp only [AddNoiseProfileTransform, separationGrayProfile, Set.mem_setOf_eq]
+  simp only [AddNoiseProfileTransform, separationGrayProfile, Set.mem_ofPred_eq]
   constructor
   · rintro (⟨i, j, hik, hanti, rfl⟩ | ⟨hki, hsum⟩)
     · rcases hanti with hki | hsum
@@ -584,7 +584,7 @@ lemma exists_separation_witness_core
   have hAComplexity :
       plainSetComplexity V A hA = (aA : ENat) := by
     unfold plainSetComplexity
-    exact (ENat.coe_toNat hACodeFinite).symm
+    exact (ENat.natCast_toNat hACodeFinite).symm
   let headBudget := k + headSlack
   have hkxBudget : kx ≤ headBudget := by
     dsimp [headBudget]

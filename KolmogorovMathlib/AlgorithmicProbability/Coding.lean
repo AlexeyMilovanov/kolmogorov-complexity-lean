@@ -118,7 +118,7 @@ theorem complexityWeight_eq_zero_iff (n : ENat) : complexityWeight n = 0 ↔ n =
   induction n using ENat.recTopCoe with
   | top => simp
   | coe k =>
-      simp only [complexityWeight_coe, ENat.coe_ne_top, iff_false]
+      simp only [complexityWeight_coe, ENat.natCast_ne_top, iff_false]
       exact pow_ne_zero k inv_two_ne_zero
 
 /-- The complexity weight is strictly positive exactly off `⊤`. -/

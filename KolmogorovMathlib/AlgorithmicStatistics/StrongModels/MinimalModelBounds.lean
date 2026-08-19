@@ -19,9 +19,9 @@ theorem setComplexity_le_plainSetComplexity_of_logSlack_budget
   refine ⟨C, fun S hS N hbudget => ?_⟩
   -- `plainSetComplexity V S hS` is finite, so it equals its `toNat` value `k ≤ N`.
   have hfin : plainSetComplexity V S hS ≠ ⊤ :=
-    ne_top_of_le_ne_top (ENat.coe_ne_top N) hbudget
+    ne_top_of_le_ne_top (ENat.natCast_ne_top N) hbudget
   set k := (plainSetComplexity V S hS).toNat with hk_def
-  have hk : plainSetComplexity V S hS = (k : ENat) := (ENat.coe_toNat hfin).symm
+  have hk : plainSetComplexity V S hS = (k : ENat) := (ENat.natCast_toNat hfin).symm
   have hkN : k ≤ N := by
     have h : (k : ENat) ≤ (N : ENat) := hk ▸ hbudget
     exact_mod_cast h
@@ -222,7 +222,7 @@ theorem standardModel_package
   -- (omega conjuncts)
   have hne : plainK V (codedUniformOn B hB).code ≠ ⊤ := condK_ne_top_of_optimal V hV _ []
   set kB := (plainK V (codedUniformOn B hB).code).toNat with hkBdef
-  have hkB_eq : plainK V (codedUniformOn B hB).code = (kB : ENat) := (ENat.coe_toNat hne).symm
+  have hkB_eq : plainK V (codedUniformOn B hB).code = (kB : ENat) := (ENat.natCast_toNat hne).symm
   obtain ⟨hBOm, hOmB⟩ := hom m r kB x hxB hkB_eq
   have hBOmega : condK V (codedUniformOn B hB).code (omegaFixedCode q kB) ≤
       (logSlack C m : ENat) := by

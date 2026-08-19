@@ -1298,7 +1298,7 @@ theorem standardBlock_omega_coding_bound
     intro htop
     have h := hlen BCode
     rw [htop] at h
-    exact ENat.coe_ne_top _
+    exact ENat.natCast_ne_top _
       (top_le_iff.mp h)
   obtain ⟨p, hp, hpLength⟩ :=
     exists_program_of_KP_ne_top
@@ -1471,7 +1471,7 @@ theorem prop_std_pos (V U : Map) (hV : isOptimalConditional V) (hU : IsOptimalPr
   have hfinite : plainK V BCode ≠ ⊤ := by
     intro htop
     rw [htop] at hplainUpper
-    exact ENat.coe_ne_top _ (top_le_iff.mp hplainUpper)
+    exact ENat.natCast_ne_top _ (top_le_iff.mp hplainUpper)
   obtain ⟨k, hkRaw⟩ :=
     ENat.ne_top_iff_exists.mp hfinite
   have hk : plainK V BCode = (k : ENat) := hkRaw.symm

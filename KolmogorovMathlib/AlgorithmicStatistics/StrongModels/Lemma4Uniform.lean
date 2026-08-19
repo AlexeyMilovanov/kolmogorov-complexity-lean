@@ -151,7 +151,7 @@ theorem plainK_standardBlock_upper_uniform
   intro q m j x hx hA
   have hQfinite : plainK V (standardEnumeratorCode q) ≠ ⊤ := by
     exact ne_top_of_le_ne_top
-      (by exact_mod_cast (ENat.coe_ne_top
+      (by exact_mod_cast (ENat.natCast_ne_top
         ((standardEnumeratorCode q).length + Clen)))
       (hlen (standardEnumeratorCode q))
   obtain ⟨pQ, hpQ, hpQLength⟩ :=
@@ -396,13 +396,13 @@ theorem plainKNat_omegaCount_lower_uniform
     intro htop
     have h := hlen (Nat.bits (omegaCount q m))
     rw [htop, top_le_iff] at h
-    exact ENat.coe_ne_top _ h
+    exact ENat.natCast_ne_top _ h
   have hfinite' : KP V (Nat.bits (omegaCount q m)) [] ≠ ⊤ := hfinite
   obtain ⟨p, hp, hpLength⟩ := exists_program_of_KP_ne_top hfinite'
   have hpLengthEq : (p.length : ENat) = plainKNat V (omegaCount q m) := hpLength
   have hQfinite : plainK V (standardEnumeratorCode q) ≠ ⊤ := by
     exact ne_top_of_le_ne_top
-      (by exact_mod_cast (ENat.coe_ne_top
+      (by exact_mod_cast (ENat.natCast_ne_top
         ((standardEnumeratorCode q).length + Clen)))
       (hlen (standardEnumeratorCode q))
   obtain ⟨pQ, hpQ, hpQLength⟩ :=

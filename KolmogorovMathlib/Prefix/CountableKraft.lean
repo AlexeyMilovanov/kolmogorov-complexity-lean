@@ -55,7 +55,7 @@ theorem domainWeight_finset_sum_le_one (M : Map) (y : BitString)
   have hsub : (↑(s.filter (fun p => p ∈ domainAt M y)) : Set BitString)
       ⊆ domainAt M y := by
     intro p hp
-    rw [Finset.coe_filter, Set.mem_setOf_eq] at hp
+    rw [Finset.coe_filter, Set.mem_ofPred_eq] at hp
     exact hp.2
   have hPF : IsPrefixFree (↑(s.filter (fun p => p ∈ domainAt M y)) : Set BitString) :=
     (hM y).mono hsub

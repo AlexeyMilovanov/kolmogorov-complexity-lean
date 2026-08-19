@@ -74,7 +74,7 @@ theorem randomness_optimality (U : Map) (hU : IsOptimalPrefixConditional U) :
     intro h_top
     have h_bound := h_len P.code
     rw [h_top] at h_bound
-    exact WithTop.top_le_iff.mp h_bound |> ENat.coe_ne_top _
+    exact WithTop.top_le_iff.mp h_bound |> ENat.natCast_ne_top _
   have h_CW_P_pos : 0 < complexityWeight (KPPlain U P.code) :=
     (complexityWeight_pos_iff _).mpr h_P_ne_top
   -- We can now divide both sides by `CW(P)`.

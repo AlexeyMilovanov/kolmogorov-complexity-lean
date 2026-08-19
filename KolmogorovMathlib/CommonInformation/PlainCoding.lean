@@ -9,7 +9,7 @@ theorem HasPlainComplexityValue.exists_program
   have hfinite : KP V x [] ≠ ⊤ := by
     change plainK V x ≠ ⊤
     rw [h]
-    exact ENat.coe_ne_top k
+    exact ENat.natCast_ne_top k
   obtain ⟨p, hp, hlen⟩ :=
     exists_program_of_KP_ne_top (M := V) (x := x) (y := []) hfinite
   refine ⟨p, hp, ?_⟩
@@ -25,7 +25,7 @@ theorem HasPlainConditionalComplexityValue.exists_program
   have hfinite : KP V x y ≠ ⊤ := by
     change condK V x y ≠ ⊤
     rw [h]
-    exact ENat.coe_ne_top k
+    exact ENat.natCast_ne_top k
   obtain ⟨p, hp, hlen⟩ :=
     exists_program_of_KP_ne_top (M := V) (x := x) (y := y) hfinite
   refine ⟨p, hp, ?_⟩
@@ -41,7 +41,7 @@ theorem exists_plainComplexityValue
   have hfinite : plainK V x ≠ ⊤ := by
     refine ne_top_of_le_ne_top ?_ (hc x)
     rw [← Nat.cast_add]
-    exact ENat.coe_ne_top _
+    exact ENat.natCast_ne_top _
   obtain ⟨k, hk⟩ := ENat.ne_top_iff_exists.mp hfinite
   exact ⟨k, hk.symm⟩
 
@@ -59,7 +59,7 @@ theorem exists_plainConditionalComplexityValue
         exact hPlain x
       _ = ((x.length + cPlain + cCond : Nat) : ENat) := by push_cast; rfl
   have hfinite : condK V x y ≠ ⊤ := by
-    exact ne_top_of_le_ne_top (ENat.coe_ne_top _) hbound
+    exact ne_top_of_le_ne_top (ENat.natCast_ne_top _) hbound
   obtain ⟨k, hk⟩ := ENat.ne_top_iff_exists.mp hfinite
   exact ⟨k, hk.symm⟩
 

@@ -210,7 +210,7 @@ theorem strongProfile_pair_tailCube
   · -- plain set complexity of the tail cube
     obtain ⟨k1, hk1⟩ : ∃ k : ℕ, plainK V (pairCode y (z.take (z.length - t))) = (k : ENat) :=
       ⟨(plainK V (pairCode y (z.take (z.length - t)))).toNat,
-        (ENat.coe_toNat (condK_ne_top_of_optimal V hV _ [])).symm⟩
+        (ENat.natCast_toNat (condK_ne_top_of_optimal V hV _ [])).symm⟩
     have hk1le : k1 ≤ ky + (z.length - t)
         + logSlack cUp (y.length + (z.length - t)) := by
       have h := hUp y (z.take (z.length - t)) ky hky
@@ -299,10 +299,10 @@ lemma normal_pair_of_conditionally_random_tail
     omega
   set C := cTrans + cExt + cCube + cPair + cSing + 1 with hCdef
   obtain ⟨ky, hky⟩ : ∃ k : ℕ, plainK V y = (k : ENat) :=
-    ⟨(plainK V y).toNat, (ENat.coe_toNat (condK_ne_top_of_optimal V hV y [])).symm⟩
+    ⟨(plainK V y).toNat, (ENat.natCast_toNat (condK_ne_top_of_optimal V hV y [])).symm⟩
   obtain ⟨kyz, hkyz⟩ : ∃ k : ℕ, plainK V (pairCode y z) = (k : ENat) :=
     ⟨(plainK V (pairCode y z)).toNat,
-      (ENat.coe_toNat (condK_ne_top_of_optimal V hV (pairCode y z) [])).symm⟩
+      (ENat.natCast_toNat (condK_ne_top_of_optimal V hV (pairCode y z) [])).symm⟩
   obtain ⟨-, hlow⟩ := hPair y z ky z.length 0 epsilon ky kyz hky hkyz
     (by omega) (by omega) rfl hrand
   rw [Nat.zero_add] at hlow

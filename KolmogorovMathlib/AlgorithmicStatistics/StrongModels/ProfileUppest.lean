@@ -91,9 +91,9 @@ theorem thm_uppest
   -- Plain complexity of the counting condition `Ω_{m_omp}`, as a `Nat`.
   have hW_up := h_up m_omp
   have hW_fin : plainK V (omegaFixedCode q0 m_omp) ≠ ⊤ :=
-    ne_top_of_le_ne_top (ENat.coe_ne_top _) hW_up
+    ne_top_of_le_ne_top (ENat.natCast_ne_top _) hW_up
   set kW : Nat := (plainK V (omegaFixedCode q0 m_omp)).toNat with hkW_def
-  have hkW : plainK V (omegaFixedCode q0 m_omp) = (kW : ENat) := (ENat.coe_toNat hW_fin).symm
+  have hkW : plainK V (omegaFixedCode q0 m_omp) = (kW : ENat) := (ENat.natCast_toNat hW_fin).symm
   have hkW_up : kW ≤ m_omp + c_up := by rw [hkW] at hW_up; exact_mod_cast hW_up
   have hkW_low : m_omp ≤ kW + c_low := by
     have h := h_low m_omp; rw [hkW] at h; exact_mod_cast h

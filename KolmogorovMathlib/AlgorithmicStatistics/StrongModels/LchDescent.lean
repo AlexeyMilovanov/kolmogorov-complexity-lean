@@ -52,7 +52,7 @@ theorem exists_strong_model_near_of_normal
     have hc' := hc (codedUniformOn A hA).code
     have h_ne : (programLength (codedUniformOn A hA).code : ENat) + c ≠ ⊤ := by
       rw [← Nat.cast_add]
-      exact ENat.coe_ne_top _
+      exact ENat.natCast_ne_top _
     exact ne_top_of_le_ne_top h_ne hc'
   have H_val : ∃ v : ℕ, plainSetComplexity V A hA = ↑v := by
     obtain ⟨v, hv⟩ := ENat.ne_top_iff_exists.mp H_not_top
@@ -286,7 +286,7 @@ theorem exists_descent_round
     condK_ne_top_of_optimal V hV (codedUniformOn A hA).code []
   let a := (plainSetComplexity V A hA).toNat
   have haValue : plainSetComplexity V A hA = (a : ENat) :=
-    (ENat.coe_toNat hAFinite).symm
+    (ENat.natCast_toNat hAFinite).symm
   let j := finiteSetLogCard A
   obtain ⟨m, r, hxB, hm, hcardB, htwoB, hBA, hBOmega, _hOmegaB⟩ :=
     hpkg x n a j A hA hn hxA haValue rfl

@@ -211,7 +211,7 @@ theorem exists_maximal_chainSample {k : ℕ} (V : Map) (hV : isOptimalConditiona
     obtain ⟨c, hc⟩ := plainK_fixedHistogramWord_le_size_multinomial_add_params V hV
     have h_bound2 := hc m f_m w_m hw_m_count
     have hfin : plainK V (finiteWordCode w_m) ≠ ⊤ := by
-      exact ne_top_of_le_ne_top (ENat.coe_ne_top _) h_bound2
+      exact ne_top_of_le_ne_top (ENat.natCast_ne_top _) h_bound2
     obtain ⟨kW, hkW⟩ : ∃ kW : ℕ,
         (kW : ENat) = plainK V (finiteWordCode w_m) := by
       exact ENat.ne_top_iff_exists.mp hfin
@@ -223,7 +223,7 @@ theorem exists_maximal_chainSample {k : ℕ} (V : Map) (hV : isOptimalConditiona
         rw [hkW]
         exact hw_m_K
       have h_le : k_val + 1 ≤ kW := by
-        have hk_val2 : k_val < kW := ENat.coe_lt_coe.mp hk_val
+        have hk_val2 : k_val < kW := ENat.natCast_lt_natCast.mp hk_val
         omega
       have h_log : histogramTypeLog f ≤ kW + 1 := by
         have hlog : 2 ≤ histogramTypeLog f := by
@@ -233,7 +233,7 @@ theorem exists_maximal_chainSample {k : ℕ} (V : Map) (hV : isOptimalConditiona
           have h6 := mt Nat.size_le.mp this
           omega
         omega
-      exact ENat.coe_le_coe.mpr h_log
+      exact ENat.natCast_le_natCast.mpr h_log
   · have h_multi_eq : Nat.multinomial Finset.univ f = 1 := by omega
     have he : Nat.multinomial Finset.univ f_m = Nat.multinomial Finset.univ f := by
       exact multinomial_comp_equiv e.symm f
@@ -265,7 +265,7 @@ theorem exists_maximal_chainSample {k : ℕ} (V : Map) (hV : isOptimalConditiona
     obtain ⟨c, hc⟩ := plainK_fixedHistogramWord_le_size_multinomial_add_params V hV
     have h_bound2 := hc m f_m w_m hw_m_count
     have hfin : plainK V (finiteWordCode w_m) ≠ ⊤ := by
-      exact ne_top_of_le_ne_top (ENat.coe_ne_top _) h_bound2
+      exact ne_top_of_le_ne_top (ENat.natCast_ne_top _) h_bound2
     obtain ⟨kW, hkW⟩ : ∃ kW : ℕ,
         (kW : ENat) = plainK V (finiteWordCode w_m) := by
       exact ENat.ne_top_iff_exists.mp hfin

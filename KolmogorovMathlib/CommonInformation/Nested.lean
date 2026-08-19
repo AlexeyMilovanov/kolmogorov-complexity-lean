@@ -510,7 +510,7 @@ theorem exists_nested_incompressibleRepresentations
     exact ne_top_of_le_ne_top
       (by
         rw [← Nat.cast_add]
-        exact ENat.coe_ne_top _)
+        exact ENat.natCast_ne_top _)
       h
   obtain ⟨kq, hkq⟩ := ENat.ne_top_iff_exists.mp hkqFinite
   obtain ⟨p, hp, hpLenE⟩ :=
@@ -519,7 +519,7 @@ theorem exists_nested_incompressibleRepresentations
       (by
         change KPPlain U y ≠ ⊤
         rw [← hkp]
-        exact ENat.coe_ne_top kp)
+        exact ENat.natCast_ne_top kp)
   obtain ⟨q, hq, hqLenE⟩ :=
     exists_program_of_KP_ne_top
       (M := U) (x := x) (y := y) hkqFinite
