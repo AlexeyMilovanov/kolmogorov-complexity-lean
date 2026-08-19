@@ -173,7 +173,7 @@ theorem mem_descriptionProfileSet_zero_of_ge_of_optimal
       ∀ i, kx + logSlack c n ≤ i → (i, 0) ∈ descriptionProfileSet U x := by
   obtain ⟨c, hc⟩ := structureFunction_eq_zero_of_ge_of_optimal U hU
   refine ⟨c, fun x n kx hn hk i hi => ?_⟩
-  rw [descriptionProfileSet_eq_epigraph, Set.mem_setOf_eq, hc x n kx hn hk i hi]
+  rw [descriptionProfileSet_eq_epigraph, Set.mem_ofPred_eq, hc x n kx hn hk i hi]
   simp
 
 /-! ### Paper-facing improving-descriptions wrapper -/

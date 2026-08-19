@@ -72,7 +72,7 @@ theorem code_mem_modelsWithComplexityLe (U : Map) (P : CodedFiniteDistribution)
   have hne : KP U P.code [] ≠ ⊤ := by
     intro htop
     rw [CodedFiniteDistribution.complexity, KPPlain_eq_KP, htop] at hcomp
-    exact (not_le.mpr (by exact_mod_cast ENat.coe_lt_top alpha)) hcomp
+    exact (not_le.mpr (by exact_mod_cast ENat.natCast_lt_top alpha)) hcomp
   obtain ⟨p, hp_prod, hp_len⟩ := exists_program_of_KP_ne_top hne
   have hlen : p.length ≤ alpha := by
     have : (programLength p : ENat) ≤ (alpha : ENat) := by
@@ -183,7 +183,7 @@ theorem KPPlain_partrec_map_le (U : Map) (hU : IsOptimalPrefixConditional U)
     exact this
   have hD_sub : ∀ y, domainAt D y ⊆ domainAt U y := by
     intro y p hp
-    simp only [domainAt, Set.mem_setOf_eq, hDdef] at hp ⊢
+    simp only [domainAt, Set.mem_ofPred_eq, hDdef] at hp ⊢
     exact hp.fst
   have hD_prefix : IsPrefixMachine D := fun y ↦
     (hU.isPrefixMachine y).mono (hD_sub y)
@@ -367,7 +367,7 @@ theorem stochastic_mem_levelSet_of_KPPlain_bound
       exact hdef;
     cases h : KP U x P.code <;>
       simp_all +decide only [complexityWeight_top, complexityWeight_coe, zero_le, ENat.toNat_top,
-        ENat.toNat_coe, zero_add, pow_add, ge_iff_le];
+        ENat.toNat_natCast, zero_add, pow_add, ge_iff_le];
     · have := hc x P.code; simp_all +decide
     · calc
         _ ≤ ((2 : ENNReal) ^ beta * P.mass x) * (2 : ENNReal)⁻¹ ^ beta := by gcongr

@@ -135,7 +135,7 @@ theorem m_P_le_of_mem
     (hk : (k, 0) ∈ P) :
     m_P P k ≤ (k : ENat) := by
   apply sInf_le
-  simp only [Set.mem_setOf_eq]
+  simp only [Set.mem_ofPred_eq]
   use k
   exact ⟨rfl, by simpa using hk⟩
 
@@ -146,7 +146,7 @@ theorem k_P_le_of_transfer
     (hshift : ∀ a b c, (a, b + c) ∈ P → (a + b, c) ∈ P) :
     k_P P ≤ (n : ENat) := by
   apply sInf_le
-  simp only [Set.mem_setOf_eq]
+  simp only [Set.mem_ofPred_eq]
   use n
   refine ⟨rfl, ?_⟩
   have h := hshift 0 n 0 (by simpa using hn)
@@ -171,7 +171,7 @@ theorem n_P_le_of_mem
     (hn : (0, n) ∈ P) :
     n_P P ≤ (n : ENat) := by
   apply sInf_le
-  simp only [Set.mem_setOf_eq]
+  simp only [Set.mem_ofPred_eq]
   exact ⟨n, rfl, hn⟩
 
 /-- An explicitly attained complexity endpoint witnesses `m_P ≤ k_P`. -/
@@ -182,7 +182,7 @@ theorem m_P_le_k_P_of_attained
     m_P P k ≤ k_P P := by
   rw [hkP]
   apply sInf_le
-  simp only [Set.mem_setOf_eq]
+  simp only [Set.mem_ofPred_eq]
   use k
   refine ⟨rfl, ?_⟩
   simpa using hk
@@ -194,7 +194,7 @@ theorem m_P_eps_le_of_mem
       k - t + c * (k + 2 * epsilon).bits.length + epsilon) ∈ P) :
     m_P_eps P k epsilon c ≤ (t : ENat) := by
   apply sInf_le
-  simp only [Set.mem_setOf_eq]
+  simp only [Set.mem_ofPred_eq]
   exact ⟨t, rfl, h⟩
 
 /-- An `ENat` infimum over coerced naturals is attained whenever its value is finite. -/
@@ -300,7 +300,7 @@ theorem exists_m_P_eps_eq_coe_of_k_P_eq
   have hle : m_P_eps P kp epsilon c ≤ (kp : ENat) :=
     m_P_eps_le_k_P_of_eq P kp epsilon c hUp hkP
   have hne : m_P_eps P kp epsilon c ≠ ⊤ :=
-    ne_top_of_le_ne_top (ENat.coe_ne_top kp) hle
+    ne_top_of_le_ne_top (ENat.natCast_ne_top kp) hle
   obtain ⟨m, hm⟩ := ENat.ne_top_iff_exists.mp hne
   exact ⟨m, hm.symm⟩
 

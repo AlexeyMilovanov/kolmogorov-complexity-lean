@@ -653,7 +653,7 @@ theorem deficiency_fstPushforward_conserved
         _ = ((2 * z.length + cLen + cPlain : Nat) : ENat) := by
           push_cast
           rfl
-    exact ne_top_of_le_ne_top (ENat.coe_ne_top _) hbound
+    exact ne_top_of_le_ne_top (ENat.natCast_ne_top _) hbound
   have hPpos : 0 < P.mass z :=
     mass_pos_of_deficiencyLe_of_KP_ne_top hdef hKP
   have hP0 : P.mass z ≠ 0 := ne_of_gt hPpos

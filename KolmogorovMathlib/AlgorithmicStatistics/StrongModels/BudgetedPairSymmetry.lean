@@ -128,7 +128,7 @@ theorem plainK_pair_ge_plainK_add_length_of_random_budget
     rw [hkxy]
     exact_mod_cast hkxyM
   obtain ⟨s, hs⟩ : ∃ k : Nat, condK V y x = (k : ENat) :=
-    ⟨(condK V y x).toNat, (ENat.coe_toNat (condK_ne_top_of_optimal V hV y x)).symm⟩
+    ⟨(condK V y x).toNat, (ENat.natCast_toNat (condK_ne_top_of_optimal V hV y x)).symm⟩
   have hys : y.length ≤ s + epsilon := by
     rw [hs] at hrandom
     exact_mod_cast hrandom

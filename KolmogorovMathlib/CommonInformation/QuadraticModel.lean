@@ -116,7 +116,7 @@ theorem exists_quadratic_without_root (p : Nat) [Fact p.Prime] :
     ∃ A B : ZMod p, ∀ t : ZMod p, t ^ 2 + A * t + B ≠ 0 := by
   classical
   set K := GaloisField p 2
-  haveI : Fintype K := Fintype.ofFinite K
+  have : Fintype K := Fintype.ofFinite K
   let pb := Field.powerBasisOfFiniteOfSeparable (ZMod p) K
   have hdim : pb.dim = 2 := by
     rw [← pb.finrank, GaloisField.finrank p (by omega)]
@@ -152,7 +152,7 @@ theorem quadIndex_spec (m : Nat) :
       quadTest (concretePrime m) (quadIndex m) = true := by
   classical
   set p := concretePrime m with hp
-  haveI : Fact (Nat.Prime p) := ⟨concretePrime_prime m⟩
+  have : Fact (Nat.Prime p) := ⟨concretePrime_prime m⟩
   obtain ⟨A, B, hAB⟩ := exists_quadratic_without_root p
   have hppos : 0 < p := (concretePrime_prime m).pos
   set i0 := A.val * p + B.val with hi0
@@ -295,11 +295,11 @@ lemma exists_quadPoly_root (m : Nat) :
             ((quadCoeffB m : Nat) : ConcreteField m) = 0 := by
   classical
   set f := quadPoly m with hfdef
-  haveI : Fact (Irreducible f) := ⟨quadPoly_irreducible m⟩
+  have : Fact (Irreducible f) := ⟨quadPoly_irreducible m⟩
   have hf0 : f ≠ 0 := (quadPoly_irreducible m).ne_zero
   let pb := AdjoinRoot.powerBasis hf0
-  haveI : FiniteDimensional (ConcreteField m) (AdjoinRoot f) := pb.finite
-  haveI : Fintype (AdjoinRoot f) := Module.fintypeOfFintype pb.basis
+  have : FiniteDimensional (ConcreteField m) (AdjoinRoot f) := pb.finite
+  have : Fintype (AdjoinRoot f) := Module.fintypeOfFintype pb.basis
   have hcard : Fintype.card (AdjoinRoot f) = concretePrime m ^ 2 := by
     rw [Module.card_eq_pow_finrank (K := ConcreteField m), ZMod.card]
     congr 1

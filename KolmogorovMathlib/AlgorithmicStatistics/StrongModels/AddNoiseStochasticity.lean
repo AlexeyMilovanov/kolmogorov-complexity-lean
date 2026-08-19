@@ -219,7 +219,7 @@ theorem exists_plainK_eq_nat (V : Map) (hV : isOptimalConditional V) (z : BitStr
   cases hz : plainK V z with
   | top =>
     rw [hz] at h
-    exact False.elim (ENat.coe_ne_top _ (top_le_iff.mp h))
+    exact False.elim (ENat.natCast_ne_top _ (top_le_iff.mp h))
   | coe k => exact ⟨k, rfl⟩
 
 /-- **The add-noise pair corner.**

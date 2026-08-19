@@ -571,14 +571,13 @@ theorem exists_partrec_richSet_code (U : Map) (hU : IsOptimalPrefixConditional U
   convert Part.eq_some_iff.mpr _ using 1;
   unfold richSelectorFn
   simp +decide only [selNat_richInput, selH_richInput, selAlpha_richInput, selMaxK_richInput,
-    length_canonicalFinsetList, Part.mem_bind_iff, Nat.mem_rfind, Part.mem_some_iff,
-    true_eq_decide_iff, false_eq_decide_iff]
+    length_canonicalFinsetList, Part.mem_bind_iff, Part.mem_some_iff]
   refine ⟨t₀, Nat.mem_rfind.mpr ⟨?_, fun {m} hm => ?_⟩, ?_⟩
   · exact Part.mem_some_iff.mpr (decide_eq_true ht0).symm
   · exact Part.mem_some_iff.mpr (decide_eq_false (ht0_min m hm)).symm
-  · simp_all +decide only [ne_eq, implies_true, not_false_eq_true, and_self,
+  · simp_all +decide only [ne_eq, implies_true,
       snapshotRichElements_eq_richDescriptionElements hc i j k t₀ hmax0, Finset.one_le_card,
-      sup_of_le_right, true_and]
+      sup_of_le_right]
     convert codedUniformOn_code_eq _ hne using 1
 
 theorem richInput_KPPlain_le (U : Map) (hU : IsOptimalPrefixConditional U) (c_partrec : ℕ) :
@@ -2635,8 +2634,7 @@ theorem onlineHalfRichChunkSelectorFn_eq (c : Code) (i j k h t : ℕ)
   unfold onlineHalfRichChunkSelectorFn;
   simp +decide only [selH_richInput, selNat_richInput, selAlpha_richInput,
     selMaxK_richInput, length_canonicalFinsetList, List.get_eq_getElem,
-    Part.mem_bind_iff, Nat.mem_rfind, Part.mem_some_iff, true_eq_decide_iff,
-    false_eq_decide_iff, not_lt];
+    Part.mem_bind_iff, Part.mem_some_iff];
   refine ⟨ t, ?_, ?_ ⟩;
   · refine Nat.mem_rfind.mpr ⟨?_, fun { m } hm => ?_⟩
     · exact Part.mem_some_iff.mpr (decide_eq_true h_lt).symm
@@ -2790,7 +2788,7 @@ theorem setComplexity_halfRichComplexityPortion_le (U : Map) (hU : IsOptimalPref
     apply logSlack_four_add_le
     omega
   refine le_trans hbound ?_
-  rw [← ENat.coe_sub, add_assoc]
+  rw [← ENat.natCast_sub, add_assoc]
   gcongr
   exact_mod_cast habs
 

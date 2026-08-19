@@ -321,7 +321,7 @@ theorem condK_pairCode_chain_lower_values
     have h := hPair x w kx hx
     refine ne_top_of_le_ne_top ?_ h
     rw [← Nat.cast_add]
-    exact ENat.coe_ne_top _
+    exact ENat.natCast_ne_top _
   obtain ⟨kpx, hkpx⟩ := ENat.ne_top_iff_exists.mp hkpxFinite
   have hkpxValue : HasCondPrefixComplexityValue U x w kpx := hkpx
   have hkpxBoundENat :
@@ -428,9 +428,9 @@ theorem condK_pairCode_chain_lower_values
         push_cast
         ring
       _ ≤ ((kxy + logSlack C (kxy + 1) : Nat) : ENat) := by
-        apply ENat.coe_le_coe.mpr
+        apply ENat.natCast_le_natCast.mpr
         exact Nat.add_le_add_left hOverhead kxy
-  exact ENat.coe_le_coe.mp hMain
+  exact ENat.natCast_le_natCast.mp hMain
 
 /-- Upper chain direction for plain conditional complexity, uniform in `w`. -/
 theorem condK_pairCode_chain_upper_values
@@ -459,7 +459,7 @@ theorem condK_pairCode_chain_upper_values
     have h := hCond x w kx hx
     refine ne_top_of_le_ne_top ?_ h
     rw [← Nat.cast_add]
-    exact ENat.coe_ne_top _
+    exact ENat.natCast_ne_top _
   obtain ⟨kpx, hkpx⟩ := ENat.ne_top_iff_exists.mp hkpxFinite
   have hkpxValue : HasCondPrefixComplexityValue U x w kpx := hkpx
   have hkxBound : kx ≤ kxy + cDropRight :=
@@ -538,9 +538,9 @@ theorem condK_pairCode_chain_upper_values
         push_cast
         ring
       _ ≤ ((kx + kyx + logSlack C (kxy + 1) : Nat) : ENat) := by
-        apply ENat.coe_le_coe.mpr
+        apply ENat.natCast_le_natCast.mpr
         exact Nat.add_le_add_left hOverhead (kx + kyx)
-  exact ENat.coe_le_coe.mp hMain
+  exact ENat.natCast_le_natCast.mp hMain
 
 theorem condK_pairCode_symmetryOfInformation_values
     (V : Map) (hV : isOptimalConditional V) :

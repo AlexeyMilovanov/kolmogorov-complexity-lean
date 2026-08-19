@@ -93,7 +93,7 @@ theorem setOptimalityDeficiencyLe_of_profile {U : Map} {B : Finset BitString} {h
     SetOptimalityDeficiencyLe U B hB x beta := by
   rw [setOptimalityDeficiencyLe_iff_of_mem hx]
   cases hx_comp : KPPlain U x <;> cases hB_comp : setComplexity U B hB <;>
-    simp_all only [top_le_iff, ENat.coe_ne_top, Nat.cast_le, KPPlain_eq_KP,
+    simp_all only [top_le_iff, ENat.natCast_ne_top, Nat.cast_le, KPPlain_eq_KP,
       complexityWeight] <;> try exact zero_le
   refine le_trans ?_
       (mul_le_mul_right (mul_le_mul_right (show (B.card : ENNReal)⁻¹ ≥ (2^t : ENNReal)⁻¹ from ?_)
@@ -254,8 +254,8 @@ theorem setOptimalityCardBound {U : Map} {A : Finset BitString} {hA : A.Nonempty
           setComplexity_le_of_setOptimalityDeficiency hx h_opt
       rw [h_comp, hk] at hi
       have h_i_le : i ≤ delta + k := by
-        rw [← ENat.coe_add] at hi
-        have := (ENat.coe_le_coe (n := i) (m := k + delta)).mp hi
+        rw [← ENat.natCast_add] at hi
+        have := (ENat.natCast_le_natCast (n := i) (m := k + delta)).mp hi
         omega
       have h_card10 : A.card * 2 ^ i ≤ 2 ^ (delta + k - i) * 2 ^ i := by
         rw [← pow_add, Nat.sub_add_cancel h_i_le]
@@ -269,9 +269,9 @@ theorem setOptimalityCardBound {U : Map} {A : Finset BitString} {hA : A.Nonempty
     · have hi : setComplexity U A hA ≤ KPPlain U x + (delta : ENat) :=
         setComplexity_le_of_setOptimalityDeficiency hx h_opt
       rw [h_comp, hk] at hi
-      rw [← ENat.coe_add] at hi
+      rw [← ENat.natCast_add] at hi
       have h_i_le : i ≤ k + delta := by
-        have := (ENat.coe_le_coe (n := i) (m := k + delta)).mp hi
+        have := (ENat.natCast_le_natCast (n := i) (m := k + delta)).mp hi
         exact this
       rw [hk]
       have h_nat : (k + delta - i : ℕ) + i ≤ k + delta := by omega

@@ -235,13 +235,13 @@ theorem KP_ne_top_of_optimal (U : Map) (hU : IsOptimalPrefixConditional U)
   have hbound : KP U x y ≤
       (x.length + 2 * (Nat.bits x.length).length + c_len : ℕ) + (c_plain : ENat) :=
     (h_plain x y).trans (by gcongr; exact_mod_cast h_len x)
-  exact ne_top_of_le_ne_top (by exact_mod_cast (ENat.coe_ne_top _)) hbound
+  exact ne_top_of_le_ne_top (by exact_mod_cast (ENat.natCast_ne_top _)) hbound
 
 /-- Plain prefix complexity is finite for an optimal machine. -/
 theorem KPPlain_ne_top_of_optimal (U : Map) (hU : IsOptimalPrefixConditional U)
     (x : BitString) : KPPlain U x ≠ ⊤ := by
   obtain ⟨c_len, h_len⟩ := KPPlain_le_length_add_log U hU
-  exact ne_top_of_le_ne_top (by exact_mod_cast (ENat.coe_ne_top
+  exact ne_top_of_le_ne_top (by exact_mod_cast (ENat.natCast_ne_top
     (x.length + 2 * (Nat.bits x.length).length + c_len))) (by exact_mod_cast h_len x)
 
 /-- Set complexity is finite for an optimal machine (it is the plain complexity of a
@@ -341,12 +341,12 @@ theorem KPPlain_toNat_le_setComplexity_add_condKP (U : Map) (hU : IsOptimalPrefi
   refine ⟨c, fun A hA x hx => ?_⟩
   have hbound := hc A hA x hx
   have h1 : ((KPPlain U x).toNat : ENat) = KPPlain U x :=
-    ENat.coe_toNat (KPPlain_ne_top_of_optimal U hU x)
+    ENat.natCast_toNat (KPPlain_ne_top_of_optimal U hU x)
   have h2 : ((setComplexity U A hA).toNat : ENat) = setComplexity U A hA :=
-    ENat.coe_toNat (setComplexity_ne_top_of_optimal U hU A hA)
+    ENat.natCast_toNat (setComplexity_ne_top_of_optimal U hU A hA)
   have h3 : ((KP U x (codedUniformOn A hA).code).toNat : ENat) =
       KP U x (codedUniformOn A hA).code :=
-    ENat.coe_toNat (KP_ne_top_of_optimal U hU x _)
+    ENat.natCast_toNat (KP_ne_top_of_optimal U hU x _)
   rw [← h1, ← h2, ← h3] at hbound
   exact_mod_cast hbound
 
@@ -398,9 +398,9 @@ theorem exists_realizedGap_uniformSet_of_stochastic
   let d := min d0 (delta + c_soi)
   use A, hA, delta, i, j, kx, d
   have hi_eq : setComplexity U A hA = (i : ENat) :=
-    (ENat.coe_toNat (setComplexity_ne_top_of_optimal U hU A hA)).symm
+    (ENat.natCast_toNat (setComplexity_ne_top_of_optimal U hU A hA)).symm
   have hkx_eq : (kx : ENat) = KPPlain U x :=
-    ENat.coe_toNat (KPPlain_ne_top_of_optimal U hU x)
+    ENat.natCast_toNat (KPPlain_ne_top_of_optimal U hU x)
   have h_realized : RealizedSetOptimalityGap U A hA x delta i j kx :=
     ⟨mem_levelSet h_supp h_k_lower, hi_eq, hj_upper, hj_lower, hkx_eq, rfl⟩
   -- The `delta + c_soi` deficiency bound from Symmetry of Information.
@@ -414,10 +414,10 @@ theorem exists_realizedGap_uniformSet_of_stochastic
     have h_soi_bound := h_soi A hA x (mem_levelSet h_supp h_k_lower)
     have h_i : (setComplexity U A hA).toNat = i := by
       have h : setComplexity U A hA = (i : ENat) := hi_eq
-      rw [h, ENat.toNat_coe]
+      rw [h, ENat.toNat_natCast]
     have h_kx : (KPPlain U x).toNat = kx := by
       have h : KPPlain U x = (kx : ENat) := hkx_eq.symm
-      rw [h, ENat.toNat_coe]
+      rw [h, ENat.toNat_natCast]
     rw [h_i, h_kx] at h_soi_bound
     have h_delta : delta = i + j - kx := rfl
     have h_kp : (KP U x (codedUniformOn A hA).code).toNat + c_soi + delta ≥ j := by omega
@@ -428,7 +428,7 @@ theorem exists_realizedGap_uniformSet_of_stochastic
         (KP U x (codedUniformOn A hA).code).toNat := by
       have : KP U x (codedUniformOn A hA).code =
           ((KP U x (codedUniformOn A hA).code).toNat : ENat) :=
-        (ENat.coe_toNat (KP_ne_top_of_optimal U hU x _)).symm
+        (ENat.natCast_toNat (KP_ne_top_of_optimal U hU x _)).symm
       rw [this]
       rfl
     rw [hkp_eq]

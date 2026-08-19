@@ -28,7 +28,7 @@ theorem enat_lt_coe_iff_le_pred
   q < (t : ENat) ↔ q ≤ ((t - 1 : Nat) : ENat) := by
   obtain ⟨s, rfl⟩ := Nat.exists_eq_succ_of_ne_zero (Nat.ne_of_gt ht)
   rw [Nat.succ_sub_one, Nat.cast_succ]
-  exact ENat.lt_add_one_iff (ENat.coe_ne_top s)
+  exact ENat.lt_add_one_iff (ENat.natCast_ne_top s)
 
 theorem exists_mem_avoiding_four
     {α : Type*}

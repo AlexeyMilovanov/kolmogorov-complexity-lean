@@ -47,7 +47,7 @@ theorem restricted_exists_realizedGap_of_member (U : Map) (hU : IsOptimalPrefixC
     convert exists_card_dyadic_bracket A hA using 1
   set kx := (KPPlain U x).toNat
   have hkx_eq : (kx : ENat) = KPPlain U x := by
-    exact ENat.coe_toNat ( KPPlain_ne_top_of_optimal U hU x )
+    exact ENat.natCast_toNat ( KPPlain_ne_top_of_optimal U hU x )
   set delta := i + j - kx
   have h_realized : RealizedSetOptimalityGap U A hA x delta i j kx := by
     have h_mass_pos : (codedUniformOn A hA).mass x > 0 := by
@@ -62,13 +62,13 @@ theorem restricted_exists_realizedGap_of_member (U : Map) (hU : IsOptimalPrefixC
     generalize_proofs at *;
     unfold CodedFiniteDistribution.DeficiencyLe;
     rw [ codedUniformOn_mass_of_mem A hA x h_realized.1 ];
-    rw [ ← ENat.coe_toNat (KP_ne_top_of_optimal U hU x (codedUniformOn A hA).code) ];
+    rw [ ← ENat.natCast_toNat (KP_ne_top_of_optimal U hU x (codedUniformOn A hA).code) ];
     refine le_trans ?_ ( mul_le_mul_right ( show ( A.card : ENNReal ) ⁻¹ ≥ ( 2 ^ j : ENNReal )
         ⁻¹ from ?_ ) _ );
     · rw [ show delta = i + j - kx from rfl,
         show kx = ( KPPlain U x ).toNat from rfl ] at * ; norm_cast at *
-      simp_all +decide only [Nat.cast_le, KPPlain_eq_KP, ENat.coe_toNat_eq_self, ne_eq,
-        ENat.toNat_coe, Nat.cast_pow, Nat.cast_ofNat, complexityWeight_coe]
+      simp_all +decide only [Nat.cast_le, KPPlain_eq_KP, ENat.natCast_toNat_eq_self, ne_eq,
+        ENat.toNat_natCast, Nat.cast_pow, Nat.cast_ofNat, complexityWeight_coe]
       rw [ ← ENNReal.toReal_le_toReal ] <;> norm_num;
       · field_simp;
         rw [ div_pow, div_mul_eq_mul_div, div_le_iff₀ ] <;> norm_cast <;> norm_num [ pow_add,
@@ -90,7 +90,7 @@ theorem restricted_exists_realizedGap_of_member (U : Map) (hU : IsOptimalPrefixC
       convert dyadic_bracket_lower_bound h_bound_j using 1;
     cases h : KP U x ( codedUniformOn A hA ).code <;>
       simp_all +decide only [Nat.cast_le, KPPlain_eq_KP, top_add, le_top, tsub_le_iff_right,
-        ENat.toNat_top, zero_add, ge_iff_le, ENat.toNat_coe];
+        ENat.toNat_top, zero_add, ge_iff_le, ENat.toNat_natCast];
     · exact absurd h ( KP_ne_top_of_optimal U hU x _ );
     · norm_cast at * ; linarith;
   have h_kc_bound : (KP U x (codedUniformOn A hA).code).toNat ≤ n + 2 * (Nat.bits n).length +
@@ -113,8 +113,8 @@ theorem restricted_exists_realizedGap_of_member (U : Map) (hU : IsOptimalPrefixC
     calc (KP U x (codedUniformOn A hA).code).toNat
         ≤ (((n + 2 * (Nat.bits n).length + (KPPlain_le_length_add_log U hU).choose
             + (KP_le_KPPlain U hU).choose : ℕ) : ENat)).toNat :=
-          ENat.toNat_le_toNat hle (ENat.coe_ne_top _)
-      _ = _ := ENat.toNat_coe _
+          ENat.toNat_le_toNat hle (ENat.natCast_ne_top _)
+      _ = _ := ENat.toNat_natCast _
   have h_bits_length : (Nat.bits n).length ≤ n := length_natBits_le_self n
   refine ⟨ delta, i, j, kx, d, h_realized, h_def_d, ?_, ?_, ?_, ?_ ⟩ <;> omega
 
@@ -1085,7 +1085,7 @@ theorem uniform_manyIJDescriptionsMem_of_realizedSetOptimalityGap (U : Map)
       exact hj_opt
   clear hdelta_eq
   set kp := (KPPlain U p).toNat
-  have hkp_eq : (kp : ENat) = KPPlain U p := ENat.coe_toNat (KPPlain_ne_top_of_optimal U hU p)
+  have hkp_eq : (kp : ENat) = KPPlain U p := ENat.natCast_toNat (KPPlain_ne_top_of_optimal U hU p)
   set slack := logSlack c3 (n + delta + d) + kp
   use slack
   refine ⟨le_rfl, ?_⟩
@@ -1177,7 +1177,7 @@ theorem uniform_deficiencies_theorem_tight (U : Map) (hU : IsOptimalPrefixCondit
   set kp := (KPPlain U p).toNat with hkp_def
   have hkp_eq : (kp : ENat) = KPPlain U p := by
     rw [hkp_def]
-    exact ENat.coe_toNat (KPPlain_ne_top_of_optimal U hU p)
+    exact ENat.natCast_toNat (KPPlain_ne_top_of_optimal U hU p)
   rw [← hkp_eq] at hcompB
   have hj_bound : (j : ENat) + i ≤ KPPlain U x + delta := by
     have hdelta := h_realized.2.2.2.2.2

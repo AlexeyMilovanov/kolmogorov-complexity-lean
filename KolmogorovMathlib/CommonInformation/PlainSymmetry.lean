@@ -200,7 +200,7 @@ theorem exists_prefixComplexityValue
     have hcast : 2 * (List.length x : ℕ∞) + (c : ℕ∞)
         = ((2 * List.length x + c : ℕ) : ℕ∞) := by push_cast; ring
     rw [hcast]
-    exact ENat.coe_ne_top _
+    exact ENat.natCast_ne_top _
   obtain ⟨k, hk⟩ := ENat.ne_top_iff_exists.mp hfinite
   exact ⟨k, hk⟩
 

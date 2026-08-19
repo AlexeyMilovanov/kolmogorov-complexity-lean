@@ -93,7 +93,7 @@ theorem inPlainDescriptionProfile_fst_of_pair_model
     condK_ne_top_of_optimal V hV _ _
   set q := (condK V (codedUniformOn B hB).code (codedUniformOn H hHne).code).toNat with hqdef
   have hq : condK V (codedUniformOn B hB).code (codedUniformOn H hHne).code = (q : ENat) :=
-    (ENat.coe_toNat hqfin).symm
+    (ENat.natCast_toNat hqfin).symm
   -- Finite-set symmetry of information for the heavy truncation.
   have hBN : plainSetComplexity V B hB ≤ (N : ENat) :=
     hcompl.trans (by exact_mod_cast hiN)
@@ -105,9 +105,9 @@ theorem inPlainDescriptionProfile_fst_of_pair_model
           ≤ (i : ENat) + (logSlack cSym N : ENat) := by gcongr
       _ = ((i + logSlack cSym N : Nat) : ENat) := by push_cast; ring
   have hHfin : plainSetComplexity V H hHne ≠ ⊤ :=
-    ne_top_of_le_ne_top (ENat.coe_ne_top _) hHle
+    ne_top_of_le_ne_top (ENat.natCast_ne_top _) hHle
   set iH := (plainSetComplexity V H hHne).toNat with hiHdef
-  have hiH : plainSetComplexity V H hHne = (iH : ENat) := (ENat.coe_toNat hHfin).symm
+  have hiH : plainSetComplexity V H hHne = (iH : ENat) := (ENat.natCast_toNat hHfin).symm
   have hiHq : iH + q ≤ i + logSlack cSym N := by
     rw [hiH, hq] at hsym
     have hsym' : ((iH + q : Nat) : ENat) ≤ ((i + logSlack cSym N : Nat) : ENat) := by
@@ -128,9 +128,9 @@ theorem inPlainDescriptionProfile_fst_of_pair_model
     push_cast
     exact le_rfl
   have hi1fin : setComplexity U H hHne ≠ ⊤ :=
-    ne_top_of_le_ne_top (ENat.coe_ne_top _) hi1le0
+    ne_top_of_le_ne_top (ENat.natCast_ne_top _) hi1le0
   set i1 := (setComplexity U H hHne).toNat with hi1def
-  have hi1 : setComplexity U H hHne = (i1 : ENat) := (ENat.coe_toNat hi1fin).symm
+  have hi1 : setComplexity U H hHne = (i1 : ENat) := (ENat.natCast_toNat hi1fin).symm
   have hSymBound : logSlack cSym N ≤ N + bSym := hbSym N
   have hPreFold : logSlack cPre (i + logSlack cSym N) ≤ logSlack cPre2 N := by
     refine le_trans (logSlack_mono_right cPre ?_) (hcPre2 N)
@@ -173,7 +173,7 @@ theorem inPlainDescriptionProfile_fst_of_pair_model
     condK_ne_top_of_optimal V hV _ _
   set g := (condK V (codedUniformOn H hHne).code x).toNat with hgdef
   have hg : condK V (codedUniformOn H hHne).code x = (g : ENat) :=
-    (ENat.coe_toNat hgfin).symm
+    (ENat.natCast_toNat hgfin).symm
   have hRankFold : logSlack cRank (i1 + j1) ≤ logSlack cRank2 N := by
     refine le_trans (logSlack_mono_right cRank ?_) (hcRank2 N)
     omega

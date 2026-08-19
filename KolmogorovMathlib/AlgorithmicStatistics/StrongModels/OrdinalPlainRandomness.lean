@@ -30,7 +30,7 @@ theorem condK_ne_top_of_optimal
       _ = ((x.length + cLen + cCond : Nat) : ENat) := by
             push_cast
             rfl
-  exact ne_top_of_le_ne_top (ENat.coe_ne_top _) hbound
+  exact ne_top_of_le_ne_top (ENat.natCast_ne_top _) hbound
 
 /-- Prefix conditional complexity is at most ordinary conditional complexity
 plus logarithmic overhead in the visible output length.  The constant is

@@ -39,7 +39,7 @@ lemma plainK_lower_of_separationGrayProfile_neighborhood
     condK_ne_top_of_optimal V hV x []
   set kx := (plainK V x).toNat with hkxDef
   have hkx : plainK V x = (kx : ENat) :=
-    (ENat.coe_toNat hxFinite).symm
+    (ENat.natCast_toNat hxFinite).symm
   have hSingletonPoint :
       (kx + cSingleton, 0) ∈ plainDescriptionProfileSet V x := by
     refine ⟨{x}, Finset.singleton_nonempty x, ?_⟩
@@ -99,7 +99,7 @@ lemma separationGrayProfile_sufficiency_of_near_target
     condK_ne_top_of_optimal V hV (codedUniformOn B hB).code []
   set a := (plainSetComplexity V B hB).toNat with haDef
   have ha : plainSetComplexity V B hB = (a : ENat) :=
-    (ENat.coe_toNat hBFinite).symm
+    (ENat.natCast_toNat hBFinite).symm
   have hFirstDist :
       ((a - k) + (k - a)) ≤ M :=
     (Nat.le_max_left _ _).trans hDist
@@ -113,7 +113,7 @@ lemma separationGrayProfile_sufficiency_of_near_target
     condK_ne_top_of_optimal V hV x []
   set kx := (plainK V x).toNat with hkxDef
   have hkx : plainK V x = (kx : ENat) :=
-    (ENat.coe_toNat hxFinite).symm
+    (ENat.natCast_toNat hxFinite).symm
   have hLower' := hLower n k cSlack x hProf
   rw [hkx] at hLower'
   have hLowerNat :
@@ -150,7 +150,7 @@ lemma separationGrayProfile_minimality_of_near_target
     condK_ne_top_of_optimal V hV (codedUniformOn B hB).code []
   set a := (plainSetComplexity V B hB).toNat with haDef
   have ha : plainSetComplexity V B hB = (a : ENat) :=
-    (ENat.coe_toNat hBFinite).symm
+    (ENat.natCast_toNat hBFinite).symm
   have hFirstDist : ((a - k) + (k - a)) ≤ M :=
     (Nat.le_max_left _ _).trans hDist
   have hSecondDist :
@@ -165,7 +165,7 @@ lemma separationGrayProfile_minimality_of_near_target
     condK_ne_top_of_optimal V hV (codedUniformOn D hD).code []
   set d := (plainSetComplexity V D hD).toNat with hdDef
   have hd : plainSetComplexity V D hD = (d : ENat) :=
-    (ENat.coe_toNat hDFinite).symm
+    (ENat.natCast_toNat hDFinite).symm
   have hTwoPartNat :
       d + finiteSetLogCard D ≤ a + finiteSetLogCard B + kappa := by
     rw [hd, ha] at hTwoPart

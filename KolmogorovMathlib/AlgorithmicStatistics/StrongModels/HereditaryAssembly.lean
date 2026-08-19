@@ -610,7 +610,7 @@ lemma inStrongDescriptionProfile_of_strong_model_params
     condK_ne_top_of_optimal V hV (codedUniformOn F ⟨y, hyF⟩).code []
   set a := (plainSetComplexity V F ⟨y, hyF⟩).toNat with ha
   have haF : plainSetComplexity V F ⟨y, hyF⟩ = (a : ENat) :=
-    (ENat.coe_toNat hFne).symm
+    (ENat.natCast_toNat hFne).symm
   set slack := logSlack (cShift + 1) (min i L) with hslackdef
   have hslack_ge : cShift + 1 ≤ slack := by
     rw [hslackdef]; unfold logSlack; omega
@@ -773,10 +773,10 @@ private lemma hereditary_omega_chain
   have hAFinite : plainK V codeA ≠ ⊤ := by
     change plainSetComplexity V A hA ≠ ⊤
     exact ne_top_of_le_ne_top
-      (ENat.coe_ne_top (n + delta + logSlack cBound n)) hABound
+      (ENat.natCast_ne_top (n + delta + logSlack cBound n)) hABound
   let a := (plainK V codeA).toNat
   have haValue : plainK V codeA = (a : ENat) :=
-    (ENat.coe_toNat hAFinite).symm
+    (ENat.natCast_toNat hAFinite).symm
   have haBound : a ≤ n + delta + logSlack cBound n := by
     have h : (a : ENat) ≤
         ((n + delta + logSlack cBound n : Nat) : ENat) := by
@@ -799,10 +799,10 @@ private lemma hereditary_omega_chain
             ring
   have hMFinite : plainK V codeM ≠ ⊤ :=
     ne_top_of_le_ne_top
-      (ENat.coe_ne_top (n + 2 * delta + logSlack cBound n)) hMBound
+      (ENat.natCast_ne_top (n + 2 * delta + logSlack cBound n)) hMBound
   let m := (plainK V codeM).toNat
   have hmValue : plainK V codeM = (m : ENat) :=
-    (ENat.coe_toNat hMFinite).symm
+    (ENat.natCast_toNat hMFinite).symm
   have hmGap : m ≤ a + delta := by
     have h : (m : ENat) ≤ (a : ENat) + (delta : ENat) := by
       rw [← hmValue, ← haValue]
@@ -1434,7 +1434,7 @@ private lemma hereditary_family_core
   let a1Comp := (plainSetComplexity V A1 ⟨x, hA1_x⟩).toNat
   have hA1_value :
       plainSetComplexity V A1 ⟨x, hA1_x⟩ = (a1Comp : ENat) :=
-    (ENat.coe_toNat hA1_finite).symm
+    (ENat.natCast_toNat hA1_finite).symm
   have hInter_plain :
       plainSetComplexity V (A1 ∩ M1) hA1M1_nonempty ≤
         (a1Comp + dChain + 2 * (Nat.bits a1Comp).length + cInter : Nat) :=
@@ -1444,7 +1444,7 @@ private lemma hereditary_family_core
     condK_ne_top_of_optimal V hV (codedUniformOn A hA).code []
   let aComp := (plainSetComplexity V A hA).toNat
   have hA_value : plainSetComplexity V A hA = (aComp : ENat) :=
-    (ENat.coe_toNat hA_finite).symm
+    (ENat.natCast_toNat hA_finite).symm
   let pPlain := p_F1 + cSimT
   have hA1_A_plain :
       condK V (codedUniformOn A1 ⟨x, hA1_x⟩).code
@@ -1492,7 +1492,7 @@ private lemma hereditary_family_core
     (plainSetComplexity V (A1 ∩ M1) hA1M1_nonempty).toNat
   have hI_value :
       plainSetComplexity V (A1 ∩ M1) hA1M1_nonempty = (iComp : ENat) :=
-    (ENat.coe_toNat hI_finite).symm
+    (ENat.natCast_toNat hI_finite).symm
   let deltaInter := dChain + 2 * (Nat.bits a1Comp).length + cInter
   have hiComp : iComp ≤ a1Comp + deltaInter := by
     have h := hInter_plain
@@ -1555,7 +1555,7 @@ private lemma hereditary_family_core
   have hFinite : ∀ (S : Finset BitString) (hS : S.Nonempty),
       ∃ k : Nat, plainSetComplexity V S hS = (k : ENat) := by
     intro S hS
-    exact ⟨_, (ENat.coe_toNat
+    exact ⟨_, (ENat.natCast_toNat
       (condK_ne_top_of_optimal V hV (codedUniformOn S hS).code [])).symm⟩
   obtain ⟨fComp, hfVal⟩ := hFinite F hF
   obtain ⟨f1Comp, hf1Val⟩ := hFinite F1 hF1
@@ -1787,7 +1787,7 @@ private lemma hereditary_min_shift_bound
   -- `min (i+S) (log #F) ≤ i + S ≤ n + delta + 2*S`.  (The `i+S ≤ n+delta+S` bound is
   -- FALSE in general: `i < C(A)` only up to the `O(log n)` slack `logSlack cBound n`.)
   have h1 : i + hereditarySlack cCore delta epsilon n ≤ n + delta + logSlack cBound n := by
-    exact_mod_cast (le_of_lt (ENat.coe_lt_coe.mp hInteresting))
+    exact_mod_cast (le_of_lt (ENat.natCast_lt_natCast.mp hInteresting))
   have h2 : min (i + S) (finiteSetLogCard F) ≤ i + S := Nat.min_le_left _ _
   omega
 

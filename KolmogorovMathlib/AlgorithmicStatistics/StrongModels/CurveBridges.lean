@@ -31,12 +31,12 @@ theorem restrictedProfileWithinCurve_neighborhood
   simp only [ProfileSetsWithinNeighborhood, restrictedDescriptionProfileSet, natPairLInfDistance]
   constructor
   · intro q hq
-    simp only [Set.mem_setOf_eq] at hq
+    simp only [Set.mem_ofPred_eq] at hq
     -- Case split: use (q.1 + Δ, q.2) as target if q.1 + Δ > k, otherwise (q.1, t q.1)
     by_cases hikΔ : q.1 + Δ > k
     · -- q.1 + Δ > k: target (q.1 + Δ, q.2) is in target vacuously
       refine ⟨(q.1 + Δ, q.2), ?_, ?_⟩
-      · simp only [Set.mem_setOf_eq, FamilyCurveTarget]
+      · simp only [Set.mem_ofPred_eq, FamilyCurveTarget]
         intro h
         omega
       · simp
@@ -58,16 +58,16 @@ theorem restrictedProfileWithinCurve_neighborhood
             · -- t q.1 ≤ Δ
               omega
         refine ⟨(q.1, t q.1), ?_, ?_⟩
-        · simp only [Set.mem_setOf_eq, FamilyCurveTarget]
+        · simp only [Set.mem_ofPred_eq, FamilyCurveTarget]
           exact fun _ => le_rfl
         · apply max_le <;> omega
       · -- q.2 > t q.1 + Δ: use target (q.1, q.2 + Δ)
         refine ⟨(q.1, q.2 + Δ), ?_, ?_⟩
-        · simp only [Set.mem_setOf_eq, FamilyCurveTarget]
+        · simp only [Set.mem_ofPred_eq, FamilyCurveTarget]
           intro _; omega
         · simp
   · intro q hq
-    simp only [Set.mem_setOf_eq] at hq
+    simp only [Set.mem_ofPred_eq] at hq
     -- Case split on whether q.1 ≤ k
     by_cases hik : q.1 ≤ k
     · -- Case q.1 ≤ k: use (q.1 + Δ, q.2 + Δ) in profile

@@ -298,31 +298,31 @@ theorem isAdmissibleProfileSet_diagonalProfileSet (n : Nat) :
     IsAdmissibleProfileSet (diagonalProfileSet n) := by
   refine ⟨⟨(n, 0), by simp [diagonalProfileSet]⟩, ?_, ?_⟩
   · rintro ⟨a, b⟩ ⟨a', b'⟩ ⟨ha, hb⟩ h
-    simp only [diagonalProfileSet, Set.mem_setOf_eq] at h ⊢
+    simp only [diagonalProfileSet, Set.mem_ofPred_eq] at h ⊢
     simp only at ha hb
     omega
   · rintro a b d h
-    simp only [diagonalProfileSet, Set.mem_setOf_eq] at h ⊢
+    simp only [diagonalProfileSet, Set.mem_ofPred_eq] at h ⊢
     omega
 
 theorem isUnitDropProfileSet_diagonalProfileSet (n : Nat) :
     IsUnitDropProfileSet (diagonalProfileSet n) := by
   intro a b h
-  simp only [diagonalProfileSet, Set.mem_setOf_eq] at h ⊢
+  simp only [diagonalProfileSet, Set.mem_ofPred_eq] at h ⊢
   omega
 
 theorem k_P_diagonalProfileSet (n : Nat) :
     k_P (diagonalProfileSet n) = (n : ENat) := by
   refine le_antisymm (sInf_le ⟨n, rfl, by simp [diagonalProfileSet]⟩) (le_sInf ?_)
   rintro _ ⟨t, rfl, ht⟩
-  simp only [diagonalProfileSet, Set.mem_setOf_eq] at ht
+  simp only [diagonalProfileSet, Set.mem_ofPred_eq] at ht
   exact_mod_cast (by omega : n ≤ t)
 
 theorem n_P_diagonalProfileSet (n : Nat) :
     n_P (diagonalProfileSet n) = (n : ENat) := by
   refine le_antisymm (sInf_le ⟨n, rfl, by simp [diagonalProfileSet]⟩) (le_sInf ?_)
   rintro _ ⟨t, rfl, ht⟩
-  simp only [diagonalProfileSet, Set.mem_setOf_eq] at ht
+  simp only [diagonalProfileSet, Set.mem_ofPred_eq] at ht
   exact_mod_cast (by omega : n ≤ t)
 
 /-! ### The radius cannot be kept at `epsilon`

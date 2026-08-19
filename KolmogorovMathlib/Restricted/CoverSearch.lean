@@ -268,9 +268,9 @@ theorem coverSelectorFun_getD_mem (𝒜 : DescriptionFamily) (Acode : BitString)
     (hleast : ∀ m, m < p → coverValidBool 𝒜 Acode n k q0 m = false) :
     (coverDecode p).2.getD idx [] ∈
       coverSelectorFun 𝒜 (pairCode Acode (coverAddress n k q0 idx s)) := by
-  unfold coverSelectorFun;
-  simp_all +decide [ decodeFirst_pairCode, decodeSecond_pairCode, bitsToNat_bits,
-                     bitsToNat_chunkAddress, coverAddress ];
+  unfold coverSelectorFun coverAddress;
+  simp only [decodeFirst_pairCode, decodeSecond_pairCode, bitsToNat_bits,
+             bitsToNat_chunkAddress, Part.mem_bind_iff, Part.mem_some_iff];
   exact ⟨p, Nat.mem_rfind.mpr ⟨Part.mem_some_iff.mpr hp.symm,
     fun {m} hm => Part.mem_some_iff.mpr (hleast m hm).symm⟩, rfl⟩
 

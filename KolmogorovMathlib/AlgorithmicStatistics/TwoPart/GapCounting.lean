@@ -73,7 +73,7 @@ theorem KP_partrec_cond_first_map_le (U : Map) (hU : IsOptimalPrefixConditional 
     exact this
   have hD_sub : ∀ y, domainAt D y ⊆ domainAt U y := by
     intro y p hp
-    simp only [domainAt, Set.mem_setOf_eq, hDdef] at hp ⊢
+    simp only [domainAt, Set.mem_ofPred_eq, hDdef] at hp ⊢
     exact hp.fst
   have hD_prefix : IsPrefixMachine D := fun y =>
     (hU.isPrefixMachine y).mono (hD_sub y)
@@ -324,7 +324,7 @@ theorem gap_lowerBound_conditional_setComplexity_tight (U : Map) (hU : IsOptimal
       calc ⊤ = KPPair U x code := h_contra.symm
            _ ≤ (kx : ENat) + KP U code (prefixComplexityContext x kx) + c_upper := h1
            _ = (kx : ENat) + kp_code_kx + c_upper := by rw [hkp_code_kx]
-    exact ENat.coe_ne_top _ (top_le_iff.mp h1_top)
+    exact ENat.natCast_ne_top _ (top_le_iff.mp h1_top)
   obtain ⟨kppair_x_code, hkppair_x_code_raw⟩ := ENat.ne_top_iff_exists.mp h_kppair_x_code_ne_top
   have hkppair_x_code : KPPair U x code = kppair_x_code := hkppair_x_code_raw.symm
   have h_kppair_code_x_ne_top : KPPair U code x ≠ ⊤ := by
@@ -333,7 +333,7 @@ theorem gap_lowerBound_conditional_setComplexity_tight (U : Map) (hU : IsOptimal
       calc ⊤ = KPPair U code x := h_contra.symm
            _ ≤ KPPair U x code + c_symm := h2
            _ = (kppair_x_code : ENat) + c_symm := by rw [hkppair_x_code]
-    exact ENat.coe_ne_top _ (top_le_iff.mp h2_top)
+    exact ENat.natCast_ne_top _ (top_le_iff.mp h2_top)
   obtain ⟨kppair_code_x, hkppair_code_x_raw⟩ := ENat.ne_top_iff_exists.mp h_kppair_code_x_ne_top
   have hkppair_code_x : KPPair U code x = kppair_code_x := hkppair_code_x_raw.symm
   have h_kp_code_x_ne_top : KP U x (prefixComplexityContext code i) ≠ ⊤ := by
@@ -343,7 +343,7 @@ theorem gap_lowerBound_conditional_setComplexity_tight (U : Map) (hU : IsOptimal
            _ = (i : ENat) + KP U x (prefixComplexityContext code i) := by rw [h_contra]
            _ ≤ KPPair U code x + c_lower := h3
            _ = (kppair_code_x : ENat) + c_lower := by rw [hkppair_code_x]
-    exact ENat.coe_ne_top _ (top_le_iff.mp h3_top)
+    exact ENat.natCast_ne_top _ (top_le_iff.mp h3_top)
   obtain ⟨kp_code_i, hkp_code_i_raw⟩ := ENat.ne_top_iff_exists.mp h_kp_code_x_ne_top
   have hkp_code_i : KP U x (prefixComplexityContext code i) = kp_code_i := hkp_code_i_raw.symm
   have h_kp_x_code_ne_top : KP U x code ≠ ⊤ := by
@@ -355,7 +355,7 @@ theorem gap_lowerBound_conditional_setComplexity_tight (U : Map) (hU : IsOptimal
            _ ≤ KPPlain U x + c_plain := hp
            _ ≤ ((x.length : ENat) + 2 * (Nat.bits x.length).length + c_len) + c_plain := by
                 gcongr; exact hc_len x
-    exact ENat.coe_ne_top _ (top_le_iff.mp h_top_ineq)
+    exact ENat.natCast_ne_top _ (top_le_iff.mp h_top_ineq)
   obtain ⟨kp_x_code, hkp_x_code_raw⟩ := ENat.ne_top_iff_exists.mp h_kp_x_code_ne_top
   have hkp_x_code : KP U x code = kp_x_code := hkp_x_code_raw.symm
   -- Convert the KPPair symmetry-of-information chain to ℕ.
@@ -807,7 +807,7 @@ theorem indexSelectorFn_eq_code (c : Code) (i j : ℕ) (x : BitString) (code : B
   intro y w hy hi hj hr
   convert Part.eq_some_iff.mpr _ using 1;
   unfold indexSelectorFn
-  simp only [Part.mem_bind_iff, Nat.mem_rfind, Part.mem_some_iff, hy, hi, hj, hr]
+  simp only [Part.mem_bind_iff, Part.mem_some_iff, hy, hi, hj, hr]
   refine ⟨Nat.find (⟨t0, hr_lt⟩ : ∃ t, r < (appearanceListCodes c i j x t).length),
     Nat.mem_rfind.mpr ⟨?_, fun {m} hm => ?_⟩, ?_⟩
   · exact Part.mem_some_iff.mpr (decide_eq_true (Nat.find_spec

@@ -28,7 +28,7 @@ theorem condK_exact_gain_or_no_gain (V : Map) (y z : BitString) :
   rcases eq_or_ne (condK V y z) ⊤ with htop | hfin
   · exact Or.inl (by rw [htop]; exact le_top)
   · set t : Nat := (condK V y z).toNat with htdef
-    have hteq : condK V y z = (t : ENat) := (ENat.coe_toNat hfin).symm
+    have hteq : condK V y z = (t : ENat) := (ENat.natCast_toNat hfin).symm
     rcases lt_or_ge t y.length with hlt | hge
     · refine Or.inr ⟨t, y.length - t, hteq, hlt, rfl, ?_⟩
       rw [hteq]

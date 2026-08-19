@@ -421,13 +421,13 @@ theorem reductionPreimage_condK_given_B
   have hcondFinite :
       condK V (codedUniformOn A hA).code
         (codedUniformOn B hB).code ≠ ⊤ :=
-    ne_top_of_le_ne_top (ENat.coe_ne_top _) hcondBound
+    ne_top_of_le_ne_top (ENat.natCast_ne_top _) hcondBound
   let qLen := (condK V (codedUniformOn A hA).code
     (codedUniformOn B hB).code).toNat
   have hqLenValue :
       condK V (codedUniformOn A hA).code
         (codedUniformOn B hB).code = (qLen : ENat) := by
-    exact (ENat.coe_toNat hcondFinite).symm
+    exact (ENat.natCast_toNat hcondFinite).symm
   have hqLenBound : qLen ≤ n + epsilon + cLiteral + cDrop := by
     rw [hqLenValue] at hcondBound
     exact_mod_cast hcondBound
@@ -731,13 +731,13 @@ theorem reductionPreimage_card_lower
   have hABFinite :
       condK V (codedUniformOn A hA).code
         (codedUniformOn B hB).code ≠ ⊤ :=
-    ne_top_of_le_ne_top (ENat.coe_ne_top _) hABBound
+    ne_top_of_le_ne_top (ENat.natCast_ne_top _) hABBound
   let q := (condK V (codedUniformOn A hA).code
     (codedUniformOn B hB).code).toNat
   have hqValue :
       condK V (codedUniformOn A hA).code
         (codedUniformOn B hB).code = (q : ENat) :=
-    (ENat.coe_toNat hABFinite).symm
+    (ENat.natCast_toNat hABFinite).symm
   have hqBound : q ≤ n + epsilon + cLiteral + cDrop := by
     rw [hqValue] at hABBound
     exact_mod_cast hABBound
@@ -758,10 +758,10 @@ theorem reductionPreimage_card_lower
         push_cast
         ring
   have hBFinite : plainSetComplexity V B hB ≠ ⊤ :=
-    ne_top_of_le_ne_top (ENat.coe_ne_top _) hBBound
+    ne_top_of_le_ne_top (ENat.natCast_ne_top _) hBBound
   let b := (plainSetComplexity V B hB).toNat
   have hbValue : plainSetComplexity V B hB = (b : ENat) :=
-    (ENat.coe_toNat hBFinite).symm
+    (ENat.natCast_toNat hBFinite).symm
   have hbBound : b ≤ n + epsilon + cLiteral := by
     rw [hbValue] at hBBound
     exact_mod_cast hBBound
@@ -803,7 +803,7 @@ theorem reductionPreimage_card_lower
         norm_cast
         omega
   have hlogB : (finiteSetLogCard B : ENat) ≤ (rest : ENat) :=
-    (ENat.add_le_add_iff_left (ENat.coe_ne_top b)).mp hcancelInput
+    (ENat.add_le_add_iff_left (ENat.natCast_ne_top b)).mp hcancelInput
   let tailA := (cPre + 1) * epsilon + cPre * (Nat.bits n).length +
     cPre + cLiteral + cDrop
   have haBound : a ≤ n + tailA := by
@@ -997,10 +997,10 @@ theorem target_in_heavy_output_list
           (cDrop : ENat) := by gcongr; exact hLiteral codeA
       _ = ((codeA.length + cLiteral + cDrop : Nat) : ENat) := by norm_cast
   have hqFinite : condK V codeA codeB ≠ ⊤ :=
-    ne_top_of_le_ne_top (ENat.coe_ne_top _) hqBound
+    ne_top_of_le_ne_top (ENat.natCast_ne_top _) hqBound
   let q := (condK V codeA codeB).toNat
   have hqValue : condK V codeA codeB = (q : ENat) :=
-    (ENat.coe_toNat hqFinite).symm
+    (ENat.natCast_toNat hqFinite).symm
   let D := reductionPreimage T p B A hA
   have hxD : x ∈ D :=
     (mem_reductionPreimage T p B A hA x).mpr ⟨hS_B.1, hprod⟩
@@ -1309,10 +1309,10 @@ theorem strongSufficientStatistic_total_reduction
           (cDrop : ENat) := by gcongr; exact hLiteral codeA
       _ = ((codeA.length + cLiteral + cDrop : Nat) : ENat) := by norm_cast
   have hqFinite : condK V codeA codeB ≠ ⊤ :=
-    ne_top_of_le_ne_top (ENat.coe_ne_top _) hqBound
+    ne_top_of_le_ne_top (ENat.natCast_ne_top _) hqBound
   let q := (condK V codeA codeB).toNat
   have hqValue : condK V codeA codeB = (q : ENat) :=
-    (ENat.coe_toNat hqFinite).symm
+    (ENat.natCast_toNat hqFinite).symm
   let slack := cHeavy * epsilon + logSlack cHeavy n
   let l := finiteSetLogCard B - q - slack
   let ys := (canonicalFinsetList B).map (fun z => totalProgOutput T p hp z)
@@ -1412,7 +1412,7 @@ theorem strongSufficientStatistic_total_reduction
       exact_mod_cast hframe
     _ = (q : ENat) + (c * epsilon + logSlack c n : Nat) := by
       rw [show q + c * epsilon + logSlack c n =
-        q + (c * epsilon + logSlack c n) by omega, ENat.coe_add]
+        q + (c * epsilon + logSlack c n) by omega, ENat.natCast_add]
     _ = condK V codeA codeB +
         (c * epsilon + logSlack c n : Nat) := by rw [hqValue]
 

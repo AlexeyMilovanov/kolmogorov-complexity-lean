@@ -50,7 +50,7 @@ theorem setComplexity_halfRichComplexityPortion_le_length_free
     apply logSlack_four_add_le
     omega
   refine le_trans hbound ?_
-  rw [← ENat.coe_sub, add_assoc]
+  rw [← ENat.natCast_sub, add_assoc]
   gcongr
   exact_mod_cast habs
 
@@ -113,7 +113,7 @@ theorem gap_lowerBound_conditional_setComplexity_tight_budget
       calc ⊤ = KPPair U x code := h_contra.symm
            _ ≤ (kx : ENat) + KP U code (prefixComplexityContext x kx) + c_upper := h1
            _ = (kx : ENat) + kp_code_kx + c_upper := by rw [hkp_code_kx]
-    exact ENat.coe_ne_top _ (top_le_iff.mp h1_top)
+    exact ENat.natCast_ne_top _ (top_le_iff.mp h1_top)
   obtain ⟨kppair_x_code, hkppair_x_code_raw⟩ := ENat.ne_top_iff_exists.mp h_kppair_x_code_ne_top
   have hkppair_x_code : KPPair U x code = kppair_x_code := hkppair_x_code_raw.symm
   have h_kppair_code_x_ne_top : KPPair U code x ≠ ⊤ := by
@@ -122,7 +122,7 @@ theorem gap_lowerBound_conditional_setComplexity_tight_budget
       calc ⊤ = KPPair U code x := h_contra.symm
            _ ≤ KPPair U x code + c_symm := h2
            _ = (kppair_x_code : ENat) + c_symm := by rw [hkppair_x_code]
-    exact ENat.coe_ne_top _ (top_le_iff.mp h2_top)
+    exact ENat.natCast_ne_top _ (top_le_iff.mp h2_top)
   obtain ⟨kppair_code_x, hkppair_code_x_raw⟩ := ENat.ne_top_iff_exists.mp h_kppair_code_x_ne_top
   have hkppair_code_x : KPPair U code x = kppair_code_x := hkppair_code_x_raw.symm
   have h_kp_code_x_ne_top : KP U x (prefixComplexityContext code i) ≠ ⊤ := by
@@ -132,7 +132,7 @@ theorem gap_lowerBound_conditional_setComplexity_tight_budget
            _ = (i : ENat) + KP U x (prefixComplexityContext code i) := by rw [h_contra]
            _ ≤ KPPair U code x + c_lower := h3
            _ = (kppair_code_x : ENat) + c_lower := by rw [hkppair_code_x]
-    exact ENat.coe_ne_top _ (top_le_iff.mp h3_top)
+    exact ENat.natCast_ne_top _ (top_le_iff.mp h3_top)
   obtain ⟨kp_code_i, hkp_code_i_raw⟩ := ENat.ne_top_iff_exists.mp h_kp_code_x_ne_top
   have hkp_code_i : KP U x (prefixComplexityContext code i) = kp_code_i := hkp_code_i_raw.symm
   have h_kp_x_code_ne_top : KP U x code ≠ ⊤ := by
@@ -142,7 +142,7 @@ theorem gap_lowerBound_conditional_setComplexity_tight_budget
       calc ⊤ = KP U x code := h_contra.symm
            _ ≤ KPPlain U x + c_plain := hp
            _ = (kx : ENat) + c_plain := by rw [← hkx']
-    exact ENat.coe_ne_top _ (top_le_iff.mp h_top_ineq)
+    exact ENat.natCast_ne_top _ (top_le_iff.mp h_top_ineq)
   obtain ⟨kp_x_code, hkp_x_code_raw⟩ := ENat.ne_top_iff_exists.mp h_kp_x_code_ne_top
   have hkp_x_code : KP U x code = kp_x_code := hkp_x_code_raw.symm
   -- Convert the KPPair symmetry-of-information chain to ℕ.
@@ -486,7 +486,7 @@ theorem exists_realizedGap_uniformSet_of_stochastic_budget
   set delta := i + j - kx with hdelta_def
   set d := min d0 (delta + c_soi) with hd_def
   have hi_eq : setComplexity U A hA = (i : ENat) :=
-    (ENat.coe_toNat (setComplexity_ne_top_of_optimal U hU A hA)).symm
+    (ENat.natCast_toNat (setComplexity_ne_top_of_optimal U hU A hA)).symm
   have h_realized : RealizedSetOptimalityGap U A hA x delta i j kx :=
     ⟨hxA, hi_eq, hj_upper, hj_lower, hkx_val, rfl⟩
   -- The `delta + c_soi` deficiency bound from Symmetry of Information.
@@ -510,7 +510,7 @@ theorem exists_realizedGap_uniformSet_of_stochastic_budget
         (KP U x (codedUniformOn A hA).code).toNat := by
       have : KP U x (codedUniformOn A hA).code =
           ((KP U x (codedUniformOn A hA).code).toNat : ENat) :=
-        (ENat.coe_toNat (KP_ne_top_of_optimal U hU x _)).symm
+        (ENat.natCast_toNat (KP_ne_top_of_optimal U hU x _)).symm
       rw [this]
       rfl
     rw [hkp_eq]

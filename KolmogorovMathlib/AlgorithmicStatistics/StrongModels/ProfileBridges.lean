@@ -111,7 +111,7 @@ theorem plainK_le_of_inPlainDescriptionProfile
       exact (Computable.pair
         (decodeTotalProgramPairFirst_computable.comp Computable.fst)
         (Computable.const [])).to₂
-    haveI : Primcodable (Part BitString) := by
+    have : Primcodable (Part BitString) := by
       classical
       exact Primcodable.ofEquiv _ {
         toFun := fun p => if h : p.Dom then some (p.get h) else none

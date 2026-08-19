@@ -58,7 +58,7 @@ theorem profileBoundary_KPPlain_le
     condK_ne_top_of_optimal V hV b.code []
   have hbValue : plainK V b.code = (b.KP : ENat) := by
     rw [b.h_KP]
-    exact (ENat.coe_toNat hbFinite).symm
+    exact (ENat.natCast_toNat hbFinite).symm
   have hbExact : KP U b.code (pairCode [] (Nat.bits b.KP)) ≤
       ((b.KP + cExact : ℕ) : ENat) := by
     exact_mod_cast hExact b.code [] b.KP hbValue

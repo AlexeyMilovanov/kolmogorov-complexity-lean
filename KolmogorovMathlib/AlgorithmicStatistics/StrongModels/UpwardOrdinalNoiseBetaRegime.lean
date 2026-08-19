@@ -80,7 +80,7 @@ theorem strongModelOrdinalNoiseTransport_of_n_le_beta
   have hplain := hc2 n B hB (epsilon + c1) htotal
   let z := strongModelOrdinalBitsPair A hA x
   have hne : plainK V (codedUniformOn B hB).code ≠ ⊤ :=
-    ne_top_of_le_ne_top (ENat.coe_ne_top _) hplain
+    ne_top_of_le_ne_top (ENat.natCast_ne_top _) hplain
   obtain ⟨kC, hkC_symm⟩ := WithTop.ne_top_iff_exists.1 hne
   have hkC : plainK V (codedUniformOn B hB).code = (kC : ENat) := hkC_symm.symm
   let k := epsilon + c1 + logSlack c2 n

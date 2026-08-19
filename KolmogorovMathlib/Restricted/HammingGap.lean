@@ -1189,7 +1189,7 @@ lemma exists_high_complexity_element_in_finset (U : Map) (_hU : IsOptimalPrefixC
       have hkx_lt : kx + 1 < L := by
         have hcast : ((kx + 1 : ℕ) : ENat) < (L : ENat) := by
           simpa [hKP, Nat.cast_add] using hlt
-        exact ENat.coe_lt_coe.mp hcast
+        exact ENat.natCast_lt_natCast.mp hcast
       have hle : KPPlain U x ≤ ((L - 2 : ℕ) : ENat) := by
         rw [hkx]
         exact_mod_cast (by omega : kx ≤ L - 2)

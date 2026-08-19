@@ -19,7 +19,7 @@ open Kolmogorov.CodedFiniteDistribution
 truncated difference. -/
 theorem enat_sub_coe (kp mp : ℕ) :
     (kp : ENat) - (mp : ENat) = ((kp - mp : ℕ) : ENat) := by
-  exact (ENat.coe_sub kp mp).symm
+  exact (ENat.natCast_sub kp mp).symm
 
 theorem thm_card
     (V U T : Map)

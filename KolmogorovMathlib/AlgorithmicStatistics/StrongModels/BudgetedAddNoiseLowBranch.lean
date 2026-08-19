@@ -164,9 +164,9 @@ theorem inPlainDescriptionProfile_of_condK_compression_size_scale
           ≤ (iH : ENat) + (logSlack cPre iH : ENat) := by gcongr
       _ = ((iH + logSlack cPre iH : Nat) : ENat) := by push_cast; ring
   have hi1fin : setComplexity U H hH ≠ ⊤ :=
-    ne_top_of_le_ne_top (ENat.coe_ne_top _) hi1le0
+    ne_top_of_le_ne_top (ENat.natCast_ne_top _) hi1le0
   set i1 := (setComplexity U H hH).toNat with hi1def
-  have hi1 : setComplexity U H hH = (i1 : ENat) := (ENat.coe_toNat hi1fin).symm
+  have hi1 : setComplexity U H hH = (i1 : ENat) := (ENat.natCast_toNat hi1fin).symm
   have hi1le : i1 ≤ iH + logSlack cPre iH := by
     have h : (i1 : ENat) ≤ ((iH + logSlack cPre iH : Nat) : ENat) := by
       rw [← hi1]; exact hi1le0
@@ -335,18 +335,18 @@ theorem inPlainDescriptionProfile_fst_of_pair_model_budgeted_core
     have hHfin : plainSetComplexity V H hHne ≠ ⊤ :=
       condK_ne_top_of_optimal V hV _ _
     set iH := (plainSetComplexity V H hHne).toNat with hiHdef
-    have hiH : plainSetComplexity V H hHne = (iH : ENat) := (ENat.coe_toNat hHfin).symm
+    have hiH : plainSetComplexity V H hHne = (iH : ENat) := (ENat.natCast_toNat hHfin).symm
     have hqfin : condK V (codedUniformOn B hB).code (codedUniformOn H hHne).code ≠ ⊤ :=
       condK_ne_top_of_optimal V hV _ _
     set q := (condK V (codedUniformOn B hB).code (codedUniformOn H hHne).code).toNat
       with hqdef
     have hq : condK V (codedUniformOn B hB).code (codedUniformOn H hHne).code = (q : ENat) :=
-      (ENat.coe_toNat hqfin).symm
+      (ENat.natCast_toNat hqfin).symm
     have hgfin : condK V (codedUniformOn H hHne).code x ≠ ⊤ :=
       condK_ne_top_of_optimal V hV _ _
     set g := (condK V (codedUniformOn H hHne).code x).toNat with hgdef
     have hg : condK V (codedUniformOn H hHne).code x = (g : ENat) :=
-      (ENat.coe_toNat hgfin).symm
+      (ENat.natCast_toNat hgfin).symm
     -- Finite-set symmetry of information, in natural numbers.
     have hiHq : iH + q ≤ i + logSlack cSym M := by
       rw [hiH, hq] at hsym

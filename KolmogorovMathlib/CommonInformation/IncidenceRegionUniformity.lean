@@ -604,7 +604,7 @@ lemma exists_incidenceCapacityShearCoverCode_rank (n b c : Nat)
         ((incidenceCapacityShearCoverCode n b c).getD rank [])).2 := by
   classical
   have heCover := incidenceCapacityShearCover_covers n b c e.2
-  letI : DecidableEq (Point (ConcreteField n) × Line (ConcreteField n)) :=
+  let : DecidableEq (Point (ConcreteField n) × Line (ConcreteField n)) :=
     @instDecidableEqProd _ _ (Classical.decEq _) (Classical.decEq _)
   rw [rectangleFamilyEdges, Finset.mem_biUnion] at heCover
   obtain ⟨R, hR, heR⟩ := heCover

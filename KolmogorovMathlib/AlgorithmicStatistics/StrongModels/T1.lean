@@ -405,7 +405,7 @@ theorem t1_boundary_pointwise_profile
           let q' : Nat × Nat := (q.1, n - q.1)
           refine ⟨q', ?_, ?_⟩
           · unfold t1PlainPolygon
-            simp only [Set.mem_setOf_eq, q', if_pos hqepsilon]
+            simp only [Set.mem_ofPred_eq, q', if_pos hqepsilon]
             omega
           · unfold natPairLInfDistance
             simp only [q', Nat.sub_self, zero_add]
@@ -418,13 +418,13 @@ theorem t1_boundary_pointwise_profile
             omega
         · have hsum : q.1 + q.2 < k := by
             unfold t1PlainPolygon at hpolygon
-            simp only [Set.mem_setOf_eq, if_neg hqepsilon,
+            simp only [Set.mem_ofPred_eq, if_neg hqepsilon,
               not_le] at hpolygon
             exact hpolygon
           let q' : Nat × Nat := (q.1, k - q.1)
           refine ⟨q', ?_, ?_⟩
           · unfold t1PlainPolygon
-            simp only [Set.mem_setOf_eq, q', if_neg hqepsilon]
+            simp only [Set.mem_ofPred_eq, q', if_neg hqepsilon]
             omega
           · unfold natPairLInfDistance
             simp only [q', Nat.sub_self, zero_add]
@@ -477,9 +477,9 @@ theorem t1_boundary_pointwise_profile
             omega
           · unfold t1PlainPolygon at hq
             by_cases hqepsilon : q.1 < epsilon
-            · simp only [Set.mem_setOf_eq, if_pos hqepsilon] at hq
+            · simp only [Set.mem_ofPred_eq, if_pos hqepsilon] at hq
               omega
-            · simp only [Set.mem_setOf_eq, if_neg hqepsilon] at hq
+            · simp only [Set.mem_ofPred_eq, if_neg hqepsilon] at hq
               omega
         refine ⟨(q.1 + logSlack cProfile n, q.2 + 3),
           hshifted', ?_⟩
@@ -500,12 +500,12 @@ theorem t1_boundary_pointwise_profile
           hD n k x q.1 q.2 hxlen hkn hnotD hplain
         have hqsum : q.1 + q.2 < n := by
           unfold t1StrongPolygon at hpolygon
-          simp only [Set.mem_setOf_eq, not_or, not_le] at hpolygon
+          simp only [Set.mem_ofPred_eq, not_or, not_le] at hpolygon
           exact hpolygon.2
         let q' : Nat × Nat := (q.1, n - q.1)
         refine ⟨q', ?_, ?_⟩
         · unfold t1StrongPolygon
-          simp only [Set.mem_setOf_eq, q']
+          simp only [Set.mem_ofPred_eq, q']
           exact Or.inr (by omega)
         · unfold natPairLInfDistance
           simp only [q', Nat.sub_self, zero_add]
@@ -699,7 +699,7 @@ theorem t1_strange_string_boundary_case
           let q' : Nat × Nat := (q.1, n - q.1)
           refine ⟨q', ?_, ?_⟩
           · unfold t1PlainPolygon
-            simp only [Set.mem_setOf_eq, q', if_pos hqepsilon]
+            simp only [Set.mem_ofPred_eq, q', if_pos hqepsilon]
             omega
           · unfold natPairLInfDistance
             simp only [q', Nat.sub_self, zero_add]
@@ -712,13 +712,13 @@ theorem t1_strange_string_boundary_case
             omega
         · have hsum : q.1 + q.2 < k := by
             unfold t1PlainPolygon at hpolygon
-            simp only [Set.mem_setOf_eq, if_neg hqepsilon,
+            simp only [Set.mem_ofPred_eq, if_neg hqepsilon,
               not_le] at hpolygon
             exact hpolygon
           let q' : Nat × Nat := (q.1, k - q.1)
           refine ⟨q', ?_, ?_⟩
           · unfold t1PlainPolygon
-            simp only [Set.mem_setOf_eq, q', if_neg hqepsilon]
+            simp only [Set.mem_ofPred_eq, q', if_neg hqepsilon]
             omega
           · unfold natPairLInfDistance
             simp only [q', Nat.sub_self, zero_add]
@@ -771,9 +771,9 @@ theorem t1_strange_string_boundary_case
             omega
           · unfold t1PlainPolygon at hq
             by_cases hqepsilon : q.1 < epsilon
-            · simp only [Set.mem_setOf_eq, if_pos hqepsilon] at hq
+            · simp only [Set.mem_ofPred_eq, if_pos hqepsilon] at hq
               omega
-            · simp only [Set.mem_setOf_eq, if_neg hqepsilon] at hq
+            · simp only [Set.mem_ofPred_eq, if_neg hqepsilon] at hq
               omega
         refine ⟨(q.1 + logSlack cProfile n, q.2 + 3),
           hshifted', ?_⟩
@@ -794,12 +794,12 @@ theorem t1_strange_string_boundary_case
           hD n k x q.1 q.2 hxlen hkn hnotD hplain
         have hqsum : q.1 + q.2 < n := by
           unfold t1StrongPolygon at hpolygon
-          simp only [Set.mem_setOf_eq, not_or, not_le] at hpolygon
+          simp only [Set.mem_ofPred_eq, not_or, not_le] at hpolygon
           exact hpolygon.2
         let q' : Nat × Nat := (q.1, n - q.1)
         refine ⟨q', ?_, ?_⟩
         · unfold t1StrongPolygon
-          simp only [Set.mem_setOf_eq, q']
+          simp only [Set.mem_ofPred_eq, q']
           exact Or.inr (by omega)
         · unfold natPairLInfDistance
           simp only [q', Nat.sub_self, zero_add]
@@ -855,11 +855,11 @@ theorem t1PlainPolygon_to_t1StrongPolygon_boundary
   · exact ⟨q, hsolid, by simp [natPairLInfDistance]⟩
   · have hsolid' : q.1 < k ∧ q.1 + q.2 < n := by
       unfold t1StrongPolygon at hsolid
-      simpa only [Set.mem_setOf_eq, not_or, not_le] using hsolid
+      simpa only [Set.mem_ofPred_eq, not_or, not_le] using hsolid
     have hqepsilon : ¬ q.1 < epsilon := by
       intro hlt
       unfold t1PlainPolygon at hq
-      simp only [Set.mem_setOf_eq, if_pos hlt] at hq
+      simp only [Set.mem_ofPred_eq, if_pos hlt] at hq
       omega
     have hkline : k ≤ q.1 + q.2 := by
       unfold t1PlainPolygon at hq
@@ -867,7 +867,7 @@ theorem t1PlainPolygon_to_t1StrongPolygon_boundary
     let q' : Nat × Nat := (q.1, n - q.1)
     refine ⟨q', ?_, ?_⟩
     · unfold t1StrongPolygon
-      simp only [Set.mem_setOf_eq, q']
+      simp only [Set.mem_ofPred_eq, q']
       exact Or.inr (by omega)
     · unfold natPairLInfDistance
       simp only [q', Nat.sub_self, zero_add]

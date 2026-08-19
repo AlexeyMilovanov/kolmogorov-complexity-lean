@@ -71,9 +71,9 @@ theorem prop_min_hereditary
   have haFinite : plainK V codeA ≠ ⊤ := by
     change plainSetComplexity V A hA ≠ ⊤
     exact ne_top_of_le_ne_top
-      (ENat.coe_ne_top (n + delta + logSlack cBound n)) hABound
+      (ENat.natCast_ne_top (n + delta + logSlack cBound n)) hABound
   have haValue : plainK V codeA = (a : ENat) :=
-    (ENat.coe_toNat haFinite).symm
+    (ENat.natCast_toNat haFinite).symm
   have haBound : a ≤ n + delta + logSlack cBound n := by
     have h : (a : ENat) ≤
         ((n + delta + logSlack cBound n : Nat) : ENat) := by
@@ -89,9 +89,9 @@ theorem prop_min_hereditary
       obtain ⟨cTwo, hTwo⟩ := KPPlain_le_two_mul_length U hU
       unfold setComplexity
       exact ne_top_of_le_ne_top
-        (ENat.coe_ne_top (2 * codeA.length + cTwo)) (hTwo codeA)
+        (ENat.natCast_ne_top (2 * codeA.length + cTwo)) (hTwo codeA)
     have hiValue : setComplexity U A hA = (i : ENat) :=
-      (ENat.coe_toNat hiFinite).symm
+      (ENat.natCast_toNat hiFinite).symm
     let j := finiteSetLogCard A
     have hDescA : IsIJDescription U x A hA i j := by
       exact ⟨hmin.1, le_of_eq hiValue, finiteSetLogCard_spec A⟩
@@ -103,9 +103,9 @@ theorem prop_min_hereditary
     let b := (plainK V (codedUniformOn B hB).code).toNat
     have hbFinite : plainK V (codedUniformOn B hB).code ≠ ⊤ := by
       exact ne_top_of_le_ne_top
-        (ENat.coe_ne_top (i + logSlack cBetter m)) hplainB
+        (ENat.natCast_ne_top (i + logSlack cBetter m)) hplainB
     have hbValue : plainK V (codedUniformOn B hB).code = (b : ENat) :=
-      (ENat.coe_toNat hbFinite).symm
+      (ENat.natCast_toNat hbFinite).symm
     have hmVisible : m ≤ n + logSlack cBetter n := by
       exact hm.trans (by omega)
     have hBetterSlack :

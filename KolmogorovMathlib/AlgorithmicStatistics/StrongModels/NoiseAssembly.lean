@@ -113,7 +113,7 @@ theorem exists_noise_finset_near_profile
       condK_ne_top_of_optimal V hV _ []
     set kyz := (plainK V (pairCode y z)).toNat with hkyz
     have hkyzval : plainK V (pairCode y z) = (kyz : ENat) :=
-      (ENat.coe_toNat hpairFinite).symm
+      (ENat.natCast_toNat hpairFinite).symm
     set Epair := cPair * (eta + cTail) + logSlack cPair (y.length + d) with hEpair
     obtain ⟨hpairUp, hpairLow⟩ :=
       hPair y z mp d eta cTail ky kyz hky hkyzval hkyup hkylow hzlen hzrandom

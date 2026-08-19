@@ -19,7 +19,7 @@ open scoped ENNReal
 /-- A finite upper bound transfers to `ENat.toNat`. -/
 private lemma toNat_le_of_le_nat {e : ENat} {k : Nat} (h : e ≤ (k : ENat)) :
     e.toNat ≤ k := by
-  simpa using ENat.toNat_le_toNat h (ENat.coe_ne_top k)
+  simpa using ENat.toNat_le_toNat h (ENat.natCast_ne_top k)
 
 /-- Five logarithmic slacks and a constant fold into a single slack. -/
 private lemma logSlack_five_le (c₁ c₂ c₃ c₄ c₅ k C n : Nat)
@@ -77,10 +77,10 @@ theorem stepWise_standardModel_package
   have hiFinite : setComplexity U S hS ≠ ⊤ := by
     unfold setComplexity
     exact ne_top_of_le_ne_top
-      (ENat.coe_ne_top (2 * (codedUniformOn S hS).code.length + cTwo))
+      (ENat.natCast_ne_top (2 * (codedUniformOn S hS).code.length + cTwo))
       (hTwo (codedUniformOn S hS).code)
   set i := (setComplexity U S hS).toNat with hi
-  have hiValue : setComplexity U S hS = (i : ENat) := (ENat.coe_toNat hiFinite).symm
+  have hiValue : setComplexity U S hS = (i : ENat) := (ENat.natCast_toNat hiFinite).symm
   set j := finiteSetLogCard S with hj
   have hDesc : IsIJDescription U x S hS i j :=
     ⟨hxS, le_of_eq hiValue, finiteSetLogCard_spec S⟩
@@ -99,10 +99,10 @@ theorem stepWise_standardModel_package
     unfold finiteSetLogCard
     rw [hcardB, Nat.clog_pow 2 r (by norm_num)]
   have hbFinite : plainSetComplexity V B hBne ≠ ⊤ :=
-    ne_top_of_le_ne_top (ENat.coe_ne_top (i + logSlack cBetter m)) hplainB
+    ne_top_of_le_ne_top (ENat.natCast_ne_top (i + logSlack cBetter m)) hplainB
   set b := (plainSetComplexity V B hBne).toNat with hb
   have hbValue : plainK V (codedUniformOn B hBne).code = (b : ENat) :=
-    (ENat.coe_toNat hbFinite).symm
+    (ENat.natCast_toNat hbFinite).symm
   have hFoldLe : logSlack cBetterFold n ≤
       logSlack (cBetter + cBetterFold + cStdFold) n :=
     logSlack_mono_left (by omega) n
@@ -187,10 +187,10 @@ theorem stepWise_plain_half
     omega
   have hABound := hBound x n A hA delta hx hmin₀
   have haFinite : plainSetComplexity V A hA ≠ ⊤ :=
-    ne_top_of_le_ne_top (ENat.coe_ne_top _) hABound
+    ne_top_of_le_ne_top (ENat.natCast_ne_top _) hABound
   set a := (plainSetComplexity V A hA).toNat with ha
   have haValue : plainSetComplexity V A hA = (a : ENat) :=
-    (ENat.coe_toNat haFinite).symm
+    (ENat.natCast_toNat haFinite).symm
   have haBound : a ≤ n + delta + logSlack cBound n := by
     rw [ha]
     exact toNat_le_of_le_nat hABound
@@ -219,15 +219,15 @@ theorem stepWise_plain_half
     obtain ⟨B', hB', hxB', hTwoB', hPlainB', hCondB'B, hCondB'Om, hCondOmB'⟩ :=
       hStdPkg x n B hB hx hxB
     have ha'Finite : plainSetComplexity V A' hA' ≠ ⊤ :=
-      ne_top_of_le_ne_top (ENat.coe_ne_top _) (le_trans le_self_add hTwoA')
+      ne_top_of_le_ne_top (ENat.natCast_ne_top _) (le_trans le_self_add hTwoA')
     have hb'Finite : plainSetComplexity V B' hB' ≠ ⊤ :=
-      ne_top_of_le_ne_top (ENat.coe_ne_top _) (le_trans le_self_add hTwoB')
+      ne_top_of_le_ne_top (ENat.natCast_ne_top _) (le_trans le_self_add hTwoB')
     set a' := (plainSetComplexity V A' hA').toNat with ha'
     set b' := (plainSetComplexity V B' hB').toNat with hb'
     have ha'Value : plainSetComplexity V A' hA' = (a' : ENat) :=
-      (ENat.coe_toNat ha'Finite).symm
+      (ENat.natCast_toNat ha'Finite).symm
     have hb'Value : plainSetComplexity V B' hB' = (b' : ENat) :=
-      (ENat.coe_toNat hb'Finite).symm
+      (ENat.natCast_toNat hb'Finite).symm
     have ha'TwoNat : a' + finiteSetLogCard A' ≤
         min n ((setComplexity U A hA).toNat + finiteSetLogCard A) + logSlack cStd n := by
       have h : ((a' + finiteSetLogCard A' : Nat) : ENat) ≤
@@ -290,16 +290,16 @@ theorem stepWise_plain_half
             calc plainK V x ≤ (programLength x : ENat) + (cLit : ENat) := hLit x
               _ = ((x.length + cLit : Nat) : ENat) := by push_cast; rfl
               _ = ((n + cLit : Nat) : ENat) := by rw [hx]
-          have hkxFinite : plainK V x ≠ ⊤ := ne_top_of_le_ne_top (ENat.coe_ne_top _) hKx
+          have hkxFinite : plainK V x ≠ ⊤ := ne_top_of_le_ne_top (ENat.natCast_ne_top _) hKx
           set kx := (plainK V x).toNat with hkx
-          have hkxValue : plainK V x = (kx : ENat) := (ENat.coe_toNat hkxFinite).symm
+          have hkxValue : plainK V x = (kx : ENat) := (ENat.natCast_toNat hkxFinite).symm
           have hkxBound : kx ≤ n + cLit := by
             rw [hkx]; exact toNat_le_of_le_nat hKx
           have hkxMem : kx ≤ a + finiteSetLogCard A + 2 * (Nat.bits a).length + cMem := by
             rw [hkx]
             exact toNat_le_of_le_nat (hMem A hA x a hxA (le_of_eq haValue))
           have hbvFinite : plainSetComplexity V B hB ≠ ⊤ := by
-            refine ne_top_of_le_ne_top (ENat.coe_ne_top (n + cLit + epsilon)) ?_
+            refine ne_top_of_le_ne_top (ENat.natCast_ne_top (n + cLit + epsilon)) ?_
             calc plainSetComplexity V B hB
                 ≤ plainSetComplexity V B hB + (finiteSetLogCard B : ENat) := le_self_add
               _ ≤ plainK V x + (epsilon : ENat) := hSuffB.2
@@ -307,7 +307,7 @@ theorem stepWise_plain_half
               _ = ((n + cLit + epsilon : Nat) : ENat) := by push_cast; ring
           set bv := (plainSetComplexity V B hB).toNat with hbv
           have hbvValue : plainSetComplexity V B hB = (bv : ENat) :=
-            (ENat.coe_toNat hbvFinite).symm
+            (ENat.natCast_toNat hbvFinite).symm
           have hbvSuff : bv + finiteSetLogCard B ≤ kx + epsilon := by
             have h : ((bv + finiteSetLogCard B : Nat) : ENat) ≤
                 ((kx + epsilon : Nat) : ENat) := by

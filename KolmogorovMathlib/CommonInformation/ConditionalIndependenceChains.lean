@@ -64,8 +64,7 @@ def boolFinFourEquiv : (Fin 4 → Bool) ≃ Bool × Bool × Bool × Bool where
 theorem sum_boolFinFour (F : (Fin 4 → Bool) → ℝ) :
     ∑ v, F v = ∑ a : Bool, ∑ b : Bool, ∑ c : Bool, ∑ d : Bool, F ![a, b, c, d] := by
   rw [← Equiv.sum_comp boolFinFourEquiv.symm F]
-  simp only [Fintype.sum_prod_type, Fintype.sum_bool, boolFinFourEquiv,
-    Equiv.coe_fn_symm_mk]
+  simp only [Fintype.sum_prod_type, Fintype.sum_bool, boolFinFourEquiv]
   rfl
 
 /-! ### Chain distributions -/

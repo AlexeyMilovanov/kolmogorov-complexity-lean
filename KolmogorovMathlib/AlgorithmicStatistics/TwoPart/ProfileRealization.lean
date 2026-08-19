@@ -3177,7 +3177,7 @@ lemma ENat_add_five_mul (A B C D E F c_pair : ENat) :
   ac_rfl
 
 lemma ENat_five_mul (c : ℕ) : (c + c + c + c + c : ENat) = (5 * c : ℕ) := by
-  rw [←ENat.coe_add, ←ENat.coe_add, ←ENat.coe_add, ←ENat.coe_add]
+  rw [←ENat.natCast_add, ←ENat.natCast_add, ←ENat.natCast_add, ←ENat.natCast_add]
   congr 1
   omega
 
@@ -4091,9 +4091,9 @@ theorem exists_antistochastic (U : Map) (hU : IsOptimalPrefixConditional U) :
       have h : (↑(List.length x) + 2 * (↑(List.length x).bits.length : ENat) + ↑c_len)
           = ((List.length x + 2 * (List.length x).bits.length + c_len : ℕ) : ENat) := by
         push_cast; ring
-      rw [h]; exact ENat.coe_ne_top _) (h_len x)
+      rw [h]; exact ENat.natCast_ne_top _) (h_len x)
     obtain ⟨kx, hkx⟩ : ∃ kx : ℕ, KPPlain U x = (kx : ENat) :=
-      ⟨(KPPlain U x).toNat, (ENat.coe_toNat hxne).symm⟩
+      ⟨(KPPlain U x).toNat, (ENat.natCast_toNat hxne).symm⟩
     refine ⟨x, hx_len, ?_, ?_, ?_⟩
     · -- Upper complexity bound: `K(x) ≤ k + O(log n)`.
       have h_k := hx_up k
@@ -4145,9 +4145,9 @@ theorem exists_antistochastic (U : Map) (hU : IsOptimalPrefixConditional U) :
           ↑(n + 2 * (Nat.bits n).length + c_len) := by push_cast; ring
       rw [h_eq] at this
       exact this
-    have hx_ne_top : KPPlain U x ≠ ⊤ := ne_top_of_le_ne_top (ENat.coe_ne_top _) hkpx_enat
+    have hx_ne_top : KPPlain U x ≠ ⊤ := ne_top_of_le_ne_top (ENat.natCast_ne_top _) hkpx_enat
     obtain ⟨kx, hkx⟩ : ∃ kx : ℕ, KPPlain U x = (kx : ENat) :=
-      ⟨(KPPlain U x).toNat, (ENat.coe_toNat hx_ne_top).symm⟩
+      ⟨(KPPlain U x).toNat, (ENat.natCast_toNat hx_ne_top).symm⟩
     have hkpx : kx ≤ n + 2 * (Nat.bits n).length + c_len := by
       rw [hkx] at hkpx_enat
       exact_mod_cast hkpx_enat

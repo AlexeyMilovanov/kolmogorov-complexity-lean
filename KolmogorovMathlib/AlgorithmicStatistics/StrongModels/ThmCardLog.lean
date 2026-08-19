@@ -97,7 +97,7 @@ theorem thm_card_log_branch
   obtain ⟨y, hylen, hynb⟩ := hReal bt
   have hyFinite : plainK V y ≠ ⊤ := condK_ne_top_of_optimal V hV y []
   set ky := (plainK V y).toNat with hky
-  have hkyval : plainK V y = (ky : ENat) := (ENat.coe_toNat hyFinite).symm
+  have hkyval : plainK V y = (ky : ENat) := (ENat.natCast_toNat hyFinite).symm
   set e := C2 * bt.KP + logSlack C2 bt.n_P with he
   set eta := C3 * (e + 1) + logSlack C3 bt.n_P + 2 * e + C3 with heta
   obtain ⟨hkyUp, hkyLow⟩ := hClose bt y e ky hynb hkyval

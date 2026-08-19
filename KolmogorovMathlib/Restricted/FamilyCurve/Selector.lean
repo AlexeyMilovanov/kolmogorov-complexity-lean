@@ -616,8 +616,7 @@ lemma exists_restrictedCoverValidBool_witness (𝒜 : DescriptionFamily)
   choose! f hf₁ hf₂ using hs
   use Encodable.encode (s, cover.map f)
   simp_all only [ne_eq, restrictedCoverValidBool, Encodable.encode_prod_val,
-    Encodable.encode_nat, decide_not, Bool.and_eq_true, Bool.not_eq_eq_eq_not,
-    Bool.not_true, decide_eq_false_iff_not, List.all_eq_true, decide_eq_true_eq,
+    Encodable.encode_nat, Bool.and_eq_true, List.all_eq_true, decide_eq_true_eq,
     mem_canonicalFinsetList, List.any_eq_true]
   have h_cover_decode :
       (coverDecode (Nat.pair s (Encodable.encode (List.map f cover)))).2 =
@@ -628,8 +627,8 @@ lemma exists_restrictedCoverValidBool_witness (𝒜 : DescriptionFamily)
   simp_all only [coverDecode, Encodable.decode_prod_val, Nat.unpair_pair,
     Encodable.decode_nat, Encodable.encodek, Option.map_some, Option.bind_some,
     Option.getD_some, List.map_eq_nil_iff, not_false_eq_true, List.mem_map,
-    forall_exists_index, and_imp, forall_apply_eq_imp_iff₂, implies_true, and_self,
-    List.length_map, true_and, exists_exists_and_eq_and]
+    forall_exists_index, and_imp, forall_apply_eq_imp_iff₂,
+    List.length_map, exists_exists_and_eq_and]
   refine ⟨⟨?_, ?_⟩, ?_⟩
   all_goals generalize_proofs at *
   · convert hcover_bound using 1

@@ -139,7 +139,7 @@ theorem KP_le_condK_given_plain_program_length
   intro x y k hk
   have hfinite : KP V x y ≠ ⊤ := by
     rw [KP_eq_condK, hk]
-    exact ENat.coe_ne_top k
+    exact ENat.natCast_ne_top k
   obtain ⟨p, hp, hpLen⟩ :=
     exists_program_of_KP_ne_top (M := V) (x := x) (y := y) hfinite
   have hpLenNat : p.length = k := by

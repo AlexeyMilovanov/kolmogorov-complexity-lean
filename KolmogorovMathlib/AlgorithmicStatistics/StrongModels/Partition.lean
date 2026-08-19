@@ -508,8 +508,8 @@ theorem plainSetComplexity_descriptionChunk_succ
       plainK U (codedUniformOn S hS).code ≠ ⊤ := by
     apply ne_top_of_le_ne_top ?_
       (hLiteral (codedUniformOn S hS).code)
-    rw [← ENat.coe_add]
-    exact ENat.coe_ne_top _
+    rw [← ENat.natCast_add]
+    exact ENat.natCast_ne_top _
   obtain ⟨q, hq, hqLen⟩ :=
     exists_program_of_KP_ne_top
       (M := U) (x := (codedUniformOn S hS).code) (y := []) (by
@@ -573,8 +573,8 @@ theorem IsPartition.strong_model_of_mem
   obtain ⟨cLiteral, hLiteral⟩ := plainKLeLength U hU
   have hfinite : plainK U (partitionCode A) ≠ ⊤ := by
     apply ne_top_of_le_ne_top ?_ (hLiteral (partitionCode A))
-    rw [← ENat.coe_add]
-    exact ENat.coe_ne_top _
+    rw [← ENat.natCast_add]
+    exact ENat.natCast_ne_top _
   obtain ⟨q, hq, hqLen⟩ :=
     exists_program_of_KP_ne_top
       (M := U) (x := partitionCode A) (y := []) (by

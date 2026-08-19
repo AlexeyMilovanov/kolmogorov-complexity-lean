@@ -112,24 +112,24 @@ theorem thm_separation
   -- finiteness
   have hcodefin : plainK V (codedUniformOn B hB).code ≠ ⊤ :=
     ne_top_of_le_ne_top
-      (by exact_mod_cast (ENat.coe_ne_top ((codedUniformOn B hB).code.length + cLen)))
+      (by exact_mod_cast (ENat.natCast_ne_top ((codedUniformOn B hB).code.length + cLen)))
       (hLen (codedUniformOn B hB).code)
   have hKTfin : totalCondK T (codedUniformOn B hB).code x ≠ ⊤ := by
     refine ne_top_of_le_ne_top ?_ (hFin (codedUniformOn B hB).code x)
-    exact WithTop.add_ne_top.mpr ⟨hcodefin, ENat.coe_ne_top cFin⟩
+    exact WithTop.add_ne_top.mpr ⟨hcodefin, ENat.natCast_ne_top cFin⟩
   have hKT : totalCondK T (codedUniformOn B hB).code x ≤ (M : ENat) := by
     calc totalCondK T (codedUniformOn B hB).code x
         = (((totalCondK T (codedUniformOn B hB).code x).toNat : Nat) : ENat) :=
-          (ENat.coe_toNat hKTfin).symm
+          (ENat.natCast_toNat hKTfin).symm
       _ ≤ (M : ENat) := by exact_mod_cast hKTle
   have hQfin : plainK V (standardEnumeratorCode q) ≠ ⊤ :=
     ne_top_of_le_ne_top
-      (by exact_mod_cast (ENat.coe_ne_top ((standardEnumeratorCode q).length + cLen)))
+      (by exact_mod_cast (ENat.natCast_ne_top ((standardEnumeratorCode q).length + cLen)))
       (hLen (standardEnumeratorCode q))
   have hQE : plainK V (standardEnumeratorCode q) ≤ (M : ENat) := by
     calc plainK V (standardEnumeratorCode q)
         = (((plainK V (standardEnumeratorCode q)).toNat : Nat) : ENat) :=
-          (ENat.coe_toNat hQfin).symm
+          (ENat.natCast_toNat hQfin).symm
       _ ≤ (M : ENat) := by exact_mod_cast hQle
   -- the block parameters are near the corner `(k, 2 * k)`
   set CB := (plainSetComplexity V B hB).toNat with hCBdef
@@ -203,7 +203,7 @@ theorem thm_separation
             logSlack cLin (4 * k) : Nat) : ENat) := by push_cast; ring
   have hCBE : plainK V (codedUniformOn B hB).code = (CB : ENat) := by
     rw [hCBdef]
-    exact (ENat.coe_toNat hcodefin).symm
+    exact (ENat.natCast_toNat hcodefin).symm
   rw [hCBE] at hL4
   have hmin : min CB (m - y.length) ≤
       cTot * M + logSlack (cTot * cW + cSlk) (4 * k) + c4 * M +

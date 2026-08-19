@@ -86,7 +86,7 @@ lemma exists_restricted_anchored_output_with_model_complexity
     s hs hS
   have hslack_eq : (sqrtSlack c_ver n : ENat) + (sqrtSlack c_grid n : ENat) =
       (sqrtSlack (c_grid + c_ver) n : ENat) := by
-    rw [← ENat.coe_add]
+    rw [← ENat.natCast_add]
     have : sqrtSlack c_ver n + sqrtSlack c_grid n =
         sqrtSlack (c_grid + c_ver) n := by
       rw [sqrtSlack_add, add_comm]

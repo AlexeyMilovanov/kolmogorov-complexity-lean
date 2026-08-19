@@ -97,11 +97,11 @@ theorem plainK_add_condK_symmetry
   obtain ⟨cLin, hLin⟩ := logSlack_linear_bound cS (cB + 1) cB
   refine ⟨cLin + 2 * cB + 2 * c1, fun x y N hx hy hyx => ?_⟩
   obtain ⟨kx, hkx⟩ : ∃ k : Nat, plainK V x = (k : ENat) :=
-    ⟨(plainK V x).toNat, (ENat.coe_toNat (condK_ne_top_of_optimal V hV x [])).symm⟩
+    ⟨(plainK V x).toNat, (ENat.natCast_toNat (condK_ne_top_of_optimal V hV x [])).symm⟩
   obtain ⟨ky, hky⟩ : ∃ k : Nat, plainK V y = (k : ENat) :=
-    ⟨(plainK V y).toNat, (ENat.coe_toNat (condK_ne_top_of_optimal V hV y [])).symm⟩
+    ⟨(plainK V y).toNat, (ENat.natCast_toNat (condK_ne_top_of_optimal V hV y [])).symm⟩
   obtain ⟨s, hs⟩ : ∃ k : Nat, condK V y x = (k : ENat) :=
-    ⟨(condK V y x).toNat, (ENat.coe_toNat (condK_ne_top_of_optimal V hV y x)).symm⟩
+    ⟨(condK V y x).toNat, (ENat.natCast_toNat (condK_ne_top_of_optimal V hV y x)).symm⟩
   have hkxN : kx ≤ N := by rw [hkx] at hx; exact_mod_cast hx
   have hkyN : ky ≤ N := by rw [hky] at hy; exact_mod_cast hy
   have hsN : s ≤ N := by rw [hs] at hyx; exact_mod_cast hyx
@@ -160,7 +160,7 @@ theorem condK_reverse_of_plain_complexity_gap
     hyx.trans (by exact_mod_cast hsN)
   have hsym := hC x y N hx hy hyxN
   obtain ⟨ky, hky⟩ : ∃ k : Nat, plainK V y = (k : ENat) :=
-    ⟨(plainK V y).toNat, (ENat.coe_toNat (condK_ne_top_of_optimal V hV y [])).symm⟩
+    ⟨(plainK V y).toNat, (ENat.natCast_toNat (condK_ne_top_of_optimal V hV y [])).symm⟩
   have hchain :
       (ky : ENat) + condK V x y ≤
         (ky : ENat) + (((delta + s : Nat) : ENat) + (logSlack C N : ENat)) := by
@@ -171,6 +171,6 @@ theorem condK_reverse_of_plain_complexity_gap
           gcongr
       _ = (ky : ENat) + (((delta + s : Nat) : ENat) + (logSlack C N : ENat)) := by
           rw [hky]; push_cast; ring
-  exact (WithTop.add_le_add_iff_left (ENat.coe_ne_top ky)).mp hchain
+  exact (WithTop.add_le_add_iff_left (ENat.natCast_ne_top ky)).mp hchain
 
 end Kolmogorov

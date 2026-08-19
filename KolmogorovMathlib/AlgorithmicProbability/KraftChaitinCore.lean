@@ -1447,10 +1447,9 @@ lemma construct_prefix_machine (req : BitString → ℕ → Option (BitString ×
       exact Partrec.rfind hpred
     · convert construct_out_partrec req hreqcomp using 1;
   · intro ctx p hp q hq hpre;
-    simp_all only [Bool.and_eq_true, Bool.decide_and, Bool.decide_eq_true, Bool.true_eq,
-      Nat.rfind_dom, Option.isSome_map, Part.bind_dom, Part.bind_eq_bind,
-      Part.mem_some_iff, Part.ofOption_dom, Part.some_dom, Set.mem_setOf_eq, and_true,
-      decide_eq_true_eq, domainAt, implies_true, ne_eq]
+    simp_all only [Bool.decide_and, Bool.decide_eq_true, Option.isSome_map,
+      Part.bind_dom, Part.bind_eq_bind, Part.ofOption_dom, Set.mem_ofPred_eq,
+      domainAt, ne_eq]
     obtain ⟨n, hn₁, _⟩ := hp.1
     obtain ⟨m, hm₁, _⟩ := hq.1
     simp only [Part.mem_some_iff, Bool.true_eq, Bool.and_eq_true,

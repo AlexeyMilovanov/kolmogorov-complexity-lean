@@ -449,7 +449,7 @@ theorem plainKNat_omegaCount_lower
     intro htop
     have h := hlen (Nat.bits (omegaCount c m))
     rw [htop, top_le_iff] at h
-    exact ENat.coe_ne_top _ h
+    exact ENat.natCast_ne_top _ h
   have hfinite' : KP V (Nat.bits (omegaCount c m)) [] ≠ ⊤ := by
     change plainK V (Nat.bits (omegaCount c m)) ≠ ⊤
     exact hfinite

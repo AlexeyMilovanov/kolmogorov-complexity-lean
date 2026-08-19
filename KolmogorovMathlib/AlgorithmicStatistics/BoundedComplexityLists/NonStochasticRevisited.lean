@@ -34,7 +34,7 @@ theorem isStochastic_singleton_length
       KPPlain U x ≤
         ((x.length + 2 * (Nat.bits x.length).length + cl : ℕ) : ENat) := by
     exact_mod_cast hcl x
-  have hne : KPPlain U x ≠ ⊤ := ne_top_of_le_ne_top (ENat.coe_ne_top _) hcl'
+  have hne : KPPlain U x ≠ ⊤ := ne_top_of_le_ne_top (ENat.natCast_ne_top _) hcl'
   obtain ⟨kx, hkx⟩ := ENat.ne_top_iff_exists.mp hne
   rw [hn] at hcl'
   have hkx_le : kx ≤ n + 2 * (Nat.bits n).length + cl := by
@@ -453,7 +453,7 @@ theorem KP_mutual_symm_le_of_complexity_budget (U : Map) (hU : IsOptimalPrefixCo
   obtain ⟨cLog, hLog⟩ := KPPlain_natCode_le_log U hU
   let C := cLog + cMap + cU + cS + cL + cRem + 2
   refine ⟨C, fun x y N hyN => ?_⟩
-  have hne : KPPlain U y ≠ ⊤ := ne_top_of_le_ne_top (ENat.coe_ne_top N) hyN
+  have hne : KPPlain U y ≠ ⊤ := ne_top_of_le_ne_top (ENat.natCast_ne_top N) hyN
   obtain ⟨ky, hky⟩ := ENat.ne_top_iff_exists.mp hne
   have hkyN : ky ≤ N := by
     have h : (ky : ENat) ≤ (N : ENat) := by
@@ -467,7 +467,7 @@ theorem KP_mutual_symm_le_of_complexity_budget (U : Map) (hU : IsOptimalPrefixCo
         = ((2 * x.length + cTwo : ℕ) : ENat) := by push_cast; ring
     have hne : KPPlain U x ≠ ⊤ := by
       refine ne_top_of_le_ne_top ?_ (hTwo x)
-      rw [hbeq]; exact ENat.coe_ne_top _
+      rw [hbeq]; exact ENat.natCast_ne_top _
     obtain ⟨k, hk⟩ := ENat.ne_top_iff_exists.mp hne
     exact ⟨k, hk.symm⟩
   obtain ⟨kx, hkx⟩ := hfinx
@@ -976,7 +976,7 @@ theorem ENat_add_truncated_le_of_add_gap
         calc ⊤ = (⊤ : ENat) + (k : ENat) := by rw [top_add]
           _ ≤ (bn : ENat) + (S : ENat) := hinfo
       have h2 : ((bn + S : ℕ) : ENat) = ⊤ := top_le_iff.mp (by exact_mod_cast h1)
-      exact False.elim (ENat.coe_ne_top _ h2)
+      exact False.elim (ENat.natCast_ne_top _ h2)
     | coe an =>
       have hinfo_nat : an + k ≤ bn + S := by
         exact_mod_cast hinfo
@@ -1019,7 +1019,7 @@ theorem prop_dilemma
     have hbound := hlen x
     refine ne_top_of_le_ne_top ?_ hbound
     rw [← Nat.cast_add]
-    exact ENat.coe_ne_top _
+    exact ENat.natCast_ne_top _
   obtain ⟨m, hmRaw⟩ :=
     ENat.ne_top_iff_exists.mp hplainFinite
   have hm : plainK V x = (m : ENat) :=
