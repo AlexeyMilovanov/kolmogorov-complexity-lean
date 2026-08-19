@@ -151,7 +151,7 @@ theorem orderedInsert_primrec :
       (Primrec.list_cons.comp (Primrec.fst.comp Primrec.snd)
         (Primrec.snd.comp (Primrec.snd.comp Primrec.snd)))
   · intro n
-    induction n.2 <;> simp_all [List.orderedInsert, bitStringLE] <;> rfl
+    induction n.2 <;> simp_all [List.orderedInsert, bitStringLE] ; rfl
 
 /-
 Insertion sort by the canonical order is primitive recursive.

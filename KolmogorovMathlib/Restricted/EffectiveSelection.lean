@@ -1021,8 +1021,8 @@ theorem blockSelection_covers_of_count (n i j k s : ℕ) (B : List BitString) (x
           (List.toFinset_card_of_nodup hnod).symm
       _ ≤ C.card := Finset.card_le_card hsubC
       _ ≤ bound := hCcard
-  letI : BEq BitString := instBEqOfDecidableEq
-  letI : LawfulBEq BitString := inferInstance
+  let : BEq BitString := instBEqOfDecidableEq
+  let : LawfulBEq BitString := inferInstance
   have h_exists : ∃ C' : List BitString, C'.Sublist B ∧ C'.length ≤ bound ∧
       ∀ y ∈ T, 0 < (C'.filter (fun b => decide (y ∈ cover b))).length := by
     refine ⟨CList, hCList_sub, hCList_len, ?_⟩

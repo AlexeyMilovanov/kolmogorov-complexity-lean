@@ -361,8 +361,7 @@ theorem familyIndexSelectorFn_eq_code (c : Code) (i : ℕ) (𝒜 : PreDescriptio
   unfold familyIndexSelectorFn;
   refine ⟨ hr_lt, fun y w hy hi hj hr => ?_ ⟩;
   convert Part.eq_some_iff.mpr _ using 1;
-  simp +decide only [hy, hi, hj, hr, Part.mem_bind_iff, Nat.mem_rfind,
-    Part.mem_some_iff, true_eq_decide_iff, false_eq_decide_iff, not_lt];
+  simp +decide only [hy, hi, hj, hr, Part.mem_bind_iff, Part.mem_some_iff];
   refine ⟨ Nat.find ( ⟨ t0, hr_lt ⟩ : ∃ t,
       r < ( familyAppearanceListCodes c i 𝒜 j x t ).length ), ?_, ?_ ⟩;
   · refine Nat.mem_rfind.mpr ⟨?_, fun { m } hm => ?_⟩

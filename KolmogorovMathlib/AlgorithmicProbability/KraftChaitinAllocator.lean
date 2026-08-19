@@ -140,7 +140,7 @@ private lemma isChain_iff_get_fin {α} {R : α → α → Prop} {l : List α} :
 private lemma descLengths_getElem_length_lt {free : List BitString} (hd : DescLengths free)
     {i j : ℕ} (hij : i < j) (hj : j < free.length) :
     (free[j]'hj).length < (free[i]'(lt_trans hij hj)).length := by
-  haveI : Trans (fun a b : BitString => b.length < a.length)
+  have : Trans (fun a b : BitString => b.length < a.length)
       (fun a b : BitString => b.length < a.length)
       (fun a b : BitString => b.length < a.length) :=
     ⟨fun {a b c : BitString} (hab : b.length < a.length) (hbc : c.length < b.length) =>

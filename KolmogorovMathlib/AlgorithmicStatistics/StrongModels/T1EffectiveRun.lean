@@ -2019,7 +2019,7 @@ theorem t1RunStep_cPrime_eq
     t1RunStepParamsN, t1RunStepParamsCSparse,
     t1RunStepParamsK, t1RunStepParamsEpsilon,
     t1RunStepParamsQuota]
-  by_cases hw : w ∈ s.seenCDouble <;> simp [hw] <;> congr
+  by_cases hw : w ∈ s.seenCDouble <;> simp [hw] ; congr
 
 theorem t1RunStep_cPrime_seen_markingDataEq
     (cSparse n k epsilon quota : Nat)

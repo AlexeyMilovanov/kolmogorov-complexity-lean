@@ -80,7 +80,7 @@ lemma Computable.testP {P : ℕ → ℕ → Prop}
     {f g : ℕ → ℕ} (hf : Computable f) (hg : Computable g)
     (h_equiv : ∀ k n, P k n ↔ f n > g k) :
     ComputablePred (fun p : ℕ × ℕ => P p.1 p.2) := by
-  letI : DecidableRel P := fun k n => decidable_of_iff _ (h_equiv k n).symm
+  let : DecidableRel P := fun k n => decidable_of_iff _ (h_equiv k n).symm
   let h_pair := (hg.comp Computable.fst).pair (hf.comp Computable.snd)
   let h_alg := Computable.natLt.comp h_pair
   have h_comp : Computable (fun p : ℕ × ℕ => decide (P p.1 p.2)) :=

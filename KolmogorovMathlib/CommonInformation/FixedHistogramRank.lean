@@ -413,7 +413,7 @@ theorem mem_numericTable
     w' ∈ numericFixedHistogramWords (L.map (fun c => (FiniteLetterCode.encode c, f c))) ↔
       ∃ v : List C, (∀ c, v.count c = f c) ∧ w' = v.map FiniteLetterCode.encode := by
   classical
-  letI : Fintype C := ⟨L.toFinset, fun c => List.mem_toFinset.mpr (hcomp c)⟩
+  let : Fintype C := ⟨L.toFinset, fun c => List.mem_toFinset.mpr (hcomp c)⟩
   have hlen_gen : ∀ u : List C, u.length = ∑ c, u.count c := by
     intro u
     induction u with
