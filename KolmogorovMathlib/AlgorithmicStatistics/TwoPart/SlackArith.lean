@@ -211,4 +211,8 @@ lemma polynomialOverhead_bits_le_logSlack (C d : ℕ) (hC : 0 < C) :
   exact hsize.trans (by
     nlinarith [Nat.zero_le (Nat.size C * Nat.size n), Nat.zero_le d, hCsize])
 
+lemma logSlack_nsmul (m c n : Nat) :
+    m * logSlack c n = logSlack (m * c) n := by
+  unfold logSlack; ring
+
 end Kolmogorov
