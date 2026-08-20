@@ -2269,21 +2269,33 @@ theorem t1RunStep_cPrime_history
       t1RunStepCPrimeActive, t1RunStepParamsState, hactive,
       decide_true, if_true, t1RunStepCPrimeActiveFn]
     split
-    · simp_all [t1RunStepCPrimeSaturated,
+    · simp_all only [t1RunStepCPrimeSaturated,
         t1RunSaturationRebuildFinal, t1RunStepCPrimeRebuilt,
         t1RunRebuildTuple, t1RunRebuild, t1RunReplaceCurrent,
         t1RunStepCPrimeCharged, t1RunChargeC, t1RunHitCount,
         t1RunAppendC, t1RunStepCPrimeSeen,
         t1RunAppendSeenCPrime, t1RunStepCPrimePoints,
         t1RunValidPoints, t1RunStepParamsState,
-        t1RunStepParamsN]
-      exact ⟨by congr, by congr⟩
-    · simp_all [t1RunStepCPrimeCharged, t1RunChargeC, t1RunHitCount,
+        t1RunStepParamsN, List.mem_filter, decide_eq_true_eq,
+        Bool.decide_and, forall_const, not_true_eq_false,
+        IsEmpty.forall_iff, and_true]
+      refine ⟨trivial, by congr, ?_⟩
+      congr
+      funext x
+      congr 1
+      exact Bool.decide_congr decide_eq_true_iff
+    · simp_all only [t1RunStepCPrimeCharged, t1RunChargeC, t1RunHitCount,
         t1RunAppendC, t1RunStepCPrimeSeen,
         t1RunAppendSeenCPrime, t1RunStepCPrimePoints,
         t1RunValidPoints, t1RunStepParamsState,
-        t1RunStepParamsN]
-      exact ⟨by congr, by congr⟩
+        t1RunStepParamsN, List.mem_filter, decide_eq_true_eq,
+        Bool.decide_and, forall_const, not_true_eq_false,
+        IsEmpty.forall_iff, and_true]
+      refine ⟨trivial, by congr, ?_⟩
+      congr
+      funext x
+      congr 1
+      exact Bool.decide_congr decide_eq_true_iff
   · simp [t1RunStep, t1RunStepCPrimeFn,
       t1RunStepCPrimeActive, hactive, t1RunStepCPrimeSeen,
       t1RunAppendSeenCPrime, t1RunStepParamsState]
