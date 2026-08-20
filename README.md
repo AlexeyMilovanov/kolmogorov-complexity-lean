@@ -45,18 +45,36 @@ For the default package build, run:
 lake build
 ```
 
-Release validation currently discovers four maximal module roots:
+The strong-models layer formalizes Section 7 of the Vereshchagin-Shen survey:
+total conditional complexity and its optimal machine, total-information
+equivalence, strong statistics and simple finite partitions, strong profiles
+and normal versus strange strings, hereditary and step-wise properties,
+separation of strong natural models from strong standard descriptions, strong
+sufficient statistics, and bounds on the number of strings with a prescribed
+profile.
+
+The common-information layer formalizes Chapter 11 of Shen-Uspensky-Vereshchagin:
+common information of pairs, rectangle covers and incidence-geometry bounds over
+concrete finite fields, no-four-cycle density arguments, conditional-independence
+chains, and Muchnik-style effective selectors used for worst-case counting.
+
+Release validation currently discovers eight maximal module roots:
 `KolmogorovMathlib`,
 `KolmogorovMathlib.AlgorithmicProbability.KraftChaitinOnline`,
-`KolmogorovMathlib.AlgorithmicStatistics.FiniteDistribution`, and
-`KolmogorovMathlib.Prefix.KPPairSwap`. This keeps the standalone modules in the
-build even though they are not all reachable from the aggregate root.
+`KolmogorovMathlib.AlgorithmicStatistics.FiniteDistribution`,
+`KolmogorovMathlib.AlgorithmicStatistics.StrongModels.Scratch`,
+`KolmogorovMathlib.Prefix.ExactBudget`,
+`KolmogorovMathlib.Prefix.KPPairSwap`,
+`KolmogorovMathlib.Restricted.FamilyCurve.BadSets`, and
+`KolmogorovMathlib.Restricted.FamilyCurve.GoodSets`. This keeps the standalone
+modules in the build even though they are not all reachable from the aggregate
+root.
 
-The project is currently pinned to Lean `v4.32.1` and the matching Mathlib ecosystem.
+The project is currently pinned to Lean `v4.33.0` and the matching Mathlib ecosystem.
 
 ## Branches
 
-The `main` branch contains the current Lean `v4.32.1` version. A Lean `v4.28`
+The `main` branch contains the current Lean `v4.33.0` version. A Lean `v4.28`
 version is preserved on the
 [`lean-4.28-aristotle`](https://github.com/AlexeyMilovanov/kolmogorov-complexity-lean/tree/lean-4.28-aristotle)
 branch as a stable reference point for the earlier Mathlib ecosystem and
@@ -72,7 +90,10 @@ KolmogorovMathlib/
 ├── Prefix/                      # Prefix machines, Kraft theory, prefix complexity, symmetry of information
 ├── AlgorithmicProbability/      # Semimeasures, mixtures, domination, universal semimeasures, coding tools
 ├── AlgorithmicStatistics/       # Stochasticity, deficiencies, models, non-stochasticity, two-part profiles
-│   └── TwoPart/                 # Descriptions, gap counting, profiles, curve realization, paper-facing theorems
+│   ├── TwoPart/                 # Descriptions, gap counting, profiles, curve realization, paper-facing theorems
+│   ├── BoundedComplexityLists/  # Bounded-complexity enumerations, Omega counting, standard descriptions
+│   └── StrongModels/            # Total conditional complexity and strong models from Section 7
+├── CommonInformation/           # Common information, incidence geometry, Muchnik-style selectors
 └── Restricted/                  # Description families and restricted profiles from Section 6
     ├── FamilyCurve/             # Effective multiscale construction and general curve realization
     └── Examples/                # Cylinders, masks, and Hamming-ball families
@@ -84,4 +105,4 @@ The top-level module `KolmogorovMathlib.lean` imports the library development.
 
 The Lake package is named `kolmogorov_complexity`; the Lean library target is
 `KolmogorovMathlib`. The Mathlib dependency is pinned in `lakefile.toml` and
-`lake-manifest.json` to the Lean `v4.32.1` ecosystem.
+`lake-manifest.json` to the Lean `v4.33.0` ecosystem.
