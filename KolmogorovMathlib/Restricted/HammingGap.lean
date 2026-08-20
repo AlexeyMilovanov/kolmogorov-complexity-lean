@@ -1545,38 +1545,6 @@ lemma hammingVol_ge_two_pow_lin (n : ℕ) :
     nlinarith! [ ih n ( by linarith ), Nat.choose_succ_succ n r ]
 
 /-
-Any linear function of `(Nat.bits n).length` (i.e. `O(log n)`) is eventually
-dominated by `n / 16`: for all `A B`, there is a threshold `M` beyond which
-`16 * (A * (Nat.bits n).length + B) ≤ n`.  Used to pick `c_min` in the Hamming
-gap argument, where a linear-in-`n` volume term beats the `O(log n)` slack.
--/
-lemma exists_bits_linear_domination (K A B : ℕ) :
-    ∃ M : ℕ, ∀ n : ℕ, M ≤ n → K * (A * (Nat.bits n).length + B) ≤ n := by
-  -- Beyond a fixed threshold, the exponential `2 ^ (m - 1)` dominates the
-  -- linear expression in `m`.
-  obtain ⟨m₀, hm₀⟩ : ∃ m₀ : ℕ, ∀ m ≥ m₀, K * (A * m + B) ≤ 2^(m-1) := by
-    use 8 * K * ( A + B + 1 ) + 8;
-    intro m hm;
-    -- We'll use that $2^{m-1} \geq m^2$ for $m \geq 8$.
-    have h_exp : 2 ^ (m - 1) ≥ m ^ 2 := by
-      rcases m with ( _ | _ | _ | _ | _ | _ | _ | _ | m ) <;>
-        simp +arith +decide only [
-          ge_iff_le, add_le_add_iff_right, Nat.add_one_sub_one, Nat.pow_succ, pow_one
-        ] at *;
-      exact Nat.recOn m ( by norm_num ) fun n ihn => by norm_num [ Nat.pow_succ' ] at * ; nlinarith;
-    nlinarith [mul_nonneg (Nat.zero_le K) (Nat.zero_le A),
-      mul_nonneg (Nat.zero_le K) (Nat.zero_le B)]
-  refine ⟨ 2 ^ m₀, fun n hn => le_trans ( hm₀ _ ?_ ) ?_ ⟩;
-  · rw [ Nat.size_eq_bits_len ];
-    exact Nat.le_of_not_lt fun h => by linarith [ Nat.size_le.mp h.le ] ;
-  · convert Nat.pow_le_of_le_log ( by linarith [ Nat.one_le_pow m₀ 2 zero_lt_two ] ) _ using 1;
-    rw [ Nat.le_iff_lt_or_eq ];
-    refine lt_or_eq_of_le ( Nat.sub_le_of_le_add <| ?_ );
-    convert Nat.size_le.2 _
-    · convert Nat.size_eq_bits_len n
-    · exact Nat.lt_pow_succ_log_self (by decide) _
-
-/-
 Bits-length bound for the list-decoding intersection.  If `V ≥ 2 ^ v` and the
 ball cardinality `Bcard ≤ 2 ^ t`, and `W` is bounded by the covering estimate
 `n * ((n+1)^7 * Bcard / V + 1)`, then `(Nat.bits W).length` is bounded by
