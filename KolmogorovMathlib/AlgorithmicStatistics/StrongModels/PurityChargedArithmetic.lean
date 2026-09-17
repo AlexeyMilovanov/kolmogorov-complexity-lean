@@ -1,3 +1,5 @@
+import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.GapCounting.GapBounds
+import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.GapCounting.IndexSelector
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.GapCounting
 
 /-!
@@ -36,7 +38,7 @@ theorem length_natBits_programWitness_le (c0 B a_len k_a : ℕ)
   have h3 : (Nat.bits (2 * LB)).length ≤ 2 * LB + 1 := by
     have hsplit : 2 * LB = LB + LB := by ring
     have h := length_natBits_add_le LB LB
-    have hself : (Nat.bits LB).length ≤ LB := length_natBits_le_self LB
+    have hself : (Nat.bits LB).length ≤ LB := length_natBits_le LB
     rw [hsplit]
     omega
   calc (Nat.bits k_a).length

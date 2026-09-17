@@ -1,7 +1,9 @@
+import KolmogorovMathlib.Restricted.FamilyCurve.AnchoredChain.PrefixRuns
+import KolmogorovMathlib.Restricted.FamilyCurve.AnchoredChain.VersionExponent
 import KolmogorovMathlib.Restricted.FamilyCurve.AnchoredChain
 
 /-!
-# M7: the version decoder
+# The version decoder
 
 The concrete partial-recursive decoder that reconstructs a terminal sampled
 model of the anchored run from the encoded grid plus a bounded version
@@ -46,7 +48,7 @@ lemma uniformCodeOfList_canonical (S : Finset BitString) (hS : S.Nonempty) :
 /-- Sampling a decoded grid point from the grid code is primitive recursive. -/
 lemma decode_restrictedCurveGridCode_sample_primrec :
     Primrec (fun p : BitString × ℕ =>
-      decode_restrictedCurveGridCode_sample p.1 p.2) := by
+      decodeRestrictedCurveGridCodeSample p.1 p.2) := by
   have hpair : Primrec (fun p : BitString × ℕ =>
       (decodeListCode p.1).getD p.2 []) :=
     (Primrec.list_getD []).comp
@@ -66,19 +68,20 @@ lemma restrictedEffectiveSampledSizes_computable_all :
     Primrec.list_range.comp
       (Primrec.succ.comp (Primrec.snd.comp Primrec.fst))
   have hbody : Primrec₂ (fun (p : (BitString × ℕ) × ℕ) (s : ℕ) =>
-      2 ^ ((decode_restrictedCurveGridCode_sample p.1.1 s).2 - (p.2 + 1))) := by
+      2 ^ ((decodeRestrictedCurveGridCodeSample p.1.1 s).2 - (p.2 + 1))) := by
     have hsample : Primrec (fun q : ((BitString × ℕ) × ℕ) × ℕ =>
-        decode_restrictedCurveGridCode_sample q.1.1.1 q.2) :=
+        decodeRestrictedCurveGridCodeSample q.1.1.1 q.2) :=
       decode_restrictedCurveGridCode_sample_primrec.comp (Primrec.pair
         (Primrec.fst.comp (Primrec.fst.comp Primrec.fst)) Primrec.snd)
-    exact twoPow_primrec.comp (Primrec.nat_sub.comp
+    exact primrec_two_pow_aux.comp (Primrec.nat_sub.comp
       (Primrec.snd.comp hsample)
       (Primrec.succ.comp (Primrec.snd.comp Primrec.fst)))
   exact (Primrec.list_map hrange hbody).to_comp
 
 /-! ### Uniform one-event executor -/
 
-/-- Code-level anchored size schedule. -/
+/-- The size schedule decoded from a grid code, anchored by the ambient cube size
+`2 ^ ambientLength` in front of the sampled sizes. -/
 def restrictedAnchoredSizesFromCode (gridCode : BitString)
     (gridSteps Δ ambientLength : ℕ) : List ℕ :=
   2 ^ ambientLength :: restrictedEffectiveSampledSizes gridCode gridSteps Δ
@@ -110,14 +113,14 @@ lemma restrictedEffectiveRebuildSuffixInput_primrec_all :
   have hsizesBits : Primrec (fun p : (BitString × BitString) × (List ℕ × ℕ) =>
       p.2.1.map Nat.bits) :=
     Primrec.list_map (Primrec.fst.comp Primrec.snd)
-      (primrecNatBits.comp Primrec.snd).to₂
+      (primrec_natBits.comp Primrec.snd).to₂
   unfold restrictedEffectiveRebuildSuffixInput
   exact listCode_primrec.comp
     (Primrec.list_cons.comp (Primrec.fst.comp Primrec.fst)
       (Primrec.list_cons.comp (Primrec.snd.comp Primrec.fst)
         (Primrec.list_cons.comp (listCode_primrec.comp hsizesBits)
           (Primrec.list_cons.comp
-            (primrecNatBits.comp (Primrec.snd.comp Primrec.snd))
+            (primrec_natBits.comp (Primrec.snd.comp Primrec.snd))
             (Primrec.const [])))))
 
 /-- Code-level anchored initializer with an explicit overhead argument. -/
@@ -144,7 +147,7 @@ lemma restrictedAnchoredInitialFromCode_eq (𝒜 : DescriptionFamily)
 length rather than `Nat.log2`.  `max 1` also gives the intended denominator at
 `n = 0`. -/
 def anchoredDecodedLength (gridCode : BitString) : ℕ :=
-  (decode_restrictedCurveGridCode_sample gridCode 0).2
+  (decodeRestrictedCurveGridCodeSample gridCode 0).2
 
 /-- Decoded interval count `√(n / log n) + 1`, recomputed from the grid code. -/
 def anchoredDecodedSteps (gridCode : BitString) : ℕ :=
@@ -173,7 +176,7 @@ lemma anchoredDecodedSteps_primrec : Primrec anchoredDecodedSteps := by
   have hbitsLength : Primrec (fun gridCode : BitString =>
       (Nat.bits (anchoredDecodedLength gridCode)).length) :=
     Primrec.list_length.comp
-      (primrecNatBits.comp anchoredDecodedLength_primrec)
+      (primrec_natBits.comp anchoredDecodedLength_primrec)
   have hdenom := Primrec.nat_max.comp (Primrec.const 1) hbitsLength
   exact Primrec.succ.comp (Primrec.nat_sqrt.comp
     (Primrec.nat_div.comp anchoredDecodedLength_primrec hdenom))
@@ -184,7 +187,7 @@ lemma anchoredDecodedSlack_primrec : Primrec anchoredDecodedSlack := by
   have hbitsLength : Primrec (fun gridCode : BitString =>
       (Nat.bits (anchoredDecodedLength gridCode)).length) :=
     Primrec.list_length.comp
-      (primrecNatBits.comp anchoredDecodedLength_primrec)
+      (primrec_natBits.comp anchoredDecodedLength_primrec)
   have hsqrt := Primrec.nat_sqrt.comp (Primrec.nat_mul.comp
     anchoredDecodedLength_primrec hbitsLength)
   exact Primrec.nat_add.comp
@@ -197,7 +200,7 @@ lemma anchoredDecodedAmbientLength_primrec :
   have hbitsLength : Primrec (fun gridCode : BitString =>
       (Nat.bits (anchoredDecodedLength gridCode)).length) :=
     Primrec.list_length.comp
-      (primrecNatBits.comp anchoredDecodedLength_primrec)
+      (primrec_natBits.comp anchoredDecodedLength_primrec)
   have hlogSlack := Primrec.nat_add.comp
     (Primrec.nat_mul.comp (Primrec.const 8) hbitsLength) (Primrec.const 8)
   exact Primrec.nat_add.comp anchoredDecodedLength_primrec hlogSlack
@@ -233,11 +236,13 @@ intervals. -/
   simp only [anchoredDecodedLength_eq grid, max_one_bits_length_eq_log2_add_one n]
   rw [← hN]
 
+/-- The slack decoded from a coded grid is `sqrtSlack 8 n`. -/
 @[simp] lemma anchoredDecodedSlack_eq
     {n k N : ℕ} {t : ℕ → ℕ} (grid : RestrictedCurveGrid n k N t) :
     anchoredDecodedSlack (restrictedCurveGridCode grid) = sqrtSlack 8 n := by
   simp [anchoredDecodedSlack]
 
+/-- The ambient length decoded from a coded grid is `n + logSlack 8 n`. -/
 @[simp] lemma anchoredDecodedAmbientLength_eq
     {n k N : ℕ} {t : ℕ → ℕ} (grid : RestrictedCurveGrid n k N t) :
     anchoredDecodedAmbientLength (restrictedCurveGridCode grid) =

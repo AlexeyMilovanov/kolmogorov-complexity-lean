@@ -1,13 +1,30 @@
-import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.Basic
 import KolmogorovMathlib.AlgorithmicStatistics.Selector
+import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.Basic
 import KolmogorovMathlib.Prefix.Properties
+
+/-!
+# Splitting a description into chunks
+
+A description of `x` by a set `S` of size `2 ^ j` can be traded for a description by a smaller
+set: split `S` into `2 ^ s` chunks and name the one containing `x`.  `descriptionChunk` is
+that chunk and `descriptionChunkSize` its size, with the elementary facts
+(`mem_descriptionChunk`, `descriptionChunk_subset`, `card_descriptionChunk_le_pow`) that make
+it a description of `x` of log-size `j - s`.
+
+The rest of the module makes the trade effective: `chunkAddress` is the `s`-bit block address
+(`chunkAddress_length`, `bitsToNat_chunkAddress`), `descriptionChunkUniformCode` computes the
+code of the chunk from the code of `S` and the address, and
+`descriptionShift_complexity` and `inDescriptionProfile_portion` are the conclusions — the
+chunk costs the complexity of `S` plus `s` bits, so the description profile of `x` contains
+the shifted point.
+-/
 
 namespace Kolmogorov
 
 open scoped ENNReal
 open Kolmogorov.CodedFiniteDistribution
 
-/-- The size of a description chunk. -/
+/-- The size `S.card / 2 ^ s + 1` of one chunk when `S` is split into `2 ^ s` pieces. -/
 def descriptionChunkSize (S : Finset BitString) (s : ℕ) : ℕ := S.card / 2^s + 1
 
 /-- The deterministic subset of `S` containing `x`, corresponding to a split into
@@ -22,36 +39,45 @@ def descriptionChunk (S : Finset BitString) (x : BitString) (s : ℕ) : Finset B
   let start := (idx / c) * c
   (L.drop start |>.take c).toFinset
 
+/-- The chunk size used to split a description is positive. -/
 theorem descriptionChunkSize_pos (S : Finset BitString) (s : ℕ) :
     0 < descriptionChunkSize S s := Nat.add_pos_right _ (by decide)
 
+/-- A member of `S` belongs to its own chunk. -/
 theorem mem_descriptionChunk (S : Finset BitString) (x : BitString) (s : ℕ) (hx : x ∈ S) :
     x ∈ descriptionChunk S x s := by
   have hmem : x ∈ canonicalFinsetList S := mem_canonicalFinsetList.mpr hx
-  have hcpos : 0 < descriptionChunkSize S s := descriptionChunkSize_pos S s
-  have h_findIdx : (canonicalFinsetList S).findIdx (· == x) <
-      (canonicalFinsetList S).length :=
-    List.findIdx_lt_length_of_exists ⟨x, hmem, by simp⟩
-  have hget : (canonicalFinsetList S)[(canonicalFinsetList S).findIdx (· == x)]'h_findIdx = x :=
-    eq_of_beq (List.findIdx_getElem (w := h_findIdx))
-  simp only [descriptionChunk, List.mem_toFinset]
-  set L := canonicalFinsetList S with hL
-  set c := descriptionChunkSize S s with hc
-  set idx := L.findIdx (· == x) with hidx
-  have hdivle : idx / c * c ≤ idx := Nat.div_mul_le_self _ _
-  have hmc : idx / c * c = c * (idx / c) := Nat.mul_comm _ _
-  have hlt : idx < idx / c * c + c := by
-    have h1 := Nat.div_add_mod idx c
-    have h2 := Nat.mod_lt idx hcpos
+  have hidx : List.findIdx (fun y => y == x) (canonicalFinsetList S) <
+      (canonicalFinsetList S).length := by
+    rw [List.findIdx_lt_length]
+    exact ⟨x, hmem, by simp⟩
+  let idx := List.findIdx (fun y => y == x) (canonicalFinsetList S)
+  let c := descriptionChunkSize S s
+  let start := idx / c * c
+  have hc : 0 < c := descriptionChunkSize_pos S s
+  have hstart : start ≤ idx := Nat.div_mul_le_self idx c
+  have hoff : idx - start < c := by
+    have hmul : c * (idx / c) = idx / c * c := Nat.mul_comm _ _
+    have hdiv := Nat.div_add_mod idx c
+    have hmod := Nat.mod_lt idx hc
+    dsimp [start]
     omega
-  have hj : idx - idx / c * c < ((L.drop (idx / c * c)).take c).length := by
-    rw [List.length_take, List.length_drop, lt_min_iff]; omega
-  have key : ((L.drop (idx / c * c)).take c)[idx - idx / c * c]'hj = x := by
-    have hidxeq : idx / c * c + (idx - idx / c * c) = idx := by omega
-    simp only [List.getElem_take, List.getElem_drop, hidxeq]
-    exact hget
-  exact List.mem_iff_getElem.mpr ⟨idx - idx / c * c, hj, key⟩
+  unfold descriptionChunk
+  simp only [List.mem_toFinset]
+  apply List.mem_iff_getElem.mpr
+  refine ⟨idx - start, ?_, ?_⟩
+  · simp only [List.length_take, List.length_drop]
+    refine (Nat.lt_min).2 ⟨hoff, ?_⟩
+    simpa [idx, start, c] using
+      (Nat.sub_lt_sub_right hstart (by simpa [idx] using hidx))
+  · simp only [List.getElem_take, List.getElem_drop]
+    have hadd : start + (idx - start) = idx := Nat.add_sub_of_le hstart
+    have hget : (canonicalFinsetList S)[idx] = x :=
+      eq_of_beq (List.findIdx_getElem
+        (p := fun y => y == x) (w := by simpa [idx] using hidx))
+    simpa [idx, c, start, hadd] using hget
 
+/-- A chunk of `S` is a subset of `S`. -/
 theorem descriptionChunk_subset (S : Finset BitString) (x : BitString) (s : ℕ) :
     descriptionChunk S x s ⊆ S := by
   intro y hy
@@ -59,10 +85,13 @@ theorem descriptionChunk_subset (S : Finset BitString) (x : BitString) (s : ℕ)
   simp only [List.mem_toFinset] at hy
   exact mem_canonicalFinsetList.mp (List.mem_of_mem_drop (List.mem_of_mem_take hy))
 
+/-- The chunk of `S` containing a member of `S` is nonempty. -/
 theorem descriptionChunk_nonempty (S : Finset BitString) (x : BitString) (s : ℕ) (hx : x ∈ S) :
     (descriptionChunk S x s).Nonempty :=
   ⟨x, mem_descriptionChunk S x s hx⟩
 
+/-- Splitting a set of size at most `2 ^ j` into chunks addressed by `s` bits leaves chunks of size
+at most `2 ^ (j - s + 1)`. -/
 theorem card_descriptionChunk_le_pow (S : Finset BitString) (x : BitString) (s j : ℕ)
     (hcard : S.card ≤ 2 ^ j) (hs : s ≤ j) :
     (descriptionChunk S x s).card ≤ 2 ^ (j - s + 1) := by
@@ -113,19 +142,23 @@ theorem bitsToNat_append_false (l : List Bool) (k : ℕ) :
 def chunkAddress (blockIdx s : ℕ) : BitString :=
   Nat.bits blockIdx ++ List.replicate (s - (Nat.bits blockIdx).length) false
 
+/-- A chunk address below `2 ^ s` is written with exactly `s` bits. -/
 theorem chunkAddress_length (blockIdx s : ℕ) (h : blockIdx < 2 ^ s) :
     (chunkAddress blockIdx s).length = s := by
   have hle : (Nat.bits blockIdx).length ≤ s := by rw [Nat.size_eq_bits_len]; exact Nat.size_le.mpr h
   simp [chunkAddress, hle]
 
+/-- Decoding a chunk address returns the block index it encodes. -/
 theorem bitsToNat_chunkAddress (blockIdx s : ℕ) : bitsToNat (chunkAddress blockIdx s) = blockIdx :=
     by
   rw [chunkAddress, bitsToNat_append_false, bitsToNat_bits]
 
+/-- A contiguous slice of a list sorted by the bit-string order is again sorted. -/
 theorem chunkList_pairwise (L : List BitString) (h : L.Pairwise bitStringLE) (a b : ℕ) :
     ((L.drop a).take b).Pairwise bitStringLE :=
   h.sublist ((L.drop a).take_sublist b |>.trans (L.drop_sublist a))
 
+/-- A contiguous slice of a duplicate-free list is duplicate-free. -/
 theorem chunkList_nodup (L : List BitString) (h : L.Nodup) (a b : ℕ) :
     ((L.drop a).take b).Nodup :=
   h.sublist ((L.drop a).take_sublist b |>.trans (L.drop_sublist a))
@@ -239,31 +272,67 @@ arithmetic, `List.drop`/`List.take`, and the computable encoder
 sorted).
 -/
 theorem descriptionChunkUniformCode_computable : Computable descriptionChunkUniformCode := by
-  apply Primrec.to_comp
-  have hL := Primrec.list_map (decodeDistributionData_primrec.comp decodeFirst_primrec)
-    (entry_point_primrec.comp Primrec.snd).to₂
-  have hs2 := twoPow_primrec.comp (Primrec.list_length.comp decodeSecond_primrec)
-  have hc := Primrec.nat_add.comp (Primrec.nat_div.comp (Primrec.list_length.comp hL) hs2)
-    (Primrec.const 1)
-  have hoffset := Primrec.nat_mul.comp (bitsToNat_primrec.comp decodeSecond_primrec) hc
-  have hchunk := primrec_listBitString_take.comp (primrec_listBitString_drop.comp hL hoffset) hc
-  have hG : Primrec (fun chunk : List BitString =>
-      codedDistributionDataCode (chunk.map fun x =>
-        ({ point := x, mass := ratMassInvNat (max 1 chunk.length) (by positivity) }
-          : CodedDistributionEntry))) := by
-    refine (Primrec.list_foldr (f := fun l : List BitString => l) (g := fun _ => [false])
-      (h := fun l p => true :: pairCode (pairCode p.1 (pairCode (natCode 1)
-        (natCode (max 1 l.length)))) p.2) Primrec.id (Primrec.const [false]) ?_).of_eq ?_
+  have h_points : Primrec (fun t : BitString =>
+      (decodeDistributionData (decodeFirst t)).map CodedDistributionEntry.point) :=
+    Primrec.list_map (decodeDistributionData_primrec.comp decodeFirst_primrec)
+      (entry_point_primrec.comp Primrec.snd).to₂
+  have h_points_len : Primrec (fun t : BitString =>
+      ((decodeDistributionData (decodeFirst t)).map CodedDistributionEntry.point).length) :=
+    Primrec.list_length.comp h_points
+  have h_address_len : Primrec (fun t : BitString => (decodeSecond t).length) :=
+    Primrec.list_length.comp decodeSecond_primrec
+  have h_pow : Primrec (fun t : BitString => 2 ^ (decodeSecond t).length) :=
+    primrec_two_pow_aux.comp h_address_len
+  have h_chunk_size : Primrec (fun t : BitString =>
+      ((decodeDistributionData (decodeFirst t)).map CodedDistributionEntry.point).length /
+        2 ^ (decodeSecond t).length + 1) :=
+    Primrec.nat_add.comp (Primrec.nat_div.comp h_points_len h_pow) (Primrec.const 1)
+  have h_block_idx : Primrec (fun t : BitString => bitsToNat (decodeSecond t)) :=
+    bitsToNat_primrec.comp decodeSecond_primrec
+  have h_start : Primrec (fun t : BitString =>
+      bitsToNat (decodeSecond t) *
+        (((decodeDistributionData (decodeFirst t)).map CodedDistributionEntry.point).length /
+          2 ^ (decodeSecond t).length + 1)) :=
+    Primrec.nat_mul.comp h_block_idx h_chunk_size
+  have h_drop : Primrec (fun t : BitString =>
+      ((decodeDistributionData (decodeFirst t)).map CodedDistributionEntry.point).drop
+        (bitsToNat (decodeSecond t) *
+          (((decodeDistributionData (decodeFirst t)).map CodedDistributionEntry.point).length /
+            2 ^ (decodeSecond t).length + 1))) :=
+    primrec_listBitString_drop.comp h_points h_start
+  have h_chunk : Primrec (fun t : BitString =>
+      (((decodeDistributionData (decodeFirst t)).map CodedDistributionEntry.point).drop
+        (bitsToNat (decodeSecond t) *
+          (((decodeDistributionData (decodeFirst t)).map CodedDistributionEntry.point).length /
+            2 ^ (decodeSecond t).length + 1))).take
+        (((decodeDistributionData (decodeFirst t)).map CodedDistributionEntry.point).length /
+          2 ^ (decodeSecond t).length + 1)) :=
+    primrec_listBitString_take.comp h_drop h_chunk_size
+  have h_encoder : Primrec (fun t : List BitString =>
+      codedDistributionDataCode (t.map fun x =>
+        ({ point := x, mass := ratMassInvNat (max 1 t.length) (by positivity) } :
+          CodedDistributionEntry))) := by
+    convert Primrec.list_foldr _ _ _ using 1
+    rotate_left
+    · exact BitString
+    · infer_instance
+    · exact fun t => t
+    · exact fun _ => [false]
+    · exact fun t p =>
+        true :: pairCode (pairCode p.1
+          (pairCode (natCode 1) (natCode (max 1 t.length)))) p.2
+    · exact Primrec.id
+    · exact Primrec.const [false]
     · exact Primrec.list_cons.comp (Primrec.const true)
         (pairCode_primrec.comp
           (pairCode_primrec.comp (Primrec.fst.comp Primrec.snd)
-            (pairCode_primrec.comp (natCode_primrec.comp (Primrec.const 1))
-              (natCode_primrec.comp (Primrec.nat_max.comp (Primrec.const 1)
-                (Primrec.list_length.comp Primrec.fst)))))
+            (pairCode_primrec.comp (primrec_natCode.comp (Primrec.const 1))
+              (primrec_natCode.comp
+                (Primrec.nat_max.comp (Primrec.const 1)
+                  (Primrec.list_length.comp Primrec.fst)))))
           (Primrec.snd.comp Primrec.snd))
-    · intro chunk
-      exact (codedUniform_foldr chunk (max 1 chunk.length) (by positivity)).symm
-  exact (hG.comp hchunk).of_eq (fun _ => rfl)
+    · exact funext fun t => codedUniform_foldr t (max 1 t.length) (by positivity)
+  exact Computable.of_eq (h_encoder.comp h_chunk).to_comp (fun _ => rfl)
 
 /--
 Computable-encoder existence for the description-shift bound.  There is a fixed

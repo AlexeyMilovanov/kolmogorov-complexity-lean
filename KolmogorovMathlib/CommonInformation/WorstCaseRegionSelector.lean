@@ -1,14 +1,31 @@
 import KolmogorovMathlib.CommonInformation.WorstCaseRegionSearch
 import KolmogorovMathlib.CommonInformation.WorstCaseSelector
 
+/-!
+# The selector of the region construction
+
+`muchnikRegionSelector` searches, given `n` and the advice count, for a candidate pair that no
+admissible triple serves, and returns the first one found good at the stage at which the
+enumerations have produced the advised number of objects.  `muchnikRegionSelector_partrec`
+makes it partial recursive and `muchnikRegionSelector_spec` says what it returns: the code of
+a survivor pair.
+
+Its test is `muchnikRegionSelectorGoodAtStage`, with
+`muchnikRegionSelectorGoodAtStage_eq_true_iff` and `…_primrec`, built on the witness search of
+`WorstCaseRegionSearch`.
+-/
+
 namespace Kolmogorov
 
 open Nat.Partrec (Code)
 
+/-- The test the selector applies to a candidate at a stage: the candidate must not have been
+marked bad at that stage. -/
 def muchnikRegionSelectorGoodAtStage
     (c : Code) (input : BitString) (t : Nat) (w : BitString) : Bool :=
   !muchnikRegionBadAtStage c (muchnikSelectorN input) t w
 
+/-- The selector's test succeeds exactly when the candidate is not bad at that stage. -/
 theorem muchnikRegionSelectorGoodAtStage_eq_true_iff
     (c : Code) (input : BitString) (t : Nat) (w : BitString) :
     muchnikRegionSelectorGoodAtStage c input t w = true ↔
@@ -16,6 +33,7 @@ theorem muchnikRegionSelectorGoodAtStage_eq_true_iff
   unfold muchnikRegionSelectorGoodAtStage
   cases muchnikRegionBadAtStage c (muchnikSelectorN input) t w <;> simp
 
+/-- The selector's test is primitive recursive. -/
 theorem muchnikRegionSelectorGoodAtStage_primrec (c : Code) :
     Primrec (fun q : (BitString × Nat) × BitString =>
       muchnikRegionSelectorGoodAtStage c q.1.1 q.1.2 q.2) := by
@@ -36,6 +54,8 @@ theorem muchnikRegionSelectorGoodAtStage_primrec (c : Code) :
   exact (Primrec.not.comp hbad).of_eq (fun q => by
     simp only [muchnikRegionSelectorGoodAtStage, f])
 
+/-- The partial computable selector that, given `n` and the advice count, searches for a survivor
+pair of the region construction. -/
 noncomputable def muchnikRegionSelector (c : Code) : BitString → Part BitString := fun input =>
   let n := muchnikSelectorN input
   let total := muchnikSelectorTotal input
@@ -45,6 +65,8 @@ noncomputable def muchnikRegionSelector (c : Code) : BitString → Part BitStrin
         ((muchnikSelectorCandidates input).find?
           (muchnikRegionSelectorGoodAtStage c input t))
 
+/-- The selector returns the first candidate found good at the stage at which the enumeration is
+complete. -/
 theorem muchnikRegionSelector_eq_some_of_search
     (c : Code) (input : BitString) (t : Nat) (w : BitString)
     (ht : t ∈ Nat.rfind (fun s =>
@@ -60,6 +82,7 @@ theorem muchnikRegionSelector_eq_some_of_search
   rw [hw]
   exact Part.mem_some w
 
+/-- The selector is partial recursive. -/
 theorem muchnikRegionSelector_partrec (c : Code) : Partrec (muchnikRegionSelector c) := by
   let countInput : BitString × Nat → Nat × Nat :=
     fun st => (muchnikSelectorN st.1, st.2)
@@ -101,6 +124,8 @@ theorem muchnikRegionSelector_partrec (c : Code) : Partrec (muchnikRegionSelecto
   unfold muchnikRegionSelector
   exact Partrec.bind hSearch hPost
 
+/-- Given `n` and the advice count, the selector returns the code of a survivor pair of the
+region construction. -/
 theorem muchnikRegionSelector_spec
     {V : Map} {c : Code} (hc : IsCodeFor c V)
     {n : Nat} (hn : 0 < n) :
@@ -136,7 +161,12 @@ theorem muchnikRegionSelector_spec
           (muchnikSelectorN input) t ==
             muchnikSelectorTotal input)) := by
     simp only [hInputN, hInputTotal]
-    refine Nat.mem_rfind.mpr ⟨?_, ?_⟩
+    rw [@Nat.mem_rfind
+      ((fun t : ℕ => Part.some
+        (muchnikRegionMergedStageCount c n t ==
+          muchnikRegionAdviceCount V n)) : ℕ →. Bool)
+      t₀]
+    refine ⟨?_, ?_⟩
     · simp [ht₀Count]
     · intro m hm
       have hne :

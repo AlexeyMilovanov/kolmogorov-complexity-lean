@@ -77,12 +77,12 @@ theorem muchnikAdviceCount_lt (V : Map) {n : Nat} (hn : 0 < n) :
     (muchnik_lt_threshold_iff 0 n).mpr (by omega)
   have hMarginal :
       (compressibleWords V [] (2 * n - 1)).card < 2 ^ (2 * n) := by
-    have h := cardCompressibleWordsLt V [] (2 * n - 1)
+    have h := card_compressibleWordsLt V [] (2 * n - 1)
     have hExponent : 2 * n - 1 + 1 = 2 * n := by omega
     simpa only [hExponent] using h
   have hPair :
       (compressibleWords V [] (3 * n - 1)).card < 2 ^ (3 * n) := by
-    have h := cardCompressibleWordsLt V [] (3 * n - 1)
+    have h := card_compressibleWordsLt V [] (3 * n - 1)
     have hExponent : 3 * n - 1 + 1 = 3 * n := by omega
     simpa only [hExponent] using h
   have hCompact :
@@ -383,6 +383,10 @@ theorem exists_muchnikMergedStageCount_eq
         congrArg Finset.card hStage₃
   omega
 
+/-- Tests whether the candidate pair code `w` is already excluded after `t` steps of
+enumeration: one of its components, or the pair itself, has been enumerated
+below the corresponding complexity bound, or some string describes both
+components within the threshold `muchnikThreshold n`. -/
 def muchnikBadAtStage (c : Code) (n t : Nat) (w : BitString) : Bool :=
   let marginal := boundedOutputStage c (2 * n - 1) t
   let pairs := boundedOutputStage c (3 * n - 1) t
@@ -438,19 +442,19 @@ theorem muchnikBadAtStage_primrec (c : Code) :
       decide (decodeFirst q.2 ∈
         boundedOutputStage c (2 * q.1.1 - 1) q.1.2)) :=
     bitString_mem_primrec.comp
-      (decodeFirst_primrec'.comp hw) hMarginal
+      (decodeFirst_primrec.comp hw) hMarginal
   have hRight : Primrec (fun q : (Nat × Nat) × BitString =>
       decide (decodeSecond q.2 ∈
         boundedOutputStage c (2 * q.1.1 - 1) q.1.2)) :=
     bitString_mem_primrec.comp
-      (decodeSecond_primrec'.comp hw) hMarginal
+      (decodeSecond_primrec.comp hw) hMarginal
   have hPair : Primrec (fun q : (Nat × Nat) × BitString =>
       decide (pairCode (decodeFirst q.2) (decodeSecond q.2) ∈
         boundedOutputStage c (3 * q.1.1 - 1) q.1.2)) :=
     bitString_mem_primrec.comp
       (pairCode_primrec.comp
-        (decodeFirst_primrec'.comp hw)
-        (decodeSecond_primrec'.comp hw))
+        (decodeFirst_primrec.comp hw)
+        (decodeSecond_primrec.comp hw))
       hPairs
   have hCommonPred : Primrec₂
       (fun (q : (Nat × Nat) × BitString) (p : BitString) =>
@@ -470,8 +474,8 @@ theorem muchnikBadAtStage_primrec (c : Code) :
             (muchnikThreshold r.1.1.1 - 1) r.1.1.2)) :=
       bitString_mem_primrec.comp
         (pairCode_primrec.comp
-          (decodeFirst_primrec'.comp Primrec.snd)
-          (decodeFirst_primrec'.comp
+          (decodeFirst_primrec.comp Primrec.snd)
+          (decodeFirst_primrec.comp
             (Primrec.snd.comp Primrec.fst)))
         (hConditional.comp Primrec.fst)
     have hSecond : Primrec (fun r :
@@ -482,8 +486,8 @@ theorem muchnikBadAtStage_primrec (c : Code) :
             (muchnikThreshold r.1.1.1 - 1) r.1.1.2)) :=
       bitString_mem_primrec.comp
         (pairCode_primrec.comp
-          (decodeFirst_primrec'.comp Primrec.snd)
-          (decodeSecond_primrec'.comp
+          (decodeFirst_primrec.comp Primrec.snd)
+          (decodeSecond_primrec.comp
             (Primrec.snd.comp Primrec.fst)))
         (hConditional.comp Primrec.fst)
     exact (Primrec.and.comp hFirst hSecond).to₂
@@ -505,6 +509,125 @@ theorem muchnikBadAtStage_primrec (c : Code) :
   exact Primrec.or.comp
     (Primrec.or.comp (Primrec.or.comp hLeft hRight) hPair) hCommon
 
+/-- A string is not in the bounded output stage at bound `k - 1` if and only if
+its plain complexity is at least `k`. -/
+private lemma not_mem_boundedOutputStage_iff {V : Map} {c : Code} {k t : Nat} (hk : 0 < k)
+    (hStage : (boundedOutputStage c (k - 1) t).toFinset = compressibleWords V [] (k - 1))
+    (u : BitString) :
+    u ∉ boundedOutputStage c (k - 1) t ↔ (k : ENat) ≤ plainK V u := by
+  rw [← List.mem_toFinset, hStage, mem_compressibleWords_iff]
+  constructor
+  · intro hnot
+    apply le_of_not_gt
+    intro hlt
+    exact hnot ((enat_lt_coe_iff_le_pred (q := plainK V u) hk).mp hlt)
+  · intro hlo hle
+    exact (not_lt_of_ge hlo) ((enat_lt_coe_iff_le_pred (q := plainK V u) hk).mpr hle)
+
+/-- At a complete stage, a common description pair exists in the conditional stage list
+if and only if there exists a description `z` bounding the plain and conditional complexities
+by `muchnikThreshold n - 1`. -/
+private lemma muchnik_common_description_exists_iff {V : Map} {n : Nat}
+    {conditional : List BitString}
+    (hConditional : conditional.toFinset =
+      conditionalDescriptionPairsLe V (muchnikThreshold n - 1) (muchnikThreshold n - 1))
+    (x y : BitString) :
+    (∃ p ∈ conditional,
+        pairCode (decodeFirst p) x ∈ conditional ∧
+        pairCode (decodeFirst p) y ∈ conditional) ↔
+      ∃ z, plainK V z ≤ ((muchnikThreshold n - 1 : Nat) : ENat) ∧
+        condK V x z ≤ ((muchnikThreshold n - 1 : Nat) : ENat) ∧
+        condK V y z ≤ ((muchnikThreshold n - 1 : Nat) : ENat) := by
+  constructor
+  · rintro ⟨p, _hp, hpx, hpy⟩
+    have hpxSem : pairCode (decodeFirst p) x ∈
+        conditionalDescriptionPairsLe V (muchnikThreshold n - 1) (muchnikThreshold n - 1) := by
+      rw [← hConditional]
+      exact List.mem_toFinset.mpr hpx
+    have hpySem : pairCode (decodeFirst p) y ∈
+        conditionalDescriptionPairsLe V (muchnikThreshold n - 1) (muchnikThreshold n - 1) := by
+      rw [← hConditional]
+      exact List.mem_toFinset.mpr hpy
+    obtain ⟨zx, vx, hxEq, hzx, hvx⟩ :=
+      (mem_conditionalDescriptionPairsLe_iff V
+        (muchnikThreshold n - 1) (muchnikThreshold n - 1)
+        (pairCode (decodeFirst p) x)).mp hpxSem
+    obtain ⟨zy, vy, hyEq, _hzy, hvy⟩ :=
+      (mem_conditionalDescriptionPairsLe_iff V
+        (muchnikThreshold n - 1) (muchnikThreshold n - 1)
+        (pairCode (decodeFirst p) y)).mp hpySem
+    have hxComponents : (decodeFirst p, x) = (zx, vx) := pairCode_injective hxEq
+    have hyComponents : (decodeFirst p, y) = (zy, vy) := pairCode_injective hyEq
+    cases hxComponents
+    cases hyComponents
+    exact ⟨decodeFirst p, hzx, hvx, hvy⟩
+  · rintro ⟨z, hz, hx, hy⟩
+    have hxSem : pairCode z x ∈ conditionalDescriptionPairsLe V
+        (muchnikThreshold n - 1) (muchnikThreshold n - 1) :=
+      (mem_conditionalDescriptionPairsLe_iff V
+        (muchnikThreshold n - 1) (muchnikThreshold n - 1)
+        (pairCode z x)).mpr ⟨z, x, rfl, hz, hx⟩
+    have hySem : pairCode z y ∈ conditionalDescriptionPairsLe V
+        (muchnikThreshold n - 1) (muchnikThreshold n - 1) :=
+      (mem_conditionalDescriptionPairsLe_iff V
+        (muchnikThreshold n - 1) (muchnikThreshold n - 1)
+        (pairCode z y)).mpr ⟨z, y, rfl, hz, hy⟩
+    have hxStage : pairCode z x ∈ conditional := by
+      apply List.mem_toFinset.mp
+      rw [hConditional]
+      exact hxSem
+    have hyStage : pairCode z y ∈ conditional := by
+      apply List.mem_toFinset.mp
+      rw [hConditional]
+      exact hySem
+    refine ⟨pairCode z x, hxStage, ?_, ?_⟩
+    · simpa only [decodeFirst_pairCode] using hxStage
+    · simpa only [decodeFirst_pairCode] using hyStage
+
+/-- No common description exists in the conditional stage list if and only if
+the threshold triple is not in the common information region. -/
+private lemma muchnik_no_common_description_iff {V : Map} {n : Nat} (hn : 0 < n)
+    {conditional : List BitString}
+    (hConditional : conditional.toFinset =
+      conditionalDescriptionPairsLe V (muchnikThreshold n - 1) (muchnikThreshold n - 1))
+    (x y : BitString) :
+    (¬∃ p ∈ conditional,
+        pairCode (decodeFirst p) x ∈ conditional ∧
+        pairCode (decodeFirst p) y ∈ conditional) ↔
+      (muchnikThreshold n, muchnikThreshold n, muchnikThreshold n) ∉
+        CommonInformationRegion V x y := by
+  have hThresholdPos : 0 < muchnikThreshold n :=
+    (muchnik_lt_threshold_iff 0 n).mpr (by omega)
+  have hCommonExists := muchnik_common_description_exists_iff hConditional x y
+  constructor
+  · intro hnone hregion
+    apply hnone
+    apply hCommonExists.mpr
+    change ∃ z,
+      plainK V z < (muchnikThreshold n : ENat) ∧
+      condK V x z < (muchnikThreshold n : ENat) ∧
+      condK V y z < (muchnikThreshold n : ENat) at hregion
+    obtain ⟨z, hz, hx, hy⟩ := hregion
+    exact ⟨z,
+      (enat_lt_coe_iff_le_pred hThresholdPos).mp hz,
+      (enat_lt_coe_iff_le_pred hThresholdPos).mp hx,
+      (enat_lt_coe_iff_le_pred hThresholdPos).mp hy⟩
+  · intro hregion hex
+    apply hregion
+    change ∃ z,
+      plainK V z < (muchnikThreshold n : ENat) ∧
+      condK V x z < (muchnikThreshold n : ENat) ∧
+      condK V y z < (muchnikThreshold n : ENat)
+    obtain ⟨z, hz, hx, hy⟩ := hCommonExists.mp hex
+    exact ⟨z,
+      (enat_lt_coe_iff_le_pred hThresholdPos).mpr hz,
+      (enat_lt_coe_iff_le_pred hThresholdPos).mpr hx,
+      (enat_lt_coe_iff_le_pred hThresholdPos).mpr hy⟩
+
+/-- Once the stage `t` is complete — the merged stage count has reached the advice
+count — the stage test rejects `w` exactly when the two components have plain
+complexity at least `2n`, their pair at least `3n`, and no common description
+meets the threshold; that is, `w` is a genuine Muchnik survivor. -/
 theorem muchnikBadAtStage_false_iff
     {V : Map} {c : Code} (hc : IsCodeFor c V)
     {n t : Nat} (hn : 0 < n)
@@ -526,132 +649,17 @@ theorem muchnikBadAtStage_false_iff
   let y := decodeSecond w
   have hTwoN : 0 < 2 * n := Nat.mul_pos (by norm_num) hn
   have hThreeN : 0 < 3 * n := Nat.mul_pos (by norm_num) hn
-  have hMarginalMem (u : BitString) :
-      u ∉ marginal ↔ (2 * n : ENat) ≤ plainK V u := by
-    have hfinset :
-        marginal.toFinset = compressibleWords V [] (2 * n - 1) := by
-      simpa only [marginal] using hMarginal
-    rw [← List.mem_toFinset, hfinset, mem_compressibleWords_iff]
-    constructor
-    · intro hnot
-      apply le_of_not_gt
-      intro hlt
-      apply hnot
-      exact (enat_lt_coe_iff_le_pred (q := plainK V u) hTwoN).mp hlt
-    · intro hlo hle
-      exact (not_lt_of_ge hlo)
-        ((enat_lt_coe_iff_le_pred (q := plainK V u) hTwoN).mpr hle)
-  have hPairMem :
-      pairCode x y ∉ pairs ↔ (3 * n : ENat) ≤ pairPlainK V x y := by
-    have hfinset :
-        pairs.toFinset = compressibleWords V [] (3 * n - 1) := by
-      simpa only [pairs] using hPairs
-    rw [← List.mem_toFinset, hfinset, mem_compressibleWords_iff]
-    change (¬plainK V (pairCode x y) ≤ ((3 * n - 1 : Nat) : ENat)) ↔
-      (3 * n : ENat) ≤ pairPlainK V x y
-    constructor
-    · intro hnot
-      apply le_of_not_gt
-      intro hlt
-      apply hnot
-      exact (enat_lt_coe_iff_le_pred
-        (q := pairPlainK V x y) hThreeN).mp hlt
-    · intro hlo hle
-      exact (not_lt_of_ge hlo)
-        ((enat_lt_coe_iff_le_pred
-          (q := pairPlainK V x y) hThreeN).mpr hle)
-  have hCommonExists :
-      (∃ p ∈ conditional,
-          pairCode (decodeFirst p) x ∈ conditional ∧
-          pairCode (decodeFirst p) y ∈ conditional) ↔
-        ∃ z, plainK V z ≤ ((muchnikThreshold n - 1 : Nat) : ENat) ∧
-          condK V x z ≤ ((muchnikThreshold n - 1 : Nat) : ENat) ∧
-          condK V y z ≤ ((muchnikThreshold n - 1 : Nat) : ENat) := by
-    constructor
-    · rintro ⟨p, _hp, hpx, hpy⟩
-      have hpxSem :
-          pairCode (decodeFirst p) x ∈
-            conditionalDescriptionPairsLe V
-              (muchnikThreshold n - 1) (muchnikThreshold n - 1) := by
-        rw [← hConditional]
-        exact List.mem_toFinset.mpr hpx
-      have hpySem :
-          pairCode (decodeFirst p) y ∈
-            conditionalDescriptionPairsLe V
-              (muchnikThreshold n - 1) (muchnikThreshold n - 1) := by
-        rw [← hConditional]
-        exact List.mem_toFinset.mpr hpy
-      obtain ⟨zx, vx, hxEq, hzx, hvx⟩ :=
-        (mem_conditionalDescriptionPairsLe_iff V
-          (muchnikThreshold n - 1) (muchnikThreshold n - 1)
-          (pairCode (decodeFirst p) x)).mp hpxSem
-      obtain ⟨zy, vy, hyEq, _hzy, hvy⟩ :=
-        (mem_conditionalDescriptionPairsLe_iff V
-          (muchnikThreshold n - 1) (muchnikThreshold n - 1)
-          (pairCode (decodeFirst p) y)).mp hpySem
-      have hxComponents : (decodeFirst p, x) = (zx, vx) :=
-        pairCode_injective hxEq
-      have hyComponents : (decodeFirst p, y) = (zy, vy) :=
-        pairCode_injective hyEq
-      cases hxComponents
-      cases hyComponents
-      exact ⟨decodeFirst p, hzx, hvx, hvy⟩
-    · rintro ⟨z, hz, hx, hy⟩
-      have hxSem :
-          pairCode z x ∈ conditionalDescriptionPairsLe V
-            (muchnikThreshold n - 1) (muchnikThreshold n - 1) :=
-        (mem_conditionalDescriptionPairsLe_iff V
-          (muchnikThreshold n - 1) (muchnikThreshold n - 1)
-          (pairCode z x)).mpr ⟨z, x, rfl, hz, hx⟩
-      have hySem :
-          pairCode z y ∈ conditionalDescriptionPairsLe V
-            (muchnikThreshold n - 1) (muchnikThreshold n - 1) :=
-        (mem_conditionalDescriptionPairsLe_iff V
-          (muchnikThreshold n - 1) (muchnikThreshold n - 1)
-          (pairCode z y)).mpr ⟨z, y, rfl, hz, hy⟩
-      have hxStage : pairCode z x ∈ conditional := by
-        apply List.mem_toFinset.mp
-        rw [hConditional]
-        exact hxSem
-      have hyStage : pairCode z y ∈ conditional := by
-        apply List.mem_toFinset.mp
-        rw [hConditional]
-        exact hySem
-      refine ⟨pairCode z x, hxStage, ?_, ?_⟩
-      · simpa only [decodeFirst_pairCode] using hxStage
-      · simpa only [decodeFirst_pairCode] using hyStage
+  have hMarginalMem (u : BitString) : u ∉ marginal ↔ (2 * n : ENat) ≤ plainK V u :=
+    not_mem_boundedOutputStage_iff hTwoN hMarginal u
+  have hPairMem : pairCode x y ∉ pairs ↔ (3 * n : ENat) ≤ pairPlainK V x y :=
+    not_mem_boundedOutputStage_iff hThreeN hPairs (pairCode x y)
   have hNoCommon :
       (¬∃ p ∈ conditional,
           pairCode (decodeFirst p) x ∈ conditional ∧
           pairCode (decodeFirst p) y ∈ conditional) ↔
         (muchnikThreshold n, muchnikThreshold n, muchnikThreshold n) ∉
-          CommonInformationRegion V x y := by
-    have hThresholdPos : 0 < muchnikThreshold n :=
-      (muchnik_lt_threshold_iff 0 n).mpr (by omega)
-    constructor
-    · intro hnone hregion
-      apply hnone
-      apply hCommonExists.mpr
-      change ∃ z,
-        plainK V z < (muchnikThreshold n : ENat) ∧
-        condK V x z < (muchnikThreshold n : ENat) ∧
-        condK V y z < (muchnikThreshold n : ENat) at hregion
-      obtain ⟨z, hz, hx, hy⟩ := hregion
-      exact ⟨z,
-        (enat_lt_coe_iff_le_pred hThresholdPos).mp hz,
-        (enat_lt_coe_iff_le_pred hThresholdPos).mp hx,
-        (enat_lt_coe_iff_le_pred hThresholdPos).mp hy⟩
-    · intro hregion hex
-      apply hregion
-      change ∃ z,
-        plainK V z < (muchnikThreshold n : ENat) ∧
-        condK V x z < (muchnikThreshold n : ENat) ∧
-        condK V y z < (muchnikThreshold n : ENat)
-      obtain ⟨z, hz, hx, hy⟩ := hCommonExists.mp hex
-      exact ⟨z,
-        (enat_lt_coe_iff_le_pred hThresholdPos).mpr hz,
-        (enat_lt_coe_iff_le_pred hThresholdPos).mpr hx,
-        (enat_lt_coe_iff_le_pred hThresholdPos).mpr hy⟩
+          CommonInformationRegion V x y :=
+    muchnik_no_common_description_iff hn hConditional x y
   have hCommonBool :
       conditional.any (fun p =>
         decide (pairCode (decodeFirst p) x ∈ conditional) &&
@@ -671,6 +679,8 @@ theorem muchnikBadAtStage_false_iff
   rw [hCommonBool, hMarginalMem x, hMarginalMem y, hPairMem, hNoCommon]
   simp only [x, y, and_assoc]
 
+/-- At a complete stage there is always a candidate among the pair codes of length
+`2 * n + 2` that the stage test does not reject. -/
 theorem exists_fixedLengthPairCode_not_bad
     {V : Map} {c : Code} (hc : IsCodeFor c V)
     {n t : Nat} (hn : 0 < n)
@@ -727,19 +737,28 @@ theorem muchnikFindAtStage_spec
     decodeSecond_pairCode] using
     And.intro hxLength (And.intro hyLength hwSemantics)
 
+/-- The parameter `n` read off the selector's input, the first component of the
+input pair decoded as a binary numeral. -/
 def muchnikSelectorN (input : BitString) : Nat :=
   bitsToNat (decodeFirst input)
 
+/-- The advice number read off the selector's input, the second component of the
+input pair decoded as a binary numeral. -/
 def muchnikSelectorTotal (input : BitString) : Nat :=
   bitsToNat (decodeSecond input)
 
+/-- The candidate list searched by the selector: all pair codes whose two components
+have length `2 * muchnikSelectorN input + 2`. -/
 def muchnikSelectorCandidates (input : BitString) : List BitString :=
   fixedLengthPairCodes (2 * muchnikSelectorN input + 2)
 
+/-- The negation of the stage test `muchnikBadAtStage`, at the parameter `n` read off
+the input. -/
 def muchnikSelectorGoodAtStage
     (c : Code) (input : BitString) (t : Nat) (w : BitString) : Bool :=
   !muchnikBadAtStage c (muchnikSelectorN input) t w
 
+/-- A candidate is good at a stage exactly when it is not bad at that stage. -/
 theorem muchnikSelectorGoodAtStage_eq_true_iff
     (c : Code) (input : BitString) (t : Nat) (w : BitString) :
     muchnikSelectorGoodAtStage c input t w = true ↔
@@ -747,12 +766,15 @@ theorem muchnikSelectorGoodAtStage_eq_true_iff
   unfold muchnikSelectorGoodAtStage
   cases muchnikBadAtStage c (muchnikSelectorN input) t w <;> simp
 
+/-- Reading the parameter `n` off the input is primitive recursive. -/
 theorem muchnikSelectorN_primrec : Primrec muchnikSelectorN :=
-  bitsToNat_primrec.comp decodeFirst_primrec'
+  bitsToNat_primrec.comp decodeFirst_primrec
 
+/-- Reading the advice number off the input is primitive recursive. -/
 theorem muchnikSelectorTotal_primrec : Primrec muchnikSelectorTotal :=
-  bitsToNat_primrec.comp decodeSecond_primrec'
+  bitsToNat_primrec.comp decodeSecond_primrec
 
+/-- Forming the candidate list from the input is primitive recursive. -/
 theorem muchnikSelectorCandidates_primrec :
     Primrec muchnikSelectorCandidates := by
   unfold muchnikSelectorCandidates
@@ -761,6 +783,8 @@ theorem muchnikSelectorCandidates_primrec :
       (Primrec.nat_mul.comp (Primrec.const 2) muchnikSelectorN_primrec)
       (Primrec.const 2))
 
+/-- The goodness test is primitive recursive in the input, the stage and the
+candidate. -/
 theorem muchnikSelectorGoodAtStage_primrec (c : Code) :
     Primrec (fun q : (BitString × Nat) × BitString =>
       muchnikSelectorGoodAtStage c q.1.1 q.1.2 q.2) := by
@@ -779,6 +803,9 @@ theorem muchnikSelectorGoodAtStage_primrec (c : Code) :
   exact (Primrec.not.comp hbad).of_eq (fun q => by
     simp only [muchnikSelectorGoodAtStage, f])
 
+/-- The Muchnik selector for the machine `c`: search for the first stage whose
+merged count equals the advice number supplied in the input, then return the
+first candidate of the fixed-length list that is good at that stage. -/
 noncomputable def muchnikSelector (c : Code) : BitString → Part BitString := fun input =>
   let n := muchnikSelectorN input
   let total := muchnikSelectorTotal input
@@ -788,12 +815,16 @@ noncomputable def muchnikSelector (c : Code) : BitString → Part BitString := f
         ((muchnikSelectorCandidates input).find?
           (muchnikSelectorGoodAtStage c input t))
 
+/-- If the input codes the parameter `n`, the candidate list is the list of pair
+codes of component length `2 * n + 2`. -/
 theorem muchnikSelectorCandidates_eq_of_n
     {input : BitString} {n : Nat} (hn : muchnikSelectorN input = n) :
     muchnikSelectorCandidates input =
       fixedLengthPairCodes (2 * n + 2) := by
   simp only [muchnikSelectorCandidates, hn]
 
+/-- If the input codes the parameter `n`, the goodness test is the negation of
+`muchnikBadAtStage c n t`. -/
 theorem muchnikSelectorGoodAtStage_eq_of_n
     (c : Code) {input : BitString} {n t : Nat}
     (hn : muchnikSelectorN input = n) :
@@ -802,6 +833,8 @@ theorem muchnikSelectorGoodAtStage_eq_of_n
   funext w
   simp only [muchnikSelectorGoodAtStage, hn]
 
+/-- If `t` is found by the stage search and `w` is the first good candidate at `t`,
+the selector outputs `w`. -/
 theorem muchnikSelector_eq_some_of_search
     (c : Code) (input : BitString) (t : Nat) (w : BitString)
     (ht : t ∈ Nat.rfind (fun s =>
@@ -817,6 +850,7 @@ theorem muchnikSelector_eq_some_of_search
   rw [hw]
   exact Part.mem_some w
 
+/-- The Muchnik selector is a partial recursive function of its input. -/
 theorem muchnikSelector_partrec (c : Code) : Partrec (muchnikSelector c) := by
   let countInput : BitString × Nat → Nat × Nat :=
     fun st => (muchnikSelectorN st.1, st.2)
@@ -855,6 +889,9 @@ theorem muchnikSelector_partrec (c : Code) : Partrec (muchnikSelector c) := by
   unfold muchnikSelector
   exact Partrec.bind hSearch hPost
 
+/-- On the input coding `n` together with the correct advice count, the selector
+halts and outputs the pair code of two strings that form a Muchnik survivor pair
+for `n`. SUV Theorem 223. -/
 theorem muchnikSelector_spec
     {V : Map} {c : Code} (hc : IsCodeFor c V)
     {n : Nat} (hn : 0 < n) :
@@ -880,13 +917,17 @@ theorem muchnikSelector_spec
       t₀ ∈ Nat.rfind (fun t =>
         Part.some (muchnikMergedStageCount c (muchnikSelectorN input) t ==
           muchnikSelectorTotal input)) := by
-    simp only [hInputN, hInputTotal]
-    refine Nat.mem_rfind.mpr ⟨?_, ?_⟩
-    · simp [ht₀Count]
+    let test : ℕ →. Bool := fun t =>
+      Part.some (muchnikMergedStageCount c (muchnikSelectorN input) t ==
+        muchnikSelectorTotal input)
+    change t₀ ∈ Nat.rfind test
+    rw [Nat.mem_rfind]
+    refine ⟨?_, ?_⟩
+    · simp [test, hInputN, hInputTotal, ht₀Count]
     · intro m hm
       have hne : muchnikMergedStageCount c n m ≠ muchnikAdviceCount V n :=
         Nat.find_min hex hm
-      simp [hne]
+      simp [test, hInputN, hInputTotal, hne]
   obtain ⟨w, hwFindDirect, hSurvivor⟩ :=
     muchnikFindAtStage_spec hc hn ht₀Count
   have hwFind :

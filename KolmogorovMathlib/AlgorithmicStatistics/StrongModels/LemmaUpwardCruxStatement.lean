@@ -1,28 +1,25 @@
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.BudgetedCornerSharpProfile
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.BudgetedCornerProfile
 
 /-!
-# The Upward Crux Interface
+# The upward crux interface
 
-This module isolates the exact $\alpha,\beta$-independent optimal-set conversion
-required to complete the unconditional proof of `prop:upward` (the upward closure
-of strong models). The public endpoint `prop_upward` is reduced to exactly this
-hypothesis `hConv` (or the equivalent hard-regime corner).
+This module isolates the exact `alpha`, `beta`-independent optimal-set conversion
+that an unconditional proof of `prop:upward` (the upward closure of strong models)
+requires.  The public endpoint `prop_upward` is reduced to exactly this hypothesis
+`hConv`, or to the equivalent hard-regime corner.
 
-By extracting it as a standalone `def`, we provide a stub-free research interface
-for the remaining information-splitting efforts, analogous to S9's `LemmaOmpExactRadiusStatement`.
+The conversion is extracted as a standalone `def` so that it can be named as a
+hypothesis, in the same way as `LemmaOmpExactRadiusStatement`.
 -/
 
 namespace Kolmogorov
 
-/-- **The Upward Crux Statement.**
-The budget-scale plain corner in the hard regime depends on an $\alpha,\beta$-independent
-optimal-set conversion. This is a research interface for the sharper, witness-uniform version
-of upward transport. It is not the completion obligation for `prop_upward`, which is proved
-unconditionally via the full-cube image in `UpwardOrdinalNoiseBetaRegime.lean`.
-
-This interface requires a radius (for the optimality deficiency) that depends
-*only* on the prefix complexity of `x` (i.e. `p`), rather than on `p + alpha + beta`
-or `x.length`. -/
+open CodedFiniteDistribution
+/-- The upward crux, as a proposition about `U`: there is a constant `c` such that every
+`(alpha, beta)`-stochastic `x` with `KPPlain U x = p` is
+`(alpha + logSlack c p, beta + logSlack c p)`-optimal-set stochastic.  The radius depends on the
+prefix complexity `p` alone, not on `alpha`, `beta` or `x.length`.  It is used as a hypothesis;
+it is not proved here. -/
 def LemmaUpwardCruxStatement (U : Map) : Prop :=
   ∃ c : ℕ, ∀ (x : BitString) (p alpha beta : ℕ),
     KPPlain U x = (p : ENat) →
@@ -30,10 +27,7 @@ def LemmaUpwardCruxStatement (U : Map) : Prop :=
     IsOptimalSetStochastic U x
       (alpha + logSlack c p) (beta + logSlack c p)
 
-/-- **`prop:upward` from the budget-scale optimal-set conversion.**  Composing
-`budgetedPlainCorner_of_optimalSetConversion_budget` with the corner-based
-assembly `propUpward_of_budgetedPlainCorner`: the upward crux interface
-`LemmaUpwardCruxStatement U` is enough to conclude `PropUpwardStatement U T`. -/
+/-- The upward crux implies `PropUpwardStatement U T`. -/
 theorem propUpward_of_optimalSetConversion_budget
     (V U T : Map) (hV : isOptimalConditional V) (hU : IsOptimalPrefixConditional U)
     (hT : IsOptimalTotalConditional T)

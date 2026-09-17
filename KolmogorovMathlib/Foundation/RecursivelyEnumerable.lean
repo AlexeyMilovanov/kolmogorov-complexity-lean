@@ -60,10 +60,9 @@ lemma Partrec.graphIsRe {α β : Type*} [Primcodable α] [Primcodable β]
 
 /-! ### Bounded Search and Dovetailing -/
 
-/-- Auxiliary lemma: Establishes the equivalence between the domain of a partial
-recursive function and the existence of a finite step count `k` for which the
-evaluation of its code halts (`isSome = true`). -/
-private lemma partrecCodeDom {α : Type*} [Primcodable α]
+/-- A partial recursive function is defined at `a` exactly when the evaluation of a code for it
+halts on `a` within some finite step count. -/
+lemma partrecCodeDom {α : Type*} [Primcodable α]
     (g : α →. Unit) (c : Nat.Partrec.Code)
     (hc : c.eval = fun n =>
       (Part.ofOption (Encodable.decode (α := α) n)).bind
@@ -90,7 +89,7 @@ private lemma dovetailLookupComputable {α β : Type*} [Primcodable α] [Primcod
   exact Computable.comp Computable.list_getElem? (Computable.pair h_fst h_idx)
 
 /-- Helper 2: Core computability of evaln with a fixed code -/
-private lemma evalnCoreComputable (c : Nat.Partrec.Code) :
+lemma evalnCoreComputable (c : Nat.Partrec.Code) :
     Computable (fun p : ℕ × ℕ => Nat.Partrec.Code.evaln p.1 c p.2) := by
   have h_prim : Primrec (fun p : ℕ × ℕ => Nat.Partrec.Code.evaln p.1 c p.2) := by
     convert Nat.Partrec.Code.primrec_evaln using 1
@@ -154,13 +153,16 @@ lemma IsRE.existsInList {α β : Type*} [Primcodable α] [Primcodable β]
       (Nat.Partrec.Code.evaln (n.unpair.2 + 1) c (Encodable.encode (a, b))).isSome
     | none => false
   have hcheck : Computable₂ check := dovetailCheckComputable bound h_bound c
-  have h_rfind : Partrec (fun a => Nat.rfind (fun n => Part.some (check a n))) :=
+  have h_rfind : Partrec (fun a => Nat.rfind (fun n : ℕ => (Part.some (check a n) : Part Bool))) :=
     Partrec.rfind hcheck.partrec
-  refine ⟨fun a => (Nat.rfind (fun n => Part.some (check a n))).map (fun _ => ()),
+  refine ⟨fun a => (Nat.rfind (fun n : ℕ => (Part.some (check a n) : Part Bool))).map (fun _ => ()),
     h_rfind.map (Computable.const ()).to₂, ?_⟩
   intro a
-  change (Nat.rfind (fun n => Part.some (check a n))).Dom ↔ _
-  refine Iff.trans Nat.rfind_dom ?_; simp_rw [Part.mem_some_iff]
+  let p : ℕ →. Bool := fun n => Part.some (check a n)
+  change (Nat.rfind p).Dom ↔ _
+  rw [Nat.rfind_dom]
+  dsimp [p]
+  simp only [Part.mem_some_iff]
   have hrfind_simp : (∃ n, true = check a n ∧ ∀ {m : ℕ}, m < n →
       (Part.some (check a m)).Dom) ↔ (∃ n, check a n = true) := by
     constructor
@@ -221,7 +223,7 @@ private lemma exactLengthPrograms_length (n : ℕ) (p : List Bool) :
     · simp [ih s hs_mem]
 
 /-- Helper: any list belongs to `exactLengthPrograms` of its own length. -/
-private lemma mem_exactLengthPrograms_self (p : List Bool) :
+lemma mem_exactLengthPrograms_self (p : List Bool) :
     p ∈ exactLengthPrograms p.length := by
   induction p with
   | nil => simp [exactLengthPrograms]
@@ -306,5 +308,12 @@ lemma primrec_boundedPrograms : Primrec boundedPrograms := by
 /-- The generator function itself is computable. -/
 lemma Computable.boundedPrograms : Computable boundedPrograms :=
   primrec_boundedPrograms.to_comp
+
+/-- The number of bitstrings of length `n` is `2 ^ n`. -/
+lemma length_exactLengthPrograms (n : ℕ) : (exactLengthPrograms n).length = 2 ^ n := by
+  induction n with
+  | zero => rfl
+  | succ n ih =>
+    simp [exactLengthPrograms, List.length_flatMap, ih, Nat.pow_succ, Nat.mul_comm]
 
 end Kolmogorov

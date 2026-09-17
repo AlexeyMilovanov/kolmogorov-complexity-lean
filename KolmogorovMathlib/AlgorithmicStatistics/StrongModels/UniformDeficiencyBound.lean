@@ -1,10 +1,21 @@
 import KolmogorovMathlib.AlgorithmicStatistics.FiniteSetModel
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.SufficientStatistic
 
+/-!
+# Deficiency inside a uniform model
+
+`deficiencyLe_codedUniformOn_finiteSetLogCard`: in the uniform model on a finite set, every
+point has deficiency at most the log-cardinality of the set.  This is the crude bound used
+whenever a model is introduced with no information about the point it is meant to describe.
+-/
+
 open ENNReal
 
 namespace Kolmogorov
 
+open CodedFiniteDistribution
+/-- A point of a finite set has deficiency at most the log-cardinality of the set in the uniform
+distribution on it. -/
 theorem deficiencyLe_codedUniformOn_finiteSetLogCard
     (U : Map) {B : Finset BitString} (hB : B.Nonempty) {z : BitString}
     (hz : z ∈ B) :

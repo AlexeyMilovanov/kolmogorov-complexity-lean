@@ -116,7 +116,7 @@ theorem plainK_pair_ge_plainK_add_length_of_random_budget
   have hslackLinear : logSlack cUp N ≤ cUp * N + cUp := by
     unfold logSlack
     exact Nat.add_le_add_right
-      (Nat.mul_le_mul_left cUp (length_natBits_le_self N)) cUp
+      (Nat.mul_le_mul_left cUp (length_natBits_le N)) cUp
   have hkxyM : kxy ≤ M := by
     simp only [hM]
     nlinarith [hupper, hslackLinear, hkxN, hyN]

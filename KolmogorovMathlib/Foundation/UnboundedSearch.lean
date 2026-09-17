@@ -18,7 +18,7 @@ namespace Kolmogorov
 
 /-! ### Basic Math Computability -/
 
-/-- Auxiliary lemma: Exponentiation `2^k` is a computable function. -/
+/-- `k ↦ 2 ^ k` is computable. -/
 lemma Computable.pow2 : Computable (fun k : ℕ => 2 ^ k) := by
   apply Primrec.to_comp
   rw [Primrec.nat_iff]
@@ -41,19 +41,51 @@ lemma Computable.natFind {α : Type*} [Primcodable α] {P : α → ℕ → Prop}
     (hP : Computable (fun p : α × ℕ => decide (P p.1 p.2)))
     (h : ∀ a, ∃ n, P a n) :
     Computable (fun a => Nat.find (h a)) := by
-  have hp2 : Partrec₂ (fun (a : α) (n : ℕ) => (Part.some (decide (P a n)) : Part Bool)) := by
+  have hp2 : Partrec₂ (fun (a : α) (n : ℕ) => (fun _ => decide (P a n) : PFun Unit Bool) ()) := by
     have : Computable₂ (fun (a : α) (n : ℕ) => decide (P a n)) := hP
     exact this.partrec₂
-  have hr := Partrec.rfind hp2
+  have hr := Partrec.rfind (p := fun a n => (fun _ => decide (P a n) : PFun Unit Bool) ()) hp2
   refine hr.of_eq (fun a => ?_)
-  change (Nat.rfind fun n => Part.some (decide (P a n))) = Part.some (Nat.find (h a))
-  rw [Part.eq_some_iff]
-  refine Nat.mem_rfind.mpr ⟨?_, ?_⟩
-  · simp only [Part.mem_some_iff]
-    exact (decide_eq_true (Nat.find_spec (h a))).symm
-  · intro m hm
-    simp only [Part.mem_some_iff]
-    exact (decide_eq_false (Nat.find_min (h a) hm)).symm
+  change (Nat.rfind (fun (n : ℕ) => (fun _ => decide (P a n) : PFun Unit Bool) ())) =
+         Part.some (Nat.find (h a))
+  apply Part.ext
+  intro m
+  simp only [Part.mem_some_iff]
+  have h_mem : m ∈ Nat.rfind (fun (n : ℕ) => (fun _ => decide (P a n) : PFun Unit Bool) ()) ↔
+               m = Nat.find (h a) := by
+    have h_r := @Nat.mem_rfind (fun (n : ℕ) => (fun _ => decide (P a n) : PFun Unit Bool) ()) m
+    rw [h_r]
+    refine ⟨?_, ?_⟩
+    · rintro ⟨h1, h2⟩
+      change true ∈ Part.some (decide (P a m)) at h1
+      rw [Part.mem_some_iff] at h1
+      have h1' : P a m := of_decide_eq_true h1.symm
+      have h_m_eq : m = Nat.find (h a) := by
+        apply le_antisymm
+        · have h_not : ¬ m > Nat.find (h a) := by
+            intro h_gt
+            have h2_app := h2 h_gt
+            change false ∈ Part.some (decide (P a (Nat.find (h a)))) at h2_app
+            rw [Part.mem_some_iff] at h2_app
+            have h2_spec := Nat.find_spec (h a)
+            have h2_eq := decide_eq_true h2_spec
+            rw [h2_eq] at h2_app
+            contradiction
+          exact Nat.le_of_not_lt h_not
+        · apply Nat.find_min'
+          exact h1'
+      exact h_m_eq
+    · intro h_eq
+      subst h_eq
+      refine ⟨?_, ?_⟩
+      · change true ∈ Part.some (decide (P a (Nat.find (h a))))
+        rw [Part.mem_some_iff]
+        exact (decide_eq_true (Nat.find_spec (h a))).symm
+      · intro k hk
+        change false ∈ Part.some (decide (P a k))
+        rw [Part.mem_some_iff]
+        exact (decide_eq_false (Nat.find_min (h a) hk)).symm
+  exact h_mem
 
 /-! ### Corollaries -/
 

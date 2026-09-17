@@ -1,6 +1,29 @@
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.Basic
-import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.DescriptionShift
 import Mathlib.Data.Nat.Log
+import KolmogorovMathlib.Prefix.Properties.StableAliasesSUVTheorem
+import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.DescriptionShift
+
+/-!
+# Arithmetic of the logarithmic slack
+
+Two-part estimates are stated up to a *slack* `logSlack c m = c * (Nat.bits m).length + c`: a
+term that is logarithmic in the visible budget `m` and linear in a constant `c`.  Chaining such
+estimates means adding slacks, moving a slack from one budget to another, and absorbing a
+slack that was taken at a polynomially larger budget.
+
+This module collects that arithmetic, with no reference to any particular construction:
+
+* adding and comparing slacks at one budget — `logSlack_add_const`,
+  `logSlack_add_le_of_gap_bounds`, `logSlack_add_logSlack_le`, `logSlack_add_nat_le`,
+  `logSlack_nsmul`;
+* linear bounds on a slack and on a budget carrying its own slack —
+  `logSlack_le_self_linear`, `add_logSlack_le_linear`, `logSlack_le_add_const`;
+* folding a slack taken at a linearly larger budget back to the budget itself —
+  `logSlack_linear_bound`, `logSlack_le_of_linear_bound`, `logSlack_absorb_of_le_linear`,
+  `logSlack_fold_level`, `visible_param_linear_bound`;
+* the `ENat`-level chaining step of a two-part estimate, `enat_twoPart_chain`, and the
+  overhead bound `polynomialOverhead_bits_le_logSlack` of a polynomially covered family.
+-/
 
 namespace Kolmogorov
 
@@ -8,8 +31,57 @@ open scoped ENNReal
 
 /-- Two log-slacks at the same visible budget combine by adding their constants. -/
 theorem logSlack_add_const (c c' n : Nat) :
-    logSlack c n + logSlack c' n = logSlack (c + c') n := by
-  unfold logSlack; ring
+    logSlack c n + logSlack c' n = logSlack (c + c') n :=
+  (logSlack_add_constants c c' n).symm
+
+/-- Chaining a gap bound with a budget bound absorbs all three slack constants: if
+`d ≤ q + logSlack Csuff m` and `q ≤ i + logSlack Cq m`, then
+`d + logSlack Cpos m ≤ i + logSlack C m` for any `C` with `Cpos + Csuff + Cq ≤ C`. -/
+theorem logSlack_add_le_of_gap_bounds {Cpos Csuff Cq C d q i m : Nat}
+    (hC : Cpos + Csuff + Cq ≤ C) (hgap : d ≤ q + logSlack Csuff m)
+    (hq : q ≤ i + logSlack Cq m) :
+    d + logSlack Cpos m ≤ i + logSlack C m := by
+  have h1 := logSlack_add_const Csuff Cq m
+  have h2 := logSlack_add_const (Csuff + Cq) Cpos m
+  have h3 : logSlack (Csuff + Cq + Cpos) m ≤ logSlack C m :=
+    logSlack_mono_left (by omega) m
+  omega
+
+/-- `logSlack c n` is bounded by a linear function of `n`. -/
+theorem logSlack_le_self_linear (c n : ℕ) : logSlack c n ≤ c * n + c := by
+  unfold logSlack
+  exact Nat.add_le_add_right (Nat.mul_le_mul_left c (length_natBits_le n)) c
+
+/-- A visible budget below `M`, taken together with its own slack, is linear in `M`. -/
+theorem add_logSlack_le_linear {c n M : Nat} (h : n ≤ M) :
+    n + logSlack c n ≤ (c + 1) * M + c := by
+  have h1 : logSlack c n ≤ c * M + c :=
+    (logSlack_mono_right c h).trans (logSlack_le_self_linear c M)
+  nlinarith
+
+/-- Chaining a two-part estimate: a cost `S` within `s1` of a plain cost `b`, whose two-part
+form `b + r` is within `s2` of a budget `m` that is itself within `s3` of a description profile
+point `i + j` lying `beta` above `P`, satisfies `S + r ≤ P + (beta + s3 + s2 + s1)`. -/
+theorem enat_twoPart_chain {S P : ENat} {b s1 r m s2 i j s3 beta : Nat}
+    (hS : S ≤ ((b + s1 : Nat) : ENat)) (htwo : (b : ENat) + r ≤ (m : ENat) + (s2 : ENat))
+    (hm : m ≤ i + j + s3) (hij : (i : ENat) + j ≤ P + (beta : ENat)) :
+    S + (r : ENat) ≤ P + ((beta + s3 + s2 + s1 : Nat) : ENat) := by
+  have hmcast : (m : ENat) ≤ ((i + j + s3 : Nat) : ENat) := by exact_mod_cast hm
+  calc
+    S + (r : ENat) ≤ ((b + s1 : Nat) : ENat) + (r : ENat) := by gcongr
+    _ = ((b : ENat) + (r : ENat)) + (s1 : ENat) := by push_cast; ring
+    _ ≤ ((m : ENat) + (s2 : ENat)) + (s1 : ENat) := by gcongr
+    _ ≤ (((i + j + s3 : Nat) : ENat) + (s2 : ENat)) + (s1 : ENat) := by gcongr
+    _ = ((i : ENat) + (j : ENat)) + ((s3 + s2 + s1 : Nat) : ENat) := by push_cast; ring
+    _ ≤ (P + (beta : ENat)) + ((s3 + s2 + s1 : Nat) : ENat) := by gcongr
+    _ = P + ((beta + s3 + s2 + s1 : Nat) : ENat) := by push_cast; ring
+
+/-- A visible budget bounded by the linear expression `a * M + b` has its slack bounded by the
+folded slack at `M`: this is how the constant `C` produced by `logSlack_linear_bound` is used. -/
+theorem logSlack_le_of_linear_bound {c C a b p M : Nat}
+    (hFold : ∀ M : Nat, logSlack c (a * M + b) ≤ logSlack C M) (hp : p ≤ a * M + b) :
+    logSlack c p ≤ logSlack C M :=
+  (logSlack_mono_right c hp).trans (hFold M)
 
 /-
 A linear reparametrisation of the visible budget can be absorbed into the
@@ -71,7 +143,7 @@ theorem logSlack_linear_bound (c a b : Nat) :
 /-
 Visible-parameter linear bound for the internal description parameters.
 When `j0 + i ≤ KPPlain U x + delta` (the tight dyadic-bracket bound coming from
-`setOptimalityCardBound`), the internal budget `n + i + j0` is linearly bounded
+`setOptimality_card_bound`), the internal budget `n + i + j0` is linearly bounded
 by the visible budget `n + delta + d`, using `KPPlain U x ≤ length + O(log length)`.
 -/
 theorem visible_param_linear_bound (U : Map) (hU : IsOptimalPrefixConditional U) :
@@ -100,6 +172,15 @@ theorem visible_param_linear_bound (U : Map) (hU : IsOptimalPrefixConditional U)
       _ = ((n + 2 * (Nat.bits n).length + cK + delta : ℕ) : ENat) := by push_cast; ring
   have keyn : j0 + i ≤ n + 2 * (Nat.bits n).length + cK + delta := by exact_mod_cast key
   omega
+
+/-- **Absorbing a linearly bounded argument into the slack constant.**  If the visible
+budget `m` is at most `a * n + b`, then a slack at `m` is a slack at `n` with a larger
+constant.  Every "this enlarged argument is again a `logSlack` in `n`" lemma of the library
+is an instance of this one, with the bound on the enlarged argument as its only input. -/
+theorem logSlack_absorb_of_le_linear (c a b : Nat) :
+    ∃ C : Nat, ∀ n m : Nat, m ≤ a * n + b → logSlack c m ≤ logSlack C n := by
+  obtain ⟨C, hC⟩ := logSlack_linear_bound c a b
+  exact ⟨C, fun n m hm => (logSlack_mono_right c hm).trans (hC n)⟩
 
 /-
 A log-slack is dominated by the identity plus a constant: since
@@ -179,6 +260,8 @@ theorem logSlack_add_nat_le (c k n : Nat) :
   unfold logSlack
   nlinarith [Nat.zero_le (k * (Nat.bits n).length)]
 
+/-- A logarithmic slack at a level `k` bounded by `n + beta + logSlack c_lb n` folds into a
+logarithmic slack in `n + alpha + beta`. -/
 theorem logSlack_fold_level (cc c_lb : Nat) :
     ∃ C : Nat, ∀ (n alpha beta k : Nat),
       k ≤ n + beta + logSlack c_lb n →
@@ -189,6 +272,7 @@ theorem logSlack_fold_level (cc c_lb : Nat) :
   have hk' : k ≤ 2 * (n + alpha + beta) + b := by linarith [hb n]
   exact le_trans (logSlack_mono_right cc hk') (hC (n + alpha + beta))
 
+/-- The binary length of a polynomial overhead `C * (n + 1) ^ d` is a logarithmic slack in `n`. -/
 lemma polynomialOverhead_bits_le_logSlack (C d : ℕ) (hC : 0 < C) :
   ∃ c_over : ℕ, ∀ n, (Nat.bits (C * (n + 1) ^ d)).length ≤ logSlack c_over n := by
   refine ⟨Nat.size C + d, fun n => ?_⟩
@@ -211,6 +295,7 @@ lemma polynomialOverhead_bits_le_logSlack (C d : ℕ) (hC : 0 < C) :
   exact hsize.trans (by
     nlinarith [Nat.zero_le (Nat.size C * Nat.size n), Nat.zero_le d, hCsize])
 
+/-- Multiplying a logarithmic slack by `m` multiplies its constant by `m`. -/
 lemma logSlack_nsmul (m c n : Nat) :
     m * logSlack c n = logSlack (m * c) n := by
   unfold logSlack; ring

@@ -1,5 +1,5 @@
 import KolmogorovMathlib.CommonInformation.ConcreteField
-import KolmogorovMathlib.AlgorithmicStatistics.BoundedComplexityLists.OmegaCount
+import KolmogorovMathlib.AlgorithmicStatistics.BoundedLists.OmegaCount
 
 /-!
 # Fixed-width codecs for the concrete affine incidence graph
@@ -25,17 +25,21 @@ def concreteFieldCode (n : Nat) (a : ConcreteField n) : BitString :=
 def concreteFieldDecode (n : Nat) (w : BitString) : ConcreteField n :=
   (decodeFixedWidthNatCode w : ZMod (concretePrime n))
 
+/-- Every element of the field of order `concretePrime n` is coded by exactly
+`n + 1` bits. -/
 @[simp]
 lemma concreteFieldCode_length (n : Nat) (a : ConcreteField n) :
     (concreteFieldCode n a).length = n + 1 := by
   apply fixedWidthNatCode_length
   exact (ZMod.val_lt a).trans_le (concretePrime_upper n)
 
+/-- Decoding the code of a field element returns that element. -/
 @[simp]
 lemma concreteFieldDecode_code (n : Nat) (a : ConcreteField n) :
     concreteFieldDecode n (concreteFieldCode n a) = a := by
   simp [concreteFieldDecode, concreteFieldCode]
 
+/-- Distinct field elements have distinct codes. -/
 lemma concreteFieldCode_injective (n : Nat) :
     Function.Injective (concreteFieldCode n) :=
   Function.LeftInverse.injective (concreteFieldDecode_code n)
@@ -51,6 +55,8 @@ def concretePointDecode (n : Nat) (w : BitString) :
   (concreteFieldDecode n (w.take (n + 1)),
     concreteFieldDecode n (w.drop (n + 1)))
 
+/-- A point of the affine plane over the field of order `concretePrime n` is coded
+by `2 * (n + 1)` bits, one field element per coordinate. -/
 @[simp]
 lemma concretePointCode_length (n : Nat)
     (p : AffineIncidence.Point (ConcreteField n)) :
@@ -58,12 +64,14 @@ lemma concretePointCode_length (n : Nat)
   simp [concretePointCode]
   omega
 
+/-- Decoding the code of a point returns that point. -/
 @[simp]
 lemma concretePointDecode_code (n : Nat)
     (p : AffineIncidence.Point (ConcreteField n)) :
     concretePointDecode n (concretePointCode n p) = p := by
   simp [concretePointDecode, concretePointCode]
 
+/-- Distinct points have distinct codes. -/
 lemma concretePointCode_injective (n : Nat) :
     Function.Injective (concretePointCode n) :=
   Function.LeftInverse.injective (concretePointDecode_code n)
@@ -79,6 +87,8 @@ def concreteLineDecode (n : Nat) (w : BitString) :
   (concreteFieldDecode n (w.take (n + 1)),
     concreteFieldDecode n (w.drop (n + 1)))
 
+/-- A line of the affine plane over the field of order `concretePrime n` is coded by
+`2 * (n + 1)` bits, namely its slope and its intercept. -/
 @[simp]
 lemma concreteLineCode_length (n : Nat)
     (ell : AffineIncidence.Line (ConcreteField n)) :
@@ -86,12 +96,14 @@ lemma concreteLineCode_length (n : Nat)
   simp [concreteLineCode]
   omega
 
+/-- Decoding the code of a line returns that line. -/
 @[simp]
 lemma concreteLineDecode_code (n : Nat)
     (ell : AffineIncidence.Line (ConcreteField n)) :
     concreteLineDecode n (concreteLineCode n ell) = ell := by
   simp [concreteLineDecode, concreteLineCode]
 
+/-- Distinct lines have distinct codes. -/
 lemma concreteLineCode_injective (n : Nat) :
     Function.Injective (concreteLineCode n) :=
   Function.LeftInverse.injective (concreteLineDecode_code n)
@@ -110,12 +122,15 @@ def concreteIncidentEdgeDecode (n : Nat) (w : BitString) : ConcreteIncidentEdge 
   let x := concreteFieldDecode n (w.drop (2 * (n + 1)))
   ⟨((x, ell.1 * x + ell.2), ell), AffineIncidence.mem_incidentEdges_iff.mpr rfl⟩
 
+/-- An incident point–line pair is coded by `3 * (n + 1)` bits: the line, plus the
+abscissa of the point. -/
 @[simp]
 lemma concreteIncidentEdgeCode_length (n : Nat) (e : ConcreteIncidentEdge n) :
     (concreteIncidentEdgeCode n e).length = 3 * (n + 1) := by
   simp [concreteIncidentEdgeCode]
   omega
 
+/-- Decoding the code of an incident point–line pair returns that pair. -/
 @[simp]
 lemma concreteIncidentEdgeDecode_code (n : Nat) (e : ConcreteIncidentEdge n) :
     concreteIncidentEdgeDecode n (concreteIncidentEdgeCode n e) = e := by
@@ -129,6 +144,7 @@ lemma concreteIncidentEdgeDecode_code (n : Nat) (e : ConcreteIncidentEdge n) :
         concreteIncidentEdgeCode] using hinc.symm
   · simp [concreteIncidentEdgeDecode, concreteIncidentEdgeCode]
 
+/-- Distinct incident point–line pairs have distinct codes. -/
 lemma concreteIncidentEdgeCode_injective (n : Nat) :
     Function.Injective (concreteIncidentEdgeCode n) :=
   Function.LeftInverse.injective (concreteIncidentEdgeDecode_code n)
@@ -145,6 +161,8 @@ def concreteIncidentEdgeCodePairs (n : Nat) : List (BitString × BitString) :=
         let ln : AffineIncidence.Line (ConcreteField n) := (m, b)
         (concretePointCode n pt, concreteLineCode n ln)
 
+/-- A pair of strings occurs in `concreteIncidentEdgeCodePairs n` exactly when it is
+the pair of point and line codes of some incident point–line pair. -/
 lemma concreteIncidentEdgeCodePairs_mem_iff (n : Nat) (pair : BitString × BitString) :
     pair ∈ concreteIncidentEdgeCodePairs n ↔
       ∃ e : ConcreteIncidentEdge n,
@@ -184,11 +202,14 @@ lemma concreteIncidentEdgeCodePairs_mem_iff (n : Nat) (pair : BitString × BitSt
       apply Prod.ext <;> simp [m, b]
     rw [hpoint, hline]
 
-private lemma concreteIncidentEdgeCodePairs_length_aux (n : Nat) :
+/-- There are `concretePrime n ^ 3` incident point–line pairs in the affine plane of
+order `concretePrime n`. -/
+lemma concreteIncidentEdgeCodePairs_length (n : Nat) :
     (concreteIncidentEdgeCodePairs n).length = concretePrime n ^ 3 := by
   simp [concreteIncidentEdgeCodePairs, pow_succ]
   ring
 
+/-- The list of coded incident point–line pairs has no repetitions. -/
 lemma concreteIncidentEdgeCodePairs_nodup (n : Nat) :
     (concreteIncidentEdgeCodePairs n).Nodup := by
   let f : ConcreteIncidentEdge n → BitString × BitString := fun e =>
@@ -213,13 +234,11 @@ lemma concreteIncidentEdgeCodePairs_nodup (n : Nat) :
       (concreteIncidentEdgeCodePairs n).length := by
     rw [himage, Finset.card_image_of_injective _ hf, Finset.card_univ,
       Fintype.card_coe, AffineIncidence.incidentEdges_card,
-      concreteField_card_eq, concreteIncidentEdgeCodePairs_length_aux]
+      concreteField_card_eq, concreteIncidentEdgeCodePairs_length]
   exact Multiset.toFinset_card_eq_card_iff_nodup.mp hcard
 
-lemma concreteIncidentEdgeCodePairs_length (n : Nat) :
-    (concreteIncidentEdgeCodePairs n).length = concretePrime n ^ 3 :=
-  concreteIncidentEdgeCodePairs_length_aux n
-
+/-- Both components of an entry of `concreteIncidentEdgeCodePairs n` have length
+`2 * (n + 1)`, so the list consists of fixed-length pairs. -/
 lemma concreteIncidentEdgeCodePairs_code_lengths
     {n : Nat} {pair : BitString × BitString}
     (hpair : pair ∈ concreteIncidentEdgeCodePairs n) :
@@ -231,7 +250,7 @@ lemma concreteIncidentEdgeCodePairs_code_lengths
 private lemma fixedWidthNatCode_primrec_local :
     Primrec (fun p : Nat × Nat => fixedWidthNatCode p.1 p.2) := by
   have hbits : Primrec (fun p : Nat × Nat => Nat.bits p.1) :=
-    primrecNatBits.comp Primrec.fst
+    primrec_natBits.comp Primrec.fst
   have hpadLength : Primrec (fun p : Nat × Nat =>
       p.2 - (Nat.bits p.1).length) :=
     Primrec.nat_sub.comp Primrec.snd
@@ -260,6 +279,7 @@ private lemma concreteIncidentEdgeCodePairNat_eq (n m b x : Nat) :
     concreteFieldCode, ZMod.val_natCast, ZMod.val_add, ZMod.val_mul,
     Nat.add_mod, Nat.mul_mod]
 
+/-- The list of coded incident point–line pairs is primitive recursive in `n`. -/
 lemma concreteIncidentEdgeCodePairs_primrec :
     Primrec concreteIncidentEdgeCodePairs := by
   let Q := (((Nat × Nat) × Nat) × Nat)
@@ -346,6 +366,7 @@ lemma concreteIncidentEdgeCodePairs_primrec :
     funext x
     exact concreteIncidentEdgeCodePairNat_eq n m b x
 
+/-- The list of coded incident point–line pairs is computable in `n`. -/
 lemma concreteIncidentEdgeCodePairs_computable :
     Computable concreteIncidentEdgeCodePairs :=
   concreteIncidentEdgeCodePairs_primrec.to_comp

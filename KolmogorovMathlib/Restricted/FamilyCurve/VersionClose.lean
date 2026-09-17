@@ -1,9 +1,11 @@
 import KolmogorovMathlib.Restricted.FamilyCurve.VersionPartrec2
+import KolmogorovMathlib.Restricted.FamilyCurve.BundleCost
 import KolmogorovMathlib.Restricted.FamilyCurve.AnchoredChain
 import KolmogorovMathlib.Encoding.TuplesComplexity
+import KolmogorovMathlib.Foundation.NatEncoding
 
 /-!
-# M7: terminal evaluation of the version decoder
+# Terminal evaluation of the version decoder
 
 Given the event chain of the anchored run, the version decoder — fed the
 encoded grid, the covering overhead, the scale, and the number of changes of
@@ -70,6 +72,104 @@ lemma anchoredVersionDecoder_eval (𝒜 : DescriptionFamily) (c : Code)
   rw [decodeListCode_listCode]
   rfl
 
+/-- Every change of the decoded scale-`s` list happens at a rebuild edge at or below `s`, so
+the change count up to event `m` is at most the number of such edges before `m`. -/
+lemma anchoredListChangeCount_le_card_filter {s M : ℕ} (codes : ℕ → BitString) (edges : ℕ → ℕ)
+    (hedge : ∀ a < M, anchoredModelListAt s (codes (a + 1)) ≠ anchoredModelListAt s (codes a) →
+      edges a ≤ s) :
+    ∀ m ≤ M, anchoredListChangeCount s codes m ≤
+      ((Finset.range m).filter (fun a => edges a ≤ s)).card := by
+  intro m
+  induction m with
+  | zero => intro _; simp [anchoredListChangeCount]
+  | succ m ih =>
+      intro hm
+      have hstep := ih (by omega)
+      have hsub : (Finset.range m).filter (fun a => edges a ≤ s) ⊆
+          (Finset.range (m + 1)).filter (fun a => edges a ≤ s) :=
+        Finset.filter_subset_filter _
+          (fun x hx => Finset.mem_range.mpr (Nat.lt_succ_of_lt (Finset.mem_range.mp hx)))
+      by_cases hEq : anchoredModelListAt s (codes (m + 1)) = anchoredModelListAt s (codes m)
+      · rw [anchoredListChangeCount, if_pos hEq]
+        exact hstep.trans (Finset.card_le_card hsub)
+      · rw [anchoredListChangeCount, if_neg hEq]
+        have hmem : m ∈ (Finset.range (m + 1)).filter (fun a => edges a ≤ s) :=
+          Finset.mem_filter.mpr ⟨Finset.mem_range.mpr (by omega), hedge m (by omega) hEq⟩
+        have hnot : m ∉ (Finset.range m).filter (fun a => edges a ≤ s) := by
+          intro hmm
+          exact absurd (Finset.mem_range.mp (Finset.mem_filter.mp hmm).1) (by omega)
+        have hins : insert m ((Finset.range m).filter (fun a => edges a ≤ s)) ⊆
+            (Finset.range (m + 1)).filter (fun a => edges a ≤ s) := by
+          intro x hx
+          rcases Finset.mem_insert.mp hx with rfl | hx'
+          · exact hmem
+          · exact hsub hx'
+        calc anchoredListChangeCount s codes m + 1
+            ≤ ((Finset.range m).filter (fun a => edges a ≤ s)).card + 1 := by omega
+          _ = (insert m ((Finset.range m).filter (fun a => edges a ≤ s))).card :=
+              (Finset.card_insert_of_notMem hnot).symm
+          _ ≤ ((Finset.range (m + 1)).filter (fun a => edges a ≤ s)).card :=
+              Finset.card_le_card hins
+
+/-- Between two event indices whose change counts agree the decoded scale-`s` list is
+constant. -/
+lemma anchoredModelListAt_eq_of_count_le (s : ℕ) (codes : ℕ → BitString) {a b : ℕ}
+    (hab : a ≤ b)
+    (hcount : anchoredListChangeCount s codes b ≤ anchoredListChangeCount s codes a) :
+    anchoredModelListAt s (codes b) = anchoredModelListAt s (codes a) := by
+  revert hcount
+  induction hab with
+  | refl => intro _; rfl
+  | @step b' hb' ih =>
+      intro hcount
+      have h1 := anchoredListChangeCount_mono s codes hb'
+      have h2 := anchoredListChangeCount_succ_le s codes b'
+      have h3 : anchoredListChangeCount s codes (b' + 1) ≤
+          anchoredListChangeCount s codes a := hcount
+      have hEq := (anchoredListChangeCount_succ_eq_iff s codes b').mp (by omega)
+      exact hEq.trans (ih (by omega))
+
+/-- The decoded change trace of the replayed anchored run agrees, at every event index inside
+the sampled stream, with the change count and the scale-`s` model list of the folded state
+codes. -/
+lemma anchoredChangeTrace_eq_of_fold (𝒜 : DescriptionFamily) (c : Code)
+    {n k N : ℕ} {target : ℕ → ℕ} (grid : RestrictedCurveGrid n k N target)
+    (hN : N = Nat.sqrt (n / (Nat.log2 n + 1)) + 1) (T s : ℕ) (codes : ℕ → BitString)
+    (hfold : ∀ m, (restrictedEffectiveAnchoredInitialState 𝒜 (n + logSlack 8 n)
+          (sqrtSlack 8 n) grid).bind
+        (fun st0 => restrictedEventPrefixRun 𝒜 (𝒜.overhead (n + logSlack 8 n))
+          (restrictedEffectiveAnchoredSizes (n + logSlack 8 n) (sqrtSlack 8 n) grid) st0
+          (restrictedSampledBadCodeStream c (restrictedCurveGridCode grid)
+            𝒜.toPre N (sqrtSlack 8 n) T) m) = Part.some (codes m)) :
+    ∀ m ≤ (restrictedSampledBadCodeStream c (restrictedCurveGridCode grid)
+        𝒜.toPre N (sqrtSlack 8 n) T).length,
+      anchoredChangeTrace 𝒜 c (restrictedCurveGridCode grid)
+          (𝒜.overhead (n + logSlack 8 n)) s m =
+        Part.some (anchoredListChangeCount s codes m, anchoredModelListAt s (codes m)) := by
+  intro m
+  induction m with
+  | zero =>
+      intro _
+      rw [anchoredChangeTrace,
+        anchoredDecoderTrace_replay 𝒜 c grid hN T 0 (codes 0) (by omega) (hfold 0),
+        Part.map_some]
+      rfl
+  | succ m ih =>
+      intro hm
+      rw [anchoredChangeTrace, ih (by omega), Part.bind_some,
+        anchoredDecoderTrace_replay 𝒜 c grid hN T (m + 1) (codes (m + 1))
+          (by omega) (hfold (m + 1)),
+        Part.map_some]
+      by_cases hEq : anchoredModelListAt s (codes (m + 1)) = anchoredModelListAt s (codes m)
+      · rw [if_pos hEq]
+        rw [show anchoredListChangeCount s codes (m + 1) =
+            anchoredListChangeCount s codes m by
+          rw [anchoredListChangeCount, if_pos hEq], hEq]
+      · rw [if_neg hEq]
+        rw [show anchoredListChangeCount s codes (m + 1) =
+            anchoredListChangeCount s codes m + 1 by
+          rw [anchoredListChangeCount, if_neg hEq]]
+
 /-- Terminal decoder evaluation over the anchored event chain: the change
 count of the decoded scale-`s` list is bounded by the chain's rebuild count,
 and the decoder at that ordinal returns the terminal model's canonical
@@ -109,91 +209,20 @@ lemma anchoredVersionDecoder_terminal
         (restrictedSampledBadCodeStream c (restrictedCurveGridCode grid)
           𝒜.toPre N (sqrtSlack 8 n) T).length).B (s + 1)) hS).code) := by
   classical
-  -- the decoded change trace follows the chain codes
-  have htrace : ∀ m,
-      m ≤ (restrictedSampledBadCodeStream c (restrictedCurveGridCode grid)
-        𝒜.toPre N (sqrtSlack 8 n) T).length →
-      anchoredChangeTrace 𝒜 c (restrictedCurveGridCode grid)
-          (𝒜.overhead (n + logSlack 8 n)) s m =
-        Part.some (anchoredListChangeCount s codes m,
-          anchoredModelListAt s (codes m)) := by
-    intro m hm
-    induction m with
-    | zero =>
-        rw [anchoredChangeTrace,
-          anchoredDecoderTrace_replay 𝒜 c grid hN T 0 (codes 0)
-            (by omega) (hfold 0).1,
-          Part.map_some]
-        rfl
-    | succ m ih =>
-        rw [anchoredChangeTrace, ih (by omega), Part.bind_some,
-          anchoredDecoderTrace_replay 𝒜 c grid hN T (m + 1) (codes (m + 1))
-            (by omega) (hfold (m + 1)).1,
-          Part.map_some]
-        by_cases hEq : anchoredModelListAt s (codes (m + 1)) =
-            anchoredModelListAt s (codes m)
-        · rw [if_pos hEq]
-          rw [show anchoredListChangeCount s codes (m + 1) =
-              anchoredListChangeCount s codes m by
-            rw [anchoredListChangeCount, if_pos hEq], hEq]
-        · rw [if_neg hEq]
-          rw [show anchoredListChangeCount s codes (m + 1) =
-              anchoredListChangeCount s codes m + 1 by
-            rw [anchoredListChangeCount, if_neg hEq]]
-  -- the change count is bounded by the rebuild count
-  have hcount_le : ∀ m,
-      m ≤ (restrictedSampledBadCodeStream c (restrictedCurveGridCode grid)
-        𝒜.toPre N (sqrtSlack 8 n) T).length →
-      anchoredListChangeCount s codes m ≤
-        ((Finset.range m).filter (fun a => chain.edges a ≤ s)).card := by
-    intro m hm
-    induction m with
-    | zero => simp [anchoredListChangeCount]
-    | succ m ih =>
-        have hstep := ih (by omega)
-        have hsub : (Finset.range m).filter (fun a => chain.edges a ≤ s) ⊆
-            (Finset.range (m + 1)).filter (fun a => chain.edges a ≤ s) :=
-          Finset.filter_subset_filter _
-            (fun x hx => Finset.mem_range.mpr
-              (Nat.lt_succ_of_lt (Finset.mem_range.mp hx)))
-        by_cases hEq : anchoredModelListAt s (codes (m + 1)) =
-            anchoredModelListAt s (codes m)
-        · rw [anchoredListChangeCount, if_pos hEq]
-          exact hstep.trans (Finset.card_le_card hsub)
-        · rw [anchoredListChangeCount, if_neg hEq]
-          -- a genuine list change forces a rebuild at an edge ≤ s
-          have hedge : chain.edges m ≤ s := by
-            by_contra hgt
-            have hpres := ((chain.spec m (by omega)).2.2.1 (s + 1)
-              (by omega)).1
-            have h1 := anchoredModelListAt_eq (hfold m).2 s hs
-            have h2 := anchoredModelListAt_eq (hfold (m + 1)).2 s hs
-            rw [h1, h2, hpres] at hEq
-            exact hEq rfl
-          have hmem : m ∈ (Finset.range (m + 1)).filter
-              (fun a => chain.edges a ≤ s) :=
-            Finset.mem_filter.mpr ⟨Finset.mem_range.mpr (by omega), hedge⟩
-          have hnot : m ∉ (Finset.range m).filter
-              (fun a => chain.edges a ≤ s) := by
-            intro hmm
-            exact absurd (Finset.mem_range.mp (Finset.mem_filter.mp hmm).1)
-              (by omega)
-          have hins : insert m ((Finset.range m).filter
-              (fun a => chain.edges a ≤ s)) ⊆
-              (Finset.range (m + 1)).filter (fun a => chain.edges a ≤ s) := by
-            intro x hx
-            rcases Finset.mem_insert.mp hx with rfl | hx'
-            · exact hmem
-            · exact hsub hx'
-          calc anchoredListChangeCount s codes m + 1
-              ≤ ((Finset.range m).filter
-                  (fun a => chain.edges a ≤ s)).card + 1 := by omega
-            _ = (insert m ((Finset.range m).filter
-                  (fun a => chain.edges a ≤ s))).card :=
-                (Finset.card_insert_of_notMem hnot).symm
-            _ ≤ ((Finset.range (m + 1)).filter
-                  (fun a => chain.edges a ≤ s)).card :=
-                Finset.card_le_card hins
+  have htrace := anchoredChangeTrace_eq_of_fold 𝒜 c grid hN T s codes (fun m => (hfold m).1)
+  -- a change of the decoded list forces a rebuild at an edge at or below `s`
+  have hedge : ∀ a < (restrictedSampledBadCodeStream c (restrictedCurveGridCode grid)
+        𝒜.toPre N (sqrtSlack 8 n) T).length,
+      anchoredModelListAt s (codes (a + 1)) ≠ anchoredModelListAt s (codes a) →
+      chain.edges a ≤ s := by
+    intro a ha hne
+    by_contra hgt
+    have hpres := ((chain.spec a ha).2.2.1 (s + 1) (by omega)).1
+    have h1 := anchoredModelListAt_eq (hfold a).2 s hs
+    have h2 := anchoredModelListAt_eq (hfold (a + 1)).2 s hs
+    rw [h1, h2, hpres] at hne
+    exact hne rfl
+  have hcount_le := anchoredListChangeCount_le_card_filter codes chain.edges hedge
   -- the terminal ordinal and its first attainment
   set v := anchoredListChangeCount s codes
     (restrictedSampledBadCodeStream c (restrictedCurveGridCode grid)
@@ -206,8 +235,7 @@ lemma anchoredVersionDecoder_terminal
       (restrictedCurveGridCode grid) 𝒜.toPre N (sqrtSlack 8 n) T).length :=
     Nat.find_min' hvexists le_rfl
   have hcntstar : anchoredListChangeCount s codes mstar = v := by
-    have h1 : v ≤ anchoredListChangeCount s codes mstar :=
-      Nat.find_spec hvexists
+    have h1 : v ≤ anchoredListChangeCount s codes mstar := Nat.find_spec hvexists
     have h2 : anchoredListChangeCount s codes mstar ≤ v :=
       anchoredListChangeCount_mono s codes hmstarM
     omega
@@ -215,35 +243,6 @@ lemma anchoredVersionDecoder_terminal
     intro m' hm'
     have := Nat.find_min hvexists hm'
     omega
-  -- the decoded list is constant from the first attainment to the end
-  have hconst : ∀ m, mstar ≤ m →
-      m ≤ (restrictedSampledBadCodeStream c (restrictedCurveGridCode grid)
-        𝒜.toPre N (sqrtSlack 8 n) T).length →
-      anchoredModelListAt s (codes m) = anchoredModelListAt s (codes mstar) := by
-    intro m hm hmM
-    induction hm with
-    | refl => rfl
-    | @step m' hm' ih =>
-        have hm'M : m' ≤ (restrictedSampledBadCodeStream c
-            (restrictedCurveGridCode grid) 𝒜.toPre N (sqrtSlack 8 n)
-            T).length := by omega
-        have hcm' : anchoredListChangeCount s codes m' = v := by
-          have h1 : v ≤ anchoredListChangeCount s codes m' := by
-            rw [← hcntstar]
-            exact anchoredListChangeCount_mono s codes hm'
-          have h2 : anchoredListChangeCount s codes m' ≤ v :=
-            anchoredListChangeCount_mono s codes hm'M
-          omega
-        have hcm'1 : anchoredListChangeCount s codes (m' + 1) = v := by
-          have h1 : v ≤ anchoredListChangeCount s codes (m' + 1) := by
-            rw [← hcm']
-            exact anchoredListChangeCount_succ_le s codes m'
-          have h2 : anchoredListChangeCount s codes (m' + 1) ≤ v :=
-            anchoredListChangeCount_mono s codes hmM
-          omega
-        have hEq := (anchoredListChangeCount_succ_eq_iff s codes m').mp
-          (by omega)
-        exact hEq.trans (ih hm'M)
   -- the μ-search stops exactly at the first attainment
   have hrfind : Nat.rfind (fun m =>
       (anchoredChangeTrace 𝒜 c (restrictedCurveGridCode grid)
@@ -252,12 +251,13 @@ lemma anchoredVersionDecoder_terminal
     rw [Part.eq_some_iff]
     refine Nat.mem_rfind.mpr ⟨?_, ?_⟩
     · rw [htrace mstar hmstarM, Part.map_some]
-      simp [hcntstar]
+      refine Part.mem_some_iff.mpr (decide_eq_true ?_).symm
+      omega
     · intro k hk
       rw [htrace k (by omega), Part.map_some]
-      simp only [Part.mem_some_iff]
+      refine Part.mem_some_iff.mpr (decide_eq_false ?_).symm
       have := hbelow k hk
-      simp [Nat.not_le.mpr this]
+      omega
   refine ⟨v, ?_, ?_⟩
   · exact (hcount_le _ le_rfl).trans (le_of_eq rfl)
   · rw [anchoredVersionDecoder_eval, bitsToNat_bits, bitsToNat_bits,
@@ -268,222 +268,11 @@ lemma anchoredVersionDecoder_terminal
         (restrictedSampledBadCodeStream c (restrictedCurveGridCode grid)
           𝒜.toPre N (sqrtSlack 8 n) T).length) =
         anchoredModelListAt s (codes mstar) :=
-      hconst _ hmstarM le_rfl
+      anchoredModelListAt_eq_of_count_le s codes hmstarM (le_of_eq (by omega))
     rw [← hlist]
-    exact uniformCodeOfList_anchoredModelListAt_eq
-      (hfold _).2 s hs hS
+    exact uniformCodeOfList_anchoredModelListAt_eq (hfold _).2 s hs hS
 
 section FinalAssembly
-
-/-- `sqrtSlack` is literally a multiple of `√(n·len n) + 1`. -/
-private lemma sqrtSlack_eq_mul (m n : ℕ) :
-    sqrtSlack m n = m * (Nat.sqrt (n * (Nat.bits n).length) + 1) := by
-  unfold sqrtSlack
-  ring
-
-/-- Binary size is subadditive under multiplication. -/
-private lemma size_mul_le (a b : ℕ) :
-    Nat.size (a * b) ≤ Nat.size a + Nat.size b := by
-  rcases Nat.eq_zero_or_pos a with rfl | ha
-  · simp
-  rcases Nat.eq_zero_or_pos b with rfl | hb
-  · simp
-  apply Nat.size_le.mpr
-  calc a * b < 2 ^ Nat.size a * 2 ^ Nat.size b :=
-        Nat.mul_lt_mul_of_lt_of_le (Nat.lt_size_self a)
-          (Nat.le_of_lt (Nat.lt_size_self b)) (by positivity)
-    _ = 2 ^ (Nat.size a + Nat.size b) := (pow_add 2 _ _).symm
-
-/-- A number has at most as many binary digits as its value. -/
-private lemma bits_len_le_self (a : ℕ) : (Nat.bits a).length ≤ a := by
-  rw [Nat.size_eq_bits_len]
-  exact Nat.size_le.mpr (Nat.lt_two_pow_self)
-
-/-- The `ℕ`-level cost budget of the decoder bundle. -/
-private lemma decoder_bundle_cost_le
-    (𝒜 : DescriptionFamily)
-    {n k N : ℕ} {target : ℕ → ℕ} (grid : RestrictedCurveGrid n k N target)
-    (hN : N = Nat.sqrt (n / (Nat.log2 n + 1)) + 1)
-    (hkn : k ≤ n)
-    {c_over c_P : ℕ}
-    (hover : ∀ m, (Nat.bits (𝒜.overhead m)).length ≤ logSlack c_over m)
-    (hP : anchoredVersionExp 𝒜 n N ≤ sqrtSlack c_P n)
-    {s v : ℕ} (hs : s ≤ N)
-    (hv : v ≤ 2 ^ (grid.i s + anchoredVersionExp 𝒜 n N))
-    (c_lg c_L c_F : ℕ) :
-    ((Nat.bits (𝒜.overhead (n + logSlack 8 n))).length +
-        2 * (Nat.bits (Nat.bits
-          (𝒜.overhead (n + logSlack 8 n))).length).length + c_lg) +
-      ((Nat.bits s).length + 2 * (Nat.bits (Nat.bits s).length).length +
-        c_lg) +
-      ((Nat.bits v).length + 2 * (Nat.bits (Nat.bits v).length).length +
-        c_lg) + c_L * 5 + c_F ≤
-    grid.i s +
-      sqrtSlack (c_P + 15 * c_over + 3 * c_lg + 5 * c_L + c_F +
-        2 * Nat.size (c_P + 1) + 40) n := by
-  set L := (Nat.bits n).length with hL
-  set S := Nat.sqrt (n * L) with hS
-  have hLsize : L = Nat.size n := Nat.size_eq_bits_len n
-  have hn2 : n < 2 ^ L := by
-    rw [hLsize]
-    exact Nat.lt_size_self n
-  have hLS : L ≤ S := by
-    apply Nat.le_sqrt.mpr
-    have hLn : L ≤ n := by
-      rw [hLsize]
-      exact Nat.size_le.mpr Nat.lt_two_pow_self
-    exact Nat.mul_le_mul_right _ hLn
-  -- ambient bit length
-  have hambBits : (Nat.bits (n + logSlack 8 n)).length ≤ L + 4 := by
-    rw [Nat.size_eq_bits_len]
-    apply Nat.size_le.mpr
-    have hlog : logSlack 8 n = 8 * L + 8 := by
-      unfold logSlack
-      rfl
-    have hLpow : L + 1 ≤ 2 ^ L := Nat.lt_two_pow_self
-    have hpow4 : (2 : ℕ) ^ (L + 4) = 16 * 2 ^ L := by
-      rw [pow_add]
-      ring
-    omega
-  -- q0 bit length
-  have hq0 : (Nat.bits (𝒜.overhead (n + logSlack 8 n))).length ≤
-      c_over * (L + 4) + c_over := by
-    refine (hover (n + logSlack 8 n)).trans ?_
-    unfold logSlack
-    exact Nat.add_le_add_right
-      (Nat.mul_le_mul_left c_over hambBits) c_over
-  -- s bit length
-  have hsn : s ≤ n + 1 := by
-    have hNle : N ≤ n + 1 := by
-      rw [hN]
-      exact Nat.add_le_add_right
-        ((Nat.sqrt_le_self _).trans (Nat.div_le_self n _)) 1
-    omega
-  have hsbits : (Nat.bits s).length ≤ L + 1 := by
-    rw [Nat.size_eq_bits_len]
-    apply Nat.size_le.mpr
-    have hpow1 : (2 : ℕ) ^ (L + 1) = 2 * 2 ^ L := by
-      rw [pow_add]
-      ring
-    omega
-  -- v bit length
-  have hisn : grid.i s ≤ n := (grid.i_le_k s hs).trans hkn
-  have hvbits : (Nat.bits v).length ≤
-      grid.i s + anchoredVersionExp 𝒜 n N + 1 := by
-    rw [Nat.size_eq_bits_len]
-    apply Nat.size_le.mpr
-    calc v ≤ 2 ^ (grid.i s + anchoredVersionExp 𝒜 n N) := hv
-      _ < 2 ^ (grid.i s + anchoredVersionExp 𝒜 n N + 1) :=
-        Nat.pow_lt_pow_right (by omega) (by omega)
-  -- double-log of the v component
-  have hvlen_le : (Nat.bits v).length ≤ n + sqrtSlack c_P n + 1 := by
-    refine hvbits.trans ?_
-    have := hP
-    omega
-  have hprod : n + sqrtSlack c_P n + 1 ≤ (c_P + 1) * ((n + 1) * (L + 1)) := by
-    have h1 : sqrtSlack c_P n ≤ c_P * ((n + 1) * (L + 1)) := by
-      rw [sqrtSlack_eq_mul]
-      apply Nat.mul_le_mul_left
-      have hSn : S + 1 ≤ (n + 1) * (L + 1) := by
-        have hSle : S ≤ n * L := by
-          have := Nat.sqrt_le_self (n * L)
-          omega
-        calc S + 1 ≤ n * L + 1 := by omega
-          _ ≤ (n + 1) * (L + 1) := by
-            have h : (n + 1) * (L + 1) = n * L + n + L + 1 := by ring
-            omega
-      exact hSn
-    have h2 : n + 1 ≤ (n + 1) * (L + 1) :=
-      Nat.le_mul_of_pos_right _ (by omega)
-    calc n + sqrtSlack c_P n + 1 ≤ (n + 1) + c_P * ((n + 1) * (L + 1)) := by
-          omega
-      _ ≤ (n + 1) * (L + 1) + c_P * ((n + 1) * (L + 1)) := by omega
-      _ = (c_P + 1) * ((n + 1) * (L + 1)) := by ring
-  have hvdlog : (Nat.bits (Nat.bits v).length).length ≤
-      Nat.size (c_P + 1) + (L + 1) + (L + 1) + 2 := by
-    rw [Nat.size_eq_bits_len]
-    have hmono := Nat.size_le_size (hvlen_le.trans hprod)
-    refine hmono.trans ?_
-    have h1 := size_mul_le (c_P + 1) ((n + 1) * (L + 1))
-    have h2 := size_mul_le (n + 1) (L + 1)
-    have h3 : Nat.size (n + 1) ≤ L + 1 := by
-      apply Nat.size_le.mpr
-      have hpow1 : (2 : ℕ) ^ (L + 1) = 2 * 2 ^ L := by
-        rw [pow_add]
-        ring
-      omega
-    have h4 : Nat.size (L + 1) ≤ L + 1 :=
-      Nat.size_le.mpr Nat.lt_two_pow_self
-    omega
-  -- double-logs of the small components, crudely
-  have hq0dlog : (Nat.bits (Nat.bits
-      (𝒜.overhead (n + logSlack 8 n))).length).length ≤
-      c_over * (L + 4) + c_over :=
-    (bits_len_le_self _).trans hq0
-  have hsdlog : (Nat.bits (Nat.bits s).length).length ≤ L + 1 :=
-    (bits_len_le_self _).trans hsbits
-  -- assemble: every additive block against `coeff * (S + 1)`
-  rw [sqrtSlack_eq_mul, ← hS]
-  have hq0S : c_over * (L + 4) + c_over ≤ 5 * c_over * (S + 1) := by
-    have h1 : L + 4 ≤ 4 * (S + 1) := by omega
-    calc c_over * (L + 4) + c_over
-        ≤ c_over * (4 * (S + 1)) + c_over * (S + 1) := by
-          have := Nat.mul_le_mul_left c_over h1
-          have h2 : c_over ≤ c_over * (S + 1) :=
-            Nat.le_mul_of_pos_right _ (by omega)
-          omega
-      _ = 5 * c_over * (S + 1) := by ring
-  have hExpS : anchoredVersionExp 𝒜 n N ≤ c_P * (S + 1) := by
-    refine hP.trans ?_
-    rw [sqrtSlack_eq_mul, ← hS]
-  have hLS1 : L + 1 ≤ S + 1 := by omega
-  have hvdlogS : Nat.size (c_P + 1) + (L + 1) + (L + 1) + 2 ≤
-      (Nat.size (c_P + 1) + 4) * (S + 1) := by
-    have h1 : Nat.size (c_P + 1) ≤ Nat.size (c_P + 1) * (S + 1) :=
-      Nat.le_mul_of_pos_right _ (by omega)
-    have e : (Nat.size (c_P + 1) + 4) * (S + 1) =
-        Nat.size (c_P + 1) * (S + 1) + 4 * (S + 1) := by ring
-    omega
-  have step1 : ((Nat.bits (𝒜.overhead (n + logSlack 8 n))).length +
-        2 * (Nat.bits (Nat.bits
-          (𝒜.overhead (n + logSlack 8 n))).length).length + c_lg) +
-      ((Nat.bits s).length + 2 * (Nat.bits (Nat.bits s).length).length +
-        c_lg) +
-      ((Nat.bits v).length + 2 * (Nat.bits (Nat.bits v).length).length +
-        c_lg) + c_L * 5 + c_F
-      ≤ (5 * c_over * (S + 1) + 2 * (5 * c_over * (S + 1)) + c_lg) +
-        ((S + 1) + 2 * (S + 1) + c_lg) +
-        ((grid.i s + c_P * (S + 1) + 1) +
-          2 * ((Nat.size (c_P + 1) + 4) * (S + 1)) + c_lg) +
-        c_L * 5 + c_F := by
-        have b1 := hq0.trans hq0S
-        have b2 := hq0dlog.trans hq0S
-        have b3 := hsbits.trans hLS1
-        have b4 := hsdlog.trans hLS1
-        have b5 : (Nat.bits v).length ≤ grid.i s + c_P * (S + 1) + 1 := by
-          refine hvbits.trans ?_
-          have := hExpS
-          omega
-        have b6 := hvdlog.trans hvdlogS
-        omega
-  have step2 : (5 * c_over * (S + 1) + 2 * (5 * c_over * (S + 1)) + c_lg) +
-        ((S + 1) + 2 * (S + 1) + c_lg) +
-        ((grid.i s + c_P * (S + 1) + 1) +
-          2 * ((Nat.size (c_P + 1) + 4) * (S + 1)) + c_lg) +
-        c_L * 5 + c_F ≤ grid.i s + (c_P + 15 * c_over + 3 * c_lg + 5 * c_L + c_F +
-          2 * Nat.size (c_P + 1) + 40) * (S + 1) := by
-        have hpos : 1 ≤ S + 1 := by omega
-        have hclg : c_lg ≤ c_lg * (S + 1) :=
-          Nat.le_mul_of_pos_right _ (by omega)
-        have hcL : c_L * 5 ≤ 5 * c_L * (S + 1) := by
-          have : c_L * 5 ≤ c_L * 5 * (S + 1) :=
-            Nat.le_mul_of_pos_right _ (by omega)
-          calc c_L * 5 ≤ c_L * 5 * (S + 1) := this
-            _ = 5 * c_L * (S + 1) := by ring
-        have hcF : c_F ≤ c_F * (S + 1) :=
-          Nat.le_mul_of_pos_right _ (by omega)
-        nlinarith only [hclg, hcL, hcF, hpos]
-  exact step1.trans step2
 
 /-- The version-coding theorem for a fixed decompressor code: every terminal
 sampled model of the anchored run is describable by the encoded grid, the
@@ -561,92 +350,25 @@ theorem restrictedAnchoredState_model_complexity
   have hKP1 := hF _ _ hmem
   have hKP2 := hLc [restrictedCurveGridCode grid,
     Nat.bits (𝒜.overhead (n + logSlack 8 n)), Nat.bits s, Nat.bits v]
-  have hq0c : KPPlain U (Nat.bits (𝒜.overhead (n + logSlack 8 n))) ≤
-      (((Nat.bits (𝒜.overhead (n + logSlack 8 n))).length +
-        2 * (Nat.bits (Nat.bits
-          (𝒜.overhead (n + logSlack 8 n))).length).length + c_lg : ℕ) :
-        ENat) := by
-    have h := hlg (Nat.bits (𝒜.overhead (n + logSlack 8 n)))
-    push_cast
-    exact h
-  have hsc : KPPlain U (Nat.bits s) ≤
-      (((Nat.bits s).length +
-        2 * (Nat.bits (Nat.bits s).length).length + c_lg : ℕ) : ENat) := by
-    have h := hlg (Nat.bits s)
-    push_cast
-    exact h
-  have hvc : KPPlain U (Nat.bits v) ≤
-      (((Nat.bits v).length +
-        2 * (Nat.bits (Nat.bits v).length).length + c_lg : ℕ) : ENat) := by
-    have h := hlg (Nat.bits v)
-    push_cast
-    exact h
-  have hNat := decoder_bundle_cost_le 𝒜 grid hN hkn hover (hPex n N hN)
+  have hq0c := KPPlain_le_selfDelimitedCost hlg (Nat.bits (𝒜.overhead (n + logSlack 8 n)))
+  have hsc := KPPlain_le_selfDelimitedCost hlg (Nat.bits s)
+  have hvc := KPPlain_le_selfDelimitedCost hlg (Nat.bits v)
+  have hNat := decoderBundleFieldCost_le 𝒜 grid hN hkn hover (hPex n N hN)
     hs hv2 c_lg c_L c_F
-  have hset : setComplexity U (state.B (s + 1)) hS =
-      KPPlain U ((codedUniformOn ((chain.states
-        ((restrictedSampledBadCodeStream c (restrictedCurveGridCode grid)
-          𝒜.toPre N (sqrtSlack 8 n) T).length)).B (s + 1)) hS').code) := by
-    unfold setComplexity
-    congr 1
-    exact codedUniformOn_code_congr hS hS' hBeq.1
-  rw [hset]
-  have hsum : (([restrictedCurveGridCode grid,
-      Nat.bits (𝒜.overhead (n + logSlack 8 n)), Nat.bits s,
-      Nat.bits v]).map fun x => KPPlain U x).sum =
-      KPPlain U (restrictedCurveGridCode grid) +
-        (KPPlain U (Nat.bits (𝒜.overhead (n + logSlack 8 n))) +
-          (KPPlain U (Nat.bits s) + KPPlain U (Nat.bits v))) := by
-    simp [List.sum_cons]
-  calc KPPlain U ((codedUniformOn ((chain.states
-        ((restrictedSampledBadCodeStream c (restrictedCurveGridCode grid)
-          𝒜.toPre N (sqrtSlack 8 n) T).length)).B (s + 1)) hS').code)
-      ≤ KPPlain U (listCode [restrictedCurveGridCode grid,
-          Nat.bits (𝒜.overhead (n + logSlack 8 n)), Nat.bits s,
-          Nat.bits v]) + (c_F : ENat) := hKP1
-    _ ≤ ((([restrictedCurveGridCode grid,
-          Nat.bits (𝒜.overhead (n + logSlack 8 n)), Nat.bits s,
-          Nat.bits v]).map fun x => KPPlain U x).sum +
-          ((c_L * 5 : ℕ) : ENat)) + (c_F : ENat) := by
-        gcongr
-        simpa using hKP2
-    _ = KPPlain U (restrictedCurveGridCode grid) +
-          (KPPlain U (Nat.bits (𝒜.overhead (n + logSlack 8 n))) +
-            (KPPlain U (Nat.bits s) + KPPlain U (Nat.bits v))) +
-          ((c_L * 5 : ℕ) : ENat) + (c_F : ENat) := by
-        rw [hsum]
-    _ ≤ KPPlain U (restrictedCurveGridCode grid) +
-          ((((Nat.bits (𝒜.overhead (n + logSlack 8 n))).length +
-            2 * (Nat.bits (Nat.bits
-              (𝒜.overhead (n + logSlack 8 n))).length).length +
-            c_lg : ℕ) : ENat) +
-          ((((Nat.bits s).length +
-            2 * (Nat.bits (Nat.bits s).length).length + c_lg : ℕ) :
-              ENat) +
-          (((Nat.bits v).length +
-            2 * (Nat.bits (Nat.bits v).length).length + c_lg : ℕ) :
-              ENat))) + ((c_L * 5 : ℕ) : ENat) + (c_F : ENat) := by
-        gcongr
-    _ = KPPlain U (restrictedCurveGridCode grid) +
-          ((((Nat.bits (𝒜.overhead (n + logSlack 8 n))).length +
-            2 * (Nat.bits (Nat.bits
-              (𝒜.overhead (n + logSlack 8 n))).length).length + c_lg) +
-          ((Nat.bits s).length +
-            2 * (Nat.bits (Nat.bits s).length).length + c_lg) +
-          ((Nat.bits v).length +
-            2 * (Nat.bits (Nat.bits v).length).length + c_lg) +
-          c_L * 5 + c_F : ℕ) : ENat) := by
-        push_cast
-        ring
-    _ ≤ KPPlain U (restrictedCurveGridCode grid) +
-          ((grid.i s + sqrtSlack (c_P + 15 * c_over + 3 * c_lg +
-            5 * c_L + c_F + 2 * Nat.size (c_P + 1) + 40) n : ℕ) : ENat) := by
-        gcongr
-    _ = (grid.i s + sqrtSlack (c_P + 15 * c_over + 3 * c_lg + 5 * c_L +
-          c_F + 2 * Nat.size (c_P + 1) + 40) n +
-          KPPlain U (restrictedCurveGridCode grid) : ENat) := by
-        push_cast
-        ring
+  rw [setComplexity_eq_KPPlain_codedUniformOn U hS hS' hBeq.1]
+  have hbound_calc := KPPlain_le_grid_add_bundleCost
+    U (restrictedCurveGridCode grid) (Nat.bits (𝒜.overhead (n + logSlack 8 n)))
+    (Nat.bits s) (Nat.bits v)
+    ((codedUniformOn ((chain.states
+      ((restrictedSampledBadCodeStream c (restrictedCurveGridCode grid)
+        𝒜.toPre N (sqrtSlack 8 n) T).length)).B (s + 1)) hS').code)
+    c_lg c_L c_F
+    (grid.i s + sqrtSlack (c_P + 15 * c_over + 3 * c_lg + 5 * c_L + c_F +
+      2 * Nat.size (c_P + 1) + 40) n)
+    hKP1 (by simpa using hKP2) hq0c hsc hvc (by simpa [selfDelimitedCost] using hNat)
+  refine hbound_calc.trans (le_of_eq ?_)
+  push_cast
+  ring
 
 end FinalAssembly
 

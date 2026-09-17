@@ -1,11 +1,13 @@
 /-
-Copyright (c) 2026 Alexey Milovanov. All rights reserved.
+Copyright (c) 2024 Alexey Milovanov. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Alexey Milovanov
 -/
-import KolmogorovMathlib.AlgorithmicStatistics.Stochasticity
+
 import KolmogorovMathlib.AlgorithmicProbability.OptimalCoding
 import KolmogorovMathlib.AlgorithmicProbability.KraftChaitinCore
+import KolmogorovMathlib.AlgorithmicStatistics.Deficiency
+import KolmogorovMathlib.AlgorithmicStatistics.Stochasticity
 
 /-!
 # Deficiency Tests for Coded Finite Distributions
@@ -17,6 +19,7 @@ distribution data.
 
 namespace Kolmogorov
 
+open CodedFiniteDistribution
 open scoped ENNReal
 
 /-- A randomness test for a coded probability model `P`. -/
@@ -24,6 +27,7 @@ structure RandomnessTest (P : CodedFiniteDistribution) where
   val : BitString -> ENNReal
   expectation_le_one : ∑ x ∈ P.support, P.mass x * val x <= 1
 
+/-- The defining bound of a randomness test: its values have `P`-average at most one. -/
 theorem RandomnessTest.val_bound (P : CodedFiniteDistribution) (t : RandomnessTest P) :
     ∑ x ∈ P.support, P.mass x * t.val x <= 1 :=
   t.expectation_le_one
@@ -73,7 +77,7 @@ theorem canonicalTest_expectation_le_one (U : Map) (hU : IsOptimalPrefixConditio
   apply le_trans _ ( ENNReal.sum_le_tsum P.support )
   apply Finset.sum_le_sum fun x hx => ?_
   convert mul_le_mul (le_refl ( complexityWeight ( KP U x P.code ) ))
-      ( ENNReal.mul_inv_le_one ( P.mass x ) ) (zero_le) (zero_le) using 1
+      ( ENNReal.mul_inv_le_one ( P.mass x ) ) bot_le bot_le using 1
   · ring_nf
     unfold canonicalTest
     ring_nf
@@ -85,7 +89,7 @@ theorem canonicalTest_le_iff_deficiencyLe_of_mass_ne_zero_ne_top
     (U : Map) (P : CodedFiniteDistribution) (x : BitString) (beta : Nat)
     (h0 : P.mass x ≠ 0) (htop : P.mass x ≠ ⊤) :
     canonicalTest U P x <= (2 : ENNReal) ^ beta ↔ DeficiencyLe U P x beta := by
-  unfold canonicalTest DeficiencyLe CodedFiniteDistribution.DeficiencyLe
+  unfold canonicalTest CodedFiniteDistribution.DeficiencyLe
   exact ENNReal.mul_inv_le_iff h0 htop
 
 /-- If `x` has zero mass but finite conditional complexity, the canonical test is top. -/
@@ -116,8 +120,8 @@ theorem weightedTestSemimeasure_le_complexityWeight
     ∃ c : Nat, ∀ x : BitString,
       (2 : ENNReal)⁻¹ ^ c * (P.mass x * t.val x) <=
         complexityWeight (KP U x P.code) := by
-  obtain ⟨M', hM', c₀, hreal⟩ := kraftChaitin_realization_bound_unit hlsc
-    (weightedTestSemimeasure_isConditionalSemimeasure P t);
+  obtain ⟨M', hM', c₀, hreal⟩ :=
+    kraftChaitin_realization_bound_unit hlsc (weightedTestSemimeasure_isConditionalSemimeasure P t);
   obtain ⟨ c, hc ⟩ := complexityWeight_dominates_of_prefix_realization hU hM' hreal;
   exact ⟨ c, fun x => by simpa [ weightedTestSemimeasure ] using hc x P.code ⟩
 
@@ -132,13 +136,13 @@ theorem randomnessTest_le_canonicalTest_of_weighted_bound
         complexityWeight (KP U x P.code)) :
     t.val x <= (2 : ENNReal) ^ c * canonicalTest U P x := by
   have h_mul : P.mass x * t.val x ≤ (2 : ENNReal) ^ c * complexityWeight (KP U x P.code) := by
-    have htmp := mul_le_mul (le_refl ((2 : ENNReal) ^ c)) hbound (zero_le) (zero_le)
+    have htmp := mul_le_mul (le_refl ((2 : ENNReal) ^ c)) hbound bot_le bot_le
     have hcancel :
         (2 : ENNReal) ^ c * ((2 : ENNReal)⁻¹ ^ c * (P.mass x * t.val x)) =
           P.mass x * t.val x := by
       rw [← mul_assoc, ← mul_pow, ENNReal.mul_inv_cancel] <;> norm_num
     simpa [hcancel] using htmp
-  have htmp := mul_le_mul h_mul (le_refl ((P.mass x)⁻¹)) (zero_le) (zero_le)
+  have htmp := mul_le_mul h_mul (le_refl ((P.mass x)⁻¹)) bot_le bot_le
   calc
     t.val x = t.val x * (P.mass x * (P.mass x)⁻¹) := by
       rw [ENNReal.mul_inv_cancel hmass0 hmass_top, mul_one]
@@ -168,6 +172,6 @@ theorem canonicalTest_is_maximal (U : Map) (P : CodedFiniteDistribution)
     (by
       exact mul_le_mul
         (pow_le_pow_right₀ (by norm_num : (1 : ENNReal) ≤ 2) (Nat.le_add_left c' c))
-        (le_refl _) (zero_le) (zero_le))
+        (le_refl _) bot_le bot_le)
 
 end Kolmogorov

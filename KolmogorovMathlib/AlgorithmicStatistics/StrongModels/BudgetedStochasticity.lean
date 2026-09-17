@@ -4,7 +4,7 @@ import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.PaperTheorems
 /-!
 # Budget-scale stochasticity bookkeeping
 
-The remaining S4 obligation `BudgetedRandomNoiseTransportStatement` measures all
+The statement `BudgetedRandomNoiseTransportStatement` measures all
 logarithmic overhead against the *visible complexity budget* `baseBudget`
 (`plainK V x ≤ baseBudget`), never against the length `l(x)` or against the
 stochasticity parameters `alpha, beta`.  The proved §3 route
@@ -47,6 +47,7 @@ own witness can be a complex number whose description does not fit into
 
 namespace Kolmogorov
 
+open CodedFiniteDistribution
 open Kolmogorov.CodedFiniteDistribution
 open scoped ENNReal
 
@@ -212,13 +213,12 @@ theorem levelSet_level_bound_of_KPPlain_le (U : Map) (hU : IsOptimalPrefixCondit
     gcongr
   have h1 : (2 : ℝ≥0∞)⁻¹ ^ M ≤ (2 : ℝ≥0∞) ^ beta * P.mass x := by
     refine le_trans ?_ hdef
-    rw [← complexityWeight_coe]
-    exact complexityWeight_le_of_le hM
+    exact (complexityWeight_le_of_le hM)
   have h2 : (2 : ℝ≥0∞)⁻¹ ^ M ≤ (2 : ℝ≥0∞) ^ beta * (2 * (2 : ℝ≥0∞)⁻¹ ^ k) :=
     h1.trans (by gcongr)
   have hkle : k ≤ M + beta + 1 := by
     by_contra hcon
-    push Not at hcon
+    simp only [not_le] at hcon
     have hpow : (2 : ℝ≥0∞)⁻¹ ^ k ≤ (2 : ℝ≥0∞)⁻¹ ^ (M + beta + 2) :=
       pow_le_pow_right_of_le_one' (by norm_num) (by omega)
     have hcancel : ((2 : ℝ≥0∞) ^ (beta + 1)) * ((2 : ℝ≥0∞)⁻¹ ^ (beta + 1)) = 1 := by
@@ -334,7 +334,7 @@ theorem stochastic_to_plain_profile_corner
   obtain ⟨cOpt, hOpt⟩ := stochasticity_to_optimal_set_thm U hU
   obtain ⟨cProf, hProf⟩ := isOptimalSetStochastic_imp_profile U hU
   obtain ⟨cBr, hBr⟩ := inPlainDescriptionProfile_of_inDescriptionProfile V U hV hU
-  obtain ⟨cLen, hLen⟩ := plainKLeLength V hV
+  obtain ⟨cLen, hLen⟩ := plainK_le_length V hV
   obtain ⟨cKP, hKP⟩ := KPPlain_le_plainK_add_KPPlain_plainK U V hU hV
   obtain ⟨cBits, hBits⟩ := KPPlain_le_two_mul_length U hU
   obtain ⟨bOpt, hbOpt⟩ := logSlack_le_add_const cOpt
@@ -382,7 +382,7 @@ theorem stochastic_to_plain_profile_corner
               gcongr; exact hBits (Nat.bits kx)
         _ = ((kx + 2 * (Nat.bits kx).length + cBits + cKP : ℕ) : ENat) := by push_cast; ring
     exact_mod_cast h3
-  have hbits_self : (Nat.bits kx).length ≤ kx := length_natBits_le_self kx
+  have hbits_self : (Nat.bits kx).length ≤ kx := length_natBits_le kx
   -- slack conversions to the visible budget `M`.
   have hsOptM : sOpt ≤ logSlack cOpt M := by
     rw [hsOpt]; exact logSlack_mono_right cOpt (by omega)
@@ -443,7 +443,7 @@ theorem stochastic_to_plain_profile_corner_alpha_free
   have hlinear : logSlack cR baseBudget ≤ cR * baseBudget + cR := by
     unfold logSlack
     exact Nat.add_le_add_right
-      (Nat.mul_le_mul_left cR (length_natBits_le_self baseBudget)) cR
+      (Nat.mul_le_mul_left cR (length_natBits_le baseBudget)) cR
   have hM : x.length + alpha' + beta ≤ (1 + cR) * (x.length + baseBudget + beta) + cR := by
     nlinarith [Nat.zero_le baseBudget, Nat.zero_le x.length, Nat.zero_le beta]
   have hslack : logSlack cF (x.length + alpha' + beta) ≤
@@ -488,7 +488,7 @@ theorem budgeted_stochasticity_to_plain_corner_of_length_le
   have hlinear : logSlack cR baseBudget ≤ cR * baseBudget + cR := by
     unfold logSlack
     exact Nat.add_le_add_right
-      (Nat.mul_le_mul_left cR (length_natBits_le_self baseBudget)) cR
+      (Nat.mul_le_mul_left cR (length_natBits_le baseBudget)) cR
   have hM : x.length + alpha' + beta ≤ (3 + cR) * baseBudget + cR := by
     have : alpha' ≤ baseBudget + (cR * baseBudget + cR) := by omega
     nlinarith [Nat.zero_le baseBudget]

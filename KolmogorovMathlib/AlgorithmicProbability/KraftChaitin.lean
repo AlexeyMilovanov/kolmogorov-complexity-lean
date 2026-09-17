@@ -1,8 +1,9 @@
 import KolmogorovMathlib.AlgorithmicProbability.OptimalCoding
 import KolmogorovMathlib.AlgorithmicProbability.Bounds
-import KolmogorovMathlib.AlgorithmicProbability.KraftChaitinCore
 import KolmogorovMathlib.Prefix.CountableKraft
 import KolmogorovMathlib.Foundation.RecursivelyEnumerable
+import KolmogorovMathlib.AlgorithmicProbability.KraftChaitinCore.GeometricBound
+import KolmogorovMathlib.AlgorithmicProbability.KraftChaitinCore
 
 /-!
 # The Kraft–Chaitin Coding Theorem (hard direction)
@@ -78,10 +79,13 @@ lemma mem_aprioriAcc {c : Nat.Partrec.Code} {s : ℕ} {x y p : BitString} :
     p ∈ aprioriAcc c s x y ↔
       p.length ≤ s ∧
         Nat.Partrec.Code.evaln s c (Encodable.encode (p, y)) = some (Encodable.encode x) := by
-  unfold aprioriAcc;
-  simp +decide only [aprioriAcceptedList, Encodable.encode_prod_val, List.toFinset_filter,
-    Finset.mem_filter, List.mem_toFinset, mem_boundedPrograms_iff, and_congr_right_iff]
-  exact fun _ ↦ ⟨of_decide_eq_true, fun h ↦ decide_eq_true h⟩
+  unfold aprioriAcc aprioriAcceptedList
+  simp only [List.mem_toFinset, mem_boundedPrograms_iff, List.mem_filter, Encodable.encode_prod_val]
+  apply and_congr_right
+  intro _
+  constructor
+  · exact of_decide_eq_true
+  · exact decide_eq_true
 
 /-
 Producing `x` from `p` in context `y` is equivalent to some fuel making the staged
@@ -208,16 +212,6 @@ lemma aprioriApprox_iSup {M : Map} (c : Nat.Partrec.Code)
     refine Finset.sum_le_sum_of_subset ?_;
     intro p hp; specialize hk p; simp_all +decide [ Kolmogorov.mem_aprioriAcc ] ;
 
-/-- `n ↦ 2 ^ n` is primitive recursive. -/
-lemma primrec_two_pow : Primrec (fun n : ℕ => 2 ^ n) := by
-  have h : (fun n : ℕ => 2 ^ n) = (fun n => Nat.rec 1 (fun _ ih => 2 * ih) n) := by
-    funext n; induction n with
-    | zero => rfl
-    | succ n ih => rw [pow_succ, ih]; ring
-  rw [h]
-  exact Primrec.nat_rec' Primrec.id (Primrec.const 1)
-    (Primrec.nat_mul.comp (Primrec.const 2) (Primrec.snd.comp Primrec.snd)).to₂
-
 /-
 The numerator function is computable in `(s, x, y)`.
 -/
@@ -234,33 +228,37 @@ lemma aprioriApprox_computable (c : Nat.Partrec.Code) :
               some (Encodable.encode q.2.1) then
             2 ^ (q.1 - p.length)
           else 0)) from ?_) using 1
-    · ext ⟨s, ⟨x, y⟩⟩; simp only [aprioriApprox, aprioriAcceptedList, Encodable.encode_prod_val];
-      induction ( boundedPrograms s ) with
-      | nil => simp
-      | cons head tail tail_ih =>
-        simp only [List.filter_cons, List.map_cons]
-        by_cases h : Nat.Partrec.Code.evaln s c
-            (Nat.pair (Encodable.encode head) (Encodable.encode y)) =
-            some (Encodable.encode x)
-        · simp [h, tail_ih]
-        · simp [h, tail_ih]
+    · ext ⟨s, ⟨x, y⟩⟩
+      simp only [aprioriApprox, aprioriAcceptedList]
+      let P : BitString → Prop := fun p =>
+        Nat.Partrec.Code.evaln s c (Encodable.encode (p, y)) = some (Encodable.encode x)
+      let f : BitString → ℕ := fun p => 2 ^ (s - p.length)
+      change (((boundedPrograms s).filter (fun p => decide (P p))).map f).sum =
+        ((boundedPrograms s).map (fun p => if P p then f p else 0)).sum
+      induction boundedPrograms s with
+      | nil => rfl
+      | cons head tail ih =>
+          by_cases h : P head
+          · simp [h, ih]
+          · simp [h, ih]
     · -- The sum of a list is primitive recursive.
       have h_sum : Primrec (fun l : List ℕ => l.foldr (· + ·) 0) :=
         Primrec.list_foldr Primrec.id (Primrec.const 0)
           (Primrec.nat_add.comp (Primrec.fst.comp Primrec.snd)
             (Primrec.snd.comp Primrec.snd)).to₂
-      exact h_sum.of_eq fun l => by induction l <;> simp +decide [*]
+      exact h_sum.of_eq (fun l => by induction l <;> simp [*])
     · refine Primrec.list_map ?_ ?_;
       · exact Primrec.comp primrec_boundedPrograms ( Primrec.fst );
       · refine Primrec.ite ?_ ?_ ?_;
         · refine ⟨?_, ?_⟩
           · infer_instance
           · have h_evaln : Primrec (fun p : ℕ × BitString × BitString =>
-                Nat.Partrec.Code.evaln p.1 c (Encodable.encode (p.2.1, p.2.2))) :=
-              (Nat.Partrec.Code.primrec_evaln.comp
-                (Primrec.pair Primrec.fst (Primrec.const c) |> Primrec.pair <|
-                  Primrec.encode.comp <| Primrec.pair (Primrec.fst.comp Primrec.snd)
-                    (Primrec.snd.comp Primrec.snd))).of_eq (fun _ => rfl)
+                Nat.Partrec.Code.evaln p.1 c (Encodable.encode (p.2.1, p.2.2))) := by
+              exact Nat.Partrec.Code.primrec_evaln.comp
+                (Primrec.pair (Primrec.pair Primrec.fst (Primrec.const c))
+                  (Primrec.encode.comp
+                    (Primrec.pair (Primrec.fst.comp Primrec.snd)
+                      (Primrec.snd.comp Primrec.snd))))
             convert Primrec.eq.comp
               (h_evaln.comp (show Primrec (fun p :
                 (ℕ × BitString × BitString) × BitString => (p.1.1, p.2, p.1.2.2)) from ?_))
@@ -273,7 +271,7 @@ lemma aprioriApprox_computable (c : Nat.Partrec.Code) :
                   (ℕ × BitString × BitString) × BitString => Encodable.encode p.1.2.1) from ?_)
                   using 1
               exact Primrec.encode.comp (Primrec.fst.comp (Primrec.snd.comp Primrec.fst))
-        · exact Primrec.comp primrec_two_pow
+        · exact Primrec.comp primrec_two_pow_aux
             (Primrec.nat_sub.comp (Primrec.fst.comp Primrec.fst)
               (Primrec.list_length.comp Primrec.snd))
         · exact Primrec.const 0;

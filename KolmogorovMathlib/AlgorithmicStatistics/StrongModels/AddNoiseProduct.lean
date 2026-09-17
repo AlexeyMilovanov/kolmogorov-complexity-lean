@@ -1,12 +1,32 @@
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.SufficientStatistic
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.AddNoiseTruncation
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.SlackArith
 import KolmogorovMathlib.Prefix.TwoStage
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.AddNoiseTruncation
+
+/-!
+# Padding a model with uniform noise
+
+`finiteSetPairUniformExtension A l` is the set of pair codes of a member of `A` with an
+arbitrary string of length `l`: the model `A` padded with `l` bits of uniform noise.  Its
+elementary properties — nonemptiness, cardinality `|A| * 2 ^ l`, log-cardinality
+(`finiteSetPairUniformExtension_card`, `…_logCard_le`) — are what the add-noise argument uses
+on the size side.
+
+On the complexity side, `finiteSetPairUniformExtensionCode` computes the canonical code of the
+extension from the code of `A` and the number `l`, and the plain decompressor
+`finiteSetPairUniformExtensionPlainDecompressor` runs a program for the code of `A` and
+outputs the code of its extension, giving `plainK_finiteSetPairUniformExtensionCode_le` and
+`finiteSetPairUniformExtension_plainSetComplexity_le`: padding costs the complexity of `A`
+plus the bits of `l`.  `logSlack_visible_scale_of_bounds` is the slack arithmetic that keeps
+the estimate at one visible budget.
+-/
 
 namespace Kolmogorov
 
 open Kolmogorov.CodedFiniteDistribution
 
+/-- Logarithmic slack in a sum of five quantities bounded by `M` is at most
+logarithmic slack in `M` with constant `5 * c + 5`. -/
 lemma logSlack_visible_scale_of_bounds (c M xlen ylen i j k : ℕ)
     (hx : xlen ≤ M) (hy : ylen ≤ M) (hi : i ≤ M) (hj : j ≤ M) (hk : k ≤ M) :
     logSlack c (xlen + ylen + i + j + k) ≤ logSlack (5 * c + 5) M := by
@@ -31,17 +51,20 @@ lemma logSlack_visible_scale_of_bounds (c M xlen ylen i j k : ℕ)
         dsimp [logSlack]
         nlinarith [Nat.zero_le (Nat.bits M).length, Nat.zero_le c]
 
+/-- The set of pair codes of a member of `A` with an arbitrary string of length `l`. -/
 def finiteSetPairUniformExtension (A : Finset BitString) (l : ℕ) : Finset BitString :=
   (A ×ˢ stringsOfLength l).image (fun p => pairCode p.1 p.2)
 
+/-- Pairing a member of `A` with a string of length `l` lands in the extension. -/
 theorem finiteSetPairUniformExtension_mem
     {A : Finset BitString} {x y : BitString} {l : ℕ}
     (hx : x ∈ A) (hy : y.length = l) :
     pairCode x y ∈ finiteSetPairUniformExtension A l := by
   rw [finiteSetPairUniformExtension, Finset.mem_image]
   refine ⟨(x, y), Finset.mem_product.mpr ⟨hx, ?_⟩, rfl⟩
-  exact memStringsOfLength _ _ |>.mpr hy
+  exact mem_stringsOfLength _ _ |>.mpr hy
 
+/-- The extension of a nonempty set is nonempty. -/
 theorem finiteSetPairUniformExtension_nonempty
     {A : Finset BitString} (hA : A.Nonempty) (l : ℕ) :
     (finiteSetPairUniformExtension A l).Nonempty := by
@@ -49,26 +72,31 @@ theorem finiteSetPairUniformExtension_nonempty
   have hy : (List.replicate l false).length = l := by simp
   exact ⟨_, finiteSetPairUniformExtension_mem hx hy⟩
 
+/-- The extension has `|A| * 2 ^ l` elements. -/
 theorem finiteSetPairUniformExtension_card
     (A : Finset BitString) (l : ℕ) :
     (finiteSetPairUniformExtension A l).card = A.card * 2 ^ l := by
   rw [finiteSetPairUniformExtension, Finset.card_image_of_injective]
-  · rw [Finset.card_product, cardStringsOfLength]
+  · rw [Finset.card_product, card_stringsOfLength]
   · intro p1 p2 hp
     exact pairCode_injective hp
 
+/-- The log-cardinality of the extension is at most that of `A` plus `l`. -/
 theorem finiteSetPairUniformExtension_logCard_le
     (A : Finset BitString) (l : ℕ) :
     finiteSetLogCard (finiteSetPairUniformExtension A l) ≤ finiteSetLogCard A + l := by
   rw [finiteSetLogCard_le_iff, finiteSetPairUniformExtension_card, pow_add]
   exact Nat.mul_le_mul_right (2 ^ l) (finiteSetLogCard_spec A)
 
+/-- The canonical code of the extension, computed from the code of `A` and the code
+of `l`. -/
 noncomputable def finiteSetPairUniformExtensionCode (w l_code : BitString) : BitString :=
   canonicalImageCodeOfList
     ((canonicalPointListOfCode w).flatMap
       (fun x => (allStrings (bitsToNat l_code)).map
         (fun y => pairCode x y)))
 
+/-- Computing the code of the extension is computable in the two arguments. -/
 theorem finiteSetPairUniformExtensionCode_computable :
     Computable₂ finiteSetPairUniformExtensionCode := by
   have hpoints : Primrec (fun p : BitString × BitString =>
@@ -89,6 +117,8 @@ theorem finiteSetPairUniformExtensionCode_computable :
     Primrec.list_flatMap hpoints hblock.to₂
   exact (canonicalImageCodeOfList_primrec.comp hflat).to_comp.to₂
 
+/-- Listing all pairs of a member of `A` with a length-`l` string yields exactly the
+extension. -/
 theorem finiteSetPairUniformExtension_list_toFinset
     (A : Finset BitString) (l : ℕ) :
     ((canonicalFinsetList A).flatMap
@@ -100,10 +130,12 @@ theorem finiteSetPairUniformExtension_list_toFinset
     Finset.mem_image, Finset.mem_product, Prod.exists]
   constructor
   · rintro ⟨a, ha, b, hb, rfl⟩
-    exact ⟨a, b, ⟨ha, (memStringsOfLength l b).mpr hb⟩, rfl⟩
+    exact ⟨a, b, ⟨ha, (mem_stringsOfLength l b).mpr hb⟩, rfl⟩
   · rintro ⟨a, b, ⟨ha, hb⟩, rfl⟩
-    exact ⟨a, ha, b, (memStringsOfLength l b).mp hb, rfl⟩
+    exact ⟨a, ha, b, (mem_stringsOfLength l b).mp hb, rfl⟩
 
+/-- On the canonical code of `A` the extension function returns the canonical code
+of the extension. -/
 theorem finiteSetPairUniformExtensionCode_codedUniformOn
     (A : Finset BitString) (hA : A.Nonempty) (l : ℕ) :
     finiteSetPairUniformExtensionCode
@@ -123,10 +155,13 @@ theorem finiteSetPairUniformExtensionCode_codedUniformOn
     (finiteSetPairUniformExtension_nonempty hA l)
     (finiteSetPairUniformExtension_list_toFinset A l)
 
+/-- The decompressor that runs a program for the code of `A` and outputs the code of
+its length-`l` extension. -/
 noncomputable def finiteSetPairUniformExtensionPlainDecompressor (V : Map) : Map :=
   fun pr => (V (decodeSecond pr.1, [])).map (fun Acode =>
     finiteSetPairUniformExtensionCode Acode (decodeFirst pr.1))
 
+/-- That decompressor is a decompressor. -/
 theorem finiteSetPairUniformExtensionPlainDecompressor_partrec
     (V : Map) (hV : isDecompressor V) :
     isDecompressor (finiteSetPairUniformExtensionPlainDecompressor V) := by
@@ -138,6 +173,8 @@ theorem finiteSetPairUniformExtensionPlainDecompressor_partrec
   · exact finiteSetPairUniformExtensionCode_computable.comp Computable.snd
       (decodeFirst_computable.comp (Computable.fst.comp Computable.fst))
 
+/-- A program producing the code of `A`, prefixed by `l`, produces the code of the
+extension. -/
 theorem finiteSetPairUniformExtensionPlainDecompressor_produces
     (V : Map) (Acode p : BitString) (l : ℕ)
     (h : produces V p [] Acode) :
@@ -148,6 +185,8 @@ theorem finiteSetPairUniformExtensionPlainDecompressor_produces
   simp only [decodeSecond_pairCode, decodeFirst_pairCode]
   exact (Part.mem_map_iff _).2 ⟨Acode, h, rfl⟩
 
+/-- The code of the extension has plain complexity at most that of the code of `A`
+plus logarithmic slack in `l`. -/
 theorem plainK_finiteSetPairUniformExtensionCode_le
     (V : Map) (hV : isOptimalConditional V) :
     ∃ c : ℕ, ∀ (Acode : BitString) (l : ℕ),
@@ -193,6 +232,8 @@ theorem plainK_finiteSetPairUniformExtensionCode_le
           (M : ENat) + (cSim : ENat) = ((M + cSim : ℕ) : ENat) := by norm_cast
           _ ≤ (logSlack (cSim + 2) l : ENat) := by exact_mod_cast hle
 
+/-- The extension has plain set complexity at most that of `A` plus logarithmic
+slack in `l`. -/
 theorem finiteSetPairUniformExtension_plainSetComplexity_le
     (V : Map) (hV : isOptimalConditional V) :
     ∃ c : ℕ, ∀ (A : Finset BitString) (hA : A.Nonempty) (l : ℕ),

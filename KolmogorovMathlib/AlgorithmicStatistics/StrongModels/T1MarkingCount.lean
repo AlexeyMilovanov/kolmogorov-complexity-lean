@@ -1,4 +1,5 @@
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.T1MarkingPredicates
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.Separation.Part01
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.Separation
 
 /-!
@@ -17,7 +18,7 @@ every rebuild there are at least `2^(n-1)` currently unmarked length-`n` strings
 
 The counting is honest: the number of *distinct* finite models of plain
 complexity at most `ε` is bounded by the number of length-`≤ ε` programs
-(`cardCompressibleWordsLt`), because the canonical uniform code is injective on
+(`card_compressibleWordsLt`), because the canonical uniform code is injective on
 finite sets; each such model has at most `2^(n-ε-4)` elements.  The `C`-family
 bound drops the extra description-profile condition (it only shrinks the family),
 exactly as in the source.
@@ -40,11 +41,11 @@ theorem t1CodeToSet_codedUniformOn (B : Finset BitString) (hB : B.Nonempty) :
 
 /-- A string of conditional complexity at most `ε` occurs in the finite set of
 compressible words.  This is the membership half implicit in
-`existsIncompressibleString`, isolated for reuse. -/
+`exists_incompressible_string`, isolated for reuse. -/
 private theorem mem_compressibleWords_of_condK_le
     {V : Map} {w y : BitString} {ε : ℕ} (h : condK V w y ≤ (ε : ENat)) :
     w ∈ compressibleWords V y ε := by
-  obtain ⟨p, hlen, hprod⟩ := (condKLeIff V w y ε).mp h
+  obtain ⟨p, hlen, hprod⟩ := (condK_le_iff V w y ε).mp h
   unfold compressibleWords
   rw [Finset.mem_filter]
   refine ⟨?_, h⟩
@@ -115,7 +116,7 @@ theorem t1_lowComplexity_card_le (V : Map) (k : Nat) (M : Finset BitString)
           exact_mod_cast Nat.lt_succ_iff.mp hmk
         exact mem_compressibleWords_of_condK_le hle
       exact (Finset.card_le_card hsub).trans
-        (le_of_lt (cardCompressibleWordsLt V [] k))
+        (le_of_lt (card_compressibleWordsLt V [] k))
 
 /-- **Static union bound for the marking construction (feasibility).**
 
@@ -153,7 +154,7 @@ theorem t1_marked_predicates_card_lt_half (V : Map) (n k ε : Nat)
         obtain ⟨_, B, hB, hxB, hcomp, hcard⟩ := (Finset.mem_filter.mp hx).2
         exact ⟨B, hB, hxB, hcomp, hcard⟩)
     have hcw : (compressibleWords V [] ε).card ≤ 2 ^ (ε + 1) :=
-      le_of_lt (cardCompressibleWordsLt V [] ε)
+      le_of_lt (card_compressibleWordsLt V [] ε)
     refine h.trans ?_
     gcongr
   have hcardC :
@@ -164,7 +165,7 @@ theorem t1_marked_predicates_card_lt_half (V : Map) (n k ε : Nat)
         obtain ⟨d, _, M', hM', hxM', hcomp, hcard, _⟩ := (Finset.mem_filter.mp hx).2
         exact ⟨M', hM', hxM', hcomp, hcard⟩)
     have hcw : (compressibleWords V [] k).card ≤ 2 ^ (k + 1) :=
-      le_of_lt (cardCompressibleWordsLt V [] k)
+      le_of_lt (card_compressibleWordsLt V [] k)
     refine h.trans ?_
     gcongr
   have hcardD :
@@ -205,7 +206,7 @@ theorem t1_unmarked_card_ge_half (V : Map) (n k ε : Nat)
   have hlt := t1_marked_predicates_card_lt_half V n k ε hεn hkn Marked hMarked
   have hge : (stringsOfLength n).card - Marked.card ≤ (stringsOfLength n \ Marked).card :=
     Finset.le_card_sdiff Marked (stringsOfLength n)
-  rw [cardStringsOfLength] at hge
+  rw [card_stringsOfLength] at hge
   have hsplit : 2 ^ (n - 1) + 2 ^ (n - 1) = 2 ^ n := by
     rw [← two_mul, ← pow_succ']
     congr 1

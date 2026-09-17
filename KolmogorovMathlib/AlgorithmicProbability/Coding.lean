@@ -37,8 +37,10 @@ noncomputable def complexityWeight : ENat → ℝ≥0∞
   | (n : Nat) => (2 : ℝ≥0∞)⁻¹ ^ n
   | ⊤ => 0
 
+/-- An infinite complexity value carries weight `0`. -/
 @[simp] theorem complexityWeight_top : complexityWeight ⊤ = 0 := rfl
 
+/-- A finite complexity `n` carries weight `2^{-n}`. -/
 @[simp] theorem complexityWeight_coe (n : ℕ) :
     complexityWeight (n : ENat) = (2 : ℝ≥0∞)⁻¹ ^ n := rfl
 

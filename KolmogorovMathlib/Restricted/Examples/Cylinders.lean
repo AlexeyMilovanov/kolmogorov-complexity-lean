@@ -1,12 +1,20 @@
 /-
-Copyright (c) 2026 Alexey Milovanov. All rights reserved.
+Copyright (c) 2025 Alexey Milovanov. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Alexey Milovanov
 -/
+
 import KolmogorovMathlib.Restricted.Family
 
 /-!
-# Cylinders
+# Cylinders as a description family
+
+`cylinder n u` is the set of length-`n` strings extending `u`, and `cylinderFamilyMem` collects
+the nonempty ones. The elementary facts — membership (`mem_cylinder`), nonemptiness, cardinality
+(`cylinder_card`) — lead to `cylinderFamily`, the description family they form, and to
+`cylinderFamily_hasPolynomialOverhead`: the family covers with overhead the constant
+`cylinderOverhead = 2`, so it is one of the examples for which the restricted theory applies with
+no loss.
 -/
 
 namespace Kolmogorov
@@ -22,19 +30,21 @@ length `≤ n`. -/
 def cylinderFamilyMem (A : Finset BitString) : Prop :=
   ∃ n u, u.length ≤ n ∧ A = cylinder n u
 
+/-- A member of the cylinder family is non-empty. -/
 theorem cylinderFamilyMem_nonempty {A : Finset BitString} (h : cylinderFamilyMem A) : A.Nonempty :=
   by
     rcases h with ⟨n, u, hlen, rfl⟩
     refine ⟨u ++ List.replicate (n - u.length) false, ?_⟩
     rw [cylinder, Finset.mem_filter]
     constructor
-    · rw [memStringsOfLength, List.length_append, List.length_replicate]
+    · rw [mem_stringsOfLength, List.length_append, List.length_replicate]
       omega
     · exact List.prefix_append _ _
 
+/-- The cylinder over `u` in `{0,1}^n` consists of the length-`n` strings extending `u`. -/
 theorem mem_cylinder (n : ℕ) (u : List Bool) (x : BitString) :
     x ∈ cylinder n u ↔ x.length = n ∧ u <+: x := by
-  simp [cylinder, Finset.mem_filter, memStringsOfLength]
+  simp [cylinder, Finset.mem_filter, mem_stringsOfLength]
 
 /-
 The cardinality of a cylinder with prefix `u` of length `≤ n` is `2 ^ (n - u.length)`.
@@ -44,7 +54,7 @@ theorem cylinder_card (n : ℕ) (u : List Bool) (h : u.length ≤ n) :
       rw [ show cylinder n u = Finset.image ( fun v => u ++ v ) ( stringsOfLength ( n - u.length )
                                                                   ) from ?_,
                                                                       Finset.card_image_of_injOn,
-                                                                          cardStringsOfLength ];
+                                                                          card_stringsOfLength ];
       · exact fun x hx y hy hxy => by simpa using hxy;
       · ext x
         simp only [cylinder, stringsOfLength, Finset.mem_filter, List.mem_toFinset, mem_allStrings,
@@ -56,9 +66,11 @@ theorem cylinder_card (n : ℕ) (u : List Bool) (h : u.length ≤ n) :
 /-- The overhead for cylinders is a constant 2. -/
 def cylinderOverhead (_n : ℕ) : ℕ := 2
 
+/-- The overhead of the cylinder family is positive. -/
 theorem cylinderOverhead_pos (n : ℕ) : 0 < cylinderOverhead n := by
   simp [cylinderOverhead]
 
+/-- The whole cube `{0,1}^n` is a cylinder, namely the one over the empty prefix. -/
 theorem cylinderFamily_fullCube (n : ℕ) : cylinderFamilyMem (stringsOfLength n) :=
   by
     refine ⟨n, [], by simp, ?_⟩
@@ -84,6 +96,7 @@ theorem prefixCubeSet_eq_cylinder (p : BitString) (m : ℕ) :
 noncomputable def cylinderEnum (t : ℕ) : List BitString :=
   (boundedPrograms t).map prefixCubeCode
 
+/-- The stage enumeration of codes of cylinders is computable. -/
 theorem cylinderEnum_computable : Computable cylinderEnum := by
   have hlist : Primrec (fun w : BitString =>
       (allStrings (CodedFiniteDistribution.decodeNatCode (decodeSecond w))).map
@@ -91,7 +104,8 @@ theorem cylinderEnum_computable : Computable cylinderEnum := by
     Primrec.list_map
       (allStrings_primrec.comp
         (CodedFiniteDistribution.decodeNatCode_primrec.comp decodeSecond_primrec))
-      (Primrec.list_append.comp (decodeFirst_primrec'.comp Primrec.fst) Primrec.snd)
+      (Primrec.list_append.comp (decodeFirst_primrec.comp Primrec.fst)
+        Primrec.snd)
   have hfin : Primrec (fun w : BitString =>
       canonicalFinsetList (prefixCubeSet (decodeFirst w)
         (CodedFiniteDistribution.decodeNatCode (decodeSecond w)))) := by
@@ -103,9 +117,11 @@ theorem cylinderEnum_computable : Computable cylinderEnum := by
   unfold cylinderEnum
   exact (Primrec.list_map primrec_boundedPrograms ((hpc.comp Primrec.snd).to₂)).to_comp
 
+/-- Each stage of the enumeration of cylinder codes is a prefix of the next. -/
 theorem cylinderEnum_mono (t : ℕ) : cylinderEnum t <+: cylinderEnum (t + 1) := by
   unfold cylinderEnum; simp +decide [ boundedPrograms_succ ] ;
 
+/-- Every code listed by the enumeration is the canonical uniform code of a cylinder. -/
 theorem cylinderEnum_sound (t : ℕ) : ∀ w ∈ cylinderEnum t,
     ∃ (S : Finset BitString) (hS : S.Nonempty),
       cylinderFamilyMem S ∧ w = (codedUniformOn S hS).code := by
@@ -117,6 +133,7 @@ theorem cylinderEnum_sound (t : ℕ) : ∀ w ∈ cylinderEnum t,
             rfl ⟩, by rw [ prefixCubeCode
                            ] ; exact canonicalUniformCodeOfList_canonicalFinsetList _ _ ⟩
 
+/-- Every cylinder has its canonical uniform code listed at some stage. -/
 theorem cylinderEnum_complete : ∀ (S : Finset BitString) (hS : S.Nonempty),
     cylinderFamilyMem S → ∃ t, (codedUniformOn S hS).code ∈ cylinderEnum t := by
       intro S hS h_mem
@@ -159,7 +176,7 @@ theorem cylinder_cover_pieces (n : ℕ) (u : List Bool) (k : ℕ)
             forall_apply_eq_imp_iff₂, exists_exists_and_eq_and, List.length_map,
             Finset.length_toList];
         · intro v hv; rw [ cylinder_card ] ;
-          · have := memStringsOfLength (k - u.length) v
+          · have := mem_stringsOfLength (k - u.length) v
             simp_all +decide only [iff_true, List.length_append, add_tsub_cancel_of_le, and_true]
             exact ⟨ n, u ++ v, by simp +decide [ hv, hu, hk ], rfl ⟩;
           · grind +suggestions;
@@ -170,7 +187,7 @@ theorem cylinder_cover_pieces (n : ℕ) (u : List Bool) (k : ℕ)
             List.length_append, List.prefix_append, and_true, List.drop_left', List.length_take,
             inf_eq_left, tsub_le_iff_right, List.prefix_append_right_inj]
           exact ⟨ by linarith, List.take_prefix _ _ ⟩;
-        · exact cardStringsOfLength _
+        · exact card_stringsOfLength _
 
 /-
 The cylinder family covering property.
@@ -216,6 +233,7 @@ noncomputable def cylinderFamily : DescriptionFamily where
   overhead_pos := cylinderOverhead_pos
   cover := cylinderFamily_cover
 
+/-- The family of cylinders has polynomial covering overhead. -/
 theorem cylinderFamily_hasPolynomialOverhead :
     cylinderFamily.HasPolynomialOverhead := by
   refine ⟨2, 0, by decide, ?_⟩

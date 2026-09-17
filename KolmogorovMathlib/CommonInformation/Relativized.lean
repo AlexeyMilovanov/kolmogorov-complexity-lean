@@ -1,3 +1,4 @@
+import KolmogorovMathlib.CommonInformation.ConditionalIndependence.Part01
 import KolmogorovMathlib.CommonInformation.IncidenceWitnessSelector
 import KolmogorovMathlib.CommonInformation.WorstCase
 import KolmogorovMathlib.Prefix.TwoStage
@@ -71,56 +72,23 @@ theorem isDecompressor_relativizedMap (V : Map) (hV : isDecompressor V) (u : Bit
   have hpr := Partrec.comp hV hcomp
   exact hpr.of_eq (fun py => by rcases py with ⟨p, y⟩; rfl)
 
-/-- **Faithfulness certificate.** `relativizedMap V u` is itself an optimal
-conditional decompressor, so `condK (relativizedMap V u)` is a genuine
-relativized complexity (well-defined up to an additive constant).  Optimality is
-uniform: the strip decompressor `(p, w) ↦ V (p, decodeFirst w)` discards the
-`u`-part of any context, so adding `u` to a condition cannot increase complexity
-by more than a constant. -/
-theorem condK_extend_condition_le (V : Map) (hV : isOptimalConditional V) :
-    ∃ c : ℕ, ∀ x y u : BitString,
-      condK V x (pairCode y u) ≤ condK V x y + (c : ENat) := by
-  have hStripComp := Computable.pair (Computable.fst (α := BitString) (β := BitString))
-    (decodeFirst_computable.comp Computable.snd)
-  have hStrip : isDecompressor (fun pw : BitString × BitString => V (pw.1, decodeFirst pw.2)) :=
-    Partrec.comp hV.1 hStripComp
-  obtain ⟨c1, hc1⟩ := hV.2 _ hStrip
-  refine ⟨c1, fun x y u => ?_⟩
-  have hStripEq :
-      condK (fun pw : BitString × BitString => V (pw.1, decodeFirst pw.2)) x (pairCode y u)
-        = condK V x y := by
-    have hset :
-        candidateLengths (fun pw : BitString × BitString => V (pw.1, decodeFirst pw.2))
-            x (pairCode y u) = candidateLengths V x y := by
-      unfold candidateLengths produces
-      ext m
-      constructor
-      · rintro ⟨p, hp, rfl⟩
-        exact ⟨p, by simpa only [decodeFirst_pairCode] using hp, rfl⟩
-      · rintro ⟨p, hp, rfl⟩
-        exact ⟨p, by simpa only [decodeFirst_pairCode] using hp, rfl⟩
-    unfold condK
-    rw [hset]
-  calc
-    condK V x (pairCode y u)
-        ≤ condK (fun pw : BitString × BitString => V (pw.1, decodeFirst pw.2))
-            x (pairCode y u) + (c1 : ENat) := hc1 x (pairCode y u)
-    _ = condK V x y + (c1 : ENat) := by rw [hStripEq]
-
+/-- Enlarging the condition by a further string can only decrease conditional complexity, up to
+an additive constant. -/
 theorem condK_extend_condition_values (V : Map) (hV : isOptimalConditional V) :
     ∃ c : ℕ, ∀ x y u kxy kxyu, HasPlainConditionalComplexityValue V x y kxy →
       HasPlainConditionalComplexityValue V x (pairCode y u) kxyu → kxyu ≤ kxy + c := by
-  obtain ⟨c, hc⟩ := condK_extend_condition_le V hV
+  obtain ⟨c, hc⟩ := condK_condPair_left_le V hV
   refine ⟨c, fun x y u kxy kxyu hxy hxyu => ?_⟩
   have h := hc x y u
   rw [hxy, hxyu] at h
   exact_mod_cast h
 
+/-- Relativising an optimal conditional decompressor to a fixed string keeps it optimal. -/
 theorem isOptimalConditional_relativizedMap
     (V : Map) (hV : isOptimalConditional V) (u : BitString) :
     isOptimalConditional (relativizedMap V u) := by
   refine ⟨isDecompressor_relativizedMap V hV.1 u, fun D hD => ?_⟩
-  obtain ⟨c1, hc1⟩ := condK_extend_condition_le V hV
+  obtain ⟨c1, hc1⟩ := condK_condPair_left_le V hV
   obtain ⟨c2, hc2⟩ := hV.2 D hD
   refine ⟨c1 + c2, fun x y => ?_⟩
   rw [condK_relativizedMap]
@@ -155,7 +123,7 @@ theorem exists_incident_uncompressible_uncovered {n : Nat} (hn : 64 ≤ n)
       concreteIncidentPairCodes_length]
   have hcompCard : comp.card < 2 ^ (3 * n - 1) := by
     rw [hcomp]
-    have h := cardCompressibleWordsLt V [] (3 * n - 2)
+    have h := card_compressibleWordsLt V [] (3 * n - 2)
     rwa [show 3 * n - 2 + 1 = 3 * n - 1 by omega] at h
   have hcovCard : badCovered.card < 2 ^ (3 * n - 1) :=
     lt_of_le_of_lt Finset.card_image_le hcov
@@ -198,6 +166,8 @@ theorem exists_incident_uncompressible_uncovered {n : Nat} (hn : 64 ≤ n)
     rw [Finset.mem_image]
     exact ⟨(concretePointCode n e.1.1, concreteLineCode n e.1.2), hmem, rfl⟩
 
+/-- For every advice string there are incident edges whose pair code has complexity at least
+`3n - 1` and which are not covered by any common witness below the Muchnik thresholds. -/
 theorem exists_incidentEdge_highComplexity_and_uncovered
     (V : Map) (hV : isOptimalConditional V) :
     ∃ N, ∀ n, N ≤ n → ∀ u,
@@ -216,10 +186,8 @@ theorem exists_incidentEdge_highComplexity_and_uncovered
       (Nat.pow_le_pow_right (by norm_num) (by omega))
   exact exists_incident_uncompressible_uncovered hn V hV _ hcov
 
-/-- Generic region → uncovered bridge, stated with **opaque** `V, x, y` so that
-its (single) application never forces the elaborator to reduce the concrete
-field codes or the `relativizedMap` lambda: if the symmetric `1.1 n` threshold
-were in the region of `(x, y)`, then `(x, y)` would be a covered incident pair. -/
+/-- If `(x, y)` is an incident pair that is not covered at the symmetric threshold, then the
+symmetric threshold triple is outside the common-information region of `(x, y)`. -/
 theorem region_excluded_of_uncovered {V : Map} {n : Nat} {x y : BitString}
     (hn : 0 < muchnikThreshold n) (hinc : concreteIncidentCodeRel n x y)
     (huncov : (x, y) ∉ incidentCommonWitnessPairsLe V n
@@ -228,19 +196,16 @@ theorem region_excluded_of_uncovered {V : Map} {n : Nat} {x y : BitString}
       CommonInformationRegion V x y := fun hregion =>
   huncov (mem_incidentCommonWitnessPairsLe_of_mem_region hn hn hn hinc hregion)
 
-/-- **Exercise 313.**  The relativized (condition-`u`) analogue of Theorem 223 /
-`exists_incidence_muchnik_counterexample`: for every condition string `u` there
-is an incident edge `(x, y)` of **unconditional** complexity `2n`, pair
-complexity `3n`, and mutual information `n`, such that the relativized region of
-`(x, y)` excludes the symmetric `1.1 n` threshold — no `z` is simultaneously
-simple given `u`, and simple for `x` and for `y` given `u`.
-
-The unconditional profile is `exercise_309_incident_edge_profile`; the region
-exclusion comes from the union bound
-`exists_incidentEdge_highComplexity_and_uncovered` and the region → covered-pair
-bridge `mem_incidentCommonWitnessPairsLe_of_mem_region` applied to
-`relativizedMap V u`. -/
-theorem exercise_313_relativized_obstruction
+/-- The relativized (condition-`u`) analogue of Theorem 223 /
+`exists_incidence_muchnik_counterexample`: for every condition string `u` there is an
+incident edge `(x, y)` of **unconditional** complexity `2n`, pair complexity `3n`, and
+mutual information `n`, such that the relativized region of `(x, y)` excludes the symmetric
+`1.1 n` threshold — no `z` is simultaneously simple given `u`, and simple for `x` and for
+`y` given `u`. The unconditional profile is `incident_edge_profile`; the region exclusion
+comes from the union bound `exists_incidentEdge_highComplexity_and_uncovered` and the region
+→ covered-pair bridge `mem_incidentCommonWitnessPairsLe_of_mem_region` applied to
+`relativizedMap V u`.  Exercise 313. -/
+theorem relativized_incidence_obstruction
     (V : Map) (hV : isOptimalConditional V) :
     ∃ C N, ∀ n, N ≤ n → ∀ u,
       ∃ (e : ConcreteIncidentEdge n) (kx ky kxy : Nat),
@@ -257,7 +222,7 @@ theorem exercise_313_relativized_obstruction
         MutualInformationWithin V x y n (logSlack C n) ∧
         (muchnikThreshold n, muchnikThreshold n, muchnikThreshold n) ∉
           CommonInformationRegion (relativizedMap V u) x y := by
-  obtain ⟨Cprofile, hprofile⟩ := exercise_309_incident_edge_profile V hV 1
+  obtain ⟨Cprofile, hprofile⟩ := incident_edge_profile V hV 1
   obtain ⟨Nunc, hunc⟩ := exists_incidentEdge_highComplexity_and_uncovered V hV
   refine ⟨Cprofile, max Nunc 1, ?_⟩
   intro n hn u

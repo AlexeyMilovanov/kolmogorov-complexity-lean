@@ -1,7 +1,7 @@
 import KolmogorovMathlib.Restricted.FamilyCurve.VersionPartrec
 
 /-!
-# M7: version decoder computability, part 2
+# Version decoder computability, part 2
 
 The remaining `Computable`/`Partrec` layers of the version decoder: the
 chronological bad-code stream, the effective one-step update, event-prefix
@@ -143,21 +143,21 @@ lemma restrictedSampledBadCodesRaw_codes_packed (c : Code) (𝒜 : PreDescriptio
         (Primrec.snd.comp Primrec.fst))))).to_comp
   have hsample : Computable
       (fun r : (BitString × ℕ) × (ℕ × BitString) =>
-      decode_restrictedCurveGridCode_sample r.1.1 r.2.1) :=
+      decodeRestrictedCurveGridCodeSample r.1.1 r.2.1) :=
     (decode_restrictedCurveGridCode_sample_computable.comp
       (Computable.pair (Computable.fst.comp Computable.fst)
         (Computable.fst.comp Computable.snd))).of_eq fun _ => rfl
   have hnextSample : Computable
       (fun r : (BitString × ℕ) × (ℕ × BitString) =>
-      decode_restrictedCurveGridCode_sample r.1.1 (r.2.1 + 1)) :=
+      decodeRestrictedCurveGridCodeSample r.1.1 (r.2.1 + 1)) :=
     (decode_restrictedCurveGridCode_sample_computable.comp
       (Computable.pair (Computable.fst.comp Computable.fst)
         (Computable.succ.comp (Computable.fst.comp Computable.snd)))).of_eq fun _ => rfl
   have hstage : Computable
       (fun r : (BitString × ℕ) × (ℕ × BitString) =>
       familyStageModelCodesList c
-        (decode_restrictedCurveGridCode_sample r.1.1 (r.2.1 + 1)).1 𝒜
-        ((decode_restrictedCurveGridCode_sample r.1.1 r.2.1).2 -
+        (decodeRestrictedCurveGridCodeSample r.1.1 (r.2.1 + 1)).1 𝒜
+        ((decodeRestrictedCurveGridCodeSample r.1.1 r.2.1).2 -
           ((Nat.unpair (Nat.unpair r.1.2).2).1 + 1))
         (Nat.unpair (Nat.unpair r.1.2).2).2) :=
     ((familyStageModelCodesList_computable_uniform c 𝒜).comp
@@ -168,8 +168,8 @@ lemma restrictedSampledBadCodesRaw_codes_packed (c : Code) (𝒜 : PreDescriptio
   have hstep : Computable₂
       (fun (p : BitString × ℕ) (r : ℕ × BitString) =>
       listCode (decodeListCode r.2 ++ familyStageModelCodesList c
-        (decode_restrictedCurveGridCode_sample p.1 (r.1 + 1)).1 𝒜
-        ((decode_restrictedCurveGridCode_sample p.1 r.1).2 -
+        (decodeRestrictedCurveGridCodeSample p.1 (r.1 + 1)).1 𝒜
+        ((decodeRestrictedCurveGridCodeSample p.1 r.1).2 -
           ((Nat.unpair (Nat.unpair p.2).2).1 + 1))
         (Nat.unpair (Nat.unpair p.2).2).2)) :=
     (listCode_primrec.to_comp.comp
@@ -268,8 +268,10 @@ private lemma restrictedSampledBadCodeStream_codes_step (c : Code) (𝒜 : PreDe
     exact this.of_eq (fun x => by simp [decodeListCode_listCode])
   exact h.to₂
 
-/-- The chronological bad-code stream as an encoded blob over packed
-parameters. -/
+/-- The encoded chronological bad-code stream is computable in the pair `p = (gridCode, nd)`,
+where the grid size, the step `Δ` and the time bound are read off `nd` by iterated `Nat.unpair`:
+`fun p => listCode (restrictedSampledBadCodeStream c p.1 𝒜 (unpair p.2).1
+(unpair (unpair p.2).2).1 (unpair (unpair p.2).2).2)` is `Computable`. -/
 lemma restrictedSampledBadCodeStream_codes_packed (c : Code) (𝒜 : PreDescriptionFamily) :
     Computable (fun p : BitString × ℕ =>
       listCode (restrictedSampledBadCodeStream c p.1 𝒜 (Nat.unpair p.2).1
@@ -525,7 +527,7 @@ lemma restrictedEffectiveSampledRunStep_partrec_all
             (Primrec.list_cons.comp
               (listCode_primrec.comp
                 (Primrec.list_map (Primrec.fst.comp Primrec.snd)
-                  (primrecNatBits.comp Primrec.snd).to₂))
+                  (primrec_natBits.comp Primrec.snd).to₂))
               (Primrec.const []))))
     exact (Primrec.pair (listCode_primrec.comp hfields)
       Primrec.fst).to_comp

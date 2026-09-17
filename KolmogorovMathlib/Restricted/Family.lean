@@ -3,7 +3,7 @@ import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.CurveRealization
 import KolmogorovMathlib.Encoding.Tuples
 
 /-!
-# M1: description families and the restricted profile
+# Description families and the restricted profile
 
 VS40 §6 conditions on a family 𝒜 of finite sets of strings:
 (1) enumerability, (2) full cubes `𝔹ⁿ ∈ 𝒜`, (3) polynomial covering. The
@@ -35,7 +35,10 @@ structure PreDescriptionFamily where
   nonempty_of_mem : ∀ {S : Finset BitString}, mem S → S.Nonempty
   enumeration : FamilyEnumeration mem
 
-/-- A description family in the sense of VS40 §6 (conditions (1)–(3)). -/
+/-- A family of admissible finite models: a nonempty-valued membership predicate that is
+computably enumerable by codes, contains every full cube `stringsOfLength n`, and admits
+coverings of any member by members of a prescribed smaller cardinality with a bounded
+covering overhead. -/
 structure DescriptionFamily where
   mem : Finset BitString → Prop
   nonempty_of_mem : ∀ {S : Finset BitString}, mem S → S.Nonempty
@@ -55,7 +58,8 @@ structure DescriptionFamily where
       (∀ x ∈ A, x.length = n → ∃ B ∈ 𝒞, x ∈ B) ∧
       𝒞.length * c ≤ overhead n * A.card
 
-/-- The polynomial overhead condition (used in M7). -/
+/-- A description family has polynomial overhead when its covering overhead is bounded by a
+polynomial `C * (n + 1) ^ d` in the string length. -/
 def DescriptionFamily.HasPolynomialOverhead (𝒜 : DescriptionFamily) : Prop :=
   ∃ C d : ℕ, 0 < C ∧ ∀ n, 𝒜.overhead n ≤ C * (n + 1) ^ d
 
@@ -76,9 +80,11 @@ def DescriptionFamily.toPre (𝒜 : DescriptionFamily) : PreDescriptionFamily wh
 
 instance : Coe DescriptionFamily PreDescriptionFamily := ⟨DescriptionFamily.toPre⟩
 
+/-- Forgetting the covering axioms of a family leaves its membership predicate unchanged. -/
 @[simp] theorem DescriptionFamily.toPre_mem (𝒜 : DescriptionFamily) :
     (𝒜.toPre).mem = 𝒜.mem := rfl
 
+/-- Forgetting the covering axioms of a family leaves its enumeration unchanged. -/
 @[simp] theorem DescriptionFamily.toPre_enumeration (𝒜 : DescriptionFamily) :
     (𝒜.toPre).enumeration = 𝒜.enumeration := rfl
 
@@ -112,6 +118,7 @@ noncomputable def fullFamilyCanonicalList (w : BitString) : List BitString :=
   | [] => [[]]
   | _ :: _ => canonicalFinsetList (decodeListCode w).toFinset
 
+/-- The canonical list of the set coded by a string is primitive recursive for the full family. -/
 theorem fullFamilyCanonicalList_primrec : Primrec fullFamilyCanonicalList := by
   unfold fullFamilyCanonicalList
   have hcons : Primrec (fun p : BitString × List BitString =>
@@ -129,12 +136,14 @@ noncomputable def fullFamilyEnum (t : ℕ) : List BitString :=
   (boundedPrograms t).map fun w =>
     canonicalUniformCodeOfList (fullFamilyCanonicalList w)
 
+/-- The enumeration of the family of all finite sets is computable. -/
 theorem fullFamilyEnum_computable : Computable fullFamilyEnum := by
   unfold fullFamilyEnum
   exact (Primrec.list_map primrec_boundedPrograms
     ((canonicalUniformCodeOfList_primrec.comp
       (fullFamilyCanonicalList_primrec.comp Primrec.snd)).to₂)).to_comp
 
+/-- Each stage of the enumeration of all finite sets is a prefix of the next. -/
 theorem fullFamilyEnum_mono (t : ℕ) :
     fullFamilyEnum t <+: fullFamilyEnum (t + 1) := by
   unfold fullFamilyEnum
@@ -142,6 +151,7 @@ theorem fullFamilyEnum_mono (t : ℕ) :
   exact (boundedPrograms t).map (fun w =>
     canonicalUniformCodeOfList (fullFamilyCanonicalList w)) |>.prefix_append _
 
+/-- The canonical list attached to any code is non-empty. -/
 theorem fullFamilyCanonicalList_nonempty (w : BitString) :
     ∃ x, x ∈ fullFamilyCanonicalList w := by
   unfold fullFamilyCanonicalList
@@ -149,6 +159,7 @@ theorem fullFamilyCanonicalList_nonempty (w : BitString) :
   | nil => exact ⟨[], by simp⟩
   | cons x xs => exact ⟨x, by simp⟩
 
+/-- The canonical list attached to a code is already in canonical order. -/
 theorem fullFamilyCanonicalList_is_canonical (w : BitString) :
     canonicalFinsetList (fullFamilyCanonicalList w).toFinset =
       fullFamilyCanonicalList w := by
@@ -160,6 +171,7 @@ theorem fullFamilyCanonicalList_is_canonical (w : BitString) :
   | cons x xs =>
       simp
 
+/-- The restricted description profile is upward closed in the complexity bound. -/
 theorem InDescriptionProfileIn.mono_i {𝒜 : DescriptionFamily} {U : Map}
     {x : BitString} {i i' j : ℕ} (h : i ≤ i')
     (hp : InDescriptionProfileIn 𝒜 U x i j) :
@@ -167,6 +179,7 @@ theorem InDescriptionProfileIn.mono_i {𝒜 : DescriptionFamily} {U : Map}
   rcases hp with ⟨S, hS, hmem, hdesc⟩
   exact ⟨S, hS, hmem, hdesc.mono_i h⟩
 
+/-- The restricted description profile is upward closed in the size bound. -/
 theorem InDescriptionProfileIn.mono_j {𝒜 : DescriptionFamily} {U : Map}
     {x : BitString} {i j j' : ℕ} (h : j ≤ j')
     (hp : InDescriptionProfileIn 𝒜 U x i j) :
@@ -312,8 +325,7 @@ theorem fullFamily_hasPolynomialOverhead : fullFamily.HasPolynomialOverhead := b
   intro n
   simp [fullFamily]
 
-/-- Sanity (mandatory before building on M1): the restricted profile for
-`fullFamily` is the unrestricted profile. -/
+/-- The restricted profile for `fullFamily` is the unrestricted profile. -/
 theorem inDescriptionProfileIn_fullFamily_iff (U : Map) (x : BitString)
     (i j : ℕ) :
     InDescriptionProfileIn fullFamily U x i j ↔ InDescriptionProfile U x i j := by
@@ -323,16 +335,15 @@ theorem inDescriptionProfileIn_fullFamily_iff (U : Map) (x : BitString)
   · rintro ⟨S, hS, hdesc⟩
     exact ⟨S, hS, hS, hdesc⟩
 
-/-- Derived from (2)+(3): every singleton over `𝔹ⁿ` belongs to the family
-(needed for the `(K(x)+O(1), 0)` profile point in M2). -/
+/-- Every singleton belongs to a description family, by conditions (2)+(3). -/
 theorem DescriptionFamily.singleton_mem (𝒜 : DescriptionFamily)
     (x : BitString) : 𝒜.mem {x} := by
   have hcube : 𝒜.mem (stringsOfLength x.length) := 𝒜.fullCube x.length
   obtain ⟨𝒞, hsmall, hcover, _hbound⟩ :=
     𝒜.cover hcube x.length 1 (by decide) (by
-      rw [cardStringsOfLength]
+      rw [card_stringsOfLength]
       exact Nat.succ_le_of_lt (pow_pos (by decide) x.length))
-  have hx_cube : x ∈ stringsOfLength x.length := (memStringsOfLength x.length x).mpr rfl
+  have hx_cube : x ∈ stringsOfLength x.length := (mem_stringsOfLength x.length x).mpr rfl
   obtain ⟨B, hB𝒞, hxB⟩ := hcover x hx_cube rfl
   rcases hsmall B hB𝒞 with ⟨hBmem, hBcard⟩
   have hB_eq : B = {x} := by

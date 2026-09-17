@@ -10,6 +10,7 @@ by the finite rational distribution data rather than an arbitrary label.
 
 namespace Kolmogorov
 
+open CodedFiniteDistribution
 open scoped ENNReal
 
 /-- The level set of a coded finite distribution `P` at threshold `2^{-k}`. -/
@@ -39,10 +40,11 @@ theorem levelSet_card_le (P : CodedFiniteDistribution) (k : Nat)
   contrapose! h_sum_mass_le;
   refine lt_of_lt_of_le ?_ ( Finset.sum_le_sum h_mass_ge ) ; norm_num;
   rw [ ← ENNReal.toReal_lt_toReal ] at * <;> norm_num at *;
-  · have hkey : (2 : ℝ) ^ k * (1 / 2) ^ k = 1 := by rw [← mul_pow]; norm_num
-    have hlt := mul_lt_mul_of_pos_right h_sum_mass_le
-      (by positivity : (0 : ℝ) < (1 / 2) ^ k)
-    linarith [hkey, hlt]
+  · have hmul := mul_lt_mul_of_pos_right h_sum_mass_le
+      (by positivity : 0 < (1 / 2 : ℝ) ^ k)
+    calc
+      1 = (2 : ℝ) ^ k * (1 / 2 : ℝ) ^ k := by norm_num [← mul_pow]
+      _ < _ := hmul
   · exact ENNReal.mul_ne_top ( by norm_num ) ( by norm_num )
 
 /-- The coded uniform distribution over a nonempty level set. -/
@@ -50,6 +52,7 @@ noncomputable def levelSetModel (P : CodedFiniteDistribution) (k : Nat)
     (h_nonempty : (levelSet P k).Nonempty) : CodedFiniteDistribution :=
   codedUniformOn (levelSet P k) h_nonempty
 
+/-- The uniform model on a nonempty level set of `P` is a probability distribution. -/
 theorem levelSetModel_isProbability (P : CodedFiniteDistribution) (k : Nat)
     (h_nonempty : (levelSet P k).Nonempty) :
     (levelSetModel P k h_nonempty).IsProbability :=
@@ -85,12 +88,9 @@ theorem deficiencyLe_levelSetModel (U : Map) (P : CodedFiniteDistribution) (k : 
     DeficiencyLe U (levelSetModel P k h_nonempty) x beta := by
   -- By definition of `DeficiencyLe`, the complexity weight is at most
   -- `2^beta` times the mass.
-  unfold DeficiencyLe;
-  convert h_weight using 1;
-  unfold CodedFiniteDistribution.DeficiencyLe;
-  convert Iff.rfl;
-  convert ( codedUniformOn_mass_of_mem ( levelSet P k ) h_nonempty x hx ) |> Eq.symm
-  rfl
+  unfold CodedFiniteDistribution.DeficiencyLe
+  simpa only [levelSetModel, codedUniformOn_mass_of_mem (levelSet P k) h_nonempty x hx]
+    using h_weight
 
 /-- A coded level-set model can witness stochasticity when its canonical model
 complexity and deficiency bounds are available. -/

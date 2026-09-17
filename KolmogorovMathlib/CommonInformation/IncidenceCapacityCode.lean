@@ -1,6 +1,7 @@
 import KolmogorovMathlib.CommonInformation.IncidenceRectangleCapacity
 import KolmogorovMathlib.CommonInformation.AffineIncidence
 import KolmogorovMathlib.Encoding.Tuples
+import KolmogorovMathlib.Restricted.EffectiveSelection.Part01
 import KolmogorovMathlib.Restricted.EffectiveSelection
 
 /-!
@@ -33,6 +34,8 @@ def concreteIncidenceRectangleDecode (n : Nat) (w : BitString) :
   (((decodeListCode (decodeFirst w)).map (concretePointDecode n)).toFinset,
     ((decodeListCode (decodeSecond w)).map (concreteLineDecode n)).toFinset)
 
+/-- Decoding the code of a combinatorial rectangle of the concrete incidence graph
+returns that rectangle. -/
 @[simp]
 lemma concreteIncidenceRectangleDecode_code (n : Nat)
     (R : CombinatorialRectangle (Point (ConcreteField n)) (Line (ConcreteField n))) :
@@ -49,6 +52,8 @@ def concreteFieldPairCodeList (n : Nat) : List BitString :=
     (List.range (concretePrime n)).map fun y =>
       fixedWidthNatCode x (n + 1) ++ fixedWidthNatCode y (n + 1)
 
+/-- The list of coordinate-pair codes consists exactly of the codes of points of the
+plane of order `concretePrime n`. -/
 lemma mem_concreteFieldPairCodeList (n : Nat) (w : BitString) :
     w ∈ concreteFieldPairCodeList n ↔
       ∃ p : Point (ConcreteField n), concretePointCode n p = w := by
@@ -65,10 +70,12 @@ lemma mem_concreteFieldPairCodeList (n : Nat) (w : BitString) :
       List.mem_map]
     exact ⟨p.1.val, ZMod.val_lt _, p.2.val, ZMod.val_lt _, rfl⟩
 
+/-- There are `concretePrime n ^ 2` coordinate-pair codes. -/
 lemma concreteFieldPairCodeList_length (n : Nat) :
     (concreteFieldPairCodeList n).length = concretePrime n ^ 2 := by
   simp [concreteFieldPairCodeList, pow_succ]
 
+/-- The list of coordinate-pair codes has no repetitions. -/
 lemma concreteFieldPairCodeList_nodup (n : Nat) :
     (concreteFieldPairCodeList n).Nodup := by
   have himage : (concreteFieldPairCodeList n).toFinset =
@@ -83,12 +90,15 @@ lemma concreteFieldPairCodeList_nodup (n : Nat) :
       concreteFieldPairCodeList_length, pow_two]
   exact Multiset.toFinset_card_eq_card_iff_nodup.mp hcard
 
+/-- Lines and points are coded by the same function of their two coordinates. -/
 lemma concreteLineCode_eq_pointCode (n : Nat) :
     concreteLineCode n = concretePointCode n := rfl
 
+/-- Line codes and point codes are decoded by the same function. -/
 lemma concreteLineDecode_eq_pointDecode (n : Nat) :
     concreteLineDecode n = concretePointDecode n := rfl
 
+/-- On a coordinate-pair code, decoding followed by coding is the identity. -/
 lemma concretePointCode_decode_of_mem (n : Nat) {w : BitString}
     (hw : w ∈ concreteFieldPairCodeList n) :
     concretePointCode n (concretePointDecode n w) = w := by
@@ -101,6 +111,8 @@ def decodedCodeRectangle (n : Nat) (A B : List BitString) :
   ((A.map (concretePointDecode n)).toFinset,
     (B.map (concretePointDecode n)).toFinset)
 
+/-- A point belongs to the decoded side of a list of codes exactly when its code
+belongs to the list. -/
 lemma mem_decodedCodeSide (n : Nat) {A : List BitString}
     (hA : ∀ w ∈ A, w ∈ concreteFieldPairCodeList n)
     (p : Point (ConcreteField n)) :
@@ -113,6 +125,8 @@ lemma mem_decodedCodeSide (n : Nat) {A : List BitString}
   · intro h
     exact ⟨concretePointCode n p, h, concretePointDecode_code n p⟩
 
+/-- Coding the decoded side of a list of coordinate-pair codes returns the set of
+codes in the list. -/
 lemma decodedCodeSide_image (n : Nat) {A : List BitString}
     (hA : ∀ w ∈ A, w ∈ concreteFieldPairCodeList n) :
     ((A.map (concretePointDecode n)).toFinset).image (concretePointCode n) =
@@ -127,6 +141,8 @@ lemma decodedCodeSide_image (n : Nat) {A : List BitString}
     rw [mem_decodedCodeSide n hA, concretePointCode_decode_of_mem n (hA w hw)]
     exact hw
 
+/-- A repetition-free list of coordinate-pair codes decodes to a set of the same
+cardinality. -/
 lemma decodedCodeSide_card (n : Nat) {A : List BitString}
     (hA : ∀ w ∈ A, w ∈ concreteFieldPairCodeList n) (hnd : A.Nodup) :
     ((A.map (concretePointDecode n)).toFinset).card = A.length := by
@@ -134,6 +150,8 @@ lemma decodedCodeSide_card (n : Nat) {A : List BitString}
   rw [Finset.card_image_of_injective _ (concretePointCode_injective n)] at hcard
   rw [hcard, List.toFinset_card_of_nodup hnd]
 
+/-- The code of the rectangle decoded from two lists of codes is the pair of the
+canonical listings of the two sets of codes. -/
 lemma decodedCodeRectangle_code (n : Nat) {A B : List BitString}
     (hA : ∀ w ∈ A, w ∈ concreteFieldPairCodeList n)
     (hB : ∀ w ∈ B, w ∈ concreteFieldPairCodeList n) :
@@ -149,6 +167,8 @@ def codeRectangleEdgeCount (n : Nat) (A B : List BitString) : Nat :=
   ((concreteIncidentEdgeCodePairs n).filter fun e =>
     decide (e.1 ∈ A) && decide (e.2 ∈ B)).length
 
+/-- The executable edge count of two lists of codes agrees with the number of
+incident pairs of the decoded rectangle. -/
 lemma codeRectangleEdgeCount_eq (n : Nat) {A B : List BitString}
     (hA : ∀ w ∈ A, w ∈ concreteFieldPairCodeList n)
     (hB : ∀ w ∈ B, w ∈ concreteFieldPairCodeList n) :
@@ -184,10 +204,13 @@ lemma codeRectangleEdgeCount_eq (n : Nat) {A B : List BitString}
   rw [codeRectangleEdgeCount, ← List.toFinset_card_of_nodup hnd, hset,
     Finset.card_image_of_injective _ hfinj]
 
+/-- Every entry of a sublist of the coordinate-pair code list is such a code. -/
 lemma sublist_mem_codeList {n : Nat} {A : List BitString}
     (hA : A.Sublist (concreteFieldPairCodeList n)) :
     ∀ w ∈ A, w ∈ concreteFieldPairCodeList n := fun _ hw => hA.subset hw
 
+/-- Every set of points arises as the decoded side of a sublist of the
+coordinate-pair code list, of length its cardinality. -/
 lemma exists_sublist_of_finset (n : Nat) (S : Finset (Point (ConcreteField n))) :
     ∃ A : List BitString, A.Sublist (concreteFieldPairCodeList n) ∧
       (A.map (concretePointDecode n)).toFinset = S ∧ A.length = S.card := by
@@ -223,6 +246,8 @@ def boundedRectangleCodeCounts (n b c : Nat) : List (BitString × Nat) :=
               (listCode (canonicalFinsetList B.toFinset)),
             codeRectangleEdgeCount n A B)
 
+/-- The enumerated pairs of rectangle code and edge count are exactly those coming
+from sublists of the code list of lengths at most `b` and `c`. -/
 lemma mem_boundedRectangleCodeCounts_iff (n b c : Nat) (e : BitString × Nat) :
     e ∈ boundedRectangleCodeCounts n b c ↔
       ∃ A B : List BitString, A.Sublist (concreteFieldPairCodeList n) ∧
@@ -279,6 +304,7 @@ lemma boundedRectangleCodeCounts_complete (n b c : Nat)
   · rw [← decodedCodeRectangle_code n hAmem hBmem, hrect]
   · rw [codeRectangleEdgeCount_eq n hAmem hBmem, hAdec, hBdec]
 
+/-- A bound valid for every entry of a list bounds the maximum of the list. -/
 lemma foldr_max_le {l : List Nat} {M : Nat} (h : ∀ v ∈ l, v ≤ M) :
     l.foldr max 0 ≤ M := by
   induction l with
@@ -287,6 +313,7 @@ lemma foldr_max_le {l : List Nat} {M : Nat} (h : ∀ v ∈ l, v ≤ M) :
       rw [List.foldr_cons, max_le_iff]
       exact ⟨h x (List.mem_cons_self ..), ih fun v hv => h v (List.mem_cons_of_mem _ hv)⟩
 
+/-- Each entry of a list is at most the maximum of the list. -/
 lemma le_foldr_max {l : List Nat} {v : Nat} (h : v ∈ l) : v ≤ l.foldr max 0 := by
   induction l with
   | nil => exact absurd h (List.not_mem_nil)
@@ -301,6 +328,8 @@ bounded rectangles. -/
 def codeIncidenceCapacity (n b c : Nat) : Nat :=
   ((boundedRectangleCodeCounts n b c).map Prod.snd).foldr max 0
 
+/-- The capacity `concreteIncidenceCapacity n b c` is attained: some rectangle with
+sides of size at most `b` and `c` carries exactly that many edges. -/
 lemma exists_capacity_rectangle (n b c : Nat) :
     ∃ R : CombinatorialRectangle (Point (ConcreteField n)) (Line (ConcreteField n)),
       R.1.card ≤ b ∧ R.2.card ≤ c ∧
@@ -315,6 +344,8 @@ lemma exists_capacity_rectangle (n b c : Nat) :
   rw [boundedIncidenceRectangles, Finset.mem_filter] at hR
   exact ⟨R, hR.2.1, hR.2.2, hEq⟩
 
+/-- The executable capacity computed from codes equals the semantic capacity of the
+incidence graph. -/
 lemma codeIncidenceCapacity_eq (n b c : Nat) :
     codeIncidenceCapacity n b c = concreteIncidenceCapacity n b c := by
   apply le_antisymm
@@ -338,6 +369,8 @@ def codeCapacityRectangleCode (n b c : Nat) : BitString :=
   (((boundedRectangleCodeCounts n b c).filter fun e =>
     decide (e.2 = codeIncidenceCapacity n b c)).map Prod.fst).headI
 
+/-- The code produced by the capacity search is the code of a rectangle with sides
+of size at most `b` and `c` attaining the capacity. -/
 lemma codeCapacityRectangleCode_spec (n b c : Nat) :
     ∃ R : CombinatorialRectangle (Point (ConcreteField n)) (Line (ConcreteField n)),
       R.1.card ≤ b ∧ R.2.card ≤ c ∧
@@ -366,6 +399,7 @@ lemma codeCapacityRectangleCode_spec (n b c : Nat) :
   · rw [← hcount, he.2, codeIncidenceCapacity_eq]
   · rw [codeCapacityRectangleCode, ← hL, ← hfst, hcode]
 
+/-- The list of coordinate-pair codes is primitive recursive in `n`. -/
 lemma concreteFieldPairCodeList_primrec : Primrec concreteFieldPairCodeList := by
   have hwidth : Primrec (fun q : (Nat × Nat) × Nat => q.1.1 + 1) :=
     Primrec.succ.comp (Primrec.fst.comp Primrec.fst)
@@ -386,6 +420,7 @@ lemma concreteFieldPairCodeList_primrec : Primrec concreteFieldPairCodeList := b
   exact Primrec.list_flatMap
     (Primrec.list_range.comp boundedPrimeSearch_primrec) hmap.to₂
 
+/-- The edge count of two lists of codes is primitive recursive. -/
 lemma codeRectangleEdgeCount_primrec :
     Primrec (fun q : Nat × List BitString × List BitString =>
       codeRectangleEdgeCount q.1 q.2.1 q.2.2) := by
@@ -408,6 +443,8 @@ lemma codeRectangleEdgeCount_primrec :
     intro e _
     congr 1 <;> exact decide_eq_decide.mpr Iff.rfl)
 
+/-- The enumeration of bounded rectangle codes with their edge counts is primitive
+recursive in the three parameters. -/
 lemma boundedRectangleCodeCounts_primrec :
     Primrec (fun p : Nat × Nat × Nat =>
       boundedRectangleCodeCounts p.1 p.2.1 p.2.2) := by
@@ -450,7 +487,7 @@ lemma boundedRectangleCodeCounts_primrec :
       (pairCode (listCode (canonicalFinsetList (r.1.2).toFinset))
           (listCode (canonicalFinsetList (r.2).toFinset)),
         codeRectangleEdgeCount r.1.1.1 r.1.2 r.2)) :=
-    Primrec.pair (pairCode_primrec.comp hcanonA hcanonB) hcount
+    Primrec.pair (CodedFiniteDistribution.pairCode_primrec.comp hcanonA hcanonB) hcount
   have hinner : Primrec (fun q : (Nat × Nat × Nat) × List BitString =>
       ((concreteFieldPairCodeList q.1.1).sublists.filter fun B =>
           decide (B.length ≤ q.1.2.2)).map fun B =>
@@ -460,6 +497,7 @@ lemma boundedRectangleCodeCounts_primrec :
     Primrec.list_map hfiltB hentry.to₂
   exact Primrec.list_flatMap hfiltA hinner.to₂
 
+/-- The capacity is primitive recursive in the three parameters. -/
 lemma codeIncidenceCapacity_primrec :
     Primrec (fun p : Nat × Nat × Nat => codeIncidenceCapacity p.1 p.2.1 p.2.2) := by
   have hcounts : Primrec (fun p : Nat × Nat × Nat =>
@@ -475,6 +513,8 @@ lemma codeIncidenceCapacity_primrec :
       (Primrec.snd.comp Primrec.snd)).to₂
   exact (Primrec.list_foldr hcounts (Primrec.const 0) hstep).of_eq (fun p => rfl)
 
+/-- The code of a capacity-attaining rectangle is primitive recursive in the three
+parameters. -/
 lemma codeCapacityRectangleCode_primrec :
     Primrec (fun p : Nat × Nat × Nat =>
       codeCapacityRectangleCode p.1 p.2.1 p.2.2) := by

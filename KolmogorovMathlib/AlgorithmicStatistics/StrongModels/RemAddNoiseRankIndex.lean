@@ -1,5 +1,6 @@
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.GapCounting
-import KolmogorovMathlib.AlgorithmicStatistics.BoundedComplexityLists.OmegaEquivalence
+import KolmogorovMathlib.AlgorithmicStatistics.BoundedLists.OmegaPrefix.Part01
+import KolmogorovMathlib.AlgorithmicStatistics.BoundedLists.OmegaPrefix
 
 /-!
 # Ordinary conditional complexity of a description from its rank

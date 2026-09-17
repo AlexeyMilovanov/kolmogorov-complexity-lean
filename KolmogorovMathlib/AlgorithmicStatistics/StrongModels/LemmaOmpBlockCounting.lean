@@ -1,5 +1,5 @@
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.ProfileCardinality
-import KolmogorovMathlib.AlgorithmicStatistics.BoundedComplexityLists.StandardDescriptions
+import KolmogorovMathlib.AlgorithmicStatistics.BoundedLists.StandardBlock
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.PlainSymmetry
 
 /-!
@@ -25,21 +25,7 @@ namespace Kolmogorov
 /-- If `2 ^ a ≤ n` then `n` has a set binary digit at some position `≥ a`. -/
 theorem exists_high_testBit_of_pow_le {a n : Nat} (h : 2 ^ a ≤ n) :
     ∃ r, a ≤ r ∧ n.testBit r = true := by
-  have hn : n ≠ 0 := by
-    have : 0 < 2 ^ a := Nat.two_pow_pos a
-    omega
-  obtain ⟨i, hi, hi'⟩ := Nat.exists_most_significant_bit hn
-  refine ⟨i, ?_, hi⟩
-  by_contra hlt
-  push Not at hlt
-  have hlt2 : n < 2 ^ (i + 1) := by
-    refine Nat.lt_of_testBit (i + 1) (hi' _ (by omega)) (by simp) ?_
-    intro j hj
-    rw [hi' j (by omega), Nat.testBit_two_pow]
-    simp
-    omega
-  have : (2 : Nat) ^ (i + 1) ≤ 2 ^ a := Nat.pow_le_pow_right (by norm_num) (by omega)
-  omega
+  exact Nat.exists_ge_and_testBit_of_ge_two_pow h
 
 /-- **Incompressibility for finite sets.**  A finset of at least `2 ^ r` bit
 strings contains a member whose conditional complexity given `z` is at least
@@ -140,7 +126,7 @@ theorem exists_large_standardBlock_member_omega_independent
   obtain ⟨C₁, hC₁⟩ := omegaCount_lower_of_plainK_length V hV c hc
   obtain ⟨C₂, hC₂⟩ := plainK_omegaFixedCode_lower V hV c hc
   obtain ⟨C₃, hC₃⟩ := plainK_omegaFixedCode_upper V hV c
-  obtain ⟨C₅, hC₅⟩ := condKLePlainK V hV
+  obtain ⟨C₅, hC₅⟩ := condK_le_plainK V hV
   obtain ⟨C₄, hSOI⟩ := plainK_add_condK_symmetry V U hV hU
   obtain ⟨C', hC'⟩ := logSlack_linear_bound C₄ 1 (C₃ + C₅)
   refine ⟨C₁ + C₂ + C' + 1, fun m t hCm htm => ?_⟩

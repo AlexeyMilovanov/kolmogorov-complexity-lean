@@ -1,5 +1,6 @@
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.Basic
 import KolmogorovMathlib.Prefix.Symmetry
+import KolmogorovMathlib.Prefix.Properties.StableAliasesSUVTheorem
 import KolmogorovMathlib.Prefix.Properties
 
 /-!
@@ -12,6 +13,7 @@ deficiency up to a constant (P-RO: `d(x | P) ≤ δ(x,P) + O(1)`).
 
 namespace Kolmogorov
 
+open CodedFiniteDistribution
 open scoped ENNReal
 
 /-- Multiplicative addition for `complexityWeight` on `ENat`.
@@ -48,7 +50,7 @@ theorem randomness_optimality (U : Map) (hU : IsOptimalPrefixConditional U) :
   -- We want to prove `CW(x|P) ≤ 2^{beta+c} * P(x)`
   by_cases h_xP : KP U x P.code = ⊤
   · rw [h_xP, complexityWeight_top]
-    exact zero_le
+    exact bot_le
   -- The upper bound on `KPPlain U x` via the pair `(P.code, x)`.
   -- Note that `pairCode P.code x` has `P.code` on the left and `x` on the right.
   have h1 : KPPlain U x ≤ KPPlain U P.code + KP U x P.code + (c_upper + c_right : ℕ) := by

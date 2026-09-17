@@ -98,7 +98,7 @@ theorem extractable_chain_length_close_visible
         (commonInformationSlack C d (kx + kz + 1)) := by
   obtain ⟨cRaw, hRaw⟩ := extractable_chain_length_close V hV
   obtain ⟨cCrude, hCrude⟩ := pairPlainK_twoStage_crude_values V hV
-  obtain ⟨cCond, hCond⟩ := condKLePlainK V hV
+  obtain ⟨cCond, hCond⟩ := condK_le_plainK V hV
   let b := cCond + cCrude
   obtain ⟨cFold, hFold⟩ := logSlack_linear_bound cRaw 3 b
   let cLogs := cFold + cFold
@@ -203,6 +203,91 @@ theorem extractable_chain_length_close_visible
         Nat.add_le_add hLinear hLogConst
   exact hRawClose.mono hBudget
 
+/-- Fold a chain decoder budget with a linearly bounded argument into a single
+`commonInformationSlack (cChain + 2 * cFold) d (kxy + 1)`. -/
+private lemma commonInformationSlack_chain_fold
+    (cChain bVisible cFold : Nat)
+    (hFold : ∀ N, logSlack cChain (3 * N + bVisible) ≤ logSlack cFold N)
+    (d kxy arg : Nat)
+    (harg : arg ≤ 3 * (kxy + d + 1) + bVisible) :
+    commonInformationSlack cChain d arg ≤
+      commonInformationSlack (cChain + 2 * cFold) d (kxy + 1) := by
+  have hVisibleLog :
+      logSlack cFold (kxy + d + 1) ≤
+        logSlack cFold (kxy + 1) + cFold * d + cFold := by
+    calc
+      logSlack cFold (kxy + d + 1)
+          = logSlack cFold ((kxy + 1) + d) := by
+            congr 1
+            omega
+      _ ≤ logSlack cFold (kxy + 1) + logSlack cFold d :=
+        logSlack_add_le cFold (kxy + 1) d
+      _ ≤ logSlack cFold (kxy + 1) + cFold * d + cFold := by
+        unfold logSlack
+        have := length_natBits_le d
+        nlinarith
+  have hBaseLog :
+      logSlack cFold (kxy + 1) + cFold ≤
+        logSlack (cChain + 2 * cFold) (kxy + 1) := by
+    calc
+      logSlack cFold (kxy + 1) + cFold
+          ≤ logSlack (cFold + cFold) (kxy + 1) :=
+        logSlack_add_nat_le cFold cFold (kxy + 1)
+      _ ≤ logSlack (cChain + 2 * cFold) (kxy + 1) := by
+        apply logSlack_mono_left
+        omega
+  have hBaseLinear :
+      (cChain + cFold) * d ≤ (cChain + 2 * cFold) * d := by
+    apply Nat.mul_le_mul_right
+    omega
+  unfold commonInformationSlack
+  calc
+    cChain * d + logSlack cChain arg
+        ≤ cChain * d +
+            logSlack cChain
+              (3 * (kxy + d + 1) + bVisible) :=
+      Nat.add_le_add_left (logSlack_mono_right cChain harg) _
+    _ ≤ cChain * d + logSlack cFold (kxy + d + 1) :=
+      Nat.add_le_add_left (hFold (kxy + d + 1)) _
+    _ ≤ cChain * d +
+          (logSlack cFold (kxy + 1) + cFold * d + cFold) :=
+      Nat.add_le_add_left hVisibleLog _
+    _ = (cChain + cFold) * d +
+          (logSlack cFold (kxy + 1) + cFold) := by
+      ring
+    _ ≤ (cChain + 2 * cFold) * d + logSlack (cChain + 2 * cFold) (kxy + 1) :=
+      Nat.add_le_add hBaseLinear hBaseLog
+
+/-- Combine two base budgets `commonInformationSlack cBase d (N + 1)` and a slack `d`
+into `commonInformationSlack C d (N + 1)` where `2 * cBase + 2 ≤ C`. -/
+private lemma commonInformationSlack_double_base_fold
+    (cBase C : Nat) (hC : 2 * cBase + 2 ≤ C) (d N : Nat) :
+    2 * commonInformationSlack cBase d (N + 1) + 2 * d ≤
+      commonInformationSlack C d (N + 1) := by
+  have hFinalLog :
+      2 * logSlack cBase (N + 1) ≤
+        logSlack C (N + 1) := by
+    calc
+      2 * logSlack cBase (N + 1)
+          = logSlack cBase (N + 1) +
+              logSlack cBase (N + 1) := by ring
+      _ = logSlack (cBase + cBase) (N + 1) :=
+        logSlack_add_const _ _ _
+      _ ≤ logSlack C (N + 1) := by
+        apply logSlack_mono_left
+        omega
+  unfold commonInformationSlack
+  calc
+    2 * (cBase * d + logSlack cBase (N + 1)) + 2 * d
+        = (2 * cBase + 2) * d +
+            2 * logSlack cBase (N + 1) := by
+      ring
+    _ ≤ C * d + logSlack C (N + 1) := by
+      apply Nat.add_le_add
+      · apply Nat.mul_le_mul_right
+        exact hC
+      · exact hFinalLog
+
 /-- Assemble one literal raw shared description from an extractable common
 string.  The witnesses are genuine shortest plain programs: one program `p`
 for `z`, one program `a` for `x` conditional on `z`, and one program `b` for
@@ -298,95 +383,20 @@ theorem exists_rawSharedDescription_of_extractableCommonInformation
       NatCloseWithin (kyz + kz) ky
         (commonInformationSlack cChain d (ky + kz + 1)) :=
     hChain y z ky kz kyz kzy d hy hz hyz hzy hkzyLe
-  have hVisibleLog :
-      logSlack cFold (kxy + d + 1) ≤
-        logSlack cFold (kxy + 1) + cFold * d + cFold := by
-    calc
-      logSlack cFold (kxy + d + 1)
-          = logSlack cFold ((kxy + 1) + d) := by
-            congr 1
-            omega
-      _ ≤ logSlack cFold (kxy + 1) + logSlack cFold d :=
-        logSlack_add_le cFold (kxy + 1) d
-      _ ≤ logSlack cFold (kxy + 1) + cFold * d + cFold := by
-        unfold logSlack
-        have := length_natBits_le d
-        nlinarith
-  have hBaseLog :
-      logSlack cFold (kxy + 1) + cFold ≤
-        logSlack cBase (kxy + 1) := by
-    calc
-      logSlack cFold (kxy + 1) + cFold
-          ≤ logSlack (cFold + cFold) (kxy + 1) :=
-        logSlack_add_nat_le cFold cFold (kxy + 1)
-      _ ≤ logSlack cBase (kxy + 1) := by
-        apply logSlack_mono_left
-        dsimp [cBase]
-        omega
-  have hBaseLinear :
-      (cChain + cFold) * d ≤ cBase * d := by
-    apply Nat.mul_le_mul_right
-    dsimp [cBase]
-    omega
-  have hChainBudget :
-      ∀ {arg : Nat},
-        arg ≤ 3 * (kxy + d + 1) + bVisible →
-        commonInformationSlack cChain d arg ≤
-          commonInformationSlack cBase d (kxy + 1) := by
-    intro arg harg
-    unfold commonInformationSlack
-    calc
-      cChain * d + logSlack cChain arg
-          ≤ cChain * d +
-              logSlack cChain
-                (3 * (kxy + d + 1) + bVisible) :=
-        Nat.add_le_add_left (logSlack_mono_right cChain harg) _
-      _ ≤ cChain * d + logSlack cFold (kxy + d + 1) :=
-        Nat.add_le_add_left (hFold (kxy + d + 1)) _
-      _ ≤ cChain * d +
-            (logSlack cFold (kxy + 1) + cFold * d + cFold) :=
-        Nat.add_le_add_left hVisibleLog _
-      _ = (cChain + cFold) * d +
-            (logSlack cFold (kxy + 1) + cFold) := by
-        ring
-      _ ≤ cBase * d + logSlack cBase (kxy + 1) :=
-        Nat.add_le_add hBaseLinear hBaseLog
   let e := commonInformationSlack cBase d (kxy + 1)
+  have hxFold := commonInformationSlack_chain_fold cChain bVisible cFold
+    hFold d kxy (kx + kz + 1) hxArg
+  have hyFold := commonInformationSlack_chain_fold cChain bVisible cFold
+    hFold d kxy (ky + kz + 1) hyArg
   have hxClose : NatCloseWithin (kxz + kz) kx e :=
-    hxCloseRaw.mono (hChainBudget hxArg)
+    hxCloseRaw.mono hxFold
   have hyClose : NatCloseWithin (kz + kyz) ky e := by
-    have h := hyCloseRaw.mono (hChainBudget hyArg)
+    have h := hyCloseRaw.mono hyFold
     simpa [add_comm] using h
   have hTotalClose :
       NatCloseWithin (kxz + kz + kyz) kxy (2 * e + 2 * d) :=
     sharedDescriptionLengths_close hxClose hyClose hzClose hIClose
-  have hFinalLog :
-      2 * logSlack cBase (kxy + 1) ≤
-        logSlack C (kxy + 1) := by
-    calc
-      2 * logSlack cBase (kxy + 1)
-          = logSlack cBase (kxy + 1) +
-              logSlack cBase (kxy + 1) := by ring
-      _ = logSlack (cBase + cBase) (kxy + 1) :=
-        logSlack_add_const _ _ _
-      _ ≤ logSlack C (kxy + 1) := by
-        apply logSlack_mono_left
-        dsimp [C]
-        omega
-  have hFinalBudget :
-      2 * e + 2 * d ≤ commonInformationSlack C d (kxy + 1) := by
-    dsimp [e]
-    unfold commonInformationSlack
-    calc
-      2 * (cBase * d + logSlack cBase (kxy + 1)) + 2 * d
-          = (2 * cBase + 2) * d +
-              2 * logSlack cBase (kxy + 1) := by
-        ring
-      _ ≤ C * d + logSlack C (kxy + 1) := by
-        apply Nat.add_le_add
-        · dsimp [C]
-          exact le_rfl
-        · exact hFinalLog
+  have hFinalBudget := commonInformationSlack_double_base_fold cBase C (by omega) d kxy
   have heFinal :
       e ≤ commonInformationSlack C d (kxy + 1) :=
     (by omega : e ≤ 2 * e + 2 * d).trans hFinalBudget
@@ -504,6 +514,8 @@ lemma commonInformationSlack_nested_fold (cNL cP e : Nat) :
           + logSlack (cNL * cP + cNL + logSlack cNL e + 2) N :=
         Nat.add_le_add e6 e5
 
+/-- A raw shared description of a pair can be normalised into an overlap representation, at the
+cost of an additive slack logarithmic in the complexity of the pair. -/
 theorem normalize_rawSharedBlockRepresentation
     (V : Map) (hV : isOptimalConditional V) :
   ∃ C, ∀ x y z a p b kx ky kxy m d,
@@ -631,6 +643,8 @@ theorem normalize_rawSharedBlockRepresentation
     hEqPair.mono (hFoldTo (kxy + 1) (by omega)),
     hIncU.mono (hFoldTo (kxy + 1) (by omega))⟩
 
+/-- Extractable common information yields an overlap representation of the pair, up to a slack
+logarithmic in the complexity of the pair. -/
 theorem exists_overlapRepresentation_of_extractableCommonInformation
     (V : Map) (hV : isOptimalConditional V) :
   ∃ C, ∀ x y z kx ky kxy m d,
@@ -670,6 +684,7 @@ theorem exists_overlapRepresentation_of_extractableCommonInformation
   refine ⟨u, hu.mono ?_⟩
   exact hComp d (kxy + 1)
 
+/-- The same conclusion with all slacks taken logarithmic in the complexity of the pair. -/
 theorem exists_overlapRepresentation_of_extractableCommonInformation_log
     (V : Map) (hV : isOptimalConditional V) (a : Nat) :
   ∃ C, ∀ x y z kx ky kxy m,

@@ -1,4 +1,5 @@
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.PlainProfile
+import KolmogorovMathlib.Restricted.FamilyCurve.Basic.Part01
 import KolmogorovMathlib.Restricted.FamilyCurve.Basic
 
 /-!

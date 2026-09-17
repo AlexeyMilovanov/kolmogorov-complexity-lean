@@ -1,3 +1,5 @@
+import KolmogorovMathlib.CommonInformation.PlainSymmetry
+import KolmogorovMathlib.Encoding.Tuples
 import KolmogorovMathlib.CommonInformation.Basic
 
 /-!
@@ -16,12 +18,13 @@ the current condition. -/
 def pairConditionProgramDecompressor : Map := fun pr =>
   Part.some (pairCode pr.2 pr.1)
 
+/-- The decompressor that reads a program together with a paired condition is a decompressor. -/
 lemma pairConditionProgramDecompressor_isDecompressor :
     isDecompressor pairConditionProgramDecompressor := by
   change Partrec
     (fun pr : BitString × BitString =>
       Part.some (pairCode pr.2 pr.1))
-  exact (pairCode_primrec.comp Primrec.snd Primrec.fst).to_comp.partrec
+  exact (CodedFiniteDistribution.pairCode_primrec.comp Primrec.snd Primrec.fst).to_comp.partrec
 
 /-- Given `x`, a literal program `p` describes the canonical pair `(x,p)` with
 only a uniform additive overhead. -/
@@ -45,6 +48,8 @@ prefix and original condition from the intermediate pair. -/
 def splitConditionSuffixDecompressor (V : Map) : Map := fun pr =>
   V (decodeSecond pr.2 ++ pr.1, decodeFirst pr.2)
 
+/-- Splitting the condition and running a decompressor on the suffix again gives a
+decompressor. -/
 lemma splitConditionSuffixDecompressor_isDecompressor
     (V : Map) (hV : isDecompressor V) :
     isDecompressor (splitConditionSuffixDecompressor V) := by
@@ -125,16 +130,14 @@ theorem condK_chain_upper_values
   have hkzxFinite : KP U z x ≠ ⊤ := by
     have hle := hBridge z x kzx hzx
     exact ne_top_of_le_ne_top
-      (by
-        rw [← Nat.cast_add]
-        exact ENat.natCast_ne_top _)
+      (WithTop.add_ne_top.mpr
+        ⟨ENat.natCast_ne_top _, ENat.natCast_ne_top _⟩)
       hle
   have hkyzFinite : KP U y z ≠ ⊤ := by
     have hle := hBridge y z kyz hyz
     exact ne_top_of_le_ne_top
-      (by
-        rw [← Nat.cast_add]
-        exact ENat.natCast_ne_top _)
+      (WithTop.add_ne_top.mpr
+        ⟨ENat.natCast_ne_top _, ENat.natCast_ne_top _⟩)
       hle
   obtain ⟨p, hp, hpLen⟩ :=
     exists_program_of_KP_ne_top (M := U) (x := z) (y := x) hkzxFinite

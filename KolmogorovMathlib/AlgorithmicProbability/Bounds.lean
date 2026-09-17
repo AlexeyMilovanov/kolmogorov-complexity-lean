@@ -57,7 +57,7 @@ def IsConditionalSemimeasure (μ : BitString → BitString → ℝ≥0∞) : Pro
   ∀ y, (∑' x : BitString, μ x y) ≤ 1
 
 /-- The a priori semimeasure of a prefix machine satisfies the conditional
-semimeasure interface — this is exactly the normalization milestone
+semimeasure interface — this is exactly the normalization bound
 `tsum_aprioriMeasure_le_one`, repackaged through the predicate. -/
 theorem aprioriMeasure_isConditionalSemimeasure (M : Map) (hM : IsPrefixMachine M) :
     IsConditionalSemimeasure (aprioriMeasure M) :=
@@ -86,7 +86,7 @@ identically `0`: no program produces any output, so every summand vanishes. -/
 theorem aprioriMeasure_const_none (x y : BitString) :
     aprioriMeasure (fun _ => Part.none) x y = 0 := by
   classical
-  unfold aprioriMeasure
+  change (∑' p : BitString, if produces (fun _ => Part.none) p y x then progWeight p else 0) = 0
   have hzero : ∀ p : BitString,
       (if produces (fun _ => Part.none) p y x then progWeight p else 0) = 0 := by
     intro p

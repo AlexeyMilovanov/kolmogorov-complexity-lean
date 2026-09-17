@@ -1,13 +1,15 @@
-import KolmogorovMathlib.CommonInformation.ChainSample
 import KolmogorovMathlib.CommonInformation.ConditionalIndependenceChains
-import KolmogorovMathlib.CommonInformation.ConditionalIndependence
 import KolmogorovMathlib.CommonInformation.PlainSymmetry
+import KolmogorovMathlib.CommonInformation.ChainSample.FibreDecompositionOneMaximal
+import KolmogorovMathlib.CommonInformation.ConditionalIndependence.Part01
+import KolmogorovMathlib.CommonInformation.ChainSample
+import KolmogorovMathlib.CommonInformation.ConditionalIndependence
 
 /-!
 # Engine layer for the iterated non-extractability bound
 
 This file collects the reusable pieces behind
-`chain_sample_iterated_nonextractability` (SUV Exercise 316, iteration 3):
+`chain_sample_iterated_nonextractability` (SUV Exercise 316):
 
 * pure arithmetic showing that a linear function of the *binary size* of a
   number is eventually dominated by the number itself
@@ -58,7 +60,7 @@ theorem exists_size_linear_threshold (d e : ℕ) :
   obtain ⟨t, ht'⟩ : ∃ t, Nat.size n = t + 1 := ⟨Nat.size n - 1, by omega⟩
   have hlow : 2 ^ t ≤ n := by
     by_contra hcon
-    push Not at hcon
+    simp only [not_le] at hcon
     have h := Nat.size_le.mpr hcon
     omega
   have hkey : d * t + (d + e) ≤ 2 ^ t :=
@@ -391,12 +393,6 @@ theorem chain_link_condK_defect (V : Map) (hV : isOptimalConditional V) (k : ℕ
 
 /-! ### The regime of very complex `z` -/
 
-/-- `logSlack c n` is bounded by a linear function of `n`. -/
-theorem logSlack_le_self_linear (c n : ℕ) : logSlack c n ≤ c * n + c := by
-  unfold logSlack
-  rw [Nat.size_eq_bits_len]
-  exact Nat.add_le_add_right (Nat.mul_le_mul_left c (size_le_self n)) c
-
 /-- **Conditional decomposition of plain complexity.**
 `C(z) ≤ C(z | x) + C(x) + O(log (C(x) + C(z)))`. -/
 theorem plainK_le_cond_add_of_value (V : Map) (hV : isOptimalConditional V) :
@@ -472,7 +468,7 @@ theorem condK_le_plain_value (V : Map) (hV : isOptimalConditional V) :
     ∃ c : ℕ, ∀ (x s : BitString) (kxs kx : ℕ),
       HasPlainConditionalComplexityValue V x s kxs →
       HasPlainComplexityValue V x kx → kxs ≤ kx + c := by
-  obtain ⟨c, hc⟩ := condKLePlainK V hV
+  obtain ⟨c, hc⟩ := condK_le_plainK V hV
   refine ⟨c, fun x s kxs kx h1 h2 => ?_⟩
   have h := hc x s
   unfold HasPlainConditionalComplexityValue at h1

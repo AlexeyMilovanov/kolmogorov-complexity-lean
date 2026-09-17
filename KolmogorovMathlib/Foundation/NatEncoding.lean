@@ -5,6 +5,7 @@ import Mathlib.Data.Nat.Size
 import Mathlib.Data.Nat.Bits
 import Mathlib.Data.Nat.Log
 import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Ring
 
 /-!
 # Binary Encoding of Natural Numbers
@@ -49,13 +50,14 @@ theorem decodeBits_natBits (n : ℕ) : decodeBits (Nat.bits n) = n := by
       cases b <;> simp [decodeBits, ih, Nat.bit]
 
 /-- The standard binary representation of natural numbers is injective. -/
-theorem natBitsInjective : Function.Injective Nat.bits := by
+theorem natBits_injective : Function.Injective Nat.bits := by
   intro a b hab
   have h : decodeBits (Nat.bits a) = decodeBits (Nat.bits b) := by rw [hab]
   simpa only [decodeBits_natBits] using h
 
 /-! ### Length Bounds -/
 
+/-- Zero has the empty binary string. -/
 @[simp]
 lemma natBits_zero : Nat.bits 0 = [] := by
   simp [Nat.bits]
@@ -97,7 +99,7 @@ lemma decodeBits_eq_foldr (bs : List Bool) :
     cases b <;> simp [decodeBits, decodeStep, ih, Nat.bit]
 
 /-- The decode step function is primitive recursive. -/
-lemma primrecDecodeStep : Primrec₂ decodeStep := by
+lemma primrec_decodeStep : Primrec₂ decodeStep := by
   have h_eq : ∀ p : Bool × ℕ, decodeStep p.1 p.2 = bif p.1 then 2 * p.2 + 1 else 2 * p.2 := by
     intro p; cases p.1 <;> rfl
   apply Primrec.of_eq _ h_eq
@@ -112,16 +114,16 @@ lemma primrecDecodeStep : Primrec₂ decodeStep := by
     · exact Primrec.snd
 
 /-- The bit decoder function is primitive recursive. -/
-lemma primrecDecodeBits : Primrec decodeBits := by
+lemma primrec_decodeBits : Primrec decodeBits := by
   have h_fold : Primrec (fun bs : List Bool => bs.foldr decodeStep 0) := by
     have h_step : Primrec₂ (fun (_ : List Bool) (p : Bool × ℕ) => decodeStep p.1 p.2) :=
-      primrecDecodeStep.comp (Primrec.fst.comp Primrec.snd) (Primrec.snd.comp Primrec.snd)
+      primrec_decodeStep.comp (Primrec.fst.comp Primrec.snd) (Primrec.snd.comp Primrec.snd)
     exact Primrec.list_foldr Primrec.id (Primrec.const 0) h_step
   exact Primrec.of_eq h_fold (fun bs => (decodeBits_eq_foldr bs).symm)
 
 /-- The bit decoder is computable. -/
-lemma decodeBitsComputable : Computable decodeBits :=
-  Primrec.to_comp primrecDecodeBits
+lemma decodeBits_computable : Computable decodeBits :=
+  Primrec.to_comp primrec_decodeBits
 
 /-! ### Nat.bits Computability -/
 
@@ -132,7 +134,7 @@ def bitsG (_ : Unit) (l : List (List Bool)) : Option (List Bool) :=
   else some ((n % 2 == 1) :: l.getD (n / 2) [])
 
 /-- The helper function `bitsG` is primitive recursive. -/
-lemma primrecBitsG : Primrec₂ bitsG := by
+lemma primrec_bitsG : Primrec₂ bitsG := by
   have h_eq : ∀ p : Unit × List (List Bool), bitsG p.1 p.2 =
       bif (p.2.length == 0) then some []
       else some ((p.2.length % 2 == 1) :: p.2.getD (p.2.length / 2) []) := by
@@ -157,7 +159,7 @@ lemma primrecBitsG : Primrec₂ bitsG := by
         · exact Primrec.const 2
 
 /-- `bitsG` correctly constructs the next bitstring based on the previously generated ones. -/
-lemma bitsGValid (u : Unit) (n : ℕ) :
+lemma bitsG_valid (u : Unit) (n : ℕ) :
     bitsG u (List.map (fun x => Nat.bits x) (List.range n)) = some (Nat.bits n) := by
   unfold bitsG
   simp only [List.length_map, List.length_range]
@@ -193,14 +195,14 @@ lemma bitsGValid (u : Unit) (n : ℕ) :
     simp [List.getD, h_get, List.getElem?_map]
 
 /-- The standard `Nat.bits` representation is primitive recursive. -/
-lemma primrecNatBits : Primrec Nat.bits := by
+lemma primrec_natBits : Primrec Nat.bits := by
   have h_strong : Primrec₂ (fun (u : Unit) (n : ℕ) => Nat.bits n) :=
-    Primrec.nat_strong_rec (fun _ n => Nat.bits n) primrecBitsG bitsGValid
+    Primrec.nat_strong_rec (fun _ n => Nat.bits n) primrec_bitsG bitsG_valid
   exact h_strong.comp (Primrec.const ()) Primrec.id
 
 /-- The standard `Nat.bits` representation is computable. -/
-lemma natBitsComputable : Computable Nat.bits :=
-  Primrec.to_comp primrecNatBits
+lemma natBits_computable : Computable Nat.bits :=
+  Primrec.to_comp primrec_natBits
 
 /-
 Any fixed linear function of `(Nat.bits n).length` (i.e. `O(log n)`) is
@@ -232,5 +234,41 @@ lemma exists_bits_linear_domination (K A B : ℕ) :
     convert Nat.size_le.2 _
     · convert Nat.size_eq_bits_len n
     · exact Nat.lt_pow_succ_log_self (by decide) _
+
+/-! ### Bit-length arithmetic -/
+
+/-- Binary size is subadditive under multiplication. -/
+lemma size_mul_le (a b : ℕ) :
+    Nat.size (a * b) ≤ Nat.size a + Nat.size b := by
+  rcases Nat.eq_zero_or_pos a with rfl | ha
+  · simp
+  rcases Nat.eq_zero_or_pos b with rfl | hb
+  · simp
+  apply Nat.size_le.mpr
+  calc a * b < 2 ^ Nat.size a * 2 ^ Nat.size b :=
+        Nat.mul_lt_mul_of_lt_of_le (Nat.lt_size_self a)
+          (Nat.le_of_lt (Nat.lt_size_self b)) (by positivity)
+    _ = 2 ^ (Nat.size a + Nat.size b) := (pow_add 2 _ _).symm
+
+/-- The binary logarithm grows by at most one when its argument is increased by one. -/
+lemma log_succ_le (n : ℕ) : Nat.log 2 (n + 1) ≤ Nat.log 2 n + 1 := by
+  by_cases hn : n = 0
+  · subst hn
+    simp
+  · have h1 : n < 2 ^ (Nat.log 2 n + 1) := Nat.lt_pow_succ_log_self (by decide) n
+    have h2 : n + 1 ≤ 2 ^ (Nat.log 2 n + 1) := h1
+    have h3 : n + 1 < 2 ^ (Nat.log 2 n + 1 + 1) := by
+      calc n + 1 ≤ 2 ^ (Nat.log 2 n + 1) := h2
+        _ < 2 ^ (Nat.log 2 n + 1) * 2 := by omega
+        _ = 2 ^ (Nat.log 2 n + 1 + 1) := by ring
+    have h4 : Nat.log 2 (n + 1) < Nat.log 2 n + 1 + 1 :=
+      (Nat.log_lt_iff_lt_pow (by decide) (by omega)).mpr h3
+    omega
+
+/-- Two power bounds multiply into a power of the summed exponents. -/
+lemma mul_pow_le_pow_add {a b e f : ℕ} (ha : a ≤ 2 ^ e)
+    (hb : b ≤ 2 ^ f) : a * b ≤ 2 ^ (e + f) := by
+  calc a * b ≤ 2 ^ e * 2 ^ f := Nat.mul_le_mul ha hb
+    _ = 2 ^ (e + f) := (pow_add 2 e f).symm
 
 end Kolmogorov

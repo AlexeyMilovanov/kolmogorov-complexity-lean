@@ -26,6 +26,8 @@ theorem canonicalImageCodeOfList_primrec :
   canonicalUniformCodeOfList_primrec.comp
     canonicalFinsetList_toFinset_primrec
 
+/-- Encoding a list of points as the code of the uniform distribution on their canonical image is
+computable. -/
 theorem canonicalImageCodeOfList_computable :
     Computable canonicalImageCodeOfList :=
   canonicalImageCodeOfList_primrec.to_comp
@@ -50,6 +52,7 @@ theorem canonicalPointListOfCode_primrec :
     (Primrec.list_map decodeDistributionData_primrec
       (entry_point_primrec.comp Primrec.snd))
 
+/-- Decoding a code back to the list of points it enumerates is computable. -/
 theorem canonicalPointListOfCode_computable :
     Computable canonicalPointListOfCode :=
   canonicalPointListOfCode_primrec.to_comp
@@ -116,7 +119,7 @@ theorem IsTotalProgram.imageSetCode
     (canonicalPointListOfCode w)
 
 private lemma forall₂_exists_right_of_mem
-    {R : α → β → Prop} {xs : List α} {ys : List β}
+    {α β : Type*} {R : α → β → Prop} {xs : List α} {ys : List β}
     (hrel : List.Forall₂ R xs ys) {x : α} (hx : x ∈ xs) :
     ∃ y ∈ ys, R x y := by
   induction hrel with
@@ -129,7 +132,7 @@ private lemma forall₂_exists_right_of_mem
         exact ⟨y, List.mem_cons_of_mem y' hy, hR⟩
 
 private lemma forall₂_exists_left_of_mem
-    {R : α → β → Prop} {xs : List α} {ys : List β}
+    {α β : Type*} {R : α → β → Prop} {xs : List α} {ys : List β}
     (hrel : List.Forall₂ R xs ys) {y : β} (hy : y ∈ ys) :
     ∃ x ∈ xs, R x y := by
   induction hrel with

@@ -1,6 +1,20 @@
 import KolmogorovMathlib.CommonInformation.FiniteQuadruple
 import KolmogorovMathlib.CommonInformation.ChainHistogram
 
+/-!
+# A concrete chain with rational atoms
+
+The common-information obstructions need a Markov chain whose joint distribution has rational
+atoms of a controlled denominator, so that exact histograms exist for suitable sample sizes.
+`chainOfQuad_rationalAtoms` says the chain built from a quadruple inherits rational atoms, and
+`exists_fiveEighths_rationalAtom_chain` produces the concrete one, at agreement probability
+`5/8`, through `highWeight_threeFour_rationalAtom`.
+
+`fiveEighths_bottom_histogram1` and `fiveEighths_bottom_histogram2` compute its bottom
+marginal and the joint histogram of the two bottom coordinates, which are the numbers the
+later estimates use.
+-/
+
 namespace Kolmogorov
 open Finset
 
@@ -138,6 +152,8 @@ private lemma prAgree_eq_sum_prAt2 {k : ℕ} (D : ChainDist k) (i j : Fin (2 * k
   intro v _
   by_cases h1 : v i = true <;> by_cases h2 : v j = true <;> simp_all
 
+/-- At agreement probability `5/8` and uniform marginals the joint histogram of the two bottom
+coordinates takes the values `10 N / 32` on the diagonal and `6 N / 32` off it. -/
 theorem fiveEighths_bottom_histogram2 {N : ℕ} {D : ChainDist 1}
     (hQ : D.RationalAtoms 32) (h_agree : D.prAgree01 = 5 / 8)
     (h_alpha : ∀ a, D.prAt (chainAlphaIdx 0) a = 1 / 2)

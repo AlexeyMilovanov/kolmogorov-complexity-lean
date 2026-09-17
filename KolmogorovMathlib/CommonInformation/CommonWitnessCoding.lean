@@ -45,6 +45,7 @@ def commonWitnessPairProgramMap (V : Map) : Map := fun input =>
     (V (q, z)).bind fun x =>
       (V (r, z)).map fun y => pairCode x y
 
+/-- Concatenating two programs into one costs only a logarithmic overhead. -/
 theorem commonWitnessOneProgramCode_length_le :
     ∃ c, ∀ p q : BitString,
       (commonWitnessOneProgramCode p q).length ≤
@@ -59,6 +60,7 @@ theorem commonWitnessOneProgramCode_length_le :
     List.length_append, logSlack]
   omega
 
+/-- Concatenating three programs into one costs only a logarithmic overhead. -/
 theorem commonWitnessPairProgramCode_length_le :
     ∃ c, ∀ p q r : BitString,
       (commonWitnessPairProgramCode p q r).length ≤
@@ -77,6 +79,8 @@ theorem commonWitnessPairProgramCode_length_le :
     List.length_append, logSlack]
   omega
 
+/-- The combined machine run on the concatenated code produces the output of the two-stage
+computation. -/
 theorem commonWitnessOneProgramMap_produces
     {V : Map} {p q z x : BitString}
     (hp : produces V p [] z) (hq : produces V q z x) :
@@ -87,6 +91,8 @@ theorem commonWitnessOneProgramMap_produces
     List.take_left, List.drop_left, Part.mem_bind_iff]
   exact ⟨z, hp, hq⟩
 
+/-- The combined machine run on the concatenated code produces the pair obtained from the shared
+witness. -/
 theorem commonWitnessPairProgramMap_produces
     {V : Map} {p q r z x y : BitString}
     (hp : produces V p [] z)
@@ -101,6 +107,7 @@ theorem commonWitnessPairProgramMap_produces
     Part.mem_map_iff]
   exact ⟨z, hp, x, hq, y, hr, rfl⟩
 
+/-- The two-stage combined machine is a decompressor. -/
 theorem commonWitnessOneProgramMap_partrec
     (V : Map) (hV : isDecompressor V) :
     isDecompressor (commonWitnessOneProgramMap V) := by
@@ -109,7 +116,7 @@ theorem commonWitnessOneProgramMap_partrec
     decodeSecond_computable.comp Computable.fst
   have hLength : Computable (fun input : BitString × BitString =>
       decodeBits (decodeFirst input.1)) :=
-    decodeBitsComputable.comp
+    decodeBits_computable.comp
       (decodeFirst_computable.comp Computable.fst)
   have hP : Computable (fun input : BitString × BitString =>
       (decodeSecond input.1).take
@@ -133,6 +140,7 @@ theorem commonWitnessOneProgramMap_partrec
   unfold commonWitnessOneProgramMap
   exact Partrec.bind hRunP hRunQ.to₂
 
+/-- The three-stage combined machine is a decompressor. -/
 theorem commonWitnessPairProgramMap_partrec
     (V : Map) (hV : isDecompressor V) :
     isDecompressor (commonWitnessPairProgramMap V) := by
@@ -144,11 +152,11 @@ theorem commonWitnessPairProgramMap_partrec
     decodeSecond_computable.comp Computable.fst
   have hPLength : Computable (fun input : BitString × BitString =>
       decodeBits (decodeFirst (decodeFirst input.1))) :=
-    decodeBitsComputable.comp
+    decodeBits_computable.comp
       (decodeFirst_computable.comp hLengths)
   have hQLength : Computable (fun input : BitString × BitString =>
       decodeBits (decodeSecond (decodeFirst input.1))) :=
-    decodeBitsComputable.comp
+    decodeBits_computable.comp
       (decodeSecond_computable.comp hLengths)
   have hP : Computable (fun input : BitString × BitString =>
       (decodeSecond input.1).take
@@ -222,6 +230,8 @@ theorem commonWitnessPairProgramMap_partrec
   unfold commonWitnessPairProgramMap
   exact Partrec.bind hRunP hAfterQ.to₂
 
+/-- A string produced from a shared witness has complexity at most the total program length, up
+to a logarithmic slack. -/
 theorem plainK_output_from_commonPrograms_le
     (V : Map) (hV : isOptimalConditional V) :
     ∃ c, ∀ p q z x : BitString,
@@ -269,6 +279,8 @@ theorem plainK_output_from_commonPrograms_le
           p.length + q.length +
             logSlack C (p.length + q.length + 1))
 
+/-- A pair produced from a shared witness has complexity at most the total program length, up to
+a logarithmic slack. -/
 theorem pairPlainK_output_from_commonPrograms_le
     (V : Map) (hV : isOptimalConditional V) :
     ∃ c, ∀ p q r z x y : BitString,

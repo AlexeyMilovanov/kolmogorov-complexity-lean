@@ -44,15 +44,15 @@ strings of length `L`. -/
 noncomputable def kraftLeaves (w : BitString) (L : ℕ) : Finset BitString :=
   (stringsOfLength L).filter (fun u => w <+: u)
 
-lemma mem_kraftLeaves {w u : BitString} {L : ℕ} :
+private lemma mem_kraftLeaves {w u : BitString} {L : ℕ} :
     u ∈ kraftLeaves w L ↔ u.length = L ∧ w <+: u := by
-  rw [kraftLeaves, Finset.mem_filter, memStringsOfLength]
+  rw [kraftLeaves, Finset.mem_filter, mem_stringsOfLength]
 
-lemma kraftLeaves_subset (w : BitString) (L : ℕ) :
+private lemma kraftLeaves_subset (w : BitString) (L : ℕ) :
     kraftLeaves w L ⊆ stringsOfLength L :=
   Finset.filter_subset _ _
 
-lemma kraftLeaves_card {w : BitString} {L : ℕ} (h : w.length ≤ L) :
+private lemma kraftLeaves_card {w : BitString} {L : ℕ} (h : w.length ≤ L) :
     (kraftLeaves w L).card = 2 ^ (L - w.length) := by
   have hset : kraftLeaves w L = (stringsOfLength (L - w.length)).image (fun s => w ++ s) := by
     ext u
@@ -60,16 +60,16 @@ lemma kraftLeaves_card {w : BitString} {L : ℕ} (h : w.length ≤ L) :
     constructor
     · rintro ⟨hlen, hpre⟩
       refine ⟨u.drop w.length, ?_, ?_⟩
-      · rw [memStringsOfLength, List.length_drop, hlen]
+      · rw [mem_stringsOfLength, List.length_drop, hlen]
       · exact List.prefix_iff_eq_append.mp hpre
     · rintro ⟨s, hs, rfl⟩
-      rw [memStringsOfLength] at hs
+      rw [mem_stringsOfLength] at hs
       refine ⟨?_, List.prefix_append w s⟩
       rw [List.length_append, hs]; omega
   rw [hset, Finset.card_image_of_injective _ (fun a b hab => List.append_cancel_left hab),
-      cardStringsOfLength]
+      card_stringsOfLength]
 
-lemma kraftLeaves_disjoint {S : Set BitString} (hS : IsPrefixFree S) {L : ℕ}
+private lemma kraftLeaves_disjoint {S : Set BitString} (hS : IsPrefixFree S) {L : ℕ}
     {w1 w2 : BitString} (h1 : w1 ∈ S) (h2 : w2 ∈ S) (hne : w1 ≠ w2) :
     Disjoint (kraftLeaves w1 L) (kraftLeaves w2 L) := by
   rw [Finset.disjoint_left]
@@ -109,7 +109,7 @@ theorem finset_kraft_real_le_one (F : Finset BitString)
       rw [← hsum_card, ← hcard_bu]
       calc (F.biUnion (fun w => kraftLeaves w L)).card
             ≤ (stringsOfLength L).card := Finset.card_le_card hbu_sub
-        _ = 2 ^ L := cardStringsOfLength L
+        _ = 2 ^ L := card_stringsOfLength L
     -- Transport the natural-number bound to the real Kraft sum, scaled by `2^L`.
     have h2L_pos : (0 : ℝ) < 2 ^ L := by positivity
     have key : ∀ w ∈ F, ((1 : ℝ) / 2) ^ w.length * 2 ^ L = (2 ^ (L - w.length) : ℝ) := by

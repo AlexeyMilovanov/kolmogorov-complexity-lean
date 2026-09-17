@@ -61,9 +61,9 @@ theorem inPlainDescriptionProfile_fullCube (V : Map) (hV : isOptimalConditional 
       InPlainDescriptionProfile V x (logSlack c x.length) x.length := by
   obtain ⟨c, hc⟩ := plainSetComplexity_fullCube_le_logSlack V hV
   refine ⟨c, fun x => ?_⟩
-  refine ⟨stringsOfLength x.length, ⟨x, (memStringsOfLength _ _).mpr rfl⟩,
-    (memStringsOfLength _ _).mpr rfl, hc x.length, ?_⟩
-  rw [cardStringsOfLength]
+  refine ⟨stringsOfLength x.length, ⟨x, (mem_stringsOfLength _ _).mpr rfl⟩,
+    (mem_stringsOfLength _ _).mpr rfl, hc x.length, ?_⟩
+  rw [card_stringsOfLength]
 
 /-- **A sharp complexity gate for the full cube.**  The ordinary plain set
 complexity of the length-`n` cube is bounded by the prefix complexity of `n`
@@ -80,10 +80,12 @@ theorem plainSetComplexity_fullCube_le_KPPlain_natCode
   obtain ⟨c₁, hc₁⟩ := KPPlain_map_le U hU
     (fun w => canonicalUniformCodeOfList
       (canonicalFinsetList (stringsOfLength (decodeNatCode w)))) (by
-        exact canonicalUniformCodeOfList_computable.comp
-          ((canonicalFinsetList_toFinset_primrec.comp
-            (allStrings_primrec.comp decodeNatCode_primrec)).to_comp.of_eq fun a => rfl))
-  obtain ⟨cBridge, hcBridge⟩ := plainK_le_KPPlain V U hV hU.isPrefixDecompressor
+        convert canonicalUniformCodeOfList_computable.comp
+          (_ : Computable fun w => canonicalFinsetList (stringsOfLength (decodeNatCode w)))
+          using 1
+        · exact canonicalFinsetList_toFinset_primrec.comp
+            (allStrings_primrec.comp decodeNatCode_primrec) |>.to_comp)
+  obtain ⟨cBridge, hcBridge⟩ := plain_le_prefix V U hV hU.isPrefixDecompressor
   refine ⟨c₁ + cBridge, fun n => ?_⟩
   have hcode : canonicalUniformCodeOfList (canonicalFinsetList (stringsOfLength n))
       = (codedUniformOn (stringsOfLength n) (codedStringsOfLength_nonempty n)).code :=
@@ -183,8 +185,8 @@ theorem budgeted_plain_corner_of_simple_length
     · rw [hi, min_eq_left h]; exact hb1
     · rw [hi, min_eq_right h]; exact hb2
   have hprof : InPlainDescriptionProfile V x i x.length :=
-    ⟨stringsOfLength x.length, ⟨x, (memStringsOfLength _ _).mpr rfl⟩,
-      (memStringsOfLength _ _).mpr rfl, hbi, by rw [cardStringsOfLength]⟩
+    ⟨stringsOfLength x.length, ⟨x, (mem_stringsOfLength _ _).mpr rfl⟩,
+      (mem_stringsOfLength _ _).mpr rfl, hbi, by rw [card_stringsOfLength]⟩
   -- Slack bookkeeping.
   have hbits : 2 * (Nat.bits kx).length ≤ logSlack 2 baseBudget := by
     have h1 : 2 * (Nat.bits kx).length ≤ logSlack 2 kx := by unfold logSlack; omega
@@ -398,11 +400,11 @@ theorem budgetedPlainCorner_of_hard_regime_superpoly
   by_cases hka : kx ≤ alpha
   · obtain ⟨i, j, hprof, hi, hij⟩ := hA x kx baseBudget alpha beta hkx hka
     exact ⟨i, j, hprof, by omega, by omega⟩
-  · push Not at hka
+  · simp only [not_le] at hka
     by_cases hmin : min beta x.length ≤ baseBudget ^ k
     · obtain ⟨i, j, hprof, hi, hij⟩ := hM x kx baseBudget alpha beta hkx hkxN hmin hstoch
       exact ⟨i, j, hprof, by omega, by omega⟩
-    · push Not at hmin
+    · simp only [not_le] at hmin
       have hbeta : baseBudget ^ k < beta := lt_of_lt_of_le hmin (min_le_left _ _)
       have hlen : baseBudget ^ k < x.length := lt_of_lt_of_le hmin (min_le_right _ _)
       by_cases hsimple : ∃ m : ℕ, KPPlain U (natCode x.length) ≤ (m : ENat) ∧ m ≤ alpha ∧
@@ -416,7 +418,7 @@ theorem budgetedPlainCorner_of_hard_regime_superpoly
           intro m hm hma
           have hno : ¬(x.length ≤ beta ∨ x.length + m ≤ kx + beta) := fun h =>
             hsimple ⟨m, hm, hma, h⟩
-          push Not at hno
+          simp only [not_or, not_le] at hno
           exact ⟨hno.1, hno.2⟩
         obtain ⟨i, j, hprof, hi, hij⟩ :=
           hH x kx baseBudget alpha beta hkx hkxN hka hbeta hlen hnot hstoch

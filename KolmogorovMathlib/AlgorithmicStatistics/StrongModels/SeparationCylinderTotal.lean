@@ -1,6 +1,7 @@
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.AddNoiseEnumeration
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.CylinderRealization
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.TotalReduction
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.AddNoiseEnumeration
+import KolmogorovMathlib.Restricted.Examples.Cylinders
 
 /-!
 # Cylinder codes and their prefixes carry the same total information
@@ -32,20 +33,23 @@ This is total for every program and every context. -/
 noncomputable def cylinderOfPrefixCode (input : BitString × BitString) : BitString :=
   prefixCubeCode (pairCode input.2 (natCode (decodeBits input.1)))
 
+/-- Building the code of the uniform distribution on the cylinder above a prefix is computable. -/
 theorem cylinderOfPrefixCode_computable : Computable cylinderOfPrefixCode := by
   unfold cylinderOfPrefixCode
   exact prefixCubeCode_computable.comp
     ((pairCode_primrec.comp Primrec.snd
-      (natCode_primrec.comp (primrecDecodeBits.comp Primrec.fst))).to_comp)
+      (primrec_natCode.comp (primrec_decodeBits.comp Primrec.fst))).to_comp)
 
 /-- The decompressor computing a cylinder code from its prefix. -/
 noncomputable def cylinderOfPrefixDecompressor : Map :=
   fun input => Part.some (cylinderOfPrefixCode input)
 
+/-- The machine sending a prefix to its cylinder code is a decompressor. -/
 theorem cylinderOfPrefixDecompressor_partrec :
     isDecompressor cylinderOfPrefixDecompressor :=
   Computable.partrec cylinderOfPrefixCode_computable
 
+/-- Every program halts under the prefix-to-cylinder machine, so it is total. -/
 theorem cylinderOfPrefixDecompressor_total (p : BitString) :
     IsTotalProgram cylinderOfPrefixDecompressor p := by
   intro y
@@ -65,6 +69,8 @@ theorem prefixCubeCode_pairCode_cylinder
   rw [hset]
   exact canonicalUniformCodeOfList_canonicalFinsetList (cylinder n u) hne
 
+/-- Given the tail length as program and the prefix `u` as condition, the machine outputs the code
+of the uniform distribution on the cylinder of length `n` above `u`. -/
 theorem cylinderOfPrefixDecompressor_produces
     (n : Nat) (u : BitString) (hu : u.length ≤ n)
     (hne : (cylinder n u).Nonempty) :
@@ -83,20 +89,23 @@ of its first listed point.  This is total for every program and every context. -
 def prefixOfCylinderCode (input : BitString × BitString) : BitString :=
   ((codeSupportList input.2).headI).take (decodeBits input.1)
 
+/-- Recovering the prefix from a cylinder code is primitive recursive. -/
 theorem prefixOfCylinderCode_primrec : Primrec prefixOfCylinderCode := by
   unfold prefixOfCylinderCode
   exact Primrec.list_take.comp
-    (primrecDecodeBits.comp Primrec.fst)
+    (primrec_decodeBits.comp Primrec.fst)
     (Primrec.list_headI.comp (codeSupportList_primrec.comp Primrec.snd))
 
 /-- The decompressor recovering a cylinder's prefix from its canonical code. -/
 noncomputable def prefixOfCylinderDecompressor : Map :=
   fun input => Part.some (prefixOfCylinderCode input)
 
+/-- The machine sending a cylinder code to its prefix is a decompressor. -/
 theorem prefixOfCylinderDecompressor_partrec :
     isDecompressor prefixOfCylinderDecompressor :=
   Computable.partrec prefixOfCylinderCode_primrec.to_comp
 
+/-- Every program halts under the cylinder-to-prefix machine, so it is total. -/
 theorem prefixOfCylinderDecompressor_total (p : BitString) :
     IsTotalProgram prefixOfCylinderDecompressor p := by
   intro y
@@ -118,6 +127,8 @@ theorem headI_canonicalFinsetList_mem
       exact List.mem_cons_self ..
     simpa [hl] using mem_canonicalFinsetList.mp hmem
 
+/-- Given the prefix length as program and the cylinder code as condition, the machine outputs the
+prefix `u`. -/
 theorem prefixOfCylinderDecompressor_produces
     (n : Nat) (u : BitString)
     (hne : (cylinder n u).Nonempty) :

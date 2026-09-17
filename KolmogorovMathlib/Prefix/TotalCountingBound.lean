@@ -5,6 +5,7 @@ Authors: Alexey Milovanov
 -/
 
 import KolmogorovMathlib.AlgorithmicProbability.OptimalCoding
+import KolmogorovMathlib.Prefix.Properties.StableAliasesSUVTheorem
 import KolmogorovMathlib.Prefix.Properties
 
 /-!
@@ -38,7 +39,7 @@ theorem card_KPPlain_le_boundedPrograms_length (U : Map) (n : ℕ)
     intro x hx
     have hxK : condK U x [] ≤ (n : ENat) := by
       simpa [KPPlain, KP, KP_eq_condK] using hA x hx
-    exact (condKLeIff U x [] n).mp hxK
+    exact (condK_le_iff U x [] n).mp hxK
   let pOf : BitString → BitString := fun x ↦
     if hx : x ∈ A then Classical.choose (h_exists x hx) else []
   have hpOf_mem :
@@ -95,9 +96,9 @@ theorem KPPlain_natBits_sub_self_le (U : Map) (hU : IsOptimalPrefixConditional U
           ≤ KPPlain U w + c1 := by
       have hf_computable : Computable (fun w : BitString ↦
           Nat.bits ((decodeBits (decodeFirst w)) - ((decodeSecond w).length - 1))) := by
-        refine Computable.comp natBitsComputable ?_
+        refine Computable.comp natBits_computable ?_
         apply Computable.comp Primrec.nat_sub.to_comp
-          (Computable.pair (decodeBitsComputable.comp decodeFirst_computable)
+          (Computable.pair (decodeBits_computable.comp decodeFirst_computable)
             (Computable.comp Primrec.nat_sub.to_comp
               (Computable.pair (Computable.list_length.comp decodeSecond_computable)
                 (Computable.const 1))))
@@ -146,13 +147,13 @@ theorem card_KPPlain_le_lower_bound_faithful (U : Map)
   use stringsOfLength (n - kn)
   refine ⟨?_, ?_⟩
   · intro x hx
-    have hxlen : x.length = n - kn := (memStringsOfLength (n - kn) x).mp hx
+    have hxlen : x.length = n - kn := (mem_stringsOfLength (n - kn) x).mp hx
     refine le_trans (hc63a x) ?_
     rw [hxlen]
     refine le_trans (add_le_add_three le_rfl (hccrux n kn hkn) le_rfl) ?_
     norm_cast
     omega
-  · rw [cardStringsOfLength]
+  · rw [card_stringsOfLength]
     exact two_pow_mul_inv_pow_le_cast_pow_sub n kn
 
 /-! ### The counting lower-semicomputable function (SUV Theorem 64 upper bound)
@@ -271,7 +272,7 @@ lemma countingNum_dyadic_mono (c : Nat.Partrec.Code) (s : ℕ) (out ctx : BitStr
     gcongr
     exact_mod_cast countingApprox_mono c s (decodeBits out)
   · rw [if_neg h]
-    exact zero_le
+    exact bot_le
 
 /-
 `countingApprox` is computable in `(s, n)`.  Mirrors `aprioriApprox_computable`.
@@ -298,10 +299,8 @@ lemma countingApprox_computable (c : Nat.Partrec.Code) :
           exact Primrec.encode.comp (Primrec.pair Primrec.id (Primrec.const []))
         exact Primrec.option_isSome.comp h_evaln_computable;
       have h_if_computable : Primrec (fun q : Bool ↦ if q then 1 else 0) := by
-        have := Primrec.cond Primrec.id (Primrec.const 1) (Primrec.const 0)
-        convert this using 1
-        ext q
-        cases q <;> rfl
+        exact (Primrec.cond Primrec.id (Primrec.const 1) (Primrec.const 0)).of_eq
+          (fun q => by cases q <;> rfl)
       exact h_if_computable.comp
         (h_evaln_computable.comp (Primrec.pair (Primrec.fst.comp Primrec.fst) Primrec.snd))
   have h_sum : Primrec (fun l : List ℕ ↦ List.sum l) := by
@@ -332,7 +331,7 @@ lemma countingNum_guard_computable :
     constructor
     · have h_computable : Computable (fun q : ℕ × BitString ↦ decide (q.1 ≥ decodeBits q.2)) := by
         have h_decode : Computable (fun q : BitString ↦ decodeBits q) := by
-          convert decodeBitsComputable using 1
+          convert decodeBits_computable using 1
         have h_computable : Computable (fun q : ℕ × ℕ ↦ decide (q.1 ≥ q.2)) := by
           have h_computable : Computable (fun q : ℕ × ℕ ↦ decide (q.1 ≤ q.2)) := by
             have h_computable : Primrec (fun q : ℕ × ℕ ↦ decide (q.1 ≤ q.2)) := by
@@ -349,7 +348,8 @@ lemma countingNum_guard_computable :
             convert h_eq
           convert h_eq.to_comp using 1;
         convert h_eq.comp (Computable.pair (Computable.fst.comp Computable.snd)
-          (natBitsComputable.comp (decodeBitsComputable.comp (Computable.fst.comp Computable.snd))))
+          (natBits_computable.comp (decodeBits_computable.comp
+            (Computable.fst.comp Computable.snd))))
           using 1
       · have h_decide_empty : Computable (fun q : BitString ↦ decide (q = [])) := by
           convert Computable.of_eq _ _
@@ -376,40 +376,43 @@ lemma countingNum_guard_computable :
   by_cases h1 : q22 = [] <;> by_cases h2 : Nat.bits (decodeBits q21) = q21 <;>
     by_cases h3 : decodeBits q21 ≤ q1 <;> simp [h1, h2, h3]
 
+private lemma computable_ite_of_decide {α β : Type*} [Primcodable α] [Primcodable β]
+    {p : α → Prop} [DecidablePred p] {f g : α → β}
+    (hp : Computable (fun x => decide (p x))) (hf : Computable f) (hg : Computable g) :
+    Computable (fun x => if p x then f x else g x) := by
+  simpa only [Bool.cond_decide] using Computable.cond hp hf hg
+
 /-
 The staged numerator is computable in `(s, out, ctx)`.
 -/
+private lemma countingScale_computable :
+    Computable (fun q : ℕ × ℕ => 2 ^ (q.1 - q.2)) := by
+  exact Kolmogorov.primrec_two_pow_aux.to_comp.comp
+    (Primrec.nat_sub.comp Primrec.fst Primrec.snd).to_comp
+
+private lemma countingValuePair_computable (c : Nat.Partrec.Code) :
+    Computable (fun q : ℕ × ℕ =>
+      countingApprox c q.1 q.2 * 2 ^ (q.1 - q.2)) := by
+  exact Computable₂.comp Primrec.nat_mul.to_comp
+    (countingApprox_computable c) countingScale_computable
+
+private lemma countingArg_computable :
+    Computable (fun q : ℕ × BitString × BitString => (q.1, decodeBits q.2.1)) := by
+  exact Computable.fst.pair
+    (decodeBits_computable.comp (Computable.fst.comp Computable.snd))
+
+private lemma countingValue_computable (c : Nat.Partrec.Code) :
+    Computable ((fun q : ℕ × ℕ =>
+      countingApprox c q.1 q.2 * 2 ^ (q.1 - q.2)) ∘
+      fun q : ℕ × BitString × BitString => (q.1, decodeBits q.2.1)) :=
+  (countingValuePair_computable c).comp countingArg_computable
+
+/-- For a fixed code `c`, the counting numerator is computable in its three arguments. -/
 lemma countingNum_computable (c : Nat.Partrec.Code) :
     Computable (fun q : ℕ × BitString × BitString ↦ countingNum c q.1 q.2.1 q.2.2) := by
   unfold countingNum
-  have h_guard := countingNum_guard_computable
-  have h_true : Computable (fun q : ℕ × BitString × BitString ↦
-      countingApprox c q.1 (decodeBits q.2.1) * 2 ^ (q.1 - decodeBits q.2.1)) := by
-    convert Computable.comp
-      (show Computable (fun q : ℕ × ℕ ↦ countingApprox c q.1 q.2 * 2 ^ (q.1 - q.2)) from ?_)
-      (show Computable (fun q : ℕ × BitString × BitString ↦ (q.1, decodeBits q.2.1)) from ?_)
-      using 1
-    · have h_computable : Computable (fun q : ℕ × ℕ ↦ countingApprox c q.1 q.2)
-          ∧ Computable (fun q : ℕ × ℕ ↦ 2 ^ (q.1 - q.2)) := by
-        constructor
-        · exact countingApprox_computable c
-        · convert Computable.comp (show Computable (fun n ↦ 2 ^ n) from ?_)
-            (show Computable (fun q : ℕ × ℕ ↦ q.1 - q.2) from ?_) using 1
-          · exact Computable.of_eq (Primrec.to_comp Kolmogorov.primrec_two_pow) fun n ↦ rfl
-          · convert Primrec.to_comp (show Primrec (fun q : ℕ × ℕ ↦ q.1 - q.2) from ?_) using 1
-            exact Primrec.nat_sub.comp Primrec.fst Primrec.snd
-      convert Computable.comp (show Computable (fun q : ℕ × ℕ ↦ q.1 * q.2) from ?_)
-        (h_computable.1.pair h_computable.2) using 1
-      convert Primrec.to_comp (show Primrec (fun q : ℕ × ℕ ↦ q.1 * q.2) from ?_) using 1
-      exact Primrec.nat_mul.comp Primrec.fst Primrec.snd
-    · exact Computable.pair Computable.fst
-        (decodeBitsComputable.comp (Computable.fst.comp Computable.snd))
-  have h_false : Computable (fun q : ℕ × BitString × BitString ↦ 0) := Computable.const 0
-  have h_cond := Computable.cond h_guard h_true h_false
-  convert h_cond using 1
-  ext q
-  by_cases h : q.2.2 = [] ∧ Nat.bits (decodeBits q.2.1) = q.2.1 ∧ decodeBits q.2.1 ≤ q.1 <;>
-    simp [h]
+  exact computable_ite_of_decide countingNum_guard_computable
+    (countingValue_computable c) (Computable.const 0)
 
 /-- The counting function is lower-semicomputable. -/
 lemma countingF_isLSC (c : Nat.Partrec.Code) : IsLSC (countingF c) :=
@@ -431,7 +434,7 @@ lemma countingApprox_ge_card (U : Map) (c : Nat.Partrec.Code)
       ∧ (Nat.Partrec.Code.evaln s c (Encodable.encode (p, ([] : BitString)))
         = some (Encodable.encode x)) := by
     have h_exists_p : ∀ x ∈ A, ∃ p : BitString, p.length ≤ n ∧ produces U p [] x := by
-      exact fun x hx ↦ (condKLeIff U x [] n).mp (hA x hx)
+      exact fun x hx ↦ (condK_le_iff U x [] n).mp (hA x hx)
     choose! p hp₁ hp₂ using h_exists_p
     obtain ⟨s, hs⟩ : ∃ s : ℕ, ∀ x ∈ A, ∃ k : ℕ, k ≤ s
         ∧ (Nat.Partrec.Code.evaln k c (Encodable.encode (p x, ([] : BitString)))
@@ -538,9 +541,9 @@ lemma countingF_le_haltMass (U : Map) (c : Nat.Partrec.Code)
       = ∑ p ∈ (boundedPrograms (decodeBits out)).toFinset.filter (fun p ↦
           (Nat.Partrec.Code.evaln s c (Encodable.encode (p, ([] : BitString)))).isSome),
         (2 : ℝ≥0∞)⁻¹ ^ (decodeBits out) := by
-    simp +decide only [countingApprox, Nat.cast_list_sum, List.map_map, Finset.sum_const,
-      nsmul_eq_mul]
-    simp only [Finset.card_filter]
+    simp +decide only [countingApprox, Nat.cast_list_sum, List.map_map,
+      Finset.sum_const, nsmul_eq_mul]
+    rw [ Finset.card_filter ];
     rw [List.sum_toFinset]
     · simp only [Nat.cast_list_sum, List.map_map]
     · exact boundedPrograms_nodup _
@@ -700,7 +703,7 @@ lemma countingF_tsum_le (U : Map) (hU : IsPrefixDecompressor U) (c : Nat.Partrec
       unfold countingF
       simp only [hs, iSup_const]
     simp only [hzero, tsum_zero]
-    exact zero_le
+    exact bot_le
 
 end CountingLSC
 
@@ -779,6 +782,10 @@ theorem card_KPPlain_le_complexityWeight_bound (U : Map) (hU : IsOptimalPrefixCo
     _ = (2 : ℝ≥0∞) ^ (c + c₀) * complexityWeight (KPPlain U (Nat.bits n)) := by
           rw [pow_add]; ring
 
+/-- **Counting bound for prefix complexity.** For an optimal conditional prefix
+machine `U` there is a constant `c` such that, whenever the prefix complexity of
+`n` equals `kn`, any finite set of strings of prefix complexity at most `n` has at
+most `2 ^ (n + c) · 2 ^ (-kn)` elements. -/
 theorem card_KPPlain_le_upper_bound (U : Map) (hU : IsOptimalPrefixConditional U) :
     ∃ c : ℕ, ∀ (n kn : ℕ), HasPrefixComplexityValue U (Nat.bits n) kn →
     ∀ A : Finset BitString, (∀ x ∈ A, KPPlain U x ≤ (n : ENat)) →
@@ -825,7 +832,7 @@ referenced anywhere in the project.  The faithful, fully proved replacement
 -/
 
 /-
-theorem card_KPPlain_le_lower_bound (U : Map) (hU : IsOptimalPrefixConditional U) :
+private theorem card_KPPlain_le_lower_bound (U : Map) (hU : IsOptimalPrefixConditional U) :
     ∃ c : ℕ, ∀ (n kn : ℕ), HasPrefixComplexityValue U (Nat.bits n) kn →
     ∃ A : Finset BitString, (∀ x ∈ A, KPPlain U x ≤ (n : ENat)) ∧
     (2 : ℝ≥0∞) ^ n * (2 : ℝ≥0∞)⁻¹ ^ (kn + c) ≤ (A.card : ℝ≥0∞) :=

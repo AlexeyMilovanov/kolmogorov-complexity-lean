@@ -3,8 +3,23 @@ import KolmogorovMathlib.AlgorithmicProbability.PairProjection
 import KolmogorovMathlib.AlgorithmicStatistics.NormalizedCodedFiniteDistribution
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.Basic
 
+/-!
+# Adding uniform noise to a coded distribution
+
+`codedPairUniformExtension P m` pairs every point of `P` with an independent uniform string of
+length `m`, dividing the masses by `2 ^ m` (`RatMass.scaleInvPow2`, with its value and
+primitive-recursiveness lemmas).  This is the distribution-level counterpart of the set-level
+padding in `AddNoiseProduct`.
+
+`codedPairUniformExtension_mass_pairCode` gives the mass of a pair,
+`codedPairUniformExtension_totalMass` and `…_isProbability` show the total mass is preserved,
+and `codedPairUniformExtensionCode` with `codedPairUniformExtensionCode_computable` and
+`codedPairUniformExtensionCode_eq` realize the construction on codes.
+-/
+
 namespace Kolmogorov
 
+/-- Divides a rational mass by `2 ^ m` by multiplying its denominator. -/
 def RatMass.scaleInvPow2 (q : RatMass) (m : Nat) : RatMass where
   num := q.num
   den := q.den * 2 ^ m
@@ -13,6 +28,7 @@ def RatMass.scaleInvPow2 (q : RatMass) (m : Nat) : RatMass where
     have h2 : 0 < 2 ^ m := by positivity
     exact Nat.mul_pos h h2
 
+/-- Dividing a rational mass by `2 ^ m` multiplies its value by `2⁻¹ ^ m`. -/
 @[simp] theorem RatMass.scaleInvPow2_value
     (q : RatMass) (m : Nat) :
     (q.scaleInvPow2 m).value =
@@ -38,10 +54,13 @@ theorem RatMass.scaleInvPow2_primrec :
       (CodedFiniteDistribution.ratMass_num_primrec.comp Primrec.fst)
       (Primrec.nat_mul.comp
         (CodedFiniteDistribution.ratMass_den_primrec.comp Primrec.fst)
-        (CodedFiniteDistribution.twoPow_primrec.comp Primrec.snd))
+        (Kolmogorov.primrec_two_pow_aux.comp Primrec.snd))
   generalize_proofs at *
-  exact (Primrec.of_equiv_symm (e := CodedFiniteDistribution.RatMass.equivSubtype)).comp h
+  exact (((Primrec.of_equiv_symm (e := CodedFiniteDistribution.RatMass.equivSubtype)).comp h).of_eq
+    (fun _ => rfl)).to₂
 
+/-- Extends a coded distribution by an independent uniform string of length `m`: each point is
+paired with every string of length `m`, its mass being split evenly among them. -/
 def codedPairUniformExtension
     (P : CodedFiniteDistribution) (m : Nat) :
     CodedFiniteDistribution where
@@ -49,6 +68,8 @@ def codedPairUniformExtension
     (allStrings m).map fun u =>
       { point := pairCode e.point u, mass := e.mass.scaleInvPow2 m }
 
+/-- The map on codes realizing the uniform noise extension: it decodes a distribution code and a
+length and re-encodes the extended distribution. -/
 def codedPairUniformExtensionCode (w : BitString) : BitString :=
   codedDistributionDataCode
     ((CodedFiniteDistribution.decodeDistributionData (decodeFirst w)).flatMap fun e =>
@@ -57,6 +78,8 @@ def codedPairUniformExtensionCode (w : BitString) : BitString :=
           mass := e.mass.scaleInvPow2
             (CodedFiniteDistribution.decodeNatCode (decodeSecond w)) })
 
+/-- In the noise extension, the pair of `a` with a string of length `m` gets the mass of `a` divided
+by `2 ^ m`. -/
 theorem codedPairUniformExtension_mass_pairCode
     (P : CodedFiniteDistribution) (m : Nat)
     (a u : BitString) (hu : u.length = m) :
@@ -163,6 +186,7 @@ theorem codedPairUniformExtension_totalMassValue
       rw [codedPairUniformExtension_foldr_total_value]
       rw [RatMass.add_value, ih]
 
+/-- The uniform noise extension preserves total mass. -/
 theorem codedPairUniformExtension_totalMass
     (P : CodedFiniteDistribution) (m : Nat) :
     (∑ z ∈ (codedPairUniformExtension P m).support,
@@ -170,6 +194,7 @@ theorem codedPairUniformExtension_totalMass
       ∑ a ∈ P.support, P.mass a := by
   rw [mass_total, mass_total, codedPairUniformExtension_totalMassValue]
 
+/-- The uniform noise extension of a probability distribution is a probability distribution. -/
 theorem codedPairUniformExtension_isProbability
     (P : CodedFiniteDistribution) (m : Nat) :
     P.IsProbability →
@@ -179,6 +204,7 @@ theorem codedPairUniformExtension_isProbability
   rw [codedPairUniformExtension_totalMass]
   exact h
 
+/-- The code map realizing the uniform noise extension is computable. -/
 theorem codedPairUniformExtensionCode_computable :
     Computable codedPairUniformExtensionCode := by
   have hm : Primrec (fun w : BitString =>
@@ -199,7 +225,7 @@ theorem codedPairUniformExtensionCode_computable :
     have hpoint : Primrec
         (fun r : (BitString × CodedDistributionEntry) × BitString =>
           pairCode r.1.2.point r.2) :=
-      CodedFiniteDistribution.pairCode_primrec.comp
+      Kolmogorov.CodedFiniteDistribution.pairCode_primrec.comp
         (CodedFiniteDistribution.entry_point_primrec.comp
           (Primrec.snd.comp Primrec.fst)) Primrec.snd
     have hmass : Primrec
@@ -220,6 +246,8 @@ theorem codedPairUniformExtensionCode_computable :
     Primrec.list_flatMap hdata hblock.to₂
   exact (CodedFiniteDistribution.codedDistributionDataCode_primrec.comp hflat).to_comp
 
+/-- On the pair of the code of `P` and the code of `m`, the extension code map returns the code of
+the noise extension of `P` by `m` uniform bits. -/
 @[simp] theorem codedPairUniformExtensionCode_eq
     (P : CodedFiniteDistribution) (m : Nat) :
     codedPairUniformExtensionCode
@@ -231,6 +259,8 @@ theorem codedPairUniformExtensionCode_computable :
     CodedFiniteDistribution.decodeNatCode_natCode,
     decodeFirst_pairCode, decodeSecond_pairCode]
 
+/-- Adding `m` uniform noise bits costs at most a logarithmic term in `m` in the complexity of the
+distribution. -/
 theorem codedPairUniformExtension_complexity_le
     (U : Map) (hU : IsOptimalPrefixConditional U) :
     ∃ c : Nat, ∀ P m,
@@ -239,8 +269,8 @@ theorem codedPairUniformExtension_complexity_le
   obtain ⟨c_map, h_map⟩ := KPPlain_map_le U hU
     codedPairUniformExtensionCode codedPairUniformExtensionCode_computable
   obtain ⟨c_pair, h_pair⟩ := KPPair_le_KPPlain_add_KPPlain U hU
-  obtain ⟨c_nat, h_nat⟩ := KPPlain_natCode_le_log U hU
-  refine ⟨c_map + c_pair + c_nat + 2, fun P m => ?_⟩
+  obtain ⟨cNat, h_nat⟩ := KPPlain_natCode_le_log U hU
+  refine ⟨c_map + c_pair + cNat + 2, fun P m => ?_⟩
   unfold CodedFiniteDistribution.complexity
   rw [← codedPairUniformExtensionCode_eq P m]
   calc
@@ -253,22 +283,22 @@ theorem codedPairUniformExtension_complexity_le
         gcongr
         exact h_pair _ _
     _ ≤ (KPPlain U P.code +
-          (2 * (Nat.bits m).length + (c_nat : ENat)) + (c_pair : ENat)) +
+          (2 * (Nat.bits m).length + (cNat : ENat)) + (c_pair : ENat)) +
           (c_map : ENat) := by
         gcongr
         exact h_nat m
     _ ≤ KPPlain U P.code +
-          (logSlack (c_map + c_pair + c_nat + 2) m : ENat) := by
+          (logSlack (c_map + c_pair + cNat + 2) m : ENat) := by
         have hslack :
-            2 * (Nat.bits m).length + c_nat + c_pair + c_map ≤
-              logSlack (c_map + c_pair + c_nat + 2) m := by
+            2 * (Nat.bits m).length + cNat + c_pair + c_map ≤
+              logSlack (c_map + c_pair + cNat + 2) m := by
           unfold logSlack
           nlinarith [Nat.zero_le ((Nat.bits m).length)]
         rw [show (KPPlain U P.code +
-              ((2 * (Nat.bits m).length : ENat) + (c_nat : ENat))) +
+              ((2 * (Nat.bits m).length : ENat) + (cNat : ENat))) +
               (c_pair : ENat) + (c_map : ENat) =
             KPPlain U P.code +
-              ((2 * (Nat.bits m).length + c_nat + c_pair + c_map : Nat) : ENat) by
+              ((2 * (Nat.bits m).length + cNat + c_pair + c_map : Nat) : ENat) by
           push_cast
           ring]
         gcongr

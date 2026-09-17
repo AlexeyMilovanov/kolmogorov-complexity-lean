@@ -26,7 +26,7 @@ theorem plainSetComplexity_fullCube_le_logSlack
     Classical.choose_spec exists_isOptimalPrefixConditional
   obtain ⟨cCube, hcCube⟩ := fullSetComplexityGate U hU
   obtain ⟨cBridge, hcBridge⟩ :=
-    plainK_le_KPPlain V U hV hU.isPrefixDecompressor
+    plain_le_prefix V U hV hU.isPrefixDecompressor
   refine ⟨cCube + cBridge, fun n => ?_⟩
   unfold plainSetComplexity
   calc

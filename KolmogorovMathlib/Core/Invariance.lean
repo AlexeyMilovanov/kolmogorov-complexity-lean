@@ -20,7 +20,7 @@ namespace Kolmogorov
 /-! ### Helper Lemmas -/
 
 /-- Every computable conditional decompressor D has a numerical code. -/
-lemma existsCodeOfIsDecompressor (D : Map) (hD : isDecompressor D) :
+lemma exists_code_of_isDecompressor (D : Map) (hD : isDecompressor D) :
     ∃ code : Nat.Partrec.Code, ∀ p y,
       (code.eval (Encodable.encode (p, y))).map
         (fun r => (Encodable.decode r : Option BitString).getD []) = D (p, y) := by
@@ -45,16 +45,16 @@ lemma sInfLeSInfAdd {S₁ S₂ : Set ENat} {c : ℕ}
 /-- Kolmogorov's Theorem: An optimal conditional decompressor exists.
     We prove this by showing that our `universalDecompressor` satisfies the
     optimality predicate. -/
-theorem existsIsOptimalConditional : ∃ U : Map, isOptimalConditional U := by
-  refine ⟨universalDecompressor, isDecompressorUniversalDecompressor, fun D hD => ?_⟩
-  obtain ⟨code, hc⟩ := existsCodeOfIsDecompressor D hD
+theorem exists_isOptimalConditional : ∃ U : Map, isOptimalConditional U := by
+  refine ⟨universalDecompressor, isDecompressor_universalDecompressor, fun D hD => ?_⟩
+  obtain ⟨code, hc⟩ := exists_code_of_isDecompressor D hD
   refine ⟨(unaryPrefix (Encodable.encode code)).length, fun x y => ?_⟩
   apply sInfLeSInfAdd
   rintro len_p ⟨p, hp_out, rfl⟩
   refine ⟨(programLength (unaryPrefix (Encodable.encode code) ++ p) : ENat), ?_, ?_⟩
   · refine ⟨unaryPrefix (Encodable.encode code) ++ p, ?_, rfl⟩
     change x ∈ universalDecompressor _
-    rw [universalSimulation, hc]
+    rw [universal_simulation, hc]
     exact hp_out
   · dsimp [programLength]
     rw [List.length_append]

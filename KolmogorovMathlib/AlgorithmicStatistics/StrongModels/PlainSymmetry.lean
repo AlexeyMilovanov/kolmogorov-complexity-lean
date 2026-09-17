@@ -1,7 +1,8 @@
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.AddNoise
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.OrdinalPlainRandomness
-import KolmogorovMathlib.AlgorithmicStatistics.BoundedComplexityLists.NonStochasticRevisited
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.SlackArith
+import KolmogorovMathlib.AlgorithmicStatistics.BoundedLists.NonStochasticFinal.Part01
+import KolmogorovMathlib.AlgorithmicStatistics.BoundedLists.NonStochasticFinal
 
 /-!
 # Symmetry of information for ordinary plain complexity
@@ -16,7 +17,7 @@ The proof is a bridge from the already formalized *prefix* statement
 `KP_mutual_symm_le_of_complexity_budget`:
 
 * `C(z) ≤ K(z) + O(1)` and `C(z | w) ≤ K(z | w) + O(1)`
-  (`plainK_le_KPPlain`, `condK_le_KP`) give the left-hand side;
+  (`plain_le_prefix`, `condK_le_KP`) give the left-hand side;
 * conversely `K(z | w) ≤ C(z | w) + O(log N)` once the *exact* value of
   `C(z | w)` is available to the prefix machine as a self-delimiting length
   field (`KP_le_condK_of_logSlack_budget` below, a corollary of the exact-budget
@@ -27,12 +28,10 @@ The consumer form used by VS40 §7 is `condK_reverse_of_plain_complexity_gap`:
 if `x` is at most `delta` more complex than `y` and `C(y | x) ≤ s`, then
 `C(x | y) ≤ delta + s + O(log N)`.
 
-Note on placement: the exact-budget decompressor is currently duplicated in
-`Prefix/ExactBudget.lean` (an orphan module that no other file imports and whose
-`conditionalPlainLengthDecompressor` clashes with the copy in
-`StrongModels/AddNoise.lean`).  This file builds on the `AddNoise.lean` copy so
-that the result is available inside the §7 import graph; once the duplication is
-resolved it should move next to the prefix symmetry-of-information development.
+Note on placement: the exact-budget decompressor also occurs in
+`Prefix/ExactBudget.lean`, whose `conditionalPlainLengthDecompressor` is a second
+copy of the one in `StrongModels/AddNoise.lean`.  This file builds on the
+`AddNoise.lean` copy so that the result is available inside the §7 import graph.
 -/
 
 namespace Kolmogorov
@@ -114,7 +113,7 @@ theorem plainK_add_condK_symmetry
     exact_mod_cast Nat.add_le_add_right hkyN _
   have hsym := hS x y M hKPyM
   have hMle : M ≤ (cB + 1) * N + cB := by
-    have hlen := length_natBits_le_self N
+    have hlen := length_natBits_le N
     have hmul : cB * (Nat.bits N).length ≤ cB * N := Nat.mul_le_mul_left _ hlen
     calc M = N + (cB * (Nat.bits N).length + cB) := by rw [hM, logSlack]
       _ ≤ N + (cB * N + cB) := by omega

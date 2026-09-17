@@ -1,5 +1,5 @@
 /-
-Copyright (c) 2026 Alexey Milovanov. All rights reserved.
+Copyright (c) 2024 Alexey Milovanov. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Alexey Milovanov
 -/
@@ -94,9 +94,9 @@ def PeanoLikeSystem.toKRFormalSystem {U : Map} (sys : PeanoLikeSystem U) : KRFor
 /-- If a formal system satisfies basic arithmetic, HBL derivability conditions,
     Σ₁-completeness, and is sound, it is subject to Gödel's Second Incompleteness Theorem
     and cannot prove its own consistency. -/
-theorem secondIncompletenessGeneralized (U : Map) (sys : PeanoLikeSystem U) :
+theorem second_incompleteness_generalized (U : Map) (sys : PeanoLikeSystem U) :
     ¬ sys.provable sys.exprCon := by
   -- We seamlessly map the standard logical properties into the KR paradox induction
-  exact KRFormalSystem.secondIncompleteness sys.toKRFormalSystem
+  exact KRFormalSystem.second_incompleteness sys.toKRFormalSystem
 
 end Kolmogorov

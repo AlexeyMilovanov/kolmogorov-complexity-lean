@@ -1,5 +1,5 @@
 /-
-Copyright (c) 2026 Alexey Milovanov. All rights reserved.
+Copyright (c) 2024 Alexey Milovanov. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Alexey Milovanov
 -/
@@ -26,8 +26,102 @@ open scoped ENNReal
 def natToCode (L a : ℕ) : BitString :=
   (List.range L).reverse.map (fun i => a.testBit i)
 
-theorem natToCode_length (L a : ℕ) : (natToCode L a).length = L := by
+private theorem natToCode_length (L a : ℕ) : (natToCode L a).length = L := by
   simp [natToCode]
+
+/-- If a codeword is a prefix of a longer one, the shorter one encodes the quotient of the
+longer one's number by the difference of the two lengths. -/
+private theorem natToCode_div_of_isPrefix (L1 L2 a1 a2 : ℕ) (hL1L2 : L1 ≤ L2)
+    (ha1 : a1 < 2 ^ L1) (ha2 : a2 < 2 ^ L2)
+    (hprefix : natToCode L1 a1 <+: natToCode L2 a2) :
+    a2 / 2 ^ (L2 - L1) = a1 := by
+  have h_div : a2 / 2 ^ (L2 - L1) = a1 := by
+    have h_eq : ∀ i < L1, (a2.testBit (L2 - 1 - i)) = (a1.testBit (L1 - 1 - i)) := by
+      intro i hi
+      have h_eq : (natToCode L1 a1)[i]? = (natToCode L2 a2)[i]? := by
+        grind +suggestions;
+      unfold natToCode at h_eq; simp_all only [List.map_reverse] ;
+      grind +revert
+    refine Nat.eq_of_testBit_eq fun i => ?_;
+    by_cases hi : i < L1;
+    · convert h_eq ( L1 - 1 - i ) ( by omega ) using 1;
+      · rw [ show L2 - 1 - ( L1 - 1 - i ) = L2 - L1 + i by omega ];
+        grind +revert;
+      · rw [ Nat.sub_sub_self ( Nat.le_sub_one_of_lt hi ) ];
+    · rw [ Nat.testBit_eq_false_of_lt, Nat.testBit_eq_false_of_lt ];
+      · exact ha1.trans_le ( Nat.pow_le_pow_right ( by decide ) ( le_of_not_gt hi ) );
+      · refine lt_of_lt_of_le
+          (Nat.div_lt_of_lt_mul (m := a2) (n := 2 ^ (L2 - L1)) (k := 2 ^ L1) ?_) ?_;
+        · rwa [ ← pow_add, Nat.sub_add_cancel hL1L2 ];
+        · exact pow_le_pow_right₀ ( by decide ) ( le_of_not_gt hi );
+  exact h_div;
+
+/-- Codewords of a common length encode distinct numbers. -/
+private theorem natToCode_injective_of_lt (L a b : ℕ) (ha : a < 2 ^ L) (hb : b < 2 ^ L)
+    (h_eq : natToCode L a = natToCode L b) : a = b := by
+  simp only [natToCode] at h_eq
+  refine Nat.eq_of_testBit_eq fun i => ?_
+  by_cases hi : i < L <;> simp_all only [List.map_reverse, List.reverse_inj,
+      List.map_inj_left, List.mem_range, not_lt]
+  rw [Nat.testBit_eq_false_of_lt, Nat.testBit_eq_false_of_lt] <;>
+      linarith [Nat.pow_le_pow_right two_pos hi]
+
+/-- The requested lengths can be listed in non-decreasing order: there is an injective
+reindexing of the index set along which the list of lengths is monotone. -/
+private theorem exists_monotone_reindex (L : List ℕ) :
+    ∃ σ : Fin L.length → Fin L.length, Function.Injective σ ∧
+      ∀ i j, i < j → L.get (σ i) ≤ L.get (σ j) := by
+  have h_exists_min : ∀ (s : Finset (Fin L.length)), s.Nonempty → ∃ m ∈ s, ∀ n ∈ s,
+      L.get n ≥ L.get m := by
+    exact fun s hs => Finset.exists_min_image _ _ hs
+  -- We can construct such a permutation by repeatedly selecting the minimum element from the
+  -- remaining elements.
+  have h_perm : ∀ (k : ℕ) (hk : k ≤ L.length), ∀ (s : Finset (Fin L.length)),
+      s.card = k → ∃ σ : Fin k → Fin L.length, Function.Injective σ ∧ (∀ i, σ i ∈ s) ∧
+          ∀ i j, i < j → L.get (σ i) ≤ L.get (σ j) := by
+    intro k hk s hs_card
+    induction k generalizing s with
+    | zero => exact ⟨ fun i => i.elim0, fun i _ _ => i.elim0, fun i =>
+        i.elim0, fun i _ _ => i.elim0 ⟩
+    | succ k ih =>
+      obtain ⟨ m, hm₁, hm₂ ⟩ := h_exists_min s ( Finset.card_pos.mp ( by linarith ) );
+      obtain ⟨ σ, hσ₁, hσ₂, hσ₃ ⟩ := ih ( Nat.le_of_succ_le hk ) ( s.erase m ) (
+          by rw [ Finset.card_erase_of_mem hm₁, hs_card ] ; exact Nat.add_sub_cancel k 1 );
+      use Fin.cons m σ
+      refine ⟨?_, ?_, ?_⟩
+      · intro i j hij
+        induction i using Fin.cases with
+        | zero =>
+          induction j using Fin.cases with
+          | zero => rfl
+          | succ j =>
+            simp only [Fin.cons_zero, Fin.cons_succ] at hij
+            exact False.elim <| (Finset.mem_erase.mp (hσ₂ j)).1 hij.symm
+        | succ i =>
+          induction j using Fin.cases with
+          | zero =>
+            simp only [Fin.cons_zero, Fin.cons_succ] at hij
+            exact False.elim <| (Finset.mem_erase.mp (hσ₂ i)).1 hij
+          | succ j =>
+            simp only [Fin.cons_succ] at hij
+            congr 1; exact hσ₁ hij
+      · intro i
+        induction i using Fin.cases with
+        | zero => exact hm₁
+        | succ i => exact (Finset.mem_erase.mp (hσ₂ i)).2
+      · intro i j hij
+        induction i using Fin.cases with
+        | zero =>
+          induction j using Fin.cases with
+          | zero => exact False.elim (Nat.not_lt_zero _ hij)
+          | succ j => exact hm₂ _ (Finset.mem_erase.mp (hσ₂ j)).2
+        | succ i =>
+          induction j using Fin.cases with
+          | zero => exact False.elim (Nat.not_lt_zero _ (Nat.lt_trans (Nat.zero_lt_succ _)
+              hij))
+          | succ j => exact hσ₃ i j (Fin.succ_lt_succ_iff.mp hij)
+  exact Exists.elim ( h_perm L.length le_rfl Finset.univ ( by simp ) ) fun σ hσ =>
+      ⟨ σ, hσ.1, hσ.2.2 ⟩;
 
 /-
 **Kraft's theorem, existence direction.** For any finite list of requested
@@ -41,62 +135,7 @@ theorem exists_prefixFree_code_of_kraft_le_one (L : List ℕ)
       Function.Injective f ∧
       IsPrefixFree (Set.range f) := by
   -- Let's sort the list of lengths in non-decreasing order.
-  obtain ⟨σ, hσ⟩ : ∃ σ : Fin L.length → Fin L.length, Function.Injective σ ∧
-      ∀ i j, i < j → L.get (σ i) ≤ L.get (σ j) := by
-    have h_sort : ∃ σ : Fin L.length → Fin L.length, Function.Injective σ ∧
-        ∀ i j, i < j → L.get (σ i) ≤ L.get (σ j) := by
-      have h_exists_min : ∀ (s : Finset (Fin L.length)), s.Nonempty → ∃ m ∈ s, ∀ n ∈ s,
-          L.get n ≥ L.get m := by
-        exact fun s hs => Finset.exists_min_image _ _ hs
-      -- We can construct such a permutation by repeatedly selecting the minimum element from the
-      -- remaining elements.
-      have h_perm : ∀ (k : ℕ) (hk : k ≤ L.length), ∀ (s : Finset (Fin L.length)),
-          s.card = k → ∃ σ : Fin k → Fin L.length, Function.Injective σ ∧ (∀ i, σ i ∈ s) ∧
-              ∀ i j, i < j → L.get (σ i) ≤ L.get (σ j) := by
-        intro k hk s hs_card
-        induction k generalizing s with
-        | zero => exact ⟨ fun i => i.elim0, fun i _ _ => i.elim0, fun i =>
-            i.elim0, fun i _ _ => i.elim0 ⟩
-        | succ k ih =>
-          obtain ⟨ m, hm₁, hm₂ ⟩ := h_exists_min s ( Finset.card_pos.mp ( by linarith ) );
-          obtain ⟨ σ, hσ₁, hσ₂, hσ₃ ⟩ := ih ( Nat.le_of_succ_le hk ) ( s.erase m ) (
-              by rw [ Finset.card_erase_of_mem hm₁, hs_card ] ; exact Nat.add_sub_cancel k 1 );
-          use Fin.cons m σ
-          refine ⟨?_, ?_, ?_⟩
-          · intro i j hij
-            induction i using Fin.cases with
-            | zero =>
-              induction j using Fin.cases with
-              | zero => rfl
-              | succ j =>
-                simp only [Fin.cons_zero, Fin.cons_succ] at hij
-                exact False.elim <| (Finset.mem_erase.mp (hσ₂ j)).1 hij.symm
-            | succ i =>
-              induction j using Fin.cases with
-              | zero =>
-                simp only [Fin.cons_zero, Fin.cons_succ] at hij
-                exact False.elim <| (Finset.mem_erase.mp (hσ₂ i)).1 hij
-              | succ j =>
-                simp only [Fin.cons_succ] at hij
-                congr 1; exact hσ₁ hij
-          · intro i
-            induction i using Fin.cases with
-            | zero => exact hm₁
-            | succ i => exact (Finset.mem_erase.mp (hσ₂ i)).2
-          · intro i j hij
-            induction i using Fin.cases with
-            | zero =>
-              induction j using Fin.cases with
-              | zero => exact False.elim (Nat.not_lt_zero _ hij)
-              | succ j => exact hm₂ _ (Finset.mem_erase.mp (hσ₂ j)).2
-            | succ i =>
-              induction j using Fin.cases with
-              | zero => exact False.elim (Nat.not_lt_zero _ (Nat.lt_trans (Nat.zero_lt_succ _)
-                  hij))
-              | succ j => exact hσ₃ i j (Fin.succ_lt_succ_iff.mp hij)
-      exact Exists.elim ( h_perm L.length le_rfl Finset.univ ( by simp ) ) fun σ hσ =>
-          ⟨ σ, hσ.1, hσ.2.2 ⟩;
-    exact h_sort;
+  obtain ⟨σ, hσ⟩ := exists_monotone_reindex L
   -- Define the codeword for each index using the sorted sequence.
   obtain ⟨f, hf⟩ : ∃ f : Fin L.length → BitString, (∀ i, (f i).length = L.get (σ i)) ∧
       (∀ i j, i < j → ¬ IsStrictPrefix (f i) (f j)) ∧ (∀ i j, i ≠ j → f i ≠ f j) := by
@@ -163,32 +202,8 @@ theorem exists_prefixFree_code_of_kraft_le_one (L : List ℕ)
     · intro i j hij h;
       -- By the properties of `natToCode`, if `natToCode L[σ i] (a i)` is a prefix of
       -- `natToCode L[σ j] (a j)`, then `a j / 2^(L[σ j] - L[σ i]) = a i`.
-      have h_div : a j / 2 ^ (L[σ j] - L[σ i]) = a i := by
-        have h_div : ∀ (L1 L2 : ℕ) (a1 a2 : ℕ),
-            L1 ≤ L2 → a1 < 2 ^ L1 → a2 < 2 ^ L2 → natToCode L1 a1 <+: natToCode L2 a2 → a2 / 2
-                ^ (L2 - L1) = a1 := by
-          intros L1 L2 a1 a2 hL1L2 ha1 ha2 hprefix
-          have h_div : a2 / 2 ^ (L2 - L1) = a1 := by
-            have h_eq : ∀ i < L1, (a2.testBit (L2 - 1 - i)) = (a1.testBit (L1 - 1 - i)) := by
-              intro i hi
-              have h_eq : (natToCode L1 a1)[i]? = (natToCode L2 a2)[i]? := by
-                grind +suggestions;
-              unfold natToCode at h_eq; simp_all only [List.map_reverse] ;
-              grind +revert
-            refine Nat.eq_of_testBit_eq fun i => ?_;
-            by_cases hi : i < L1;
-            · convert h_eq ( L1 - 1 - i ) ( by omega ) using 1;
-              · rw [ show L2 - 1 - ( L1 - 1 - i ) = L2 - L1 + i by omega ];
-                grind +revert;
-              · rw [ Nat.sub_sub_self ( Nat.le_sub_one_of_lt hi ) ];
-            · rw [ Nat.testBit_eq_false_of_lt, Nat.testBit_eq_false_of_lt ];
-              · exact ha1.trans_le ( Nat.pow_le_pow_right ( by decide ) ( le_of_not_gt hi ) );
-              · refine lt_of_lt_of_le
-                  (Nat.div_lt_of_lt_mul (m := a2) (n := 2 ^ (L2 - L1)) (k := 2 ^ L1) ?_) ?_;
-                · rwa [ ← pow_add, Nat.sub_add_cancel hL1L2 ];
-                · exact pow_le_pow_right₀ ( by decide ) ( le_of_not_gt hi );
-          exact h_div;
-        exact h_div _ _ _ _ ( hσ.2 i j hij ) ( ha.1 i ) ( ha.1 j ) h;
+      have h_div : a j / 2 ^ (L[σ j] - L[σ i]) = a i :=
+        natToCode_div_of_isPrefix _ _ _ _ (hσ.2 i j hij) (ha.1 i) (ha.1 j) h
       have := ha.2 i j hij;
       exact absurd h_div ( Nat.ne_of_gt <| Nat.le_div_iff_mul_le (
           by positivity ) |>.2 <| by linarith! );
@@ -197,19 +212,9 @@ theorem exists_prefixFree_code_of_kraft_le_one (L : List ℕ)
       have h_len_eq : L[↑(σ i)] = L[↑(σ j)] := by
         replace hij := congr_arg List.length hij ; simp_all only [natToCode_length]; exact hij
       have h_eq : a i = a j := by
-        have h_eq : ∀ (L : ℕ) (a b : ℕ), a < 2 ^ L → b < 2 ^ L → natToCode L a = natToCode L b
-            → a = b := by
-          intros L a b ha hb h_eq; exact (by
-          have h_eq : ∀ (L : ℕ) (a b : ℕ), a < 2 ^ L → b < 2 ^ L → (List.map (fun i =>
-              a.testBit i) (List.range L).reverse) = (List.map (fun i =>
-                  b.testBit i) (List.range L).reverse) → a = b := by
-            intros L a b ha hb h_eq; exact (by
-            refine Nat.eq_of_testBit_eq fun i => ?_;
-            by_cases hi : i < L <;> simp_all only [List.map_reverse, List.reverse_inj,
-                List.map_inj_left, List.mem_range, not_lt] ;
-            rw [ Nat.testBit_eq_false_of_lt, Nat.testBit_eq_false_of_lt ] <;>
-                linarith [ Nat.pow_le_pow_right two_pos hi ]);
-          exact h_eq L a b ha hb ‹_›);
+        have h_eq : ∀ (L : ℕ) (a b : ℕ), a < 2 ^ L → b < 2 ^ L →
+            natToCode L a = natToCode L b → a = b :=
+          fun L a b ha hb h => natToCode_injective_of_lt L a b ha hb h
         grind;
       exact le_antisymm ( le_of_not_gt fun hi =>
           by have := ha.2 _ _ hi; aesop ) ( le_of_not_gt fun hj => by have := ha.2 _ _ hj; aesop );

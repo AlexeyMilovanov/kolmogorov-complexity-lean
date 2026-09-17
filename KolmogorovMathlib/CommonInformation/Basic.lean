@@ -21,7 +21,7 @@ theorem exists_incompressibleRepresentation (V : Map) (hV : isOptimalConditional
   obtain ⟨cEval, hEval⟩ := condK_output_given_plainProgram_le V hV
   obtain ⟨cOutput, hOutput⟩ := plainK_output_le_plainK_program V hV
   obtain ⟨cPair, hPair⟩ := pairPlainK_output_program_le_plainK_program V hV
-  obtain ⟨cLength, hLength⟩ := plainKLeLength V hV
+  obtain ⟨cLength, hLength⟩ := plainK_le_length V hV
   obtain ⟨cChain, hChain⟩ := pairPlainK_chain_lower_values V hV
   obtain ⟨cClose, hClose⟩ :=
     chain_lower_close_conditional (cLength + cPair) cChain
@@ -86,6 +86,85 @@ theorem exists_incompressibleRepresentation (V : Map) (hV : isOptimalConditional
           exact_mod_cast hOutputSlack
         exact add_le_add_right hs _
 
+/-- Taking the first half of a bit string is computable. -/
+private lemma computable_take_half : Computable (fun w : BitString => w.take (w.length / 2)) :=
+  (Primrec.list_take.comp (Primrec.nat_div.comp Primrec.list_length (Primrec.const 2))
+    Primrec.id).to_comp
+
+/-- Taking the second half of a bit string is computable. -/
+private lemma computable_drop_half : Computable (fun w : BitString => w.drop (w.length / 2)) :=
+  (Primrec.list_drop.comp (Primrec.nat_div.comp Primrec.list_length (Primrec.const 2))
+    Primrec.id).to_comp
+
+/-- A constant bounded by `C` is bounded by `logSlack C (n + 1)`. -/
+private lemma nat_le_logSlack (C n d : Nat) (hd : d ≤ C) : d ≤ logSlack C (n + 1) := by
+  have hCle : C ≤ logSlack C (n + 1) := by
+    unfold logSlack
+    exact Nat.le_add_left C (C * (Nat.bits (n + 1)).length)
+  exact le_trans hd hCle
+
+/-- A constant bounded by `C` is bounded as an `ENat` by `logSlack C (n + 1)`. -/
+private lemma enat_le_logSlack (C n d : Nat) (hd : d ≤ C) :
+    (d : ENat) ≤ (logSlack C (n + 1) : ENat) := by
+  exact_mod_cast nat_le_logSlack C n d hd
+
+/-- Adding a constant `d` to `logSlack a (n + 1)` is bounded by `logSlack C (n + 1)`
+when `a + d ≤ C`. -/
+private lemma logSlack_add_nat_le_logSlack (C n a d : Nat) (had : a + d ≤ C) :
+    (logSlack a (n + 1) : ENat) + (d : ENat) ≤ (logSlack C (n + 1) : ENat) := by
+  have hnat : logSlack a (n + 1) + d ≤ logSlack C (n + 1) :=
+    le_trans (logSlack_add_nat_le a d (n + 1)) (logSlack_mono_left had (n + 1))
+  calc (logSlack a (n + 1) : ENat) + (d : ENat)
+      = ((logSlack a (n + 1) + d : Nat) : ENat) := by push_cast; ring
+    _ ≤ (logSlack C (n + 1) : ENat) := by exact_mod_cast hnat
+
+/-- Bounding complexity value `kw` by string length plus `cLen`. -/
+private lemma complexity_val_le_length_add
+    (V : Map) (w : BitString) (kw cLen : Nat)
+    (hkw : HasPlainComplexityValue V w kw)
+    (hLen : ∀ y, plainK V y ≤ (y.length : ENat) + (cLen : ENat)) :
+    kw ≤ w.length + cLen := by
+  have h : (kw : ENat) ≤ ((w.length + cLen : Nat) : ENat) := by
+    calc (kw : ENat) = plainK V w := hkw.symm
+      _ ≤ (w.length : ENat) + (cLen : ENat) := hLen w
+      _ = ((w.length + cLen : Nat) : ENat) := by push_cast; ring
+  exact_mod_cast h
+
+/-- If the shortest description `p` of `x` costs at most `logSlack cSD (k + 1)` given `x`, and
+`w` is obtained from `p` at an extra cost of `cMap`, then `w` costs at most
+`logSlack C (k + 1)` given `x`, for any `C` with `cSD + cMap ≤ C`. -/
+private lemma condK_le_logSlack_of_le_add
+    (V : Map) (cSD cMap C k : Nat) (x p w : BitString)
+    (hSD : condK V p x ≤ (logSlack cSD (k + 1) : ENat))
+    (hMap : condK V w x ≤ condK V p x + (cMap : ENat))
+    (hbound : cSD + cMap ≤ C) :
+    condK V w x ≤ (logSlack C (k + 1) : ENat) := by
+  calc condK V w x ≤ condK V p x + (cMap : ENat) := hMap
+    _ ≤ (logSlack cSD (k + 1) : ENat) + (cMap : ENat) := by gcongr
+    _ ≤ (logSlack C (k + 1) : ENat) := logSlack_add_nat_le_logSlack C k cSD cMap hbound
+
+/-- Plain complexity of a string is bounded by its length plus `logSlack C (k + 1)`. -/
+private lemma plainK_le_length_add_logSlack
+    (V : Map) (cLen C k : Nat) (w : BitString)
+    (hLen : ∀ y, plainK V y ≤ (y.length : ENat) + (cLen : ENat))
+    (hcLen : cLen ≤ C) :
+    plainK V w ≤ (w.length : ENat) + (logSlack C (k + 1) : ENat) := by
+  calc plainK V w ≤ (w.length : ENat) + (cLen : ENat) := hLen w
+    _ ≤ (w.length : ENat) + (logSlack C (k + 1) : ENat) := by
+      gcongr; exact nat_le_logSlack C k cLen hcLen
+
+/-- Convert a natural inequality on length to `PlainIncompressibleWithin`. -/
+private lemma plainIncompressibleWithin_of_length_le
+    (V : Map) (w : BitString) (kw C k : Nat)
+    (hkw : HasPlainComplexityValue V w kw)
+    (hlen : w.length ≤ kw + logSlack C (k + 1)) :
+    PlainIncompressibleWithin V w (logSlack C (k + 1)) := by
+  unfold PlainIncompressibleWithin
+  rw [hkw]
+  calc (w.length : ENat)
+      ≤ ((kw + logSlack C (k + 1) : Nat) : ENat) := by exact_mod_cast hlen
+    _ = (kw : ENat) + (logSlack C (k + 1) : ENat) := by push_cast; ring
+
 /-- SUV Exercise 305: splitting an incompressible shortest-description
 representation into literal near-equal halves fulfils all the requirements of
 §11.1.  Taking `x'` to be a shortest description of `x` and `x₁, x₂` its two
@@ -109,43 +188,18 @@ theorem exists_split_incompressible_halves
         plainK V x₂ ≤
           (x₂.length : ENat) + (logSlack c (k + 1) : ENat) ∧
         PlainIncompressibleWithin V x₂ (logSlack c (k + 1)) := by
-  have htake_comp : Computable (fun w : BitString => w.take (w.length / 2)) :=
-    (Primrec.list_take.comp
-      (Primrec.nat_div.comp Primrec.list_length (Primrec.const 2)) Primrec.id).to_comp
-  have hdrop_comp : Computable (fun w : BitString => w.drop (w.length / 2)) :=
-    (Primrec.list_drop.comp
-      (Primrec.nat_div.comp Primrec.list_length (Primrec.const 2)) Primrec.id).to_comp
   obtain ⟨cEval, hEval⟩ := condK_output_given_plainProgram_le V hV
   obtain ⟨cRec, hRec⟩ := condK_output_given_appendedPairCode_le V hV
   obtain ⟨cSD, hSD⟩ := condK_shortestDescription_le V hV
-  obtain ⟨cLen, hLen⟩ := plainKLeLength V hV
+  obtain ⟨cLen, hLen⟩ := plainK_le_length V hV
   obtain ⟨cOut, hOut⟩ := plainK_output_le_plainK_program V hV
   obtain ⟨cApp, hApp⟩ := plainK_append_le_pairPlainK V hV
   obtain ⟨cSub, hSub⟩ := pairPlainK_le_plainK_add_plainK_values V hV
-  obtain ⟨cTake, hTake⟩ := condKMapLe V hV (fun w => w.take (w.length / 2)) htake_comp
-  obtain ⟨cDrop, hDrop⟩ := condKMapLe V hV (fun w => w.drop (w.length / 2)) hdrop_comp
+  obtain ⟨cTake, hTake⟩ := condK_map_le V hV (fun w => w.take (w.length / 2)) computable_take_half
+  obtain ⟨cDrop, hDrop⟩ := condK_map_le V hV (fun w => w.drop (w.length / 2)) computable_drop_half
   obtain ⟨cFold, hFold⟩ := logSlack_linear_bound cSub 2 cLen
   set C : Nat :=
     cEval + cRec + cSD + cLen + cOut + cApp + cSub + cTake + cDrop + cFold with hCdef
-  -- A constant `≤ C` fits inside one `logSlack C (n+1)` budget.
-  have hCbigNat : ∀ (n d : Nat), d ≤ C → d ≤ logSlack C (n + 1) := by
-    intro n d hd
-    have hCle : C ≤ logSlack C (n + 1) := by
-      unfold logSlack
-      exact Nat.le_add_left C (C * (Nat.bits (n + 1)).length)
-    exact le_trans hd hCle
-  have hCbig : ∀ (n d : Nat), d ≤ C → (d : ENat) ≤ (logSlack C (n + 1) : ENat) := by
-    intro n d hd
-    exact_mod_cast hCbigNat n d hd
-  -- Fold `logSlack a (n+1) + d` into one `logSlack C (n+1)`.
-  have hfoldE : ∀ (n a d : Nat), a + d ≤ C →
-      (logSlack a (n + 1) : ENat) + (d : ENat) ≤ (logSlack C (n + 1) : ENat) := by
-    intro n a d had
-    have hnat : logSlack a (n + 1) + d ≤ logSlack C (n + 1) :=
-      le_trans (logSlack_add_nat_le a d (n + 1)) (logSlack_mono_left had (n + 1))
-    calc (logSlack a (n + 1) : ENat) + (d : ENat)
-        = ((logSlack a (n + 1) + d : Nat) : ENat) := by push_cast; ring
-      _ ≤ (logSlack C (n + 1) : ENat) := by exact_mod_cast hnat
   refine ⟨C, fun x k hx => ?_⟩
   obtain ⟨p, hp, hpLength⟩ := hx.exists_program
   set x₁ := p.take (k / 2) with hx1def
@@ -160,35 +214,18 @@ theorem exists_split_incompressible_halves
   obtain ⟨k1, hk1⟩ := exists_plainComplexityValue V hV x₁
   obtain ⟨k2, hk2⟩ := exists_plainComplexityValue V hV x₂
   obtain ⟨kpair, hkpair⟩ := exists_plainComplexityValue V hV (pairCode x₁ x₂)
-  -- length upper bounds on marginal and pair complexities
   have hk1_len : k1 ≤ k / 2 + cLen := by
-    have h : (k1 : ENat) ≤ ((x₁.length + cLen : Nat) : ENat) := by
-      calc (k1 : ENat) = plainK V x₁ := hk1.symm
-        _ ≤ (x₁.length : ENat) + (cLen : ENat) := hLen x₁
-        _ = ((x₁.length + cLen : Nat) : ENat) := by push_cast; ring
-    have h' : k1 ≤ x₁.length + cLen := by exact_mod_cast h
-    rw [hx1len] at h'; exact h'
+    have h := complexity_val_le_length_add V x₁ k1 cLen hk1 hLen
+    rw [hx1len] at h; exact h
   have hk2_len : k2 ≤ (k - k / 2) + cLen := by
-    have h : (k2 : ENat) ≤ ((x₂.length + cLen : Nat) : ENat) := by
-      calc (k2 : ENat) = plainK V x₂ := hk2.symm
-        _ ≤ (x₂.length : ENat) + (cLen : ENat) := hLen x₂
-        _ = ((x₂.length + cLen : Nat) : ENat) := by push_cast; ring
-    have h' : k2 ≤ x₂.length + cLen := by exact_mod_cast h
-    rw [hx2len] at h'; exact h'
+    have h := complexity_val_le_length_add V x₂ k2 cLen hk2 hLen
+    rw [hx2len] at h; exact h
   have hkpair_len : kpair + 1 ≤ 2 * (k + 1) + cLen := by
-    have h : (kpair : ENat) ≤ (((pairCode x₁ x₂).length + cLen : Nat) : ENat) := by
-      calc (kpair : ENat) = plainK V (pairCode x₁ x₂) := hkpair.symm
-        _ ≤ ((pairCode x₁ x₂).length : ENat) + (cLen : ENat) := hLen (pairCode x₁ x₂)
-        _ = (((pairCode x₁ x₂).length + cLen : Nat) : ENat) := by push_cast; ring
-    have h' : kpair ≤ (pairCode x₁ x₂).length + cLen := by exact_mod_cast h
-    rw [length_pairCode, hx1len, hx2len] at h'
+    have h := complexity_val_le_length_add V (pairCode x₁ x₂) kpair cLen hkpair hLen
+    rw [length_pairCode, hx1len, hx2len] at h
     omega
-  -- pair subadditivity and slack fold
   have hsub_inst : kpair ≤ k1 + k2 + logSlack cSub (kpair + 1) :=
     hSub x₁ x₂ k1 k2 kpair hk1 hk2 hkpair
-  have hslackfold : logSlack cSub (kpair + 1) ≤ logSlack cFold (k + 1) :=
-    le_trans (logSlack_mono_right cSub hkpair_len) (hFold (k + 1))
-  -- incompressibility of `x'`: `k ≤ C(pairCode x₁ x₂) + O(1)`
   have hkStar : k ≤ kpair + (cApp + cOut) := by
     have h : (k : ENat) ≤ (kpair : ENat) + ((cApp + cOut : Nat) : ENat) := by
       calc (k : ENat) = plainK V x := hx.symm
@@ -199,15 +236,13 @@ theorem exists_split_incompressible_halves
         _ = ((kpair : ENat) + (cApp : ENat)) + (cOut : ENat) := by rw [pairPlainK, hkpair]
         _ = (kpair : ENat) + ((cApp + cOut : Nat) : ENat) := by push_cast; ring
     exact_mod_cast h
-  -- the folded logarithmic budget shared by both incompressibility bounds
   have hfoldC : logSlack cFold (k + 1) + (cLen + cApp + cOut) ≤ logSlack C (k + 1) :=
     le_trans (logSlack_add_nat_le cFold (cLen + cApp + cOut) (k + 1))
       (logSlack_mono_left (by omega) (k + 1))
-  have hincompNat_x1 : x₁.length ≤ k1 + logSlack C (k + 1) := by
-    rw [hx1len]; omega
-  have hincompNat_x2 : x₂.length ≤ k2 + logSlack C (k + 1) := by
-    rw [hx2len]; omega
-  -- conditional simplicity of the halves given `x`
+  have hfold_inst : logSlack cSub (kpair + 1) ≤ logSlack cFold (k + 1) :=
+    logSlack_le_of_linear_bound hFold hkpair_len
+  have hincompNat_x1 : x₁.length ≤ k1 + logSlack C (k + 1) := by omega
+  have hincompNat_x2 : x₂.length ≤ k2 + logSlack C (k + 1) := by omega
   have hcondx1 : condK V x₁ x ≤ condK V p x + (cTake : ENat) := by
     have h := hTake p x
     simp only [hpLength] at h
@@ -216,47 +251,17 @@ theorem exists_split_incompressible_halves
     have h := hDrop p x
     simp only [hpLength] at h
     rw [hx2def]; exact h
+  have hSD_inst : condK V p x ≤ (logSlack cSD (k + 1) : ENat) := hSD x p k hx hp hpLength
   refine ⟨x₁, x₂, hx1len, hx2len, ⟨?_, ?_⟩, ?_, ?_, ?_, ?_, ?_, ?_, ?_⟩
-  · -- condK V x (x₁ ++ x₂) ≤ slack
-    rw [happend]
-    exact le_trans (hEval p x hp) (hCbig k cEval (by omega))
-  · -- condK V (x₁ ++ x₂) x ≤ slack
-    rw [happend]
-    exact le_trans (hSD x p k hx hp hpLength)
-      (by exact_mod_cast logSlack_mono_left (show cSD ≤ C by omega) (k + 1))
-  · -- condK V x₁ x ≤ slack
-    calc condK V x₁ x ≤ condK V p x + (cTake : ENat) := hcondx1
-      _ ≤ (logSlack cSD (k + 1) : ENat) + (cTake : ENat) := by
-        gcongr
-        exact hSD x p k hx hp hpLength
-      _ ≤ (logSlack C (k + 1) : ENat) := hfoldE k cSD cTake (by omega)
-  · -- condK V x₂ x ≤ slack
-    calc condK V x₂ x ≤ condK V p x + (cDrop : ENat) := hcondx2
-      _ ≤ (logSlack cSD (k + 1) : ENat) + (cDrop : ENat) := by
-        gcongr
-        exact hSD x p k hx hp hpLength
-      _ ≤ (logSlack C (k + 1) : ENat) := hfoldE k cSD cDrop (by omega)
-  · -- condK V x (pairCode x₁ x₂) ≤ slack
-    exact le_trans (hRec x x₁ x₂ (by rw [happend]; exact hp)) (hCbig k cRec (by omega))
-  · -- plainK V x₁ ≤ x₁.length + slack
-    calc plainK V x₁ ≤ (x₁.length : ENat) + (cLen : ENat) := hLen x₁
-      _ ≤ (x₁.length : ENat) + (logSlack C (k + 1) : ENat) := by
-        gcongr; exact hCbigNat k cLen (by omega)
-  · -- PlainIncompressibleWithin V x₁ slack
-    unfold PlainIncompressibleWithin
-    rw [hk1]
-    calc (x₁.length : ENat)
-        ≤ ((k1 + logSlack C (k + 1) : Nat) : ENat) := by exact_mod_cast hincompNat_x1
-      _ = (k1 : ENat) + (logSlack C (k + 1) : ENat) := by push_cast; ring
-  · -- plainK V x₂ ≤ x₂.length + slack
-    calc plainK V x₂ ≤ (x₂.length : ENat) + (cLen : ENat) := hLen x₂
-      _ ≤ (x₂.length : ENat) + (logSlack C (k + 1) : ENat) := by
-        gcongr; exact hCbigNat k cLen (by omega)
-  · -- PlainIncompressibleWithin V x₂ slack
-    unfold PlainIncompressibleWithin
-    rw [hk2]
-    calc (x₂.length : ENat)
-        ≤ ((k2 + logSlack C (k + 1) : Nat) : ENat) := by exact_mod_cast hincompNat_x2
-      _ = (k2 : ENat) + (logSlack C (k + 1) : ENat) := by push_cast; ring
+  · rw [happend]; exact le_trans (hEval p x hp) (enat_le_logSlack C k cEval (by omega))
+  · rw [happend]
+    exact le_trans hSD_inst (by exact_mod_cast logSlack_mono_left (show cSD ≤ C by omega) (k + 1))
+  · exact condK_le_logSlack_of_le_add V cSD cTake C k x p x₁ hSD_inst hcondx1 (by omega)
+  · exact condK_le_logSlack_of_le_add V cSD cDrop C k x p x₂ hSD_inst hcondx2 (by omega)
+  · exact le_trans (hRec x x₁ x₂ (by rw [happend]; exact hp)) (enat_le_logSlack C k cRec (by omega))
+  · exact plainK_le_length_add_logSlack V cLen C k x₁ hLen (by omega)
+  · exact plainIncompressibleWithin_of_length_le V x₁ k1 C k hk1 hincompNat_x1
+  · exact plainK_le_length_add_logSlack V cLen C k x₂ hLen (by omega)
+  · exact plainIncompressibleWithin_of_length_le V x₂ k2 C k hk2 hincompNat_x2
 
 end Kolmogorov

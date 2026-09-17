@@ -1,6 +1,6 @@
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.Profile
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.ModelsToSets2
-import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.DescriptionSnapshot
+import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.Snapshots
 import KolmogorovMathlib.AlgorithmicStatistics.CodedComputability
 import KolmogorovMathlib.AlgorithmicStatistics.NormalizedCodedFiniteDistribution
 
@@ -42,9 +42,13 @@ noncomputable def canonicalUniformCodeOfList (t : List BitString) : BitString :=
     ({point := x, mass := ratMassInvNat (max 1 t.length) (by positivity)} :
       CodedDistributionEntry))
 
+/-- Encoding a list of points as the code of the uniform distribution on the set of its entries
+is primitive recursive. -/
 theorem canonicalUniformCodeOfList_primrec : Primrec canonicalUniformCodeOfList :=
   codedUniformEncoder_primrec
 
+/-- Encoding a list of points as the code of the uniform distribution on the set of its entries
+is computable. -/
 theorem canonicalUniformCodeOfList_computable : Computable canonicalUniformCodeOfList :=
   canonicalUniformCodeOfList_primrec.to_comp
 
@@ -93,27 +97,36 @@ theorem fullSetComplexityGate (U : Map) (hU : IsOptimalPrefixConditional U) :
   obtain ⟨c₁, hc₁⟩ := KPPlain_map_le U hU (fun w =>
       canonicalUniformCodeOfList
         (canonicalFinsetList (stringsOfLength (decodeNatCode w)))) (by
-    exact (canonicalUniformCodeOfList_computable.comp
+    apply canonicalUniformCodeOfList_computable.comp
+    refine Computable.of_eq
       (canonicalFinsetList_toFinset_primrec.comp
-        (allStrings_primrec.comp decodeNatCode_primrec) |> Primrec.to_comp)).of_eq (fun _ => rfl))
+        (allStrings_primrec.comp decodeNatCode_primrec)).to_comp ?_
+    intro w
+    rfl)
   obtain ⟨c₂, hc₂⟩ := KPPlain_natCode_le_log U hU
   use c₁ + c₂ + 2
   intro n hn
-  have h_eq : KP U (codedUniformOn (stringsOfLength n) hn).code [] =
-      KP U (canonicalUniformCodeOfList (canonicalFinsetList (stringsOfLength n))) [] := by
-    rw [canonicalUniformCodeOfList_canonicalFinsetList]
-  have h_le := hc₁ (natCode n)
-  simp only [decodeNatCode_natCode, KPPlain_eq_KP] at h_le
-  have h_le2 := hc₂ n
-  simp only [KPPlain_eq_KP] at h_le2
-  calc setComplexity U (stringsOfLength n) hn
-    _ = KP U (canonicalUniformCodeOfList (canonicalFinsetList (stringsOfLength n))) [] := h_eq
-    _ ≤ KP U (natCode n) [] + (c₁ : ENat) := h_le
-    _ ≤ (2 * (n.bits.length : ENat) + c₂) + c₁ := add_le_add h_le2 le_rfl
-    _ ≤ logSlack (c₁ + c₂ + 2) n := by
-      unfold logSlack
-      norm_cast
-      nlinarith [Nat.zero_le (List.length (Nat.bits n))]
+  have hc₁n :
+      KPPlain U (canonicalUniformCodeOfList
+        (canonicalFinsetList (stringsOfLength n))) ≤
+        KPPlain U (natCode n) + (c₁ : ENat) := by
+    simpa only [decodeNatCode_natCode] using hc₁ (natCode n)
+  have hc₂n := hc₂ n
+  have harith :
+      2 * n.bits.length + c₂ + c₁ ≤ logSlack (c₁ + c₂ + 2) n := by
+    unfold logSlack
+    nlinarith [Nat.zero_le n.bits.length]
+  change KPPlain U (codedUniformOn (stringsOfLength n) hn).code ≤
+    (logSlack (c₁ + c₂ + 2) n : ENat)
+  rw [← canonicalUniformCodeOfList_canonicalFinsetList (stringsOfLength n) hn]
+  calc
+    KPPlain U (canonicalUniformCodeOfList
+        (canonicalFinsetList (stringsOfLength n)))
+        ≤ KPPlain U (natCode n) + (c₁ : ENat) := hc₁n
+    _ ≤ (2 * (n.bits.length : ENat) + (c₂ : ENat)) + (c₁ : ENat) :=
+      add_le_add hc₂n le_rfl
+    _ ≤ (logSlack (c₁ + c₂ + 2) n : ENat) := by
+      exact_mod_cast harith
 
 /-! ### Unconditional profile endpoints -/
 
@@ -157,7 +170,7 @@ theorem structureFunction_eq_zero_of_ge_of_optimal
   have hmono : structureFunction U x i ≤ structureFunction U x (kx + logSlack c n) :=
     structureFunction_antitone U x hi
   rw [h0] at hmono
-  exact le_antisymm hmono (zero_le)
+  exact le_antisymm hmono (bot_le)
 
 /-- Right tail of the description profile, unconditional for an optimal
 prefix-conditional machine: for *every* budget `i ≥ K(x) + O(log n)` the zero-log-size
@@ -194,7 +207,7 @@ its two coding-gate hypotheses: for an optimal prefix-conditional `U`, every
 length-`n` string `x` with `K(x) = kx` has an antitone structure function meeting
 the top endpoint (`≤ n` at budget `O(log n)`), the bottom endpoint (`= 0` at budget
 `kx + O(log n)`), and the sufficiency line (`kx ≤ i + j + O(log)` on every profile
-point).  This is the honest replacement for the (false) `profile_is_admissible`. -/
+point).  It replaces the false `profile_is_admissible`. -/
 theorem structureFunction_admissible_of_optimal
     (U : Map) (hU : IsOptimalPrefixConditional U) :
     ∃ c : ℕ, ∀ (x : BitString) (n kx : ℕ), x.length = n → KPPlain U x = (kx : ENat) →
@@ -277,8 +290,8 @@ theorem structureFunction_prefix_upper_of_optimal (U : Map) (hU : IsOptimalPrefi
   obtain ⟨c_map, hc_map⟩ := KPPlain_map_le U hU prefixCubeCode prefixCubeCode_computable
   obtain ⟨c_pair, hc_pair⟩ := KPPair_le_KPPlain_add_KPPlain U hU
   obtain ⟨c_len, hc_len⟩ := KPPlain_le_length_add_log U hU
-  obtain ⟨c_nat, hc_nat⟩ := KPPlain_natCode_le_log U hU
-  refine ⟨c_len + c_nat + c_pair + c_map + 4, fun x n i hn hi => ?_⟩
+  obtain ⟨cNat, hc_nat⟩ := KPPlain_natCode_le_log U hU
+  refine ⟨c_len + cNat + c_pair + c_map + 4, fun x n i hn hi => ?_⟩
   set p := x.take i with hp
   set m := n - i with hm
   set S := prefixCubeSet p m with hSdef
@@ -295,8 +308,8 @@ theorem structureFunction_prefix_upper_of_optimal (U : Map) (hU : IsOptimalPrefi
     have hLi : (Nat.bits i).length ≤ (Nat.bits n).length := length_natBits_mono hi
     have hLm : (Nat.bits m).length ≤ (Nat.bits n).length := length_natBits_mono (by rw [hm]; omega)
     have harith :
-        i + 2 * (Nat.bits i).length + c_len + (2 * (Nat.bits m).length + c_nat) + c_pair + c_map
-          ≤ i + logSlack (c_len + c_nat + c_pair + c_map + 4) n := by
+        i + 2 * (Nat.bits i).length + c_len + (2 * (Nat.bits m).length + cNat) + c_pair + c_map
+          ≤ i + logSlack (c_len + cNat + c_pair + c_map + 4) n := by
       unfold logSlack; nlinarith [hLi, hLm, Nat.zero_le ((Nat.bits n).length)]
     calc setComplexity U S hSne
         = KPPlain U (prefixCubeCode (pairCode p (natCode m))) := hsc
@@ -304,11 +317,11 @@ theorem structureFunction_prefix_upper_of_optimal (U : Map) (hU : IsOptimalPrefi
       _ ≤ (KPPlain U p + KPPlain U (natCode m) + (c_pair : ENat)) + (c_map : ENat) := by
           gcongr; exact hc_pair p (natCode m)
       _ ≤ ((p.length + 2 * (Nat.bits p.length).length + (c_len : ENat))
-            + (2 * (Nat.bits m).length + (c_nat : ENat)) + (c_pair : ENat)) + (c_map : ENat) := by
+            + (2 * (Nat.bits m).length + (cNat : ENat)) + (c_pair : ENat)) + (c_map : ENat) := by
           gcongr; exacts [hc_len p, hc_nat m]
-      _ = ((i + 2 * (Nat.bits i).length + c_len + (2 * (Nat.bits m).length + c_nat)
+      _ = ((i + 2 * (Nat.bits i).length + c_len + (2 * (Nat.bits m).length + cNat)
               + c_pair + c_map : ℕ) : ENat) := by rw [hplen]; push_cast; ring
-      _ ≤ ((i + logSlack (c_len + c_nat + c_pair + c_map + 4) n : ℕ) : ENat) := by
+      _ ≤ ((i + logSlack (c_len + cNat + c_pair + c_map + 4) n : ℕ) : ENat) := by
           exact_mod_cast harith
   · -- Size bound: the cube has exactly `2^(n-i)` elements.
     rw [hSdef]; exact le_of_eq (prefixCubeSet_card p m)

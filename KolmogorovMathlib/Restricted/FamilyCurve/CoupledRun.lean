@@ -1,3 +1,4 @@
+import KolmogorovMathlib.Restricted.FamilyCurve.Basic.FiniteBadDescriptionCounting
 import KolmogorovMathlib.Restricted.FamilyCurve.Basic
 import KolmogorovMathlib.Restricted.FamilyCurve.BadStream
 
@@ -33,6 +34,7 @@ structure RestrictedSampledRunState (𝒜 : DescriptionFamily)
     (2 ^ t (s + 1)) * (live s).card ≤
       (overheadBound * 2 ^ t s) * (live (s + 1)).card
 
+/-- Every live pool of a sampled run state is contained in the root pool. -/
 lemma RestrictedSampledRunState.live_subset_root
     {𝒜 : DescriptionFamily} {N ambientLength overheadBound : ℕ}
     {t : ℕ → ℕ}
@@ -78,6 +80,160 @@ def RestrictedSampledRunStepSpec
     2 * ((2 ^ t (s + 1)) * (next.live s).card) ≤
       (overheadBound * 2 ^ t s) * (next.live (s + 1)).card)
 
+/-- Suffix rebuilt live sets remain subsets of the rebuilt base set `Cnew q`. -/
+private lemma restricted_rebuild_cnew_subset_root
+    {Bnew Cnew : ℕ → Finset BitString} {q N : ℕ}
+    (hinter : ∀ i, q ≤ i → i < N → Cnew (i + 1) = Cnew i ∩ Bnew (i + 1))
+    (i : ℕ) (hqi : q ≤ i) (hiN : i ≤ N) : Cnew i ⊆ Cnew q := by
+  induction hqi with
+  | refl => exact Finset.Subset.rfl
+  | @step i hqi ih =>
+      rw [hinter i hqi (by omega)]
+      exact Finset.inter_subset_left.trans (ih (by omega))
+
+/-- Doubled density bound holds after rebuilding the suffix given the rebuilt density bound. -/
+private lemma restricted_rebuild_density_doubled
+    {𝒜 : DescriptionFamily} {ambientLength overheadBound : ℕ} {t : ℕ → ℕ}
+    {Cnew : ℕ → Finset BitString} {s : ℕ}
+    (hover : 2 * 𝒜.overhead ambientLength ≤ overheadBound)
+    (hd : (2 ^ t (s + 1)) * (Cnew s).card ≤
+      (𝒜.overhead ambientLength * 2 ^ t s) * (Cnew (s + 1)).card) :
+    2 * ((2 ^ t (s + 1)) * (Cnew s).card) ≤
+      (overheadBound * 2 ^ t s) * (Cnew (s + 1)).card := by
+  calc
+    2 * ((2 ^ t (s + 1)) * (Cnew s).card)
+        ≤ 2 * ((𝒜.overhead ambientLength * 2 ^ t s) *
+            (Cnew (s + 1)).card) := Nat.mul_le_mul_left 2 hd
+    _ = ((2 * 𝒜.overhead ambientLength) * 2 ^ t s) *
+          (Cnew (s + 1)).card := by ring
+    _ ≤ (overheadBound * 2 ^ t s) * (Cnew (s + 1)).card :=
+      Nat.mul_le_mul_right _ (Nat.mul_le_mul_right _ hover)
+
+/-- Constructs the updated state when a scale density condition fails and rebuilding occurs. -/
+private noncomputable def restrictedSampledRunState_rebuild
+    (𝒜 : DescriptionFamily) (N ambientLength overheadBound : ℕ)
+    (t : ℕ → ℕ)
+    (state : RestrictedSampledRunState 𝒜 N ambientLength overheadBound t)
+    (bad : Finset BitString)
+    (q : ℕ) (hq_le : q ≤ N) (hq_lt : q < N)
+    (hover : 2 * 𝒜.overhead ambientLength ≤ overheadBound)
+    (hprefix : ∀ s < q, ¬ restrictedSampledDensityFails state bad s)
+    (Bnew Cnew : ℕ → Finset BitString)
+    (hBq : Bnew q = state.B q)
+    (hCq : Cnew q = state.live q \ bad)
+    (hmem : ∀ i, q < i → i ≤ N → 𝒜.mem (Bnew i))
+    (hsize : ∀ i, q < i → i ≤ N → (Bnew i).card ≤ 2 ^ t i)
+    (hinter : ∀ i, q ≤ i → i < N → Cnew (i + 1) = Cnew i ∩ Bnew (i + 1))
+    (hdensity : ∀ i, q ≤ i → i < N →
+      (2 ^ t (i + 1)) * (Cnew i).card ≤
+        (𝒜.overhead ambientLength * 2 ^ t i) * (Cnew (i + 1)).card) :
+    RestrictedSampledRunState 𝒜 N ambientLength overheadBound t where
+  B := fun s => if s ≤ q then state.B s else Bnew s
+  live := fun s => if s ≤ q then state.live s \ bad else Cnew s
+  mem_family := by
+    intro s hs
+    by_cases hsq : s ≤ q
+    · simp only [if_pos hsq]
+      exact state.mem_family s hs
+    · simp only [if_neg hsq]
+      exact hmem s (Nat.lt_of_not_ge hsq) hs
+  size_bound := by
+    intro s hs
+    by_cases hsq : s ≤ q
+    · simp only [if_pos hsq]
+      exact state.size_bound s hs
+    · simp only [if_neg hsq]
+      exact hsize s (Nat.lt_of_not_ge hsq) hs
+  live_subset := by
+    intro s hs
+    by_cases hsq : s ≤ q
+    · simp only [if_pos hsq]
+      exact Finset.sdiff_subset.trans (state.live_subset s hs)
+    · simp only [if_neg hsq]
+      have hqi : q ≤ s := Nat.le_of_lt (Nat.lt_of_not_ge hsq)
+      induction hqi with
+      | refl =>
+          rw [hBq, hCq]
+          exact Finset.sdiff_subset.trans (state.live_subset q hq_le)
+      | @step i hqi ih =>
+          rw [hinter i hqi (by omega)]
+          exact Finset.inter_subset_right
+  live_ambient := by
+    intro s hs x hx
+    by_cases hsq : s ≤ q
+    · simp only [if_pos hsq] at hx
+      exact state.live_ambient s hs x (Finset.mem_sdiff.mp hx).1
+    · simp only [if_neg hsq] at hx
+      have hxq : x ∈ Cnew q :=
+        restricted_rebuild_cnew_subset_root hinter s (Nat.le_of_lt (Nat.lt_of_not_ge hsq)) hs hx
+      rw [hCq] at hxq
+      exact state.live_ambient q hq_le x (Finset.mem_sdiff.mp hxq).1
+  live_monotonic := by
+    intro s hsN
+    by_cases hsuccq : s + 1 ≤ q
+    · have hsq : s ≤ q := by omega
+      simp only [if_pos hsq, if_pos hsuccq]
+      intro x hx
+      exact Finset.mem_sdiff.mpr
+        ⟨state.live_monotonic s hsN (Finset.mem_sdiff.mp hx).1,
+          (Finset.mem_sdiff.mp hx).2⟩
+    · have hqs : q ≤ s := by omega
+      by_cases hsq : s ≤ q
+      · have hsqeq : s = q := by omega
+        subst s
+        simp only [if_pos le_rfl, if_neg (by omega : ¬q + 1 ≤ q)]
+        rw [hinter q le_rfl hq_lt, hCq]
+        exact Finset.inter_subset_left
+      · simp only [if_neg hsq, if_neg hsuccq]
+        rw [hinter s hqs hsN]
+        exact Finset.inter_subset_left
+  density := by
+    intro s hsN
+    by_cases hsq : s < q
+    · have hsuccq : s + 1 ≤ q := by omega
+      have hsle : s ≤ q := Nat.le_of_lt hsq
+      simp only [if_pos hsle, if_pos hsuccq]
+      exact Nat.le_of_not_gt (hprefix s hsq)
+    · have hqs : q ≤ s := Nat.le_of_not_gt hsq
+      have hsucc_not : ¬s + 1 ≤ q := by omega
+      have hover_one : 𝒜.overhead ambientLength ≤ overheadBound := by omega
+      have hd := hdensity s hqs hsN
+      by_cases hseq : s ≤ q
+      · have hsqeq : s = q := by omega
+        subst s
+        simp only [if_pos le_rfl, if_neg (by omega : ¬q + 1 ≤ q)]
+        rw [← hCq]
+        exact hd.trans (Nat.mul_le_mul_right _ (Nat.mul_le_mul_right _ hover_one))
+      · simp only [if_neg hseq, if_neg hsucc_not]
+        exact hd.trans (Nat.mul_le_mul_right _ (Nat.mul_le_mul_right _ hover_one))
+
+/-- Constructs the updated state when no scale density condition fails. -/
+private def restrictedSampledRunState_noFail
+    (𝒜 : DescriptionFamily) (N ambientLength overheadBound : ℕ)
+    (t : ℕ → ℕ)
+    (state : RestrictedSampledRunState 𝒜 N ambientLength overheadBound t)
+    (bad : Finset BitString)
+    (hfail : ¬ ∃ s, s < N ∧ restrictedSampledDensityFails state bad s) :
+    RestrictedSampledRunState 𝒜 N ambientLength overheadBound t where
+  B := state.B
+  live := fun s => state.live s \ bad
+  mem_family := state.mem_family
+  size_bound := state.size_bound
+  live_subset := by
+    intro s hs
+    exact Finset.sdiff_subset.trans (state.live_subset s hs)
+  live_ambient := by
+    intro s hs x hx
+    exact state.live_ambient s hs x (Finset.mem_sdiff.mp hx).1
+  live_monotonic := by
+    intro s hs x hx
+    exact Finset.mem_sdiff.mpr
+      ⟨state.live_monotonic s hs (Finset.mem_sdiff.mp hx).1,
+        (Finset.mem_sdiff.mp hx).2⟩
+  density := by
+    intro s hs
+    exact Nat.le_of_not_gt (fun hlt => hfail ⟨s, hs, hlt⟩)
+
 /-- One sound least-failed-scale update.  The factor-two overhead hypothesis is
 what provides the post-rebuild doubled density margin; the weaker
 `𝒜.overhead ambientLength ≤ overheadBound` assumption is insufficient for that
@@ -101,161 +257,49 @@ lemma restrictedSampledRun_step_preserves
       intro s hs hsFail
       exact Nat.find_min hfail hs ⟨hs.trans hq_spec.1, hsFail⟩
     obtain ⟨Bnew, Cnew, hBq, hCq, hmem, hsize, hinter, hdensity⟩ :=
-      restricted_rebuild_suffix_at_length 𝒜 ambientLength q N t
-        (𝒜.overhead ambientLength) le_rfl
+      restricted_rebuild_suffix_pointwise_core 𝒜 ambientLength q N t
         (state.B q) (state.mem_family q hq_le)
         (state.live q) bad (state.live_subset q hq_le)
         (state.live_ambient q hq_le) (state.size_bound q hq_le)
         (fun i _hqi hiN => ht_strict i hiN)
-    have hCsub : ∀ i, q ≤ i → i ≤ N → Cnew i ⊆ Bnew i := by
-      intro i hqi
-      induction hqi with
-      | refl =>
-          intro _
-          rw [hBq, hCq]
-          exact Finset.sdiff_subset.trans (state.live_subset q hq_le)
-      | @step i hqi ih =>
-          intro hiN
-          rw [hinter i hqi (by omega)]
-          exact Finset.inter_subset_right
-    have hCroot : ∀ i, q ≤ i → i ≤ N → Cnew i ⊆ Cnew q := by
-      intro i hqi
-      induction hqi with
-      | refl =>
-          intro _
-          exact Finset.Subset.rfl
-      | @step i hqi ih =>
-          intro hiN
-          rw [hinter i hqi (by omega)]
-          exact Finset.inter_subset_left.trans (ih (by omega))
-    let next : RestrictedSampledRunState 𝒜 N ambientLength overheadBound t :=
-      { B := fun s => if s ≤ q then state.B s else Bnew s
-        live := fun s => if s ≤ q then state.live s \ bad else Cnew s
-        mem_family := by
-          intro s hs
-          by_cases hsq : s ≤ q
-          · simp only [if_pos hsq]
-            exact state.mem_family s hs
-          · simp only [if_neg hsq]
-            exact hmem s (Nat.lt_of_not_ge hsq) hs
-        size_bound := by
-          intro s hs
-          by_cases hsq : s ≤ q
-          · simp only [if_pos hsq]
-            exact state.size_bound s hs
-          · simp only [if_neg hsq]
-            exact hsize s (Nat.lt_of_not_ge hsq) hs
-        live_subset := by
-          intro s hs
-          by_cases hsq : s ≤ q
-          · simp only [if_pos hsq]
-            exact Finset.sdiff_subset.trans (state.live_subset s hs)
-          · simp only [if_neg hsq]
-            exact hCsub s (Nat.le_of_lt (Nat.lt_of_not_ge hsq)) hs
-        live_ambient := by
-          intro s hs x hx
-          by_cases hsq : s ≤ q
-          · simp only [if_pos hsq] at hx
-            exact state.live_ambient s hs x (Finset.mem_sdiff.mp hx).1
-          · simp only [if_neg hsq] at hx
-            have hxq : x ∈ Cnew q :=
-              hCroot s (Nat.le_of_lt (Nat.lt_of_not_ge hsq)) hs hx
-            rw [hCq] at hxq
-            exact state.live_ambient q hq_le x (Finset.mem_sdiff.mp hxq).1
-        live_monotonic := by
-          intro s hsN
-          by_cases hsuccq : s + 1 ≤ q
-          · have hsq : s ≤ q := by omega
-            simp only [if_pos hsq, if_pos hsuccq]
-            intro x hx
-            exact Finset.mem_sdiff.mpr
-              ⟨state.live_monotonic s hsN (Finset.mem_sdiff.mp hx).1,
-                (Finset.mem_sdiff.mp hx).2⟩
-          · have hqs : q ≤ s := by omega
-            have hsucc_not : ¬s + 1 ≤ q := hsuccq
-            by_cases hsq : s ≤ q
-            · have hsqeq : s = q := by omega
-              subst s
-              simp only [if_pos le_rfl, if_neg (by omega : ¬q + 1 ≤ q)]
-              rw [hinter q le_rfl hq_spec.1, hCq]
-              exact Finset.inter_subset_left
-            · simp only [if_neg hsq, if_neg hsucc_not]
-              rw [hinter s hqs hsN]
-              exact Finset.inter_subset_left
-        density := by
-          intro s hsN
-          by_cases hsq : s < q
-          · have hsuccq : s + 1 ≤ q := by omega
-            have hsle : s ≤ q := Nat.le_of_lt hsq
-            simp only [if_pos hsle, if_pos hsuccq]
-            exact Nat.le_of_not_gt (hprefix s hsq)
-          · have hqs : q ≤ s := Nat.le_of_not_gt hsq
-            have hsucc_not : ¬s + 1 ≤ q := by omega
-            have hover_one : 𝒜.overhead ambientLength ≤ overheadBound := by
-              omega
-            have hd := hdensity s hqs hsN
-            by_cases hseq : s ≤ q
-            · have hsqeq : s = q := by omega
-              subst s
-              simp only [if_pos le_rfl, if_neg (by omega : ¬q + 1 ≤ q)]
-              rw [← hCq]
-              exact hd.trans (Nat.mul_le_mul_right _
-                (Nat.mul_le_mul_right _ hover_one))
-            · simp only [if_neg hseq, if_neg hsucc_not]
-              exact hd.trans (Nat.mul_le_mul_right _
-                (Nat.mul_le_mul_right _ hover_one)) }
+    let next := restrictedSampledRunState_rebuild 𝒜 N ambientLength overheadBound t state bad
+      q hq_le hq_spec.1 hover hprefix Bnew Cnew hBq hCq hmem hsize hinter hdensity
     refine ⟨next, q, hq_le, Or.inr ⟨hq_spec.1, hq_spec.2, hprefix⟩, ?_, ?_, ?_⟩
     · intro s hsq
-      exact ⟨by simp [next, hsq], by simp [next, hsq]⟩
+      have hlive : next.live s = state.live s \ bad := by
+        change (if s ≤ q then state.live s \ bad else Cnew s) = state.live s \ bad
+        rw [if_pos hsq]
+      have hB : next.B s = state.B s := by
+        change (if s ≤ q then state.B s else Bnew s) = state.B s
+        rw [if_pos hsq]
+      exact ⟨hB, hlive⟩
     · intro s hqs hsN
       have hs_as_Cnew : next.live s = Cnew s := by
         by_cases hsq : s ≤ q
         · have hsqeq : s = q := by omega
           subst s
-          simp [next, hCq]
-        · simp [next, hsq]
-      rw [hs_as_Cnew]
-      rw [← hCq]
-      exact hCroot s hqs hsN
+          change (if q ≤ q then state.live q \ bad else Cnew q) = Cnew q
+          rw [if_pos le_rfl, hCq]
+        · change (if s ≤ q then state.live s \ bad else Cnew s) = Cnew s
+          rw [if_neg hsq]
+      rw [hs_as_Cnew, ← hCq]
+      exact restricted_rebuild_cnew_subset_root hinter s hqs hsN
     · intro s hqs hsN
       have hsucc_not : ¬s + 1 ≤ q := by omega
       have hs_as_Cnew : next.live s = Cnew s := by
         by_cases hsq : s ≤ q
         · have hsqeq : s = q := by omega
           subst s
-          simp [next, hCq]
-        · simp [next, hsq]
+          change (if q ≤ q then state.live q \ bad else Cnew q) = Cnew q
+          rw [if_pos le_rfl, hCq]
+        · change (if s ≤ q then state.live s \ bad else Cnew s) = Cnew s
+          rw [if_neg hsq]
       have hsucc_as_Cnew : next.live (s + 1) = Cnew (s + 1) := by
-        simp [next, hsucc_not]
+        change (if s + 1 ≤ q then state.live (s + 1) \ bad else Cnew (s + 1)) = Cnew (s + 1)
+        rw [if_neg hsucc_not]
       rw [hs_as_Cnew, hsucc_as_Cnew]
-      have hd := hdensity s hqs hsN
-      calc
-        2 * ((2 ^ t (s + 1)) * (Cnew s).card)
-            ≤ 2 * ((𝒜.overhead ambientLength * 2 ^ t s) *
-                (Cnew (s + 1)).card) := Nat.mul_le_mul_left 2 hd
-        _ = ((2 * 𝒜.overhead ambientLength) * 2 ^ t s) *
-              (Cnew (s + 1)).card := by ring
-        _ ≤ (overheadBound * 2 ^ t s) * (Cnew (s + 1)).card :=
-          Nat.mul_le_mul_right _ (Nat.mul_le_mul_right _ hover)
-  · let next : RestrictedSampledRunState 𝒜 N ambientLength overheadBound t :=
-      { B := state.B
-        live := fun s => state.live s \ bad
-        mem_family := state.mem_family
-        size_bound := state.size_bound
-        live_subset := by
-          intro s hs
-          exact Finset.sdiff_subset.trans (state.live_subset s hs)
-        live_ambient := by
-          intro s hs x hx
-          exact state.live_ambient s hs x (Finset.mem_sdiff.mp hx).1
-        live_monotonic := by
-          intro s hs x hx
-          exact Finset.mem_sdiff.mpr
-            ⟨state.live_monotonic s hs (Finset.mem_sdiff.mp hx).1,
-              (Finset.mem_sdiff.mp hx).2⟩
-        density := by
-          intro s hs
-          exact Nat.le_of_not_gt (fun hlt => hfail ⟨s, hs, hlt⟩) }
+      exact restricted_rebuild_density_doubled hover (hdensity s hqs hsN)
+  · let next := restrictedSampledRunState_noFail 𝒜 N ambientLength overheadBound t state bad hfail
     refine ⟨next, N, le_rfl, Or.inl ⟨rfl, ?_⟩, ?_, ?_, ?_⟩
     · intro s hs hbad
       exact hfail ⟨s, hs, hbad⟩
@@ -268,6 +312,8 @@ lemma restrictedSampledRun_step_preserves
     · intro s hNs hsN
       omega
 
+/-- One step of the sampled run: delete the bad set from the root pool and rebuild the live pools
+at all scales. -/
 noncomputable def restrictedSampledRunStep
     (𝒜 : DescriptionFamily) (N ambientLength overheadBound : ℕ)
     (t : ℕ → ℕ)
@@ -280,6 +326,7 @@ noncomputable def restrictedSampledRunStep
     (restrictedSampledRun_step_preserves 𝒜 N ambientLength overheadBound t
       state bad hover ht_strict)
 
+/-- The state produced by one sampled run step satisfies the step specification. -/
 lemma restrictedSampledRunStep_spec
     (𝒜 : DescriptionFamily) (N ambientLength overheadBound : ℕ)
     (t : ℕ → ℕ)
@@ -294,6 +341,7 @@ lemma restrictedSampledRunStep_spec
     (restrictedSampledRun_step_preserves 𝒜 N ambientLength overheadBound t
       state bad hover ht_strict)
 
+/-- After a step the root pool is the previous root pool with the bad set removed. -/
 lemma RestrictedSampledRunStepSpec.root_eq
     {𝒜 : DescriptionFamily} {N ambientLength overheadBound : ℕ}
     {t : ℕ → ℕ}
@@ -303,6 +351,7 @@ lemma RestrictedSampledRunStepSpec.root_eq
     next.live 0 = state.live 0 \ bad := by
   exact (h.2.2.1 0 (Nat.zero_le q)).2
 
+/-- After a step every live pool is contained in the previous root pool minus the bad set. -/
 lemma RestrictedSampledRunStepSpec.live_subset_old_root
     {𝒜 : DescriptionFamily} {N ambientLength overheadBound : ℕ}
     {t : ℕ → ℕ}
@@ -322,6 +371,7 @@ lemma RestrictedSampledRunStepSpec.live_subset_old_root
         ⟨state.live_subset_root h.1 (Finset.mem_sdiff.mp hx).1,
           (Finset.mem_sdiff.mp hx).2⟩)
 
+/-- The step removes exactly the bad set from the root pool. -/
 lemma restrictedSampledRunStep_root_eq
     (𝒜 : DescriptionFamily) (N ambientLength overheadBound : ℕ)
     (t : ℕ → ℕ)
@@ -335,6 +385,7 @@ lemma restrictedSampledRunStep_root_eq
     overheadBound t state bad hover ht_strict
   exact hq.root_eq
 
+/-- After the step every live pool avoids the bad set and stays inside the old root pool. -/
 lemma restrictedSampledRunStep_live_subset_root
     (𝒜 : DescriptionFamily) (N ambientLength overheadBound : ℕ)
     (t : ℕ → ℕ)
@@ -362,6 +413,7 @@ noncomputable def restrictedSampledRunProcess
     restrictedSampledRunStep 𝒜 N ambientLength overheadBound t current bad
       hover ht_strict) state
 
+/-- Processing a list of bad sets keeps every live pool inside the root pool it started from. -/
 lemma restrictedSampledRunProcess_live_subset_root
     (𝒜 : DescriptionFamily) (N ambientLength overheadBound : ℕ)
     (t : ℕ → ℕ)
@@ -389,6 +441,7 @@ lemma restrictedSampledRunProcess_live_subset_root
           ht_strict next events).live s ⊆ state.live 0
       exact htail.trans (by rw [hroot]; exact Finset.sdiff_subset)
 
+/-- A bad set processed in a run is disjoint from every live pool afterwards. -/
 lemma restrictedSampledRunProcess_deleted_fresh
     (𝒜 : DescriptionFamily) (N ambientLength overheadBound : ℕ)
     (t : ℕ → ℕ)
@@ -436,6 +489,8 @@ noncomputable def restrictedSampledRun
           badStream hover ht_strict time)
         (badStream time)
 
+/-- A bad set deleted at some time stays deleted: it is disjoint from all live pools at all
+later times. -/
 lemma restrictedSampledRun_deleted_fresh
     (𝒜 : DescriptionFamily) (N ambientLength overheadBound : ℕ)
     (t : ℕ → ℕ)

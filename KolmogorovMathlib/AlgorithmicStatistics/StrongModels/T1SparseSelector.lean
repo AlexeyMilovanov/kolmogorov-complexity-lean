@@ -1,5 +1,21 @@
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.Separation.Part01
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.Separation
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.Properties
+
+/-!
+# Selecting a sparse subset
+
+The rebuilds of the T1 run need a fresh block of `N` strings meeting every already-marked set
+in at most `t` elements.  `t1SparseSubsetSelectorList` returns the first sublist of the
+universe with that property, tested by `t1SparseCandidateValid` through the intersection
+counter `t1SparseIntersectionCard`.
+
+It is effective (`t1SparseSubsetSelectorList_primrec`, `…_computable`, and the composition
+form used inside the run step) and its output is a duplicate-free sublist of the universe.
+`t1SparseSubsetSelector_spec` says the search succeeds under a counting inequality,
+`t1_sparse_counting_inequality` verifies that inequality at the parameters of the T1
+construction, and `t1_sparse_selector_available` is the resulting existence statement.
+-/
 
 namespace Kolmogorov
 
@@ -11,6 +27,8 @@ def t1SparseIntersectionCard {α : Type} [DecidableEq α]
     (A C : List α) : Nat :=
   ((A.filter fun x => decide (x ∈ C)).dedup).length
 
+/-- The counter used by the sparse selector computes the cardinality of the intersection of the two
+lists viewed as finite sets. -/
 theorem t1SparseIntersectionCard_eq {α : Type} [DecidableEq α]
     (A C : List α) :
     t1SparseIntersectionCard A C = (A.toFinset ∩ C.toFinset).card := by
@@ -20,11 +38,15 @@ theorem t1SparseIntersectionCard_eq {α : Type} [DecidableEq α]
   ext x
   simp
 
+/-- Tests whether a candidate list has length `N` and meets every list of `Cs` in at most `t`
+elements. -/
 def t1SparseCandidateValid {α : Type} [DecidableEq α]
     (cand : List α) (Cs : List (List α)) (N t : Nat) : Bool :=
   cand.length == N &&
   Cs.all (fun C => decide (t1SparseIntersectionCard cand C ≤ t))
 
+/-- The first sublist of `U` that has length `N` and meets every member of `Cs` in at most `t`
+elements, or the empty list if there is none. -/
 def t1SparseSubsetSelectorList {α : Type} [DecidableEq α]
     (U : List α) (Cs : List (List α)) (N t : Nat) : List α :=
   match U.sublists.find? (fun cand => t1SparseCandidateValid cand Cs N t) with
@@ -95,11 +117,14 @@ private theorem t1SparseCandidateValid_primrec
     list_all_primrec hCs hle
   exact Primrec.and.comp hlenEq hall
 
+/-- The validity test for sparse candidates is computable in the candidate, the family and the two
+parameters. -/
 theorem t1SparseCandidateValid_computable {α : Type} [Primcodable α] [DecidableEq α] :
     Computable (fun p : List α × List (List α) × Nat × Nat =>
       t1SparseCandidateValid p.1 p.2.1 p.2.2.1 p.2.2.2) :=
   t1SparseCandidateValid_primrec.to_comp
 
+/-- The sparse subset selector is primitive recursive in its four arguments. -/
 theorem t1SparseSubsetSelectorList_primrec {α : Type}
     [Primcodable α] [DecidableEq α] :
     Primrec (fun p : List α × List (List α) × Nat × Nat =>
@@ -127,6 +152,7 @@ theorem t1SparseSubsetSelectorList_primrec {α : Type}
     cases p.1.sublists.find? (fun cand =>
       t1SparseCandidateValid cand p.2.1 p.2.2.1 p.2.2.2) <;> rfl
 
+/-- The sparse subset selector is computable in its four arguments. -/
 theorem t1SparseSubsetSelectorList_computable {α : Type}
     [Primcodable α] [DecidableEq α] :
     Computable (fun p : List α × List (List α) × Nat × Nat =>
@@ -146,6 +172,8 @@ theorem t1SparseSubsetSelectorList_computable_comp
   t1SparseSubsetSelectorList_computable.comp
     (hU.pair (hCs.pair (hN.pair ht)))
 
+/-- The list returned by the sparse subset selector is a sublist of the universe `U` it selects
+from. -/
 theorem t1SparseSubsetSelectorList_sublist
     {α : Type} [DecidableEq α]
     (U : List α) (Cs : List (List α)) (N t : Nat) :
@@ -159,6 +187,7 @@ theorem t1SparseSubsetSelectorList_sublist
       exact List.mem_sublists.mp
         (List.mem_of_find?_eq_some hfind)
 
+/-- The list returned by the sparse subset selector has no duplicates when `U` has none. -/
 theorem t1SparseSubsetSelectorList_nodup
     {α : Type} [DecidableEq α]
     (U : List α) (Cs : List (List α)) (N t : Nat)
@@ -166,6 +195,8 @@ theorem t1SparseSubsetSelectorList_nodup
     (t1SparseSubsetSelectorList U Cs N t).Nodup :=
   (t1SparseSubsetSelectorList_sublist U Cs N t).nodup hU
 
+/-- The validity test succeeds exactly when the candidate has length `N` and meets each member of
+`Cs` in at most `t` elements. -/
 theorem t1SparseCandidateValid_eq_true {α : Type} [DecidableEq α]
     (cand : List α) (Cs : List (List α)) (N t : Nat) :
     t1SparseCandidateValid cand Cs N t = true ↔
@@ -175,6 +206,9 @@ theorem t1SparseCandidateValid_eq_true {α : Type} [DecidableEq α]
     List.all_eq_true, decide_eq_true_eq]
   simp_rw [t1SparseIntersectionCard_eq]
 
+/-- If the counting inequality holds — the number of distinct sets in `Cs`, each of size at most
+`s`, is too small to block all `(t+1)`-subsets — then the selector really returns a size-`N`
+sublist of `U` meeting every member of `Cs` in at most `t` elements. -/
 theorem t1SparseSubsetSelector_spec {α : Type} [DecidableEq α]
     (U : List α) (Cs : List (List α)) (N t s : Nat)
     (hU_nodup : U.Nodup)
@@ -298,6 +332,9 @@ private theorem t1_four_mul_sq_le_two_pow (n : Nat) (hn : 8 ≤ n) :
         _ ≤ 2 * 2 ^ n := Nat.mul_le_mul_left 2 ih
         _ = 2 ^ n * 2 := by ring
 
+/-- The counting inequality needed for sparse selection at the parameters of the T1 construction:
+for every description constant there are constants `c0`, `cSparse` making the number of blocked
+configurations smaller than the number of available ones. -/
 theorem t1_sparse_counting_inequality :
     ∀ cDesc, ∃ c0 cSparse, ∀ n k epsilon Ucard Fcard,
       c0 ≤ epsilon →
@@ -400,6 +437,9 @@ theorem t1_sparse_counting_inequality :
       (Ucard - t) ^ r
   exact hlhs.trans_lt (hstrict.trans_le hrhs)
 
+/-- At the parameters of the T1 construction a sparse selector exists: a subset of `U` of size
+`2 ^ (k - epsilon)` meeting every member of the family `Cs` in at most `cSparse * n + cSparse`
+elements. -/
 theorem t1_sparse_selector_available :
     ∀ cDesc, ∃ c0 cSparse, ∀ {α : Type} [DecidableEq α]
       (n k epsilon : Nat) (U : List α) (Cs : List (List α)),

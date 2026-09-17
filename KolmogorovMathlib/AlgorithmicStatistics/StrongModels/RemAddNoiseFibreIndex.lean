@@ -43,7 +43,7 @@ theorem condK_element_via_model_condition
   refine ⟨cSim + 1, ?_⟩
   intro D hD x z a hxD hcond
   obtain ⟨q, hqLen, hqProd⟩ :=
-    (condKLeIff V (codedUniformOn D hD).code z a).mp hcond
+    (condK_le_iff V (codedUniformOn D hD).code z a).mp hcond
   change q.length ≤ a at hqLen
   set s := finiteSetLogCard D with hs
   set idx := (canonicalFinsetList D).findIdx (· == x) with hidx
@@ -85,23 +85,29 @@ def finiteSetSndFiber (B : Finset BitString) (x : BitString) :
     Finset BitString :=
   (finiteSetFstFiber B x).image decodeSecond
 
+/-- A pair with first component `x` belonging to `B` also belongs to the fibre of `B` over `x`. -/
 theorem finiteSetFstFiber_mem
     {B : Finset BitString} {x y : BitString} (hxy : pairCode x y ∈ B) :
     pairCode x y ∈ finiteSetFstFiber B x := by
   rw [finiteSetFstFiber, Finset.mem_filter]
   exact ⟨hxy, decodeFirst_pairCode x y⟩
 
+/-- If the pair `(x, y)` belongs to `B` then `y` belongs to the set of second components of `B` over
+`x`. -/
 theorem finiteSetSndFiber_mem
     {B : Finset BitString} {x y : BitString} (hxy : pairCode x y ∈ B) :
     y ∈ finiteSetSndFiber B x := by
   rw [finiteSetSndFiber, Finset.mem_image]
   exact ⟨pairCode x y, finiteSetFstFiber_mem hxy, decodeSecond_pairCode x y⟩
 
+/-- The set of second components over `x` is nonempty as soon as `B` contains a pair with first
+component `x`. -/
 theorem finiteSetSndFiber_nonempty
     {B : Finset BitString} {x y : BitString} (hxy : pairCode x y ∈ B) :
     (finiteSetSndFiber B x).Nonempty :=
   ⟨y, finiteSetSndFiber_mem hxy⟩
 
+/-- There are no more second components over `x` than pairs of `B` with first component `x`. -/
 theorem finiteSetSndFiber_card_le (B : Finset BitString) (x : BitString) :
     (finiteSetSndFiber B x).card ≤ (finiteSetFstFiber B x).card :=
   Finset.card_image_le
@@ -121,6 +127,8 @@ noncomputable def finiteSetSndFiberCode (w x : BitString) : BitString :=
     ((canonicalPointListOfCode w).filterMap
       (fun z => if decodeFirst z = x then some (decodeSecond z) else none))
 
+/-- Computing the code of the fibre of a coded finite set over a given first component is computable
+in both arguments. -/
 theorem finiteSetSndFiberCode_computable :
     Computable₂ finiteSetSndFiberCode := by
   have hlist : Primrec (fun p : BitString × BitString =>
@@ -156,6 +164,8 @@ private theorem finiteSetSndFiber_list_toFinset
   · rintro ⟨z, ⟨hz, hzx⟩, hv⟩
     exact ⟨z, hz, by rw [if_pos hzx, hv]⟩
 
+/-- Applied to the code of the uniform distribution on `B`, the fibre encoder returns the code of
+the uniform distribution on the fibre of `B` over `x`. -/
 theorem finiteSetSndFiberCode_codedUniformOn
     (B : Finset BitString) (hB : B.Nonempty) (x : BitString)
     (hY : (finiteSetSndFiber B x).Nonempty) :
@@ -183,6 +193,7 @@ noncomputable def finiteSetSndFiberCondDecompressor (V : Map) : Map :=
     (V (input.1, decodeSecond input.2)).map
       (fun Bcode => finiteSetSndFiberCode Bcode (decodeFirst input.2))
 
+/-- The machine that takes a fibre after running `V` is a decompressor. -/
 theorem finiteSetSndFiberCondDecompressor_partrec
     (V : Map) (hV : isDecompressor V) :
     isDecompressor (finiteSetSndFiberCondDecompressor V) := by
@@ -194,6 +205,8 @@ theorem finiteSetSndFiberCondDecompressor_partrec
   · exact finiteSetSndFiberCode_computable.comp Computable.snd
       (decodeFirst_computable.comp (Computable.snd.comp Computable.fst))
 
+/-- If `V` produces the code of `B` from a program, the fibre machine produces the code of the fibre
+over `x` from the same program with `x` prepended to the condition. -/
 theorem finiteSetSndFiberCondDecompressor_produces
     {V : Map} {p cond Bcode x : BitString}
     (h : produces V p cond Bcode) :
@@ -221,7 +234,7 @@ theorem finiteSetSndFiber_condK_le
     (finiteSetSndFiberCondDecompressor_partrec V hV.1)
   refine ⟨cSim, fun B hB A hA x y q hY _hpair hq => ?_⟩
   obtain ⟨p, hpLen, hpProd⟩ :=
-    (condKLeIff V (codedUniformOn B hB).code (codedUniformOn A hA).code q).mp hq
+    (condK_le_iff V (codedUniformOn B hB).code (codedUniformOn A hA).code q).mp hq
   change p.length ≤ q at hpLen
   have hprod := finiteSetSndFiberCondDecompressor_produces (x := x) hpProd
   rw [finiteSetSndFiberCode_codedUniformOn B hB x hY] at hprod
@@ -298,6 +311,8 @@ noncomputable def condPairContextComposeDecompressor (V : Map) : Map :=
     (V (decodeTotalProgramPairFirst pr.1, pr.2)).bind fun w =>
       V (decodeTotalProgramPairSecond pr.1, pairCode pr.2 w)
 
+/-- The machine that runs two programs in sequence, passing the condition and the intermediate
+output on as a pair, is a decompressor. -/
 theorem condPairContextComposeDecompressor_partrec
     {V : Map} (hV : isDecompressor V) :
     isDecompressor (condPairContextComposeDecompressor V) := by
@@ -324,6 +339,8 @@ theorem condPairContextComposeDecompressor_partrec
         hctx)
   exact Partrec.bind hfirst hsecond
 
+/-- On the pair code of `p` and `q`, the composition machine maps `z` to the output of `q` given the
+condition `(z, w)`, where `w` is the output of `p` on `z`. -/
 theorem condPairContextComposeDecompressor_produces
     {V : Map} {p q z w x : BitString}
     (hp : produces V p z w)
@@ -347,8 +364,8 @@ theorem condK_two_stage_pair_context
     (condPairContextComposeDecompressor_partrec hV.1)
   refine ⟨cSim + 1, ?_⟩
   intro x z w a b hw hx
-  obtain ⟨p, hpLen, hpProd⟩ := (condKLeIff V w z a).mp hw
-  obtain ⟨q, hqLen, hqProd⟩ := (condKLeIff V x (pairCode z w) b).mp hx
+  obtain ⟨p, hpLen, hpProd⟩ := (condK_le_iff V w z a).mp hw
+  obtain ⟨q, hqLen, hqProd⟩ := (condK_le_iff V x (pairCode z w) b).mp hx
   change p.length ≤ a at hpLen
   change q.length ≤ b at hqLen
   have hprod := condPairContextComposeDecompressor_produces hpProd hqProd

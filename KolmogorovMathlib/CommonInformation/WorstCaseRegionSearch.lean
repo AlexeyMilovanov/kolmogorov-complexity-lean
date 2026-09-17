@@ -1,5 +1,18 @@
 import KolmogorovMathlib.CommonInformation.WorstCaseRegionStages
 
+/-!
+# Searching for a common witness, stage by stage
+
+`muchnikRegionSharedWitnessAtStage` is the test the region selector runs: has some string
+enumerated by stage `t` realised the triple `q` as a common witness for the pair?
+`muchnikRegionSharedWitnessAtStage_eq_true_iff` says exactly when it succeeds and
+`…_primrec` that it is primitive recursive.
+
+The test is assembled from the stage enumerations `sharedWitnessLeftStage`,
+`sharedWitnessRightStage` and `sharedWitnessLists`, with `sharedWitnessStageArgs` packing
+their arguments; each comes with its primitive-recursiveness lemma.
+-/
+
 namespace Kolmogorov
 
 open Nat.Partrec (Code)
@@ -27,8 +40,8 @@ private theorem sharedWitnessLists_primrec :
             (BitString × BitString)) × BitString =>
           decide (pairCode (decodeFirst s.2) s.1.2.1 ∈ s.1.1.1)) :=
       bitString_mem_primrec.comp
-        (pairCode_primrec.comp
-          (decodeFirst_primrec'.comp Primrec.snd)
+        (CodedFiniteDistribution.pairCode_primrec.comp
+          (CodedFiniteDistribution.decodeFirst_primrec.comp Primrec.snd)
           (Primrec.fst.comp (Primrec.snd.comp Primrec.fst)))
         (Primrec.fst.comp (Primrec.fst.comp Primrec.fst))
     have hSecond : Primrec
@@ -36,8 +49,8 @@ private theorem sharedWitnessLists_primrec :
             (BitString × BitString)) × BitString =>
           decide (pairCode (decodeFirst s.2) s.1.2.2 ∈ s.1.1.2)) :=
       bitString_mem_primrec.comp
-        (pairCode_primrec.comp
-          (decodeFirst_primrec'.comp Primrec.snd)
+        (CodedFiniteDistribution.pairCode_primrec.comp
+          (CodedFiniteDistribution.decodeFirst_primrec.comp Primrec.snd)
           (Primrec.snd.comp (Primrec.snd.comp Primrec.fst)))
         (Primrec.snd.comp (Primrec.fst.comp Primrec.fst))
     exact (Primrec.and.comp hFirst hSecond).to₂
@@ -106,6 +119,8 @@ private theorem sharedWitnessStageArgs_primrec (c : Code) :
     ((Primrec.fst.comp Primrec.snd).pair
       (Primrec.snd.comp Primrec.snd))).of_eq fun _ => rfl
 
+/-- The stagewise test for the existence of a common witness realising the triple `q` for the
+pair `(x, y)`. -/
 def muchnikRegionSharedWitnessAtStage
     (c : Code) (t : Nat) (q : CommonInformationTriple)
     (x y : BitString) : Bool :=
@@ -113,6 +128,8 @@ def muchnikRegionSharedWitnessAtStage
     ((conditionalDescriptionPairsStage c q.1 q.2.1 t,
       conditionalDescriptionPairsStage c q.1 q.2.2 t), (x, y))
 
+/-- The stagewise witness test succeeds exactly when some string has been enumerated as a
+description of both `x` and `y` within the thresholds of `q`. -/
 theorem muchnikRegionSharedWitnessAtStage_eq_true_iff
     {c : Code} {t : Nat} {q : CommonInformationTriple} {x y : BitString} :
   muchnikRegionSharedWitnessAtStage c t q x y = true ↔
@@ -140,6 +157,7 @@ theorem muchnikRegionSharedWitnessAtStage_eq_true_iff
     simp only [decodeFirst_pairCode, Bool.and_eq_true, decide_eq_true_eq]
     exact ⟨hzx, hzy⟩
 
+/-- The stagewise witness test is primitive recursive. -/
 theorem muchnikRegionSharedWitnessAtStage_primrec (c : Code) :
   Primrec
     (fun r : (Nat × CommonInformationTriple) ×
@@ -168,6 +186,8 @@ private theorem pairCode_mem_conditionalDescriptionPairsStage_iff_of_complete
   · rintro ⟨hz, hv⟩
     exact ⟨z, v, rfl, hz, hv⟩
 
+/-- Once the enumeration is complete, the stagewise witness test decides the existence of a
+genuine common witness for the admissible triple. -/
 theorem muchnikRegionSharedWitnessAtStage_complete_iff
     {V : Map} {c : Code} (hc : IsCodeFor c V)
     {n t : Nat} {q : CommonInformationTriple} {x y : BitString}
@@ -215,6 +235,8 @@ theorem muchnikRegionSharedWitnessAtStage_complete_iff
         (pairCode_mem_conditionalDescriptionPairsStage_iff_of_complete
           hRightComplete).mpr ⟨hz, hy⟩
 
+/-- The stagewise test marking a candidate pair as unusable: either a coordinate turned out
+compressible, or an admissible triple was realised by a common witness. -/
 def muchnikRegionBadAtStage
     (c : Code) (n t : Nat) (w : BitString) : Bool :=
   let marginal := boundedOutputStage c (2 * n - 1) t
@@ -227,6 +249,7 @@ def muchnikRegionBadAtStage
     (muchnikAdmissibleTriples n).any fun q =>
       muchnikRegionSharedWitnessAtStage c t q x y
 
+/-- The stagewise badness test is primitive recursive. -/
 theorem muchnikRegionBadAtStage_primrec (c : Code) :
   Primrec
     (fun r : (Nat × Nat) × BitString =>
@@ -243,11 +266,11 @@ theorem muchnikRegionBadAtStage_primrec (c : Code) :
   have hx : Primrec
       (fun r : (Nat × Nat) × BitString =>
         decodeFirst r.2) :=
-    decodeFirst_primrec'.comp hw
+    CodedFiniteDistribution.decodeFirst_primrec.comp hw
   have hy : Primrec
       (fun r : (Nat × Nat) × BitString =>
         decodeSecond r.2) :=
-    decodeSecond_primrec'.comp hw
+    CodedFiniteDistribution.decodeSecond_primrec.comp hw
   have hMarginalBound : Primrec
       (fun r : (Nat × Nat) × BitString =>
         2 * r.1.1 - 1) :=
@@ -285,7 +308,7 @@ theorem muchnikRegionBadAtStage_primrec (c : Code) :
         decide (pairCode (decodeFirst r.2) (decodeSecond r.2) ∈
           boundedOutputStage c (3 * r.1.1 - 1) r.1.2)) :=
     bitString_mem_primrec.comp
-      (pairCode_primrec.comp hx hy) hPairs
+      (CodedFiniteDistribution.pairCode_primrec.comp hx hy) hPairs
   have hTriples : Primrec
       (fun r : (Nat × Nat) × BitString =>
         muchnikAdmissibleTriples r.1.1) :=
@@ -315,6 +338,8 @@ theorem muchnikRegionBadAtStage_primrec (c : Code) :
     (Primrec.or.comp (Primrec.or.comp hLeft hRight) hPair)
     hCommon
 
+/-- Once the enumeration is complete, a candidate passes the badness test exactly when both
+coordinates and the pair are incompressible and no admissible triple is realised. -/
 theorem muchnikRegionBadAtStage_false_iff
     {V : Map} {c : Code} (hc : IsCodeFor c V)
     {n t : Nat} {w : BitString} (hn : 0 < n)
@@ -415,6 +440,7 @@ theorem muchnikRegionBadAtStage_false_iff
     hCommonBool]
   simp only [x, y, and_assoc]
 
+/-- Among the pair codes of length `2n + 2` some candidate passes the stagewise badness test. -/
 theorem exists_fixedLengthPairCode_not_regionBad
     {V : Map} {c : Code} (hc : IsCodeFor c V)
     {n t : Nat} (hn : 0 < n)
@@ -444,6 +470,7 @@ theorem exists_fixedLengthPairCode_not_regionBad
         (And.intro hsurvivor.2.2.2.1
           (And.intro hsurvivor.2.2.2.2.1 hnotBad))
 
+/-- The first candidate found at a complete stage is a survivor of the region construction. -/
 theorem muchnikRegionFindAtStage_spec
     {V : Map} {c : Code} (hc : IsCodeFor c V)
     {n t : Nat} (hn : 0 < n)

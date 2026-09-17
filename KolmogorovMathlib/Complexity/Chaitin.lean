@@ -59,7 +59,7 @@ def isBoundGt (M i : ℕ) : Bool :=
   | none => false
 
 /-- The bound enumerator is computable since it is a composition of computable functions. -/
-lemma enumBoundsComputable : Computable F.enumBounds := by
+lemma enumBounds_computable : Computable F.enumBounds := by
   have h_eq : F.enumBounds = fun i => Option.casesOn (F.enumThm i) none F.parseKGt := by
     funext i; dsimp [enumBounds, Option.bind]; cases F.enumThm i <;> rfl
   rw [h_eq]
@@ -68,14 +68,14 @@ lemma enumBoundsComputable : Computable F.enumBounds := by
     (F.hParseComp.comp (@Computable.snd ℕ F.Formula _ _))
 
 /-- The threshold checker is computable. -/
-lemma isBoundGtComputable : Computable (fun p : ℕ × ℕ => F.isBoundGt p.1 p.2) := by
+lemma isBoundGt_computable : Computable (fun p : ℕ × ℕ => F.isBoundGt p.1 p.2) := by
   have h_eq : (fun p : ℕ × ℕ => F.isBoundGt p.1 p.2) =
     fun p => Option.casesOn (F.enumBounds p.2) false (fun xL => decide (p.1 < xL.2)) := by
     funext p; dsimp [isBoundGt]; cases F.enumBounds p.2 <;> rfl
   rw [h_eq]
   have h_opt : Computable (fun p : ℕ × ℕ => F.enumBounds p.2) := by
     change Computable (F.enumBounds ∘ Prod.snd)
-    exact F.enumBoundsComputable.comp Computable.snd
+    exact F.enumBounds_computable.comp Computable.snd
   have h_def : Computable (fun p : ℕ × ℕ => false) :=
     Computable.const false
   have h_fst_fst : Computable (fun p : (ℕ × ℕ) × (ℕ × ℕ) => p.1.1) := by
@@ -94,7 +94,7 @@ lemma isBoundGtComputable : Computable (fun p : ℕ × ℕ => F.isBoundGt p.1 p.
   exact Computable.option_casesOn h_opt h_def h_some
 
 /-- If the enumerator outputs a bound, that bound is sound (true) in the underlying metric. -/
-lemma enumBoundsSound (i x L : ℕ) (h : F.enumBounds i = some (x, L)) :
+lemma enumBounds_sound (i x L : ℕ) (h : F.enumBounds i = some (x, L)) :
     (L : ENat) < plainKNat U x := by
   unfold enumBounds at h
   cases h_thm : F.enumThm i with
@@ -107,26 +107,31 @@ lemma enumBoundsSound (i x L : ℕ) (h : F.enumBounds i = some (x, L)) :
     rw [h_eq] at h_prov
     exact F.hSound x L h_prov
 
+/-- A computable `Bool`-valued function stays computable when its value is
+re-decided as a proposition. -/
 lemma Computable.decide_eq_true {α : Type*} [Primcodable α] {f : α → Bool} (hf : Computable f) :
   Computable (fun a => decide (f a = true)) :=
   hf.of_eq (fun a => (Bool.decide_coe (f a)).symm)
 
--- The decidable predicate used in the Chaitin diagonal search is computable.
-lemma isBoundGtSearchPredicateComputable :
+/-- The predicate searched in the Chaitin diagonal argument, "`i` witnesses a
+provable complexity bound above `2 ^ k`", is computable in `(k, i)`. -/
+lemma isBoundGtSearchPredicate_computable :
     Computable (fun p : ℕ × ℕ => F.isBoundGt (2 ^ p.1) p.2) := by
   have hpair : Computable (fun p : ℕ × ℕ => (2 ^ p.1, p.2)) :=
     (Computable.pow2.comp Computable.fst).pair Computable.snd
   apply Computable.comp
     (f := fun p : ℕ × ℕ => F.isBoundGt p.1 p.2)
     (g := fun p : ℕ × ℕ => (2 ^ p.1, p.2))
-  · exact F.isBoundGtComputable
+  · exact F.isBoundGt_computable
   · exact hpair
 
-lemma isBoundGtSearchComputable
+/-- If a witness exists for every bound, the least witness for the bound `2 ^ k`
+is a computable function of `k`. -/
+lemma isBoundGtSearch_computable
     (h_exists : ∀ M : ℕ, ∃ i, F.isBoundGt M i = true) :
     Computable (fun k : ℕ => Nat.find (h_exists (2 ^ k))) := by
   exact Computable.natFind
-    (Computable.decide_eq_true (isBoundGtSearchPredicateComputable F))
+    (Computable.decide_eq_true (isBoundGtSearchPredicate_computable F))
     (fun k => h_exists (2 ^ k))
 
 /-! ### Chaitin's Bound -/
@@ -136,7 +141,7 @@ lemma isBoundGtSearchComputable
 -- named lemmas above so the main diagonalization proof remains predictable.
 /-- Every sound formal system has a constant `c` such that it cannot prove
     any statement of the form `K(x) > L` for `L > c`. -/
-theorem chaitinBound (hU : isOptimalConditional U) :
+theorem chaitin_bound (hU : isOptimalConditional U) :
     ∃ c : ℕ, ∀ i x L, F.enumBounds i = some (x, L) → L ≤ c := by
   by_contra h_unb_inf
   -- Push the negation inward: `¬ ∀ ..., L ≤ c` becomes `∃ ..., c < L`.
@@ -154,7 +159,7 @@ theorem chaitinBound (hU : isOptimalConditional U) :
     | none => 0
   -- 1. Computability of the search function
   have h_search_comp : Computable search :=
-    F.isBoundGtSearchComputable h_exists
+    F.isBoundGtSearch_computable h_exists
   -- 2. Computability of the final extractor function
   have hg_comp : Computable g := by
     have h_eq : g = fun k => Option.casesOn (F.enumBounds (search k)) 0 (fun xL => xL.1) := by
@@ -162,7 +167,7 @@ theorem chaitinBound (hU : isOptimalConditional U) :
     rw [h_eq]
     have h_opt : Computable (fun k : ℕ => F.enumBounds (search k)) := by
       change Computable (F.enumBounds ∘ search)
-      exact F.enumBoundsComputable.comp h_search_comp
+      exact F.enumBounds_computable.comp h_search_comp
     have h_def : Computable (fun _ : ℕ => 0) := Computable.const 0
     have h_some : Computable (fun p : ℕ × (ℕ × ℕ) => p.2.1) := by
       change Computable (Prod.fst ∘ Prod.snd)
@@ -170,11 +175,11 @@ theorem chaitinBound (hU : isOptimalConditional U) :
     exact Computable.option_casesOn h_opt h_def h_some
   -- 3. Constructing the paradox
   let fMap := fun s => Nat.bits (g (decodeBits s))
-  have hf_comp : Computable fMap := natBitsComputable.comp (hg_comp.comp decodeBitsComputable)
-  obtain ⟨cG, h_bound_g⟩ := plainKMapLe U hU fMap hf_comp
-  obtain ⟨cLen, h_bound_len⟩ := plainKNatLeLength U hU
+  have hf_comp : Computable fMap := natBits_computable.comp (hg_comp.comp decodeBits_computable)
+  obtain ⟨cG, h_bound_g⟩ := plainK_map_le U hU fMap hf_comp
+  obtain ⟨cLen, h_bound_len⟩ := plainKNat_le_length U hU
   let cTotal := cG + cLen
-  obtain ⟨k, hk⟩ := growthLemma cTotal
+  obtain ⟨k, hk⟩ := growth_lemma cTotal
   have h_spec : F.isBoundGt (2^k) (search k) = true := Nat.find_spec (h_exists (2^k))
   unfold isBoundGt at h_spec
   cases h_match : F.enumBounds (search k) with
@@ -186,7 +191,7 @@ theorem chaitinBound (hU : isOptimalConditional U) :
     have h_gt : 2^k < L := by
       rw [h_match] at h_spec
       exact of_decide_eq_true h_spec
-    have h_sound := F.enumBoundsSound (search k) x L h_match
+    have h_sound := F.enumBounds_sound (search k) x L h_match
     have hg_val : g k = x := by
       dsimp [g]
       rw [h_match]
@@ -213,13 +218,13 @@ theorem chaitinBound (hU : isOptimalConditional U) :
     In any sufficiently strong, sound, and computably enumerable formal system,
     there exist numbers `x` and thresholds `L` such that `K(x) > L` is true,
     but cannot be proven by the system. -/
-theorem chaitinIncompleteness (hU : isOptimalConditional U) :
+theorem chaitin_incompleteness (hU : isOptimalConditional U) :
     ∃ x L : ℕ,
       (L : ENat) < plainKNat U x ∧
       ¬ F.provable (F.exprKGt x L) := by
-  obtain ⟨c, hc⟩ := F.chaitinBound hU
+  obtain ⟨c, hc⟩ := F.chaitin_bound hU
   let L := c + 1
-  obtain ⟨x, hx⟩ := existsPlainKNatGt U L
+  obtain ⟨x, hx⟩ := exists_plainKNat_gt U L
   refine ⟨x, L, hx, ?_⟩
   intro h_prov
   obtain ⟨i, hi⟩ := (F.hEnumExact _).mp h_prov

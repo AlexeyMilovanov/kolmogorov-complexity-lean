@@ -4,6 +4,19 @@ import KolmogorovMathlib.CommonInformation.RectangleCover
 import KolmogorovMathlib.CommonInformation.NoFourCycleDensity
 import KolmogorovMathlib.CommonInformation.WorstCaseCounting
 
+/-!
+# The arithmetic of the incidence gap
+
+The numerical part of the incidence non-extractability argument.
+`muchnikThreshold_rectangleFamilyEdges_card_lt` bounds the number of edges a family of at most
+`2 ^ t` rectangles with sides at most `2 ^ t` can cover at the Muchnik threshold `t`, using
+`muchnikThreshold_cover_exponent_sum_lt`.
+
+`incidence_weighted_bound` is the weighted incidence inequality `8n ≤ 3α + 2β + 2γ`, proved in
+both orders of `β` and `γ`, and `incidence_nonextractability_arithmetic` is the conclusion: a
+candidate common witness cannot meet the thresholds the argument requires.
+-/
+
 namespace Kolmogorov
 
 variable {α β : Type*}
@@ -56,6 +69,8 @@ private lemma muchnikThreshold_cover_exponent_sum_lt
       ring
 
 open Classical in
+/-- A family of at most `2^t` rectangles with sides of size at most `2^t`, `t` the Muchnik
+threshold, covers fewer than `2^{3n}` edges of a four-cycle-free relation. -/
 lemma muchnikThreshold_rectangleFamilyEdges_card_lt
     (n : Nat) (r : α → β → Prop) {𝓡 : Finset (CombinatorialRectangle α β)} :
   14 ≤ n →
@@ -70,6 +85,7 @@ lemma muchnikThreshold_rectangleFamilyEdges_card_lt
     r hfour hcard hrect
   exact hbound.trans_lt (muchnikThreshold_cover_exponent_sum_lt n hn)
 
+/-- The weighted incidence inequality `8n ≤ 3α + 2β + 2γ`, in the case `β ≤ γ`. -/
 lemma incidence_weighted_bound_of_left_order
     {n α β γ : Nat}
     (_hβγ : β ≤ γ)
@@ -84,6 +100,7 @@ lemma incidence_weighted_bound_of_left_order
   · rw [max_eq_right (by omega)] at hS
     omega
 
+/-- The weighted incidence inequality `8n ≤ 3α + 2β + 2γ`, in the case `γ ≤ β`. -/
 lemma incidence_weighted_bound_of_right_order
     {n α β γ : Nat}
     (_hγβ : γ ≤ β)
@@ -92,12 +109,11 @@ lemma incidence_weighted_bound_of_right_order
     (hy : 2 * n ≤ α + γ)
     (_hxy : 3 * n ≤ α + β + γ) :
     8 * n ≤ 3 * α + 2 * β + 2 * γ := by
-  by_cases hγhalf : γ ≤ β / 2
-  · rw [max_eq_left hγhalf] at hS
-    omega
-  · rw [max_eq_right (by omega)] at hS
-    omega
+  have h := incidence_weighted_bound_of_left_order (β := γ) (γ := β) _hγβ hS hy hx (by omega)
+  omega
 
+/-- The weighted incidence inequality `8n ≤ 3α + 2β + 2γ`, from the cover bound in either
+order of `β` and `γ` together with the complexity constraints. -/
 lemma incidence_weighted_bound
     {n α β γ : Nat}
     (hLeft : β ≤ γ →
@@ -112,7 +128,9 @@ lemma incidence_weighted_bound
   · exact incidence_weighted_bound_of_left_order hβγ (hLeft hβγ) hx hy hxy
   · exact incidence_weighted_bound_of_right_order hγβ (hRight hγβ) hx hy hxy
 
-lemma theorem_227_arithmetic
+/-- The arithmetic behind non-extractability for the incidence example: a candidate common
+witness `z` obeys `K(z) ≤ 2 K(z|x) + 2 K(z|y) + O(slack)`. -/
+lemma incidence_nonextractability_arithmetic
     (n kz kxz kyz d kx kzx e ky kzy : Nat)
     (hEnvelope :
       8 * n ≤

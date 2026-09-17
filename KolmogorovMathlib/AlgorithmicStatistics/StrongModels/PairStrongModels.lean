@@ -1,5 +1,5 @@
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.StrongProfile
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.AddNoiseProduct
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.StrongProfile
 
 /-!
 # Strong models of a canonical pair
@@ -28,6 +28,8 @@ def totalTransportDecompressor (T : Map) (f : BitString → BitString)
     (F : BitString → BitString → BitString) : Map :=
   fun pr => (T (pr.1, f pr.2)).map (fun a => F a pr.2)
 
+/-- The machine that transports descriptions along the computable maps `f` and `F` is a
+decompressor. -/
 lemma totalTransportDecompressor_partrec
     (T : Map) (hT : isDecompressor T)
     (f : BitString → BitString) (hf : Computable f)
@@ -39,6 +41,7 @@ lemma totalTransportDecompressor_partrec
       (Computable.pair Computable.fst (hf.comp Computable.snd))
   · exact hF.comp Computable.snd (Computable.snd.comp Computable.fst)
 
+/-- A program total for `T` stays total for the transported machine. -/
 lemma IsTotalProgram.transport
     {T : Map} {p : BitString} (hp : IsTotalProgram T p)
     (f : BitString → BitString) (F : BitString → BitString → BitString) :
@@ -46,6 +49,8 @@ lemma IsTotalProgram.transport
   intro y
   exact hp (f y)
 
+/-- Under the transported machine, `F a x` given `x` is no harder to describe than `a` given `f x`
+under `T`. -/
 lemma totalCondK_transport_le
     (T : Map) (f : BitString → BitString)
     (F : BitString → BitString → BitString) (a x : BitString) :
@@ -81,6 +86,7 @@ and its context. -/
 def totalParamDecompressor (G : BitString → BitString → BitString) : Map :=
   fun pr => Part.some (G pr.1 pr.2)
 
+/-- The machine computing a fixed computable function of program and condition is a decompressor. -/
 lemma totalParamDecompressor_partrec
     (G : BitString → BitString → BitString) (hG : Computable₂ G) :
     isDecompressor (totalParamDecompressor G) :=
@@ -121,7 +127,7 @@ theorem finiteSetPairUniformExtension_isStrongSetModel
         (finiteSetPairUniformExtension A z.length)
         (finiteSetPairUniformExtension_nonempty hA z.length) (e + c) := by
   have hbits : Computable (fun x : BitString => Nat.bits (decodeSecond x).length) :=
-    (primrecNatBits.comp (Primrec.list_length.comp decodeSecond_primrec)).to_comp
+    (primrec_natBits.comp (Primrec.list_length.comp decodeSecond_primrec)).to_comp
   have hF : Computable₂ (fun a x : BitString =>
       finiteSetPairUniformExtensionCode a (Nat.bits (decodeSecond x).length)) :=
     finiteSetPairUniformExtensionCode_computable.comp Computable.fst
@@ -156,19 +162,23 @@ last `t` bits of the tail range over the full cube. -/
 def pairTailCube (y w : BitString) (t : ℕ) : Finset BitString :=
   (stringsOfLength t).image (fun u => pairCode y (w ++ u))
 
+/-- The pair of `y` with `w` extended by any string of length `t` lies in the corresponding pair
+tail cube. -/
 theorem pairTailCube_mem {y w u : BitString} {t : ℕ} (hu : u.length = t) :
     pairCode y (w ++ u) ∈ pairTailCube y w t := by
   rw [pairTailCube, Finset.mem_image]
-  exact ⟨u, (memStringsOfLength t u).mpr hu, rfl⟩
+  exact ⟨u, (mem_stringsOfLength t u).mpr hu, rfl⟩
 
+/-- A pair tail cube is nonempty. -/
 theorem pairTailCube_nonempty (y w : BitString) (t : ℕ) :
     (pairTailCube y w t).Nonempty :=
   ⟨_, pairTailCube_mem (u := List.replicate t false) (by simp)⟩
 
+/-- A pair tail cube with tail length `t` has at most `2 ^ t` elements. -/
 theorem pairTailCube_card_le (y w : BitString) (t : ℕ) :
     (pairTailCube y w t).card ≤ 2 ^ t := by
   refine le_trans (Finset.card_image_le) ?_
-  rw [cardStringsOfLength]
+  rw [card_stringsOfLength]
 
 /-- Canonical code of the tail cube described by
 `pairCode (pairCode y w) (Nat.bits t)`. -/
@@ -178,6 +188,7 @@ noncomputable def pairTailCubeCode (v : BitString) : BitString :=
       (fun u => pairCode (decodeFirst (decodeFirst v))
         (decodeSecond (decodeFirst v) ++ u)))
 
+/-- The map producing the code of the uniform distribution on a pair tail cube is computable. -/
 theorem pairTailCubeCode_computable : Computable pairTailCubeCode := by
   have hlist : Primrec (fun v : BitString =>
       allStrings (bitsToNat (decodeSecond v))) :=
@@ -193,6 +204,8 @@ theorem pairTailCubeCode_computable : Computable pairTailCubeCode := by
   exact (canonicalImageCodeOfList_primrec.comp
     (Primrec.list_map hlist hmapf)).to_comp
 
+/-- The pair tail cube is the set of pairs obtained by appending each string of length `t` to `w`.
+The pair tail cube is the set of pairs obtained by appending each string of length `t` to `w`. -/
 theorem pairTailCube_toFinset (y w : BitString) (t : ℕ) :
     ((allStrings t).map (fun u => pairCode y (w ++ u))).toFinset =
       pairTailCube y w t := by
@@ -201,10 +214,12 @@ theorem pairTailCube_toFinset (y w : BitString) (t : ℕ) :
     Finset.mem_image]
   constructor
   · rintro ⟨u, hu, rfl⟩
-    exact ⟨u, (memStringsOfLength t u).mpr hu, rfl⟩
+    exact ⟨u, (mem_stringsOfLength t u).mpr hu, rfl⟩
   · rintro ⟨u, hu, rfl⟩
-    exact ⟨u, (memStringsOfLength t u).mp hu, rfl⟩
+    exact ⟨u, (mem_stringsOfLength t u).mp hu, rfl⟩
 
+/-- On the code of `((y, w), t)` the pair tail cube encoder returns the code of the uniform
+distribution on that cube. -/
 theorem pairTailCubeCode_eq (y w : BitString) (t : ℕ) :
     pairTailCubeCode (pairCode (pairCode y w) (Nat.bits t)) =
       (codedUniformOn (pairTailCube y w t) (pairTailCube_nonempty y w t)).code := by
@@ -225,7 +240,7 @@ theorem pairTailCube_plainSetComplexity_le
     ∃ c : ℕ, ∀ (y w : BitString) (t : ℕ),
       plainSetComplexity V (pairTailCube y w t) (pairTailCube_nonempty y w t) ≤
         plainK V (pairCode (pairCode y w) (Nat.bits t)) + (c : ENat) := by
-  obtain ⟨c, hc⟩ := plainKMapLe V hV pairTailCubeCode pairTailCubeCode_computable
+  obtain ⟨c, hc⟩ := plainK_map_le V hV pairTailCubeCode pairTailCubeCode_computable
   refine ⟨c, fun y w t => ?_⟩
   unfold plainSetComplexity
   rw [← pairTailCubeCode_eq y w t]
@@ -247,11 +262,9 @@ theorem pairTailCube_isStrongSetModel
           ((decodeSecond q.2).take
             ((decodeSecond q.2).length - bitsToNat q.1))) :=
       pairCode_primrec.comp (decodeFirst_primrec.comp Primrec.snd)
-        (Primrec.list_take.comp
-          (Primrec.nat_sub.comp
+        (Primrec.list_take.comp (Primrec.nat_sub.comp
             (Primrec.list_length.comp (decodeSecond_primrec.comp Primrec.snd))
-            (bitsToNat_primrec.comp Primrec.fst))
-          (decodeSecond_primrec.comp Primrec.snd))
+            (bitsToNat_primrec.comp Primrec.fst)) (decodeSecond_primrec.comp Primrec.snd))
     have houter : Computable (fun q : BitString × BitString =>
         pairTailCubeCode (pairCode (pairCode (decodeFirst q.2)
           ((decodeSecond q.2).take

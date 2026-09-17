@@ -1,10 +1,25 @@
 import KolmogorovMathlib.Prefix.TwoStage
 
+/-!
+# A conditional two-stage prefix decompressor
+
+The decompressor that reads a program in two stages — a self-delimiting first part decoded by a
+prefix machine `U`, then the remainder — presented first relationally and then explicitly.
+`condTwoStagePairSpec` is the intended graph, `condTwoStagePairBuilder` a noncomputable partial
+map realising it, and the lemmas identify its domain and outputs
+(`condTwoStagePairBuilder_dom_iff`, `condTwoStagePairSpec_unique`,
+`mem_condTwoStagePairBuilder_iff`) and show it is prefix-free. The explicit dovetailing
+implementation is then proved to agree with it
+(`condTwoStagePairBuilder_eq_condTwoStageMap`), giving the main results
+`condTwoStagePairBuilder_isDecompressor` and `condTwoStagePairBuilder_isPrefixDecompressor`: the
+two-stage builder is a genuine prefix decompressor.
+-/
+
 namespace Kolmogorov
 
 open Nat.Partrec (Code)
 
-def condTwoStagePairSpec (U : Map) (ctx : BitString → BitString → Nat → BitString)
+private def condTwoStagePairSpec (U : Map) (ctx : BitString → BitString → Nat → BitString)
     (w r z : BitString) : Prop :=
   ∃ p q x y : BitString,
     w = p ++ q ∧
@@ -154,7 +169,10 @@ def condTwoStageCheck (c : Code) (ctx : BitString → BitString → Nat → BitS
     (w r : BitString) (n : ℕ) : Bool :=
   decide (n.unpair.1 ≤ w.length) && (condTwoStagePairOut c ctx w r n).isSome
 
-/-- The explicit computable two-stage decompressor. -/
+/-- On input `(w, r)`, dovetail with `Nat.rfind` over the search index `n`, taking the least `n`
+with `condTwoStageCheck c ctx w r n = true` (the split index `n.unpair.1` is at most `w.length`
+and both stages have produced an output at fuel `n.unpair.2`), and return
+`condTwoStagePairOut c ctx w r n`, the pair code of the two stage outputs. -/
 def condTwoStageMap (c : Code) (ctx : BitString → BitString → Nat → BitString) : Map := fun pr =>
   (Nat.rfind (fun n => Part.some (condTwoStageCheck c ctx pr.1 pr.2 n))).bind
     (fun n => (↑(condTwoStagePairOut c ctx pr.1 pr.2 n) : Part BitString))
@@ -164,19 +182,29 @@ def condTwoStageMap (c : Code) (ctx : BitString → BitString → Nat → BitStr
 -/
 theorem condTwoStageS1_computable (c : Code) :
     Computable (fun p : (BitString × BitString) × ℕ => condTwoStageS1 c p.1.1 p.1.2 p.2) := by
-  have h_evaln_computable : Computable₂ (fun (n : ℕ) (m : ℕ) => Code.evaln n c m) :=
+  have hEvaln : Computable₂ (fun (n : Nat) (m : Nat) => Code.evaln n c m) :=
     evaln_fixed_computable c
-  have h_take_computable : Computable₂ (fun (w : BitString) (n : ℕ) => w.take n) :=
-    primrec_list_take.to_comp
-  apply Computable.option_bind
-  · exact h_evaln_computable.comp
-      ( Computable.snd.comp ( Computable.unpair.comp Computable.snd ) )
-          ( Computable.encode.comp ( h_take_computable.comp (Computable.fst.comp Computable.fst)
-                                     ( Computable.fst.comp ( Computable.unpair.comp Computable.snd
-                                                             ) ) |> Computable.pair <|
-                                                                 Computable.snd.comp Computable.fst
-                                                                     ) )
-  · exact Computable.decode.comp Computable.snd
+  have hTake : Computable₂ (fun (w : BitString) (n : Nat) => w.take n) :=
+    (Primrec.list_take.comp Primrec.snd Primrec.fst).to_comp
+  have hFuel : Computable (fun p : (BitString × BitString) × Nat => p.2.unpair.2) :=
+    Computable.snd.comp (Computable.unpair.comp Computable.snd)
+  have hSplit : Computable (fun p : (BitString × BitString) × Nat => p.2.unpair.1) :=
+    Computable.fst.comp (Computable.unpair.comp Computable.snd)
+  have hPrefix : Computable
+      (fun p : (BitString × BitString) × Nat => p.1.1.take p.2.unpair.1) :=
+    hTake.comp (Computable.fst.comp Computable.fst) hSplit
+  have hInput : Computable (fun p : (BitString × BitString) × Nat =>
+      Encodable.encode (p.1.1.take p.2.unpair.1, p.1.2)) :=
+    Computable.encode.comp (hPrefix.pair (Computable.snd.comp Computable.fst))
+  have hEval : Computable (fun p : (BitString × BitString) × Nat =>
+      Code.evaln p.2.unpair.2 c
+        (Encodable.encode (p.1.1.take p.2.unpair.1, p.1.2))) :=
+    hEvaln.comp hFuel hInput
+  have hDecode : Computable₂
+      (fun (_ : (BitString × BitString) × Nat) (e : Nat) =>
+        (Encodable.decode e : Option BitString)) :=
+    Computable.decode.comp Computable.snd
+  simpa [condTwoStageS1] using Computable.option_bind hEval hDecode
 
 /-
 `condTwoStageS2` as a function of the pair `(w, n)` is computable, provided the
@@ -192,10 +220,10 @@ theorem condTwoStageS2_computable (c : Code) (ctx : BitString → BitString → 
                   (fun p : (BitString × BitString) × ℕ => p.2.unpair.2) := by
     refine ⟨ condTwoStageS1_computable c, ?_, ?_, ?_ ⟩;
     · convert Primrec.to_comp
-        ( primrec_list_drop.comp ( Primrec.fst.comp Primrec.fst ) ( Primrec.fst.comp
-                                                                    ( Primrec.unpair.comp
-                                                                        ( Primrec.snd )
-                                                                            ) ) ) using 1;
+        ( Primrec.list_drop.comp ( Primrec.fst.comp
+            (Primrec.unpair.comp
+            Primrec.snd
+            )) (Primrec.fst.comp Primrec.fst)) using 1;
     · exact Computable.fst.comp ( Computable.unpair.comp ( Computable.snd ) );
     · exact Computable.snd.comp ( Computable.unpair.comp ( Computable.snd ) );
   have h_comp : Computable
@@ -220,20 +248,39 @@ theorem condTwoStageS2_computable (c : Code) (ctx : BitString → BitString → 
 -/
 theorem condTwoStagePairOut_computable (c : Code) (ctx : BitString → BitString → Nat → BitString)
     (hctx : Computable (fun p : (BitString × BitString) × ℕ => ctx p.1.1 p.1.2 p.2)) :
-    Computable (fun p : (BitString × BitString) × ℕ => condTwoStagePairOut c ctx p.1.1 p.1.2 p.2)
-        := by
-  have h_condTwoStageS2_computable : Computable
-      (fun p : (BitString × BitString) × ℕ => condTwoStageS2 c ctx p.1.1 p.1.2 p.2) :=
+    Computable (fun p : (BitString × BitString) × ℕ =>
+      condTwoStagePairOut c ctx p.1.1 p.1.2 p.2) := by
+  have hs2 : Computable (fun p : (BitString × BitString) × Nat =>
+      condTwoStageS2 c ctx p.1.1 p.1.2 p.2) :=
     condTwoStageS2_computable c ctx hctx
-  have h_condTwoStageS1_computable : Computable
-      (fun p : (BitString × BitString) × ℕ => condTwoStageS1 c p.1.1 p.1.2 p.2) :=
+  have hs1 : Computable (fun p : (BitString × BitString) × Nat =>
+      condTwoStageS1 c p.1.1 p.1.2 p.2) :=
     condTwoStageS1_computable c
-  apply Computable.option_bind h_condTwoStageS1_computable
-  have h_pairCode_computable : Computable₂ (fun (x y : BitString) => pairCode x y) :=
-    pairCode_computable
-  apply Computable.option_map
-  · exact h_condTwoStageS2_computable.comp ( Computable.fst )
-  · exact h_pairCode_computable.comp ( Computable.snd.comp Computable.fst ) Computable.snd
+  have hcont : Computable₂
+      (fun (p : (BitString × BitString) × Nat) (x : BitString) =>
+        (condTwoStageS2 c ctx p.1.1 p.1.2 p.2).map (fun y => pairCode x y)) := by
+    have hOut : Computable
+        (fun q : ((BitString × BitString) × Nat) × BitString =>
+          condTwoStageS2 c ctx q.1.1.1 q.1.1.2 q.1.2) :=
+      hs2.comp Computable.fst
+    have hPairArg : Computable
+        (fun q : (((BitString × BitString) × Nat) × BitString) × BitString =>
+          (q.1.2, q.2)) :=
+      (Computable.snd.comp Computable.fst).pair Computable.snd
+    have hPair : Computable₂
+        (fun (q : ((BitString × BitString) × Nat) × BitString) (y : BitString) =>
+          pairCode q.2 y) := by
+      exact @Partrec.comp
+        (((((BitString × BitString) × Nat) × BitString) × BitString))
+        (BitString × BitString)
+        BitString
+        inferInstance inferInstance inferInstance
+        (fun p => Part.some (pairCode p.1 p.2))
+        (fun q => (q.1.2, q.2))
+        pairCode_computable
+        hPairArg
+    exact Computable.option_map hOut hPair
+  simpa [condTwoStagePairOut] using Computable.option_bind hs1 hcont
 
 /-
 `condTwoStageCheck` is computable, provided the context map is computable.
@@ -335,8 +382,8 @@ theorem condTwoStageMap_mem_imp_spec {U : Map} {ctx : BitString → BitString �
         exact of_decide_eq_true h_mem.1
     · exact hz_eq
 
-theorem condTwoStageMap_dom_of_spec {U : Map} {ctx : BitString → BitString → Nat → BitString}
-    {c : Code}
+private theorem condTwoStageMap_dom_of_spec {U : Map}
+    {ctx : BitString → BitString → Nat → BitString} {c : Code}
     (hc : c.eval = fun n =>
       (Part.ofOption (Encodable.decode (α := BitString × BitString) n)).bind
         (fun a => Part.map Encodable.encode (U a)))
@@ -383,12 +430,19 @@ theorem condTwoStageMap_dom_of_spec {U : Map} {ctx : BitString → BitString →
     simp only [Nat.unpair_pair, Option.isSome_some, Bool.and_true, decide_eq_true_eq,
       List.length_append]
     omega
-  have hrdom : (Nat.rfind (fun m => Part.some (condTwoStageCheck c ctx (p ++ q) r m))).Dom := by
-    exact Nat.rfind_dom.mpr ⟨Nat.pair p.length (max t1 t2),
-      by rw [Part.mem_some_iff, hcheck], fun {m} _ => Part.some_dom _⟩
+  let search : Nat →. Bool := fun m =>
+    Part.some (condTwoStageCheck c ctx (p ++ q) r m)
+  have hrdom : (Nat.rfind search).Dom := by
+    rw [Nat.rfind_dom]
+    exact ⟨Nat.pair p.length (max t1 t2), by simp [search, hcheck],
+      fun {m} _ => by simp [search]⟩
   obtain ⟨n', hn'⟩ := Part.dom_iff_mem.mp hrdom
+  have hnInline : n' ∈ Nat.rfind
+      (fun m => Part.some (condTwoStageCheck c ctx (p ++ q) r m)) := by
+    simpa [search] using hn'
   have hcheck' : condTwoStageCheck c ctx (p ++ q) r n' = true := by
     have h := (Nat.mem_rfind.mp hn').1
+    change true ∈ Part.some (condTwoStageCheck c ctx (p ++ q) r n') at h
     rw [Part.mem_some_iff] at h
     exact h.symm
   have hsome : (condTwoStagePairOut c ctx (p ++ q) r n').isSome = true := by
@@ -398,8 +452,8 @@ theorem condTwoStageMap_dom_of_spec {U : Map} {ctx : BitString → BitString →
   refine Part.dom_iff_mem.mpr ⟨z'', ?_⟩
   unfold condTwoStageMap
   rw [Part.mem_bind_iff]
-  exact ⟨n', hn', by rw [Part.mem_ofOption]; exact Option.mem_def.mpr hz''⟩
-theorem condTwoStagePairBuilder_eq_condTwoStageMap {U : Map}
+  exact ⟨n', hnInline, by rw [Part.mem_ofOption]; exact Option.mem_def.mpr hz''⟩
+private theorem condTwoStagePairBuilder_eq_condTwoStageMap {U : Map}
     {ctx : BitString → BitString → Nat → BitString} (hU : IsPrefixMachine U) {c : Code}
     (hc : c.eval = fun n =>
       (Part.ofOption (Encodable.decode (α := BitString × BitString) n)).bind

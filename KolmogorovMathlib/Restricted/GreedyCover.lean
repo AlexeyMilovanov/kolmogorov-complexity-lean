@@ -1,7 +1,7 @@
 import Mathlib.Analysis.SpecialFunctions.Log.Base
 
 /-!
-# M4: Greedy Cover Lemma
+# Greedy Cover Lemma
 
 This file provides the purely combinatorial greedy covering lemma: if every
 element of a finite set `T` is covered by at least `m` of the sets in a finite

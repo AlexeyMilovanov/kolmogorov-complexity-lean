@@ -33,7 +33,7 @@ private lemma growthArithmeticHelper (n : ℕ) : n + 5 + n < 2 ^ (n + 5) := by
 
 /-- Growth Lemma: `2^k` eventually dominates any logarithmic description.
     For any constant `c`, there exists a `k` such that `|k| + c < 2^k`. -/
-lemma growthLemma (c : ℕ) :
+lemma growth_lemma (c : ℕ) :
     ∃ k, (programLength (Nat.bits k) : ENat) + (c : ENat) < (2^k : ENat) := by
   let k := c + 5
   refine ⟨k, ?_⟩
@@ -58,13 +58,13 @@ lemma Computable.findComplex (f : ℕ → ℕ) (h_f_comp : Computable f)
     (fun _ _ => Iff.rfl) (fun k => h_unb (2^k))
 
 /-- Computable functions on natural numbers do not increase complexity by more than a constant. -/
-lemma plainKNatCompLe (U : Map) (hU : isOptimalConditional U)
+lemma plainKNat_comp_le (U : Map) (hU : isOptimalConditional U)
     (g : ℕ → ℕ) (hg : Computable g) :
     ∃ c_g : ℕ, ∀ k, plainKNat U (g k) ≤ plainKNat U k + (c_g : ENat) := by
   let f_str : BitString → BitString := fun s => Nat.bits (g (decodeBits s))
   have hf_comp : Computable f_str :=
-    natBitsComputable.comp (hg.comp decodeBitsComputable)
-  obtain ⟨c_g, hc⟩ := plainKMapLe U hU f_str hf_comp
+    natBits_computable.comp (hg.comp decodeBits_computable)
+  obtain ⟨c_g, hc⟩ := plainK_map_le U hU f_str hf_comp
   refine ⟨c_g, ?_⟩
   intro k
   have h_bound := hc (Nat.bits k)
@@ -72,15 +72,16 @@ lemma plainKNatCompLe (U : Map) (hU : isOptimalConditional U)
   rw [decodeBits_natBits] at h_bound
   exact h_bound
 
-/-- Final assembly: the complexity of Berry's algorithm output is bounded by `|k| + c`. -/
-lemma plainKNatFindComplexLe (U : Map) (hU : isOptimalConditional U)
+/-- The plain complexity of the first `n` with `f n > 2 ^ k` is at most the length of the
+binary representation of `k`, plus a constant. -/
+lemma plainKNat_findComplex_le (U : Map) (hU : isOptimalConditional U)
     (f : ℕ → ℕ) (h_f_comp : Computable f) (h_unb : ∀ M, ∃ n, f n > M) :
     ∃ c : ℕ, ∀ k, plainKNat U (Nat.find (h_unb (2^k))) ≤
       (programLength (Nat.bits k) : ENat) + (c : ENat) := by
   let g := fun k => Nat.find (h_unb (2^k))
   have hg_comp : Computable g := Computable.findComplex f h_f_comp h_unb
-  obtain ⟨c_g, h_bound_g⟩ := plainKNatCompLe U hU g hg_comp
-  obtain ⟨c_len, h_bound_len⟩ := plainKNatLeLength U hU
+  obtain ⟨c_g, h_bound_g⟩ := plainKNat_comp_le U hU g hg_comp
+  obtain ⟨c_len, h_bound_len⟩ := plainKNat_le_length U hU
   refine ⟨c_g + c_len, ?_⟩
   intro k
   calc
@@ -95,14 +96,14 @@ lemma plainKNatFindComplexLe (U : Map) (hU : isOptimalConditional U)
 
 /-- General Uncomputability Theorem:
     There is no computable, unbounded lower bound for Kolmogorov Complexity. -/
-theorem noComputableUnboundedLowerBound (U : Map) (hU : isOptimalConditional U) :
+theorem not_computable_unbounded_lowerBound (U : Map) (hU : isOptimalConditional U) :
     ¬ ∃ f : ℕ → ℕ, Computable f ∧
       (∀ n, (f n : ENat) ≤ plainKNat U n) ∧
       (∀ M, ∃ n, f n > M) := by
   rintro ⟨f, h_f_comp, h_lower, h_unb⟩
   let g (k : ℕ) := Nat.find (h_unb (2^k))
-  obtain ⟨c, hc⟩ := plainKNatFindComplexLe U hU f h_f_comp h_unb
-  obtain ⟨k, hk⟩ := growthLemma c
+  obtain ⟨c, hc⟩ := plainKNat_findComplex_le U hU f h_f_comp h_unb
+  obtain ⟨k, hk⟩ := growth_lemma c
   have h_top := hc k
   have h_find : 2^k < f (g k) := Nat.find_spec (h_unb (2^k))
   have h_find_enat : (2^k : ENat) < (f (g k) : ENat) := ENat.natCast_lt_natCast.mpr h_find
@@ -113,12 +114,12 @@ theorem noComputableUnboundedLowerBound (U : Map) (hU : isOptimalConditional U) 
   exact lt_irrefl _ (lt_trans h_chain_1 h_chain_2)
 
 /-- Main Theorem (Corollary): Kolmogorov complexity is not computable. -/
-theorem notComputablePlainKNat (U : Map) (hU : isOptimalConditional U) :
+theorem not_computable_plainKNat (U : Map) (hU : isOptimalConditional U) :
     ¬ ∃ f : ℕ → ℕ, Computable f ∧ ∀ n, plainKNat U n = (f n : ENat) := by
   rintro ⟨f, h_f_comp, h_f_eq⟩
-  apply noComputableUnboundedLowerBound U hU
+  apply not_computable_unbounded_lowerBound U hU
   refine ⟨f, h_f_comp, fun n => le_of_eq (h_f_eq n).symm, fun M => ?_⟩
-  obtain ⟨n, hn⟩ := existsPlainKNatGt U M
+  obtain ⟨n, hn⟩ := exists_plainKNat_gt U M
   refine ⟨n, ?_⟩
   rw [h_f_eq n] at hn
   exact ENat.natCast_lt_natCast.mp hn

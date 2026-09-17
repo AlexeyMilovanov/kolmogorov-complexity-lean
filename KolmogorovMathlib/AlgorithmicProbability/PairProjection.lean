@@ -68,8 +68,8 @@ theorem decodeFirst_computable : Computable decodeFirst := by
     (Primrec.list_findIdx Primrec.id (Primrec.not.comp Primrec.snd).to₂).of_eq
       (fun z => (takeWhile_id_length_eq_findIdx z).symm)
   have hdrop : Primrec (fun z : BitString => z.drop ((z.takeWhile id).length + 1)) :=
-    primrec_list_drop.comp Primrec.id (Primrec.succ.comp hlen)
-  exact ((primrec_list_take.comp hdrop hlen).of_eq (fun _ => rfl)).to_comp
+    Primrec.list_drop.comp (Primrec.succ.comp hlen) Primrec.id
+  exact ((Primrec.list_take.comp hlen hdrop).of_eq (fun _ => rfl)).to_comp
 
 /-- The second-component decoder is computable. -/
 theorem decodeSecond_computable : Computable decodeSecond := by
@@ -78,7 +78,7 @@ theorem decodeSecond_computable : Computable decodeSecond := by
       (fun z => (takeWhile_id_length_eq_findIdx z).symm)
   have hdrop : Primrec
       (fun z : BitString => z.drop (((z.takeWhile id).length + 1) + (z.takeWhile id).length)) :=
-    primrec_list_drop.comp Primrec.id (Primrec.nat_add.comp (Primrec.succ.comp hlen) hlen)
+    Primrec.list_drop.comp (Primrec.nat_add.comp (Primrec.succ.comp hlen) hlen) Primrec.id
   exact hdrop.to_comp
 
 /-- The **projection machine**: run `U` on the program (empty context) and decode
@@ -147,7 +147,7 @@ theorem pairMarginal_le_aprioriMeasure_projMap (U : Map) (x z : BitString) :
   · -- No second component is produced: the inner sum is zero.
     push Not at hp
     rw [ENNReal.tsum_eq_zero.mpr (fun y => if_neg (hp y))]
-    exact zero_le
+    exact bot_le
 
 /-- **Marginal coding bound at `k = K(x)`.** The scaled pair-output marginal is
 bounded by a uniform constant: `pairMarginal U x · 2^{k} ≤ 2^{c₂}` at `k = K(x)`.

@@ -10,7 +10,8 @@ complexity, a program counted here must halt on every possible condition.
 
 namespace Kolmogorov
 
-/-- A program is total in its condition for the decompressor `D`. -/
+/-- `p` is a total program for `D`: the computation `D (p, y)` is defined for every condition
+`y`. -/
 def IsTotalProgram (D : Map) (p : BitString) : Prop :=
   forall y : BitString, (D (p, y)).Dom
 
@@ -23,7 +24,8 @@ abbrev totalCandidateLengths (D : Map) (x y : BitString) : Set ENat :=
 noncomputable def totalCondK (D : Map) (x y : BitString) : ENat :=
   sInf (totalCandidateLengths D x y)
 
-/-- Optimality for total conditional complexity. -/
+/-- `U` is optimal for total conditional complexity: it is a decompressor and for every
+decompressor `D` there is a constant `c` with `totalCondK U x y ≤ totalCondK D x y + c`. -/
 def IsOptimalTotalConditional (U : Map) : Prop :=
   isDecompressor U /\
     forall D, isDecompressor D ->
@@ -41,6 +43,8 @@ noncomputable def IsStrongSetModel (U : Map) (x : BitString)
     (S : Finset BitString) (hS : S.Nonempty) (epsilon : Nat) : Prop :=
   totalCondK U (codedUniformOn S hS).code x <= (epsilon : ENat)
 
+/-- A total program producing `x` from `y` bounds the total conditional complexity of `x` given
+`y` by its length. -/
 lemma totalCondK_le_programLength
     {D : Map} {p x y : BitString}
     (htotal : IsTotalProgram D p)
@@ -77,6 +81,8 @@ theorem totalCondK_le_iff (D : Map) (x y : BitString) (n : Nat) :
   · rintro ⟨p, hp_tot, hlen, hp_prod⟩
     exact (totalCondK_le_programLength hp_tot hp_prod).trans (by exact_mod_cast hlen)
 
+/-- Prefixing a total program of a machine with the unary code of that machine gives a total
+program of the universal decompressor. -/
 lemma universalPrefix_total
     (D : Map) (code : Nat.Partrec.Code)
     (hc : ∀ p y,
@@ -88,9 +94,11 @@ lemma universalPrefix_total
     IsTotalProgram universalDecompressor
       (unaryPrefix (Encodable.encode code) ++ p) := by
   intro y
-  rw [universalSimulation, hc]
+  rw [universal_simulation, hc]
   exact hp y
 
+/-- The universal decompressor, on the unary code of a machine followed by one of its programs,
+produces the same output as that machine. -/
 lemma universalPrefix_produces
     (D : Map) (code : Nat.Partrec.Code)
     (hc : ∀ p y,
@@ -102,9 +110,11 @@ lemma universalPrefix_produces
     produces universalDecompressor
       (unaryPrefix (Encodable.encode code) ++ p) y x := by
   change x ∈ universalDecompressor _
-  rw [universalSimulation, hc]
+  rw [universal_simulation, hc]
   exact hp
 
+/-- Every total-program length for `x` given `y` on a machine `D` is matched, up to the length of
+the unary code of `D`, by one on the universal decompressor. -/
 lemma totalCandidateLengths_universalPrefix
     (D : Map) (code : Nat.Partrec.Code)
     (hc : ∀ p y,
@@ -129,12 +139,13 @@ lemma totalCandidateLengths_universalPrefix
 /-- An optimal decompressor for total conditional complexity exists. -/
 theorem exists_isOptimalTotalConditional :
     ∃ U : Map, IsOptimalTotalConditional U := by
-  refine ⟨universalDecompressor, isDecompressorUniversalDecompressor, fun D hD => ?_⟩
-  obtain ⟨code, hc⟩ := existsCodeOfIsDecompressor D hD
+  refine ⟨universalDecompressor, isDecompressor_universalDecompressor, fun D hD => ?_⟩
+  obtain ⟨code, hc⟩ := exists_code_of_isDecompressor D hD
   refine ⟨(unaryPrefix (Encodable.encode code)).length, fun x y => ?_⟩
   apply sInfLeSInfAdd
   exact totalCandidateLengths_universalPrefix D code hc x y
 
+/-- Being an `epsilon`-strong set model is preserved when `epsilon` is increased. -/
 theorem IsStrongSetModel.mono {U : Map} {x : BitString}
     {S : Finset BitString} {hS : S.Nonempty} {epsilon epsilon' : Nat}
     (h : epsilon <= epsilon') (hstrong : IsStrongSetModel U x S hS epsilon) :

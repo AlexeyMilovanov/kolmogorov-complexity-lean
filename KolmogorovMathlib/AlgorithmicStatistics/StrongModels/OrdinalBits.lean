@@ -1,6 +1,7 @@
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.StrongProfile
-import KolmogorovMathlib.AlgorithmicStatistics.BoundedComplexityLists.OmegaCount
+import KolmogorovMathlib.AlgorithmicStatistics.BoundedLists.OmegaCount
 import KolmogorovMathlib.AlgorithmicStatistics.Stochasticity
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.Partition.Part01
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.StrongProfile
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.SufficientStatistic
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.DescriptionShift
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.GapCounting
@@ -15,12 +16,15 @@ canonical enumeration of $A$. It also provides the fixed-width primitive
 -/
 
 namespace Kolmogorov
+
+open CodedFiniteDistribution
 open Kolmogorov.CodedFiniteDistribution
 
 /-- The ordinal number of `x` in the canonical enumeration of `A`. -/
 def strongModelOrdinal (A : Finset BitString) (x : BitString) : Nat :=
   (canonicalFinsetList A).findIdx (fun w => decide (w = x))
 
+/-- The ordinal of a member of `A` is smaller than the cardinality of `A`. -/
 theorem strongModelOrdinal_lt_card
     (A : Finset BitString) (x : BitString)
     (hx : x ∈ A) :
@@ -63,6 +67,7 @@ noncomputable def indexedElementDecompressor : Map :=
       ((canonicalPointListOfCode (decodeFirst input.2)).getD
         (decodeNatCode (decodeSecond input.2)) [])
 
+/-- The map returning the `u`-th element of a coded finite set is a decompressor. -/
 theorem indexedElementDecompressor_partrec :
     isDecompressor indexedElementDecompressor := by
   have hlist : Computable (fun input : BitString × BitString =>
@@ -75,10 +80,14 @@ theorem indexedElementDecompressor_partrec :
       (decodeSecond_computable.comp Computable.snd)
   exact (((Primrec.list_getD ([] : BitString)).to_comp).comp hlist hidx)
 
+/-- Every program of the indexed-element decompressor is total, since the map
+ignores its program and uses a default value on malformed conditions. -/
 theorem indexedElementDecompressor_total (q : BitString) :
     IsTotalProgram indexedElementDecompressor q :=
   fun _ => trivial
 
+/-- Conditioned on the pair of a model code and an ordinal, the decompressor outputs
+the corresponding member of the model. -/
 theorem indexedElementDecompressor_produces
     (A : Finset BitString) (hA : A.Nonempty) (x : BitString) (hx : x ∈ A) :
     produces indexedElementDecompressor []
@@ -99,6 +108,7 @@ noncomputable def ordinalPairPostFn
   pairCode c
     (natCode ((canonicalPointListOfCode c).findIdx (fun w => decide (w = input.2))))
 
+/-- Post-composing an output with its ordinal in the model is computable. -/
 theorem ordinalPairPostFn_computable : Computable₂ ordinalPairPostFn := by
   have hfindidx : Primrec (fun q : (BitString × BitString) × BitString =>
       (canonicalPointListOfCode q.2).findIdx (fun w => decide (w = q.1.2))) :=
@@ -110,8 +120,8 @@ theorem ordinalPairPostFn_computable : Computable₂ ordinalPairPostFn := by
       pairCode q.2
         (natCode ((canonicalPointListOfCode q.2).findIdx
           (fun w => decide (w = q.1.2))))) :=
-    CodedFiniteDistribution.pairCode_primrec.comp Primrec.snd
-      (CodedFiniteDistribution.natCode_primrec.comp hfindidx)
+    Kolmogorov.CodedFiniteDistribution.pairCode_primrec.comp Primrec.snd
+      (Kolmogorov.primrec_natCode.comp hfindidx)
   exact h.to_comp
 
 /-- On a program `p` (the strong program) and context `x'`, run `p` to obtain a
@@ -119,11 +129,13 @@ set-code and pair it with the ordinal of `x'` in that set. -/
 noncomputable def pairWithOrdinalDecompressor (T : Map) : Map :=
   fun input => (T input).map (ordinalPairPostFn input)
 
+/-- Pairing the output of a decompressor with an ordinal again gives a decompressor. -/
 theorem pairWithOrdinalDecompressor_partrec
     (T : Map) (hT : isDecompressor T) :
     isDecompressor (pairWithOrdinalDecompressor T) :=
   Partrec.map hT ordinalPairPostFn_computable
 
+/-- Totality of a program is preserved by pairing the output with an ordinal. -/
 theorem pairWithOrdinalDecompressor_total
     {T : Map} {p : BitString} (hp : IsTotalProgram T p) :
     IsTotalProgram (pairWithOrdinalDecompressor T) p := by
@@ -133,6 +145,8 @@ theorem pairWithOrdinalDecompressor_total
   obtain ⟨v, hv⟩ := Part.dom_iff_mem.mp (hp y)
   exact ⟨_, (Part.mem_map_iff _).2 ⟨v, hv, rfl⟩⟩
 
+/-- A program producing the code of a model for `x` produces, in the paired
+decompressor, the pair of that code with the ordinal of `x`. -/
 theorem pairWithOrdinalDecompressor_produces
     {T : Map} {p : BitString} {A : Finset BitString} {hA : A.Nonempty}
     {x : BitString}
@@ -199,14 +213,19 @@ theorem strong_model_equivalent_ordinal_pair
 
 /-! ### New Primitives (Fixed-width) -/
 
+/-- The ordinal of `x` in `A`, written in exactly `finiteSetLogCard A` bits. -/
 def strongModelOrdinalBits
     (A : Finset BitString) (x : BitString) : BitString :=
   chunkAddress (strongModelOrdinal A x) (finiteSetLogCard A)
 
+/-- The pair of the canonical code of the model `A` and the fixed-width ordinal bits
+of `x` in `A`. -/
 noncomputable def strongModelOrdinalBitsPair
     (A : Finset BitString) (hA : A.Nonempty) (x : BitString) : BitString :=
   pairCode (codedUniformOn A hA).code (strongModelOrdinalBits A x)
 
+/-- The fixed ordinal width of a nonempty set is the number of binary digits of
+`|A| - 1`. -/
 theorem finiteSetLogCard_eq_bits_card_pred
     (A : Finset BitString) (hA : A.Nonempty) :
     finiteSetLogCard A = (Nat.bits (A.card - 1)).length := by
@@ -218,18 +237,21 @@ theorem finiteSetLogCard_eq_bits_card_pred
   have hpow : 0 < 2 ^ j := pow_pos (by decide) j
   omega
 
+/-- The ordinal of a member of `A` fits in `finiteSetLogCard A` bits. -/
 theorem strongModelOrdinal_lt_two_pow_logCard
     (A : Finset BitString) (x : BitString) (hx : x ∈ A) :
     strongModelOrdinal A x < 2 ^ finiteSetLogCard A := by
   exact (strongModelOrdinal_lt_card A x hx).trans_le
     (finiteSetLogCard_spec A)
 
+/-- The ordinal bits of a member of `A` have length exactly `finiteSetLogCard A`. -/
 theorem strongModelOrdinalBits_length
     (A : Finset BitString) (x : BitString) (hx : x ∈ A) :
     (strongModelOrdinalBits A x).length = finiteSetLogCard A := by
   exact chunkAddress_length _ _
     (strongModelOrdinal_lt_two_pow_logCard A x hx)
 
+/-- Reading the ordinal bits as a numeral returns the ordinal. -/
 @[simp] theorem bitsToNat_strongModelOrdinalBits
     (A : Finset BitString) (x : BitString) :
     bitsToNat (strongModelOrdinalBits A x) = strongModelOrdinal A x := by
@@ -241,18 +263,22 @@ formula is executable even for malformed codes and agrees with
 noncomputable def ordinalWidthOfCode (c : BitString) : Nat :=
   (Nat.bits ((canonicalPointListOfCode c).length - 1)).length
 
+/-- The ordinal width read off the canonical code of `A` is `finiteSetLogCard A`. -/
 theorem ordinalWidthOfCode_codedUniformOn (A : Finset BitString) (hA : A.Nonempty) :
   ordinalWidthOfCode (codedUniformOn A hA).code = finiteSetLogCard A := by
   unfold ordinalWidthOfCode
   rw [canonicalPointListOfCode_codedUniformOn, length_canonicalFinsetList]
   exact (finiteSetLogCard_eq_bits_card_pred A hA).symm
 
+/-- The map that, given the pair of a model code and fixed-width ordinal bits,
+returns the corresponding member of the model. -/
 noncomputable def fixedOrdinalElementDecompressor : Map :=
   fun input =>
     Part.some
       ((canonicalPointListOfCode (decodeFirst input.2)).getD
         (bitsToNat (decodeSecond input.2)) [])
 
+/-- The fixed-width ordinal decompressor is a decompressor. -/
 theorem fixedOrdinalElementDecompressor_partrec :
     isDecompressor fixedOrdinalElementDecompressor := by
   have hlist : Computable (fun input : BitString × BitString =>
@@ -265,10 +291,13 @@ theorem fixedOrdinalElementDecompressor_partrec :
       (decodeSecond_computable.comp Computable.snd)
   exact (((Primrec.list_getD ([] : BitString)).to_comp).comp hlist hidx)
 
+/-- Every program of the fixed-width ordinal decompressor is total. -/
 theorem fixedOrdinalElementDecompressor_total (q : BitString) :
     IsTotalProgram fixedOrdinalElementDecompressor q :=
   fun _ => trivial
 
+/-- On the pair of a model code and the fixed-width ordinal bits of `x`, the
+decompressor outputs `x`. -/
 theorem fixedOrdinalElementDecompressor_produces
     (A : Finset BitString) (hA : A.Nonempty) (x : BitString) (hx : x ∈ A) :
     produces fixedOrdinalElementDecompressor []
@@ -280,12 +309,15 @@ theorem fixedOrdinalElementDecompressor_produces
   exact (getD_findIdx_decide_self (canonicalFinsetList A) x
     (mem_canonicalFinsetList.mpr hx)).symm
 
+/-- Post-composition that turns an output model code into the pair of that code with
+the fixed-width ordinal bits of the conditioned string. -/
 noncomputable def ordinalBitsPairPostFn
     (input : BitString × BitString) (c : BitString) : BitString :=
   pairCode c
     (chunkAddress ((canonicalPointListOfCode c).findIdx (fun w => decide (w = input.2)))
       (ordinalWidthOfCode c))
 
+/-- That post-composition is computable. -/
 theorem ordinalBitsPairPostFn_computable : Computable₂ ordinalBitsPairPostFn := by
   have hfindidx : Primrec (fun q : (BitString × BitString) × BitString =>
       (canonicalPointListOfCode q.2).findIdx (fun w => decide (w = q.1.2))) :=
@@ -297,7 +329,7 @@ theorem ordinalBitsPairPostFn_computable : Computable₂ ordinalBitsPairPostFn :
       ordinalWidthOfCode q.2) := by
     unfold ordinalWidthOfCode
     exact Primrec.list_length.comp
-      (primrecNatBits.comp
+      (primrec_natBits.comp
         (Primrec.pred.comp
           (Primrec.list_length.comp
             (canonicalPointListOfCode_primrec.comp Primrec.snd))))
@@ -306,16 +338,20 @@ theorem ordinalBitsPairPostFn_computable : Computable₂ ordinalBitsPairPostFn :
         ((canonicalPointListOfCode q.2).findIdx (fun w => decide (w = q.1.2)))
         (ordinalWidthOfCode q.2)) :=
     chunkAddress_primrec.comp hfindidx hwidth
-  exact (CodedFiniteDistribution.pairCode_primrec.comp Primrec.snd hchunk).to_comp
+  exact (Kolmogorov.CodedFiniteDistribution.pairCode_primrec.comp Primrec.snd hchunk).to_comp
 
+/-- The decompressor whose outputs are paired with the fixed-width ordinal bits of
+the conditioned string. -/
 noncomputable def pairWithOrdinalBitsDecompressor (T : Map) : Map :=
   fun input => (T input).map (ordinalBitsPairPostFn input)
 
+/-- Pairing outputs with fixed-width ordinal bits again gives a decompressor. -/
 theorem pairWithOrdinalBitsDecompressor_partrec
     (T : Map) (hT : isDecompressor T) :
     isDecompressor (pairWithOrdinalBitsDecompressor T) := by
   exact Partrec.map hT ordinalBitsPairPostFn_computable
 
+/-- Totality of a program is preserved by pairing the output with ordinal bits. -/
 theorem pairWithOrdinalBitsDecompressor_total
     {T : Map} {p : BitString} (hp : IsTotalProgram T p) :
     IsTotalProgram (pairWithOrdinalBitsDecompressor T) p := by
@@ -325,6 +361,8 @@ theorem pairWithOrdinalBitsDecompressor_total
   obtain ⟨v, hv⟩ := Part.dom_iff_mem.mp (hp y)
   exact ⟨_, (Part.mem_map_iff _).2 ⟨v, hv, rfl⟩⟩
 
+/-- A program producing the code of a model for `x` produces, in the paired
+decompressor, the pair of that code with the ordinal bits of `x`. -/
 theorem pairWithOrdinalBitsDecompressor_produces
     {T : Map} {p : BitString} {A : Finset BitString} {hA : A.Nonempty}
     {x : BitString}
@@ -338,6 +376,8 @@ theorem pairWithOrdinalBitsDecompressor_produces
   rw [canonicalPointListOfCode_codedUniformOn,
     ordinalWidthOfCode_codedUniformOn]
 
+/-- An `epsilon`-strong model `A` for `x` and the pair of `A` with the fixed-width
+ordinal of `x` in `A` are total-equivalent within `epsilon` plus a constant. -/
 theorem strong_model_equivalent_fixed_ordinal_pair
     (T : Map) (hT : IsOptimalTotalConditional T) :
     ∃ c : Nat, ∀ x A (hA : A.Nonempty) epsilon,
@@ -408,6 +448,7 @@ noncomputable def ordinalBitsElementFn
   (canonicalPointListOfCode modelCode).getD
     (bitsToNat ordinalBits) []
 
+/-- Recovering a member from a model code and ordinal bits is computable. -/
 theorem ordinalBitsElementFn_computable :
     Computable (fun p : BitString × BitString =>
       ordinalBitsElementFn p.1 p.2) := by
@@ -416,6 +457,8 @@ theorem ordinalBitsElementFn_computable :
     (canonicalPointListOfCode_computable.comp Computable.fst)
     (bitsToNat_primrec.to_comp.comp Computable.snd)
 
+/-- On the canonical code of `A` and the ordinal bits of `x` in `A`, the recovery
+function returns `x`. -/
 theorem ordinalBitsElementFn_eval
     (A : Finset BitString) (hA : A.Nonempty)
     (x : BitString) (hx : x ∈ A) :

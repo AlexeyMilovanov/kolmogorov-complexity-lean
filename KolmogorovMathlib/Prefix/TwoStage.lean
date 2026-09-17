@@ -233,24 +233,32 @@ def twoStageMap (c : Code) (ctx : BitString → Nat → BitString) : Map := fun 
 -/
 theorem twoStageS1_computable (c : Code) :
     Computable (fun p : BitString × ℕ => twoStageS1 c p.1 p.2) := by
-  -- The function `Code.evaln` is computable because it is a primitive recursive function.
-  have h_evaln_computable : Computable₂ (fun (n : ℕ) (m : ℕ) => Code.evaln n c m) :=
+  have hEvaln : Computable₂ (fun (n : Nat) (m : Nat) => Code.evaln n c m) :=
     evaln_fixed_computable c
-  have h_take_computable : Computable₂ (fun (w : BitString) (n : ℕ) => w.take n) :=
-    primrec_list_take.to_comp
-  apply Computable.option_bind
-  · exact h_evaln_computable.comp ( Computable.snd.comp (
-      Computable.unpair.comp Computable.snd ) ) ( Computable.encode.comp (
-          h_take_computable.comp Computable.fst ( Computable.fst.comp (
-              Computable.unpair.comp Computable.snd ) )
-                  |> Computable.pair <| Computable.const [] ) )
-  · exact Computable.decode.comp Computable.snd
+  have hTake : Computable₂ (fun (w : BitString) (n : Nat) => w.take n) :=
+    (Primrec.list_take.comp Primrec.snd Primrec.fst).to_comp
+  have hFuel : Computable (fun p : BitString × Nat => p.2.unpair.2) :=
+    Computable.snd.comp (Computable.unpair.comp Computable.snd)
+  have hSplit : Computable (fun p : BitString × Nat => p.2.unpair.1) :=
+    Computable.fst.comp (Computable.unpair.comp Computable.snd)
+  have hPrefix : Computable (fun p : BitString × Nat => p.1.take p.2.unpair.1) :=
+    hTake.comp Computable.fst hSplit
+  have hInput : Computable (fun p : BitString × Nat =>
+      Encodable.encode (p.1.take p.2.unpair.1, ([] : BitString))) :=
+    Computable.encode.comp (hPrefix.pair (Computable.const []))
+  have hEval : Computable (fun p : BitString × Nat =>
+      Code.evaln p.2.unpair.2 c
+        (Encodable.encode (p.1.take p.2.unpair.1, ([] : BitString)))) :=
+    hEvaln.comp hFuel hInput
+  have hDecode : Computable₂ (fun (_ : BitString × Nat) (e : Nat) =>
+      (Encodable.decode e : Option BitString)) :=
+    Computable.decode.comp Computable.snd
+  simpa [twoStageS1] using Computable.option_bind hEval hDecode
 
 /-
 `twoStageS2` as a function of the pair `(w, n)` is computable, provided the
 context map is computable.
 -/
--- Defeq unfolding of computability properties needs high heartbeats
 theorem twoStageS2_computable (c : Code) (ctx : BitString → Nat → BitString)
     (hctx : Computable (fun p : BitString × ℕ => ctx p.1 p.2)) :
     Computable (fun p : BitString × ℕ => twoStageS2 c ctx p.1 p.2) := by
@@ -259,20 +267,20 @@ theorem twoStageS2_computable (c : Code) (ctx : BitString → Nat → BitString)
       Computable (fun p : BitString × ℕ => p.2.unpair.1 : BitString × ℕ → ℕ) ∧
         Computable (fun p : BitString × ℕ => p.2.unpair.2 : BitString × ℕ → ℕ) := by
     refine ⟨ twoStageS1_computable c, ?_, ?_, ?_ ⟩;
-    · exact Primrec.to_comp ( primrec_list_drop.comp ( Primrec.fst ) ( Primrec.fst.comp (
-        Primrec.unpair.comp ( Primrec.snd ) ) ) )
+    · convert Primrec.to_comp ( Primrec.list_drop.comp ( Primrec.fst.comp (
+        Primrec.unpair.comp ( Primrec.snd ) ) ) ( Primrec.fst ) ) using 1;
     · exact Computable.fst.comp ( Computable.unpair.comp ( Computable.snd ) );
     · exact Computable.snd.comp ( Computable.unpair.comp ( Computable.snd ) );
   have h_comp : Computable (fun p : BitString × ℕ => (twoStageS1 c p.1 p.2).bind (fun x =>
     (Code.evaln p.2.unpair.2 c (Encodable.encode (p.1.drop p.2.unpair.1,
       ctx x p.2.unpair.1))).bind (fun e => (Encodable.decode e : Option BitString)))) := by
-    refine Computable.option_bind h_comp.1 (Computable.option_bind ?_ ?_)
-    · have H := (evaln_fixed_computable c).comp ( Computable.pair (
-          h_comp.2.2.2.comp Computable.fst ) ( Computable.encode.comp ( Computable.pair (
-              h_comp.2.1.comp Computable.fst ) ( hctx.comp ( Computable.pair (
-                  Computable.snd ) ( h_comp.2.2.1.comp Computable.fst ) ) ) ) ) )
-      exact H
-    · exact Computable.decode.comp ( Computable.snd )
+    apply Computable.option_bind h_comp.1;
+    apply Computable.option_bind;
+    · convert evaln_fixed_computable c |> Computable.comp <| Computable.pair (
+        h_comp.2.2.2.comp <| Computable.fst ) ( Computable.encode.comp <| Computable.pair (
+            h_comp.2.1.comp <| Computable.fst ) <| hctx.comp <| Computable.pair (
+                Computable.snd ) <| h_comp.2.2.1.comp <| Computable.fst ) using 1;
+    · exact Computable.decode.comp ( Computable.snd );
   exact h_comp
 
 /-! ### Computability of the context encoders -/
@@ -302,16 +310,33 @@ theorem pairCode_computable :
 theorem twoStagePairOut_computable (c : Code) (ctx : BitString → Nat → BitString)
     (hctx : Computable (fun p : BitString × ℕ => ctx p.1 p.2)) :
     Computable (fun p : BitString × ℕ => twoStagePairOut c ctx p.1 p.2) := by
-  have h_twoStageS2_computable : Computable (fun p : BitString × ℕ => twoStageS2 c ctx p.1 p.2) :=
+  have hs2 : Computable (fun p : BitString × Nat => twoStageS2 c ctx p.1 p.2) :=
     twoStageS2_computable c ctx hctx
-  have h_twoStageS1_computable : Computable (fun p : BitString × ℕ => twoStageS1 c p.1 p.2) :=
+  have hs1 : Computable (fun p : BitString × Nat => twoStageS1 c p.1 p.2) :=
     twoStageS1_computable c
-  apply Computable.option_bind h_twoStageS1_computable
-  have h_pairCode_computable : Computable₂ (fun (x y : BitString) => pairCode x y) :=
-    pairCode_computable
-  apply Computable.option_map
-  · exact h_twoStageS2_computable.comp ( Computable.fst )
-  · exact h_pairCode_computable.comp ( Computable.snd.comp Computable.fst ) Computable.snd
+  have hcont : Computable₂ (fun (p : BitString × Nat) (x : BitString) =>
+      (twoStageS2 c ctx p.1 p.2).map (fun y => pairCode x y)) := by
+    have hOut : Computable (fun q : (BitString × Nat) × BitString =>
+        twoStageS2 c ctx q.1.1 q.1.2) :=
+      hs2.comp Computable.fst
+    have hPairArg : Computable
+        (fun q : ((BitString × Nat) × BitString) × BitString =>
+          (q.1.2, q.2)) :=
+      (Computable.snd.comp Computable.fst).pair Computable.snd
+    have hPair : Computable₂
+        (fun (q : (BitString × Nat) × BitString) (y : BitString) =>
+          pairCode q.2 y) := by
+      exact @Partrec.comp
+        (((BitString × Nat) × BitString) × BitString)
+        (BitString × BitString)
+        BitString
+        inferInstance inferInstance inferInstance
+        (fun p => Part.some (pairCode p.1 p.2))
+        (fun q => (q.1.2, q.2))
+        pairCode_computable
+        hPairArg
+    exact Computable.option_map hOut hPair
+  simpa [twoStagePairOut] using Computable.option_bind hs1 hcont
 
 /-
 `twoStageCheck` is computable, provided the context map is computable.
@@ -470,12 +495,19 @@ theorem twoStageMap_dom_of_spec {U : Map} {ctx : BitString → Nat → BitString
       List.length_append]
     omega
   -- The dovetailing search therefore halts, and at its witness the output exists.
-  have hrdom : (Nat.rfind (fun m => Part.some (twoStageCheck c ctx (p ++ q) m))).Dom := by
-    exact Nat.rfind_dom.mpr ⟨Nat.pair p.length (max t1 t2),
-      by rw [Part.mem_some_iff, hcheck], fun {m} _ => Part.some_dom _⟩
+  let search : Nat →. Bool := fun m =>
+    Part.some (twoStageCheck c ctx (p ++ q) m)
+  have hrdom : (Nat.rfind search).Dom := by
+    rw [Nat.rfind_dom]
+    exact ⟨Nat.pair p.length (max t1 t2), by simp [search, hcheck],
+      fun {m} _ => by simp [search]⟩
   obtain ⟨n', hn'⟩ := Part.dom_iff_mem.mp hrdom
+  have hnInline : n' ∈ Nat.rfind
+      (fun m => Part.some (twoStageCheck c ctx (p ++ q) m)) := by
+    simpa [search] using hn'
   have hcheck' : twoStageCheck c ctx (p ++ q) n' = true := by
     have h := (Nat.mem_rfind.mp hn').1
+    change true ∈ Part.some (twoStageCheck c ctx (p ++ q) n') at h
     rw [Part.mem_some_iff] at h
     exact h.symm
   have hsome : (twoStagePairOut c ctx (p ++ q) n').isSome = true := by
@@ -485,7 +517,7 @@ theorem twoStageMap_dom_of_spec {U : Map} {ctx : BitString → Nat → BitString
   refine Part.dom_iff_mem.mpr ⟨z'', ?_⟩
   unfold twoStageMap
   rw [Part.mem_bind_iff]
-  exact ⟨n', hn', by rw [Part.mem_ofOption]; exact Option.mem_def.mpr hz''⟩
+  exact ⟨n', hnInline, by rw [Part.mem_ofOption]; exact Option.mem_def.mpr hz''⟩
 
 /-- The explicit decompressor equals the relational builder, for a code `c` of a
 prefix machine `U`. -/

@@ -70,7 +70,7 @@ theorem finiteSetLogCard_pred_lt
   unfold finiteSetLogCard
   simp
 
-/-! ### Monotonicity of the S4 parameters
+/-! ### Monotonicity in the parameters
 
 Sufficiency is monotone: enlarging the deficiency budget only weakens the
 requirement.  Minimality is monotone in `delta` and antitone in `kappa`: as the
@@ -78,6 +78,7 @@ source notes, smaller `delta` and larger `kappa` give a stronger property, so a
 `(delta, kappa)`-minimal model is also `(delta', kappa')`-minimal for
 `delta ≤ delta'` and `kappa' ≤ kappa`. -/
 
+/-- Being an `epsilon`-sufficient statistic is preserved when `epsilon` is increased. -/
 theorem IsSufficientStatistic.mono
     {V : Map} {x : BitString} {S : Finset BitString} {hS : S.Nonempty}
     {epsilon epsilon' : Nat} (hε : epsilon ≤ epsilon')
@@ -86,6 +87,8 @@ theorem IsSufficientStatistic.mono
   have hcast : (epsilon : ENat) ≤ (epsilon' : ENat) := Nat.cast_le.mpr hε
   exact ⟨h.1, h.2.trans (by gcongr)⟩
 
+/-- Minimality is preserved when the deficiency `delta` is increased and the tolerance `kappa`
+is decreased. -/
 theorem IsMinimalModel.mono
     {V : Map} {x : BitString} {S : Finset BitString} {hS : S.Nonempty}
     {delta delta' kappa kappa' : Nat}
@@ -99,6 +102,7 @@ theorem IsMinimalModel.mono
   refine h.2 B hB hxB (hprem.trans (by gcongr)) ((?_ : _ ≤ _).trans hconcl)
   gcongr
 
+/-- The log-cardinality of a finite set is monotone in its cardinality. -/
 theorem finiteSetLogCard_mono
     {S B : Finset BitString}
     (h : S.card ≤ B.card) :

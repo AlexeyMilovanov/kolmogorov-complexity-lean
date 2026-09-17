@@ -3,29 +3,33 @@ Copyright (c) 2026 Alexey Milovanov. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Alexey Milovanov
 -/
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.UniformDeficiencyBound
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.OrdinalBits
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.CanonicalImage
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.FullCube
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.UpwardConditional
 import KolmogorovMathlib.AlgorithmicStatistics.CodedFiniteDistribution
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.GapCounting
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.StepWiseTotal.Part01
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.UniformDeficiencyBound
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.UpwardConditional
 
 /-!
-# Image sets for strong-model ordinal-bit pairs
+# The image set of a strong model
 
-For a strong set model `A` of `x`, the ordinal-bits pair of `x` lies in an
-image set `B` of cardinality at most `2 ^ n` whose coded uniform distribution
-is totally conditionally cheap relative to the uniform distribution on
-`stringsOfLength n` (`strongModelPairImage_exists`); the plain complexity of
-that coded distribution is bounded accordingly
-(`plainK_codedUniformOn_image_le`).
+`strongModelPairImage_exists`: a strong set model `A` of a string of length `n` yields a set
+`B` of at most `2 ^ n` strings that contains the relevant images, so that arguments about `A`
+may be run inside a set of controlled size.  `plainK_codedUniformOn_image_le` is the
+complexity estimate that goes with it: a set describable from the full cube of length `n` in
+`m` bits by the total machine has a uniform code of plain complexity at most `m` up to a
+constant.
 -/
 
 open ENNReal
 
 namespace Kolmogorov
 
+/-- A strong set model `A` of a string of length `n` gives a set `B` of at most `2 ^ n` strings
+containing the ordinal-bits pair of `x` in `A`, describable from the full cube of length `n`
+in `epsilon + c` bits by the total machine. -/
 theorem strongModelPairImage_exists
     (T : Map) (hT : IsOptimalTotalConditional T) :
     ∃ c : Nat, ∀ x A (hA : A.Nonempty) n epsilon,
@@ -50,7 +54,7 @@ theorem strongModelPairImage_exists
   have h_canon := hc_img hp_total (stringsOfLength n) (codedStringsOfLength_nonempty n)
   obtain ⟨B, hB, hfwd, hback, hcard, hcomp⟩ := h_canon
   have hx_in_S : x ∈ stringsOfLength n := by
-    rw [memStringsOfLength]
+    rw [mem_stringsOfLength]
     exact hxn
   have hy_ex := hfwd x hx_in_S
   obtain ⟨y, hy_in_B, hprod_y⟩ := hy_ex
@@ -58,7 +62,7 @@ theorem strongModelPairImage_exists
   subst y_eq
   refine ⟨B, hB, hy_in_B, ?_, ?_⟩
   · calc B.card ≤ (stringsOfLength n).card := hcard
-      _ = 2 ^ n := by rw [cardStringsOfLength]
+      _ = 2 ^ n := by rw [card_stringsOfLength]
   · calc totalCondK T (codedUniformOn B hB).code
           (codedUniformOn (stringsOfLength n) (codedStringsOfLength_nonempty n)).code
       ≤ (programLength p : ENat) + (c_img : ENat) := hcomp
@@ -68,6 +72,8 @@ theorem strongModelPairImage_exists
       _ = ((epsilon + (c_equiv + c_img) : Nat) : ENat) := by
         exact_mod_cast (show epsilon + c_equiv + c_img = epsilon + (c_equiv + c_img) by omega)
 
+/-- A set describable from the full cube of length `n` in `m` bits by the total machine has
+uniform-model code of plain complexity at most `m + logSlack c n`. -/
 theorem plainK_codedUniformOn_image_le
     (V T : Map) (hV : isOptimalConditional V) (hT : isDecompressor T) :
     ∃ c : Nat, ∀ n (B : Finset BitString) (hB : B.Nonempty) (m : Nat),
@@ -103,7 +109,7 @@ theorem plainK_codedUniformOn_image_le
     (codedUniformOn (stringsOfLength n) (codedStringsOfLength_nonempty n)).code
     (logSlack cCube n) (m + cSim) hcub hcond
   refine hraw.trans ?_
-  have hbits : (Nat.bits (logSlack cCube n)).length ≤ logSlack cCube n := length_natBits_le_self _
+  have hbits : (Nat.bits (logSlack cCube n)).length ≤ logSlack cCube n := length_natBits_le _
   unfold logSlack at hbits ⊢
   exact_mod_cast (show
     (cCube * (Nat.bits n).length + cCube) + (m + cSim) +

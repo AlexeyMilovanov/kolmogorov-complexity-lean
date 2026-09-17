@@ -1,5 +1,5 @@
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.StrongProfile
-import KolmogorovMathlib.AlgorithmicStatistics.BoundedComplexityLists.OmegaCount
+import KolmogorovMathlib.AlgorithmicStatistics.BoundedLists.OmegaCount
 import KolmogorovMathlib.AlgorithmicStatistics.Stochasticity
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.SufficientStatistic
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.OrdinalBits
@@ -22,6 +22,8 @@ uniform constants, keeping plain and total conditional complexity distinct.
 -/
 
 namespace Kolmogorov
+
+open CodedFiniteDistribution
 open Kolmogorov.CodedFiniteDistribution
 
 
@@ -155,11 +157,10 @@ theorem stochasticityProfileSet_neighborhood_of_uniform_shifts
     refine ⟨(alpha + delta, beta + delta), hyx alpha beta hstoch, ?_⟩
     simp [natPairLInfDistance]
 
-/-- Source-faithful interface for VS40 Proposition `prop:upward`.
-
-The ordinary add-noise endpoint and total-equivalence arguments are proved.
-The unconditional upward endpoint still requires the budget-scale
-charged-heavy transport recorded in `UpwardConditional.lean`. -/
+/-- Proposition `prop:upward` as a proposition about `U` and `T`: there is a constant `c` such
+that whenever `A` is a strong set model of `x` with parameter `epsilon` giving `x` deficiency at
+most `epsilon`, the stochasticity profiles of `x` and of the canonical code of `A` are
+`(c * epsilon + logSlack c n)`-close, where `n = x.length`. -/
 def PropUpwardStatement (U T : Map) : Prop :=
   ∃ c : Nat, ∀ x A (hA : A.Nonempty) n epsilon,
     x.length = n →
@@ -176,27 +177,32 @@ def PropUpwardStatement (U T : Map) : Prop :=
 def hereditarySlack (c delta epsilon n : Nat) : Nat :=
   c * delta + c * (epsilon + (Nat.bits n).length) * Nat.sqrt n + c
 
+/-- The hereditary slack is monotone in its constant. -/
 theorem hereditarySlack_mono_c {c1 c2 delta epsilon n : Nat} (h : c1 ≤ c2) :
     hereditarySlack c1 delta epsilon n ≤ hereditarySlack c2 delta epsilon n := by
   unfold hereditarySlack
   gcongr
 
+/-- The hereditary slack is monotone in the minimality deficiency `delta`. -/
 theorem hereditarySlack_mono_delta {c delta1 delta2 epsilon n : Nat} (h : delta1 ≤ delta2) :
     hereditarySlack c delta1 epsilon n ≤ hereditarySlack c delta2 epsilon n := by
   unfold hereditarySlack
   gcongr
 
+/-- The hereditary slack is monotone in the model deficiency `epsilon`. -/
 theorem hereditarySlack_mono_epsilon {c delta epsilon1 epsilon2 n : Nat} (h : epsilon1 ≤ epsilon2) :
     hereditarySlack c delta epsilon1 n ≤ hereditarySlack c delta epsilon2 n := by
   unfold hereditarySlack
   gcongr
 
+/-- The hereditary slack is monotone in the length parameter. -/
 theorem hereditarySlack_mono_n {c delta epsilon n1 n2 : Nat} (h : n1 ≤ n2) :
     hereditarySlack c delta epsilon n1 ≤ hereditarySlack c delta epsilon n2 := by
   unfold hereditarySlack
   gcongr
   · exact length_natBits_mono h
 
+/-- The hereditary slack is monotone in all four of its arguments simultaneously. -/
 theorem hereditarySlack_mono
     {c₁ c₂ delta₁ delta₂ epsilon₁ epsilon₂ n₁ n₂ : Nat}
     (hc : c₁ ≤ c₂) (hδ : delta₁ ≤ delta₂)
@@ -244,7 +250,11 @@ def LemmaLchStatement (V T : Map) : Prop :=
             (c * Nat.sqrt n + logSlack c n : ENat) ∧
         plainSetComplexity V H hH ≤ plainSetComplexity V A hA + (alpha : ENat)
 
-/-- Source-faithful interface for VS40 Theorem `thm:hereditary`. -/
+/-- Theorem `thm:hereditary` as a proposition about `V` and `T`: there are constants
+`cKappa`, `cNormal` such that whenever `x` is a normal string of length `n` and `A` is a strong,
+sufficient and `(delta, logSlack cKappa n)`-minimal model of `x` with parameter `epsilon`, the
+canonical code of `A` is itself normal with parameter
+`hereditarySlack cNormal delta epsilon n`. -/
 def ThmHereditaryStatement (V T : Map) : Prop :=
   ∃ cKappa cNormal : Nat,
     ∀ x n A (hA : A.Nonempty) epsilon delta,
@@ -257,8 +267,12 @@ def ThmHereditaryStatement (V T : Map) : Prop :=
         (hereditarySlack cNormal delta epsilon n)
         (hereditarySlack cNormal delta epsilon n)
 
-/-- Source-faithful interface for VS40 Theorem `thm:step-wise`, keeping its
-ordinary plain and total conditional conclusions distinct. -/
+/-- Theorem `thm:step-wise` as a proposition about `V` and `T`: there are constants
+`cKappa`, `cPlain`, `cTotal` such that for sufficient statistics `A`, `B` of `x` with parameter
+`epsilon`, `A` being `(delta, epsilon + logSlack cKappa n)`-minimal, the plain conditional
+complexity of the code of `A` given the code of `B` is at most `cPlain * delta + logSlack cPlain n`,
+and, if `A` is moreover a strong set model, the total conditional complexity is at most
+`cTotal * (epsilon + delta) + logSlack cTotal n`. -/
 def ThmStepWiseStatement (V T : Map) : Prop :=
   ∃ cKappa cPlain cTotal : Nat,
     ∀ x n A (hA : A.Nonempty) B (hB : B.Nonempty)

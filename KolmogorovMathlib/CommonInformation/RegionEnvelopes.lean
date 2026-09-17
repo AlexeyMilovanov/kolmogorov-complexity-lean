@@ -2,19 +2,43 @@ import KolmogorovMathlib.CommonInformation.CommonWitnessCoding
 import KolmogorovMathlib.CommonInformation.Interfaces
 import KolmogorovMathlib.CommonInformation.WorstCaseRegion
 
+/-!
+# The common-information region: outer and inner envelopes
+
+The set of achievable triples `(K(z), K(x|z), K(y|z))` for a common witness `z` of a pair.
+`CommonInformationUpperEnvelope` is the outer bound imposed by the three complexities of the
+pair, `CommonInformationThreeFaceEnvelope` the union of the three obstruction half-spaces of
+SUV Theorem 224, and `CommonInformationLowerEnvelope` the exact lower polyhedral envelope of
+SUV Theorem 225.  All three are upward closed in each coordinate, and
+`commonInformationTripleInflate` (with `…_mono` and `…_add`) is the slack by which they are
+compared.
+
+`common_information_universal_upper` and `common_information_threeFace_containment` are the
+two containments proved here.  The coding leaves for the lower envelope —
+`plainK_combinedProgramPrefixes_le`,
+`condK_outputs_given_plain_and_conditionalProgramPrefix_le`,
+`condK_output_given_plainProgramPrefix_then_conditionalProgram_le` — and the finite case cover
+`commonInformationLowerEnvelope_prefix_case_cover` prepare the constructive inclusion, which
+is completed in `RegionLower`.
+-/
+
 namespace Kolmogorov
 
 open ENat
 
+/-- Enlarging each coordinate of a threshold triple by `c`. -/
 def commonInformationTripleInflate
     (c : Nat) (t : CommonInformationTriple) : CommonInformationTriple :=
   (t.1 + c, (t.2.1 + c, t.2.2 + c))
 
+/-- Inflating a triple is monotone in the inflation constant. -/
 theorem commonInformationTripleInflate_mono
     {c1 c2 : Nat} (h : c1 ≤ c2) (t : CommonInformationTriple) :
     t.1 + c1 ≤ t.1 + c2 ∧ t.2.1 + c1 ≤ t.2.1 + c2 ∧ t.2.2 + c1 ≤ t.2.2 + c2 := by
   omega
 
+/-- The outer bound on the common information region imposed by the three complexities
+`kx`, `ky` and `kxy`. -/
 def CommonInformationUpperEnvelope (kx ky kxy : Nat) : Set CommonInformationTriple :=
   { t | kx < t.1 + t.2.1 ∧ ky < t.1 + t.2.2 ∧ kxy < t.1 + t.2.1 + t.2.2 }
 
@@ -33,6 +57,7 @@ def CommonInformationLowerEnvelope (n : Nat) : Set CommonInformationTriple :=
   CommonInformationUpperEnvelope (2 * n) (2 * n) (3 * n) ∩
     CommonInformationThreeFaceEnvelope n
 
+/-- The upper envelope is upward closed in each of the three coordinates. -/
 theorem commonInformationUpperEnvelope_upward_closed (kx ky kxy : Nat)
     {s t : CommonInformationTriple} :
     s ∈ CommonInformationUpperEnvelope kx ky kxy →
@@ -47,6 +72,7 @@ theorem commonInformationUpperEnvelope_upward_closed (kx ky kxy : Nat)
       kxy < t.1 + t.2.1 + t.2.2
   omega
 
+/-- The three-face envelope is upward closed in each of the three coordinates. -/
 theorem commonInformationThreeFaceEnvelope_upward_closed (n : Nat)
     {s t : CommonInformationTriple} :
     s ∈ CommonInformationThreeFaceEnvelope n →
@@ -64,6 +90,7 @@ theorem commonInformationThreeFaceEnvelope_upward_closed (n : Nat)
   · exact Or.inr (Or.inl (by omega))
   · exact Or.inr (Or.inr (by omega))
 
+/-- The lower envelope is upward closed in each of the three coordinates. -/
 theorem commonInformationLowerEnvelope_upward_closed (n : Nat)
     {s t : CommonInformationTriple} :
     s ∈ CommonInformationLowerEnvelope n →
@@ -76,7 +103,79 @@ theorem commonInformationLowerEnvelope_upward_closed (n : Nat)
     commonInformationThreeFaceEnvelope_upward_closed
       n hThreeFace hFirst hLeft hRight⟩
 
-theorem commonInformationRegion_subset_upperEnvelope
+/-- The region of the pair supplied by Theorem 224 lies in the union of its
+three obstruction faces after the same uniform logarithmic inflation. -/
+theorem common_information_threeFace_containment
+    (V : Map) (hV : isOptimalConditional V) :
+    ∃ C : Nat, ∀ n : Nat,
+      ∃ x y : BitString, ∃ kx ky kxy : Nat,
+        x.length = 2 * n + 2 ∧
+        y.length = 2 * n + 2 ∧
+        HasPlainComplexityValue V x kx ∧
+        HasPlainComplexityValue V y ky ∧
+        HasPlainComplexityValue V (pairCode x y) kxy ∧
+        NatCloseWithin kx (2 * n) (logSlack C n) ∧
+        NatCloseWithin ky (2 * n) (logSlack C n) ∧
+        NatCloseWithin kxy (3 * n) (logSlack C n) ∧
+        MutualInformationWithin V x y n (logSlack C n) ∧
+        ∀ t ∈ CommonInformationRegion V x y,
+          commonInformationTripleInflate (logSlack C n) t ∈
+            CommonInformationThreeFaceEnvelope n := by
+  obtain ⟨C, hC⟩ :=
+    muchnik_worst_case_region V hV
+  refine ⟨C, fun n => ?_⟩
+  obtain ⟨x, y, kx, ky, kxy, hxLength, hyLength, hx, hy, hxy,
+    hxClose, hyClose, hxyClose, hMutual, hObstruction⟩ := hC n
+  refine ⟨x, y, kx, ky, kxy, hxLength, hyLength, hx, hy, hxy,
+    hxClose, hyClose, hxyClose, hMutual, ?_⟩
+  intro t ht
+  rcases ht with ⟨z, hz, hxz, hyz⟩
+  obtain ⟨kz, hkz⟩ := exists_plainComplexityValue V hV z
+  obtain ⟨kxz, hkxz⟩ :=
+    exists_plainConditionalComplexityValue V hV x z
+  obtain ⟨kyz, hkyz⟩ :=
+    exists_plainConditionalComplexityValue V hV y z
+  have hzNat : kz < t.1 := by
+    rw [hkz] at hz
+    exact_mod_cast hz
+  have hxzNat : kxz < t.2.1 := by
+    rw [hkxz] at hxz
+    exact_mod_cast hxz
+  have hyzNat : kyz < t.2.2 := by
+    rw [hkyz] at hyz
+    exact_mod_cast hyz
+  have hFaces := hObstruction z
+  rw [hkz, hkxz, hkyz] at hFaces
+  change
+    3 * n <
+        (t.1 + logSlack C n) + (t.2.1 + logSlack C n) ∨
+      3 * n <
+        (t.1 + logSlack C n) + (t.2.2 + logSlack C n) ∨
+      4 * n <
+        (t.1 + logSlack C n) + (t.2.1 + logSlack C n) +
+          (t.2.2 + logSlack C n)
+  rcases hFaces with hLeft | hRight | hPair
+  · left
+    have hLeftNat :
+        3 * n ≤ kz + kxz + logSlack C n := by
+      exact_mod_cast hLeft
+    omega
+  · right
+    left
+    have hRightNat :
+        3 * n ≤ kz + kyz + logSlack C n := by
+      exact_mod_cast hRight
+    omega
+  · right
+    right
+    have hPairNat :
+        4 * n ≤ kz + kxz + kyz + logSlack C n := by
+      exact_mod_cast hPair
+    omega
+
+/-- The universal upper bound on the common information region: every realised triple lies in the
+upper envelope after a logarithmic inflation. -/
+theorem common_information_universal_upper
     (V : Map) (hV : isOptimalConditional V) :
     ∃ c : Nat, ∀ {x y : BitString} {kx ky kxy : Nat},
       HasPlainComplexityValue V x kx →
@@ -137,87 +236,7 @@ theorem commonInformationRegion_subset_upperEnvelope
   refine ⟨hLeftBound.trans_le ?_, hRightBound.trans_le ?_,
     hPairBound.trans_le ?_⟩ <;> omega
 
-/-- The region of the pair supplied by Theorem 224 lies in the union of its
-three obstruction faces after the same uniform logarithmic inflation. -/
-theorem theorem_224_common_information_threeFace_containment
-    (V : Map) (hV : isOptimalConditional V) :
-    ∃ C : Nat, ∀ n : Nat,
-      ∃ x y : BitString, ∃ kx ky kxy : Nat,
-        x.length = 2 * n + 2 ∧
-        y.length = 2 * n + 2 ∧
-        HasPlainComplexityValue V x kx ∧
-        HasPlainComplexityValue V y ky ∧
-        HasPlainComplexityValue V (pairCode x y) kxy ∧
-        NatCloseWithin kx (2 * n) (logSlack C n) ∧
-        NatCloseWithin ky (2 * n) (logSlack C n) ∧
-        NatCloseWithin kxy (3 * n) (logSlack C n) ∧
-        MutualInformationWithin V x y n (logSlack C n) ∧
-        ∀ t ∈ CommonInformationRegion V x y,
-          commonInformationTripleInflate (logSlack C n) t ∈
-            CommonInformationThreeFaceEnvelope n := by
-  obtain ⟨C, hC⟩ :=
-    theorem_224_muchnik_worst_case_region V hV
-  refine ⟨C, fun n => ?_⟩
-  obtain ⟨x, y, kx, ky, kxy, hxLength, hyLength, hx, hy, hxy,
-    hxClose, hyClose, hxyClose, hMutual, hObstruction⟩ := hC n
-  refine ⟨x, y, kx, ky, kxy, hxLength, hyLength, hx, hy, hxy,
-    hxClose, hyClose, hxyClose, hMutual, ?_⟩
-  intro t ht
-  rcases ht with ⟨z, hz, hxz, hyz⟩
-  obtain ⟨kz, hkz⟩ := exists_plainComplexityValue V hV z
-  obtain ⟨kxz, hkxz⟩ :=
-    exists_plainConditionalComplexityValue V hV x z
-  obtain ⟨kyz, hkyz⟩ :=
-    exists_plainConditionalComplexityValue V hV y z
-  have hzNat : kz < t.1 := by
-    rw [hkz] at hz
-    exact_mod_cast hz
-  have hxzNat : kxz < t.2.1 := by
-    rw [hkxz] at hxz
-    exact_mod_cast hxz
-  have hyzNat : kyz < t.2.2 := by
-    rw [hkyz] at hyz
-    exact_mod_cast hyz
-  have hFaces := hObstruction z
-  rw [hkz, hkxz, hkyz] at hFaces
-  change
-    3 * n <
-        (t.1 + logSlack C n) + (t.2.1 + logSlack C n) ∨
-      3 * n <
-        (t.1 + logSlack C n) + (t.2.2 + logSlack C n) ∨
-      4 * n <
-        (t.1 + logSlack C n) + (t.2.1 + logSlack C n) +
-          (t.2.2 + logSlack C n)
-  rcases hFaces with hLeft | hRight | hPair
-  · left
-    have hLeftNat :
-        3 * n ≤ kz + kxz + logSlack C n := by
-      exact_mod_cast hLeft
-    omega
-  · right
-    left
-    have hRightNat :
-        3 * n ≤ kz + kyz + logSlack C n := by
-      exact_mod_cast hRight
-    omega
-  · right
-    right
-    have hPairNat :
-        4 * n ≤ kz + kxz + kyz + logSlack C n := by
-      exact_mod_cast hPair
-    omega
-
-theorem theorem_225_common_information_universal_upper
-    (V : Map) (hV : isOptimalConditional V) :
-    ∃ c : Nat, ∀ {x y : BitString} {kx ky kxy : Nat},
-      HasPlainComplexityValue V x kx →
-      HasPlainComplexityValue V y ky →
-      HasPlainComplexityValue V (pairCode x y) kxy →
-      ∀ t ∈ CommonInformationRegion V x y,
-        commonInformationTripleInflate (logSlack c (t.1 + t.2.1 + t.2.2 + 1)) t ∈
-          CommonInformationUpperEnvelope kx ky kxy := by
-  exact commonInformationRegion_subset_upperEnvelope V hV
-
+/-- Two successive inflations add up. -/
 theorem commonInformationTripleInflate_add
     (c₁ c₂ : Nat) (t : CommonInformationTriple) :
     commonInformationTripleInflate c₁
@@ -226,7 +245,8 @@ theorem commonInformationTripleInflate_add
   rcases t with ⟨a, b, c⟩
   simp [commonInformationTripleInflate, Nat.add_comm, Nat.add_left_comm]
 
-theorem theorem_225_conditional_values_close
+/-- For a pair with the standard profile, both conditional complexities are about `n`. -/
+theorem common_information_conditional_values_close
     (V : Map) (hV : isOptimalConditional V) :
     ∀ A, ∃ C, ∀ n x y kx ky kxy kxyCond kyxCond,
       HasPlainComplexityValue V x kx →
@@ -299,6 +319,8 @@ theorem theorem_225_conditional_values_close
   · constructor <;> omega
   · constructor <;> omega
 
+/-- A triple lying in both the upper and the three-face envelope lies, after a common inflation,
+in the lower envelope. -/
 theorem commonInformationTripleInflate_mem_lowerEnvelope
     {n dUpper dFace D : Nat} {t : CommonInformationTriple}
     (hUpper :
@@ -385,7 +407,7 @@ theorem condK_outputs_given_combined_plainProgramPrefixes_le
       bitsToNat_primrec.to_comp.comp (decodeFirst_computable.comp Computable.fst)
     have h_take : Computable (fun input : BitString × BitString =>
         input.2.take (bitsToNat (decodeFirst input.1))) :=
-      primrec_list_take.to_comp.comp Computable.snd h_i
+      Primrec.list_take.to_comp.comp h_i Computable.snd
     have h_sec : Computable (fun input : BitString × BitString =>
         decodeSecond input.1) :=
       decodeSecond_computable.comp Computable.fst
@@ -404,7 +426,7 @@ theorem condK_outputs_given_combined_plainProgramPrefixes_le
       bitsToNat_primrec.to_comp.comp (decodeFirst_computable.comp Computable.fst)
     have h_drop : Computable (fun input : BitString × BitString =>
         input.2.drop (bitsToNat (decodeFirst input.1))) :=
-      primrec_list_drop.to_comp.comp Computable.snd h_i
+      Primrec.list_drop.to_comp.comp h_i Computable.snd
     have h_sec : Computable (fun input : BitString × BitString =>
         decodeSecond input.1) :=
       decodeSecond_computable.comp Computable.fst
@@ -507,6 +529,66 @@ theorem condK_outputs_given_combined_plainProgramPrefixes_le
           nlinarith
         omega
 
+/-- Decompressor map for decoding conditional output `x` in
+`condK_outputs_given_plain_and_conditionalProgramPrefix_le`. -/
+private def anchoredCondDx (V : Map) : Map := fun input =>
+  (V (input.2.take (bitsToNat (decodeFirst input.1)), [])).bind
+    (fun y => V
+      (input.2.drop (bitsToNat (decodeFirst input.1)) ++
+        decodeSecond input.1, y))
+
+/-- Proof that `anchoredCondDx V` is a decompressor. -/
+private theorem isDecompressor_anchoredCondDx (V : Map) (hV : isOptimalConditional V) :
+    isDecompressor (anchoredCondDx V) := by
+  unfold isDecompressor anchoredCondDx
+  have h_i : Computable (fun input : BitString × BitString =>
+      bitsToNat (decodeFirst input.1)) :=
+    bitsToNat_primrec.to_comp.comp (decodeFirst_computable.comp Computable.fst)
+  have h_take : Computable (fun input : BitString × BitString =>
+      input.2.take (bitsToNat (decodeFirst input.1))) :=
+    Primrec.list_take.to_comp.comp h_i Computable.snd
+  have h_V1 : Partrec (fun input : BitString × BitString =>
+      V (input.2.take (bitsToNat (decodeFirst input.1)), [])) :=
+    Partrec.comp hV.1 (Computable.pair h_take (Computable.const []))
+  have h_drop : Computable (fun input : BitString × BitString =>
+      input.2.drop (bitsToNat (decodeFirst input.1))) :=
+    Primrec.list_drop.to_comp.comp h_i Computable.snd
+  have h_sec : Computable (fun input : BitString × BitString =>
+      decodeSecond input.1) :=
+    decodeSecond_computable.comp Computable.fst
+  have h_app : Computable (fun input : BitString × BitString =>
+      input.2.drop (bitsToNat (decodeFirst input.1)) ++
+        decodeSecond input.1) :=
+    Computable.list_append.comp h_drop h_sec
+  have h_V2 : Partrec₂
+      (fun (input : BitString × BitString) (y : BitString) =>
+        V (input.2.drop (bitsToNat (decodeFirst input.1)) ++
+          decodeSecond input.1, y)) := by
+    have h_app2 : Computable
+        (fun (p : (BitString × BitString) × BitString) =>
+          p.1.2.drop (bitsToNat (decodeFirst p.1.1)) ++
+            decodeSecond p.1.1) :=
+      h_app.comp Computable.fst
+    exact Partrec.comp hV.1 (Computable.pair h_app2 Computable.snd)
+  exact Partrec.bind h_V1 h_V2
+
+/-- Decompressor map for decoding output `y` in
+`condK_outputs_given_plain_and_conditionalProgramPrefix_le`. -/
+private def anchoredCondDy (V : Map) : Map := fun input =>
+  V (input.2.take (bitsToNat (decodeFirst input.1)), [])
+
+/-- Proof that `anchoredCondDy V` is a decompressor. -/
+private theorem isDecompressor_anchoredCondDy (V : Map) (hV : isOptimalConditional V) :
+    isDecompressor (anchoredCondDy V) := by
+  unfold isDecompressor anchoredCondDy
+  have h_i : Computable (fun input : BitString × BitString =>
+      bitsToNat (decodeFirst input.1)) :=
+    bitsToNat_primrec.to_comp.comp (decodeFirst_computable.comp Computable.fst)
+  have h_take : Computable (fun input : BitString × BitString =>
+      input.2.take (bitsToNat (decodeFirst input.1))) :=
+    Primrec.list_take.to_comp.comp h_i Computable.snd
+  exact Partrec.comp hV.1 (Computable.pair h_take (Computable.const []))
+
 /-- Anchored conditional-prefix leaf for SUV Theorem 225.
 Concatenating a full plain description of `y` with a prefix of a conditional
 description of `x` given `y` makes `y` logarithmically simple and leaves only
@@ -523,53 +605,11 @@ theorem condK_outputs_given_plain_and_conditionalProgramPrefix_le
         condK V x z ≤
           (((q.length - i +
             logSlack c (p.length + q.length + 1)) : Nat) : ENat) := by
-  let Dx : Map := fun input =>
-    (V (input.2.take (bitsToNat (decodeFirst input.1)), [])).bind
-      (fun y => V
-        (input.2.drop (bitsToNat (decodeFirst input.1)) ++
-          decodeSecond input.1, y))
-  have hDx : isDecompressor Dx := by
-    have h_i : Computable (fun input : BitString × BitString =>
-        bitsToNat (decodeFirst input.1)) :=
-      bitsToNat_primrec.to_comp.comp (decodeFirst_computable.comp Computable.fst)
-    have h_take : Computable (fun input : BitString × BitString =>
-        input.2.take (bitsToNat (decodeFirst input.1))) :=
-      primrec_list_take.to_comp.comp Computable.snd h_i
-    have h_V1 : Partrec (fun input : BitString × BitString =>
-        V (input.2.take (bitsToNat (decodeFirst input.1)), [])) :=
-      Partrec.comp hV.1 (Computable.pair h_take (Computable.const []))
-    have h_drop : Computable (fun input : BitString × BitString =>
-        input.2.drop (bitsToNat (decodeFirst input.1))) :=
-      primrec_list_drop.to_comp.comp Computable.snd h_i
-    have h_sec : Computable (fun input : BitString × BitString =>
-        decodeSecond input.1) :=
-      decodeSecond_computable.comp Computable.fst
-    have h_app : Computable (fun input : BitString × BitString =>
-        input.2.drop (bitsToNat (decodeFirst input.1)) ++
-          decodeSecond input.1) :=
-      Computable.list_append.comp h_drop h_sec
-    have h_V2 : Partrec₂
-        (fun (input : BitString × BitString) (y : BitString) =>
-          V (input.2.drop (bitsToNat (decodeFirst input.1)) ++
-            decodeSecond input.1, y)) := by
-      have h_app2 : Computable
-          (fun (p : (BitString × BitString) × BitString) =>
-            p.1.2.drop (bitsToNat (decodeFirst p.1.1)) ++
-              decodeSecond p.1.1) :=
-        h_app.comp Computable.fst
-      exact Partrec.comp hV.1 (Computable.pair h_app2 Computable.snd)
-    exact Partrec.bind h_V1 h_V2
+  let Dx := anchoredCondDx V
+  have hDx : isDecompressor Dx := isDecompressor_anchoredCondDx V hV
   obtain ⟨cx, hcx⟩ := hV.2 Dx hDx
-  let Dy : Map := fun input =>
-    V (input.2.take (bitsToNat (decodeFirst input.1)), [])
-  have hDy : isDecompressor Dy := by
-    have h_i : Computable (fun input : BitString × BitString =>
-        bitsToNat (decodeFirst input.1)) :=
-      bitsToNat_primrec.to_comp.comp (decodeFirst_computable.comp Computable.fst)
-    have h_take : Computable (fun input : BitString × BitString =>
-        input.2.take (bitsToNat (decodeFirst input.1))) :=
-      primrec_list_take.to_comp.comp Computable.snd h_i
-    exact Partrec.comp hV.1 (Computable.pair h_take (Computable.const []))
+  let Dy := anchoredCondDy V
+  have hDy : isDecompressor Dy := isDecompressor_anchoredCondDy V hV
   obtain ⟨cy, hcy⟩ := hV.2 Dy hDy
   let c := max (max cx cy) 3
   use c
@@ -678,7 +718,7 @@ theorem plainK_combinedProgramPrefixes_le
       plainK V (p.take i ++ q.take j) ≤
         (((i + j +
           logSlack c (p.length + q.length + 1)) : Nat) : ENat) := by
-  obtain ⟨c, hc⟩ := plainKLeLength V hV
+  obtain ⟨c, hc⟩ := plainK_le_length V hV
   refine ⟨c, fun p q i j hi hj => ?_⟩
   have hPrefixLength :
       (p.take i ++ q.take j).length = i + j := by
@@ -728,11 +768,11 @@ theorem condK_output_given_plainProgramPrefix_then_conditionalProgram_le
     have hSuffix : Computable (fun input : BitString × BitString =>
         (decodeSecond input.1).take
           (bitsToNat (decodeFirst input.1))) :=
-      primrec_list_take.to_comp.comp hBody hSuffixLength
+      Primrec.list_take.to_comp.comp hSuffixLength hBody
     have hRest : Computable (fun input : BitString × BitString =>
         (decodeSecond input.1).drop
           (bitsToNat (decodeFirst input.1))) :=
-      primrec_list_drop.to_comp.comp hBody hSuffixLength
+      Primrec.list_drop.to_comp.comp hSuffixLength hBody
     have hProgram : Computable (fun input : BitString × BitString =>
         input.2 ++ (decodeSecond input.1).take
           (bitsToNat (decodeFirst input.1))) :=

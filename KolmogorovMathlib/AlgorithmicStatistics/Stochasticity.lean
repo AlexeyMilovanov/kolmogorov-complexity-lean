@@ -14,28 +14,19 @@ is a "good fit" for `x` (deficiency $\le \beta$).
 namespace Kolmogorov
 
 open scoped ENNReal
-
-/-- A string `x` is `(alpha, beta)`-stochastic with respect to a universal machine `U`
-if there is a finite probability distribution `P` such that its plain complexity
-is bounded by `alpha` and the randomness deficiency of `x` with respect to `P`
-is bounded by `beta`. -/
-noncomputable def IsStochastic (U : Map) (x : BitString) (alpha beta : ℕ) : Prop :=
-  ∃ P : CodedFiniteDistribution,
-    P.IsProbability ∧ P.complexity U ≤ (alpha : ENat) ∧ DeficiencyLe U P x beta
-
-/-- Non-stochasticity is the negation of stochasticity. -/
-def IsNonStochastic (U : Map) (x : BitString) (alpha beta : ℕ) : Prop :=
-  ¬ IsStochastic U x alpha beta
+open CodedFiniteDistribution
 
 /-- Stochasticity is monotonic in `alpha`. -/
-theorem IsStochastic.mono_alpha {U : Map} {x : BitString} {alpha alpha' beta : ℕ}
+theorem CodedFiniteDistribution.IsStochastic.mono_alpha {U : Map} {x : BitString}
+    {alpha alpha' beta : ℕ}
     (h : alpha ≤ alpha') (hstoch : IsStochastic U x alpha beta) :
     IsStochastic U x alpha' beta := by
   obtain ⟨P, hP_prob, hP_comp, hP_def⟩ := hstoch
   exact ⟨P, hP_prob, le_trans hP_comp (by exact_mod_cast h), hP_def⟩
 
 /-- Stochasticity is monotonic in `beta`. -/
-theorem IsStochastic.mono_beta {U : Map} {x : BitString} {alpha beta beta' : ℕ}
+theorem CodedFiniteDistribution.IsStochastic.mono_beta {U : Map} {x : BitString}
+    {alpha beta beta' : ℕ}
     (h : beta ≤ beta') (hstoch : IsStochastic U x alpha beta) :
     IsStochastic U x alpha beta' := by
   obtain ⟨P, hP_prob, hP_comp, hP_def⟩ := hstoch
@@ -69,26 +60,30 @@ theorem isStochastic_dirac_self (U : Map) (x : BitString) (alpha : ℕ)
   apply isStochastic_dirac_of_KPPlain_le
   exact le_of_eq h
 
-/-- Every string of length `n` is weakly stochastic under the length-uniform model. -/
-theorem isStochastic_lengthUniform (U : Map) (x : BitString) (n : ℕ) (_ : x.length = n)
+/-- Every string is weakly stochastic under the model `codedLengthUniform n`, as soon as that
+model is cheap enough and fits the string. -/
+theorem isStochastic_lengthUniform (U : Map) (x : BitString) (n : ℕ)
     (alpha beta : ℕ)
     (hcomp : (codedLengthUniform n).complexity U ≤ (alpha : ENat))
     (hdef : DeficiencyLe U (codedLengthUniform n) x beta) :
     IsStochastic U x alpha beta :=
   isStochastic_of_model U x _ alpha beta (codedLengthUniform_isProbability n) hcomp hdef
 
-/-- The code mapping from a unary length code to the canonical length-uniform
-distribution code.  The remaining computability obligation is exactly the fact
-that this canonical `Finset.toList` enumeration can be generated effectively. -/
+/-- The canonical code of the uniform distribution on the strings of length `n`, where `n` is
+the length of the leading block of ones of `w` (the unary code of `n`). -/
 def lengthUniformCode (w : BitString) : BitString :=
   (codedLengthUniform (w.takeWhile id).length).code
 
+/-- On the code of the number `n`, the code transformer `lengthUniformCode` returns the code of
+the uniform distribution on the strings of length `n`. -/
 theorem lengthUniformCode_eq (n : ℕ) :
     lengthUniformCode (natCode n) = (codedLengthUniform n).code := by
   have h : ((natCode n).takeWhile id).length = n := by
     simp [natCode]
   rw [lengthUniformCode, h]
 
+/-- The map sending `n` to the code of the uniform distribution on strings of length `n` is
+computable. -/
 theorem lengthUniformCode_computable : Computable lengthUniformCode :=
   (CodedFiniteDistribution.codedLengthUniform_code_primrec.to_comp.comp
     (((Primrec.list_findIdx Primrec.id (Primrec.not.comp Primrec.snd).to₂).of_eq
@@ -118,7 +113,7 @@ theorem isStochastic_lengthUniform_log (U : Map) (hU : IsOptimalPrefixConditiona
       _ = (2 * (Nat.bits x.length).length + (c1 + c2 : Nat) : ENat) := by
           rw [Nat.cast_add]
           simp [add_comm, add_assoc]
-  exact isStochastic_lengthUniform U x x.length rfl
+  exact isStochastic_lengthUniform U x x.length
     (2 * (Nat.bits x.length).length + (c1 + c2)) beta h_comp hdef
 
 end Kolmogorov

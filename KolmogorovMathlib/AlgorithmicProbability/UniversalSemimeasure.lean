@@ -57,6 +57,7 @@ noncomputable def unaryMixture (w : ℕ → ℝ≥0∞)
     (μ : ℕ → BitString → ℝ≥0∞) (x : BitString) : ℝ≥0∞ :=
   ∑' i, w i * μ i x
 
+/-- A mixture of semimeasures whose weights have total mass at most one is again a semimeasure. -/
 theorem unaryMixture_isSemimeasure (w : ℕ → ℝ≥0∞)
     (μ : ℕ → BitString → ℝ≥0∞) (hw : (∑' i, w i) ≤ 1)
     (hμ : ∀ i, IsSemimeasure (μ i)) :
@@ -168,7 +169,8 @@ theorem lowerSemicomputableSemimeasure_le_prefixComplexityWeight
     ∃ c : ℕ, ∀ x,
       (2 : ℝ≥0∞)⁻¹ ^ c * m x ≤ prefixComplexityWeight U x := by
   obtain ⟨M, hM, c₀, hreal⟩ :=
-    kraftChaitin_realization_bound hm.2 0 (fun _ => (hm.1 : (∑' x : BitString, m x) ≤ 1))
+    kraftChaitin_realization_bound hm.2 0
+      (fun _ => by simpa only [IsSemimeasure, pow_zero] using hm.1)
   obtain ⟨c, hc⟩ := complexityWeight_dominates_of_prefix_realization hU hM hreal
   exact ⟨c, fun x => hc x []⟩
 
@@ -261,6 +263,8 @@ lemmas are used). -/
       | some v => v * 2 ^ (s - s')
       | none => 0)
 
+/-- The stage approximation of the machine with index `i` is computable jointly in the index, the
+stage and the two strings. -/
 lemma approxEnum_computable :
     Computable (fun p : ℕ × ℕ × BitString × BitString =>
       approxEnum p.1 p.2.1 p.2.2.1 p.2.2.2) := by
@@ -313,7 +317,7 @@ lemma approxEnum_computable :
                 have h_primrec : Primrec (fun p : ℕ × ℕ => p.2 - p.1) := by
                   exact Primrec.nat_sub.comp ( Primrec.snd ) ( Primrec.fst );
                 have h_primrec : Primrec (fun p : ℕ => 2 ^ p) := by
-                  convert primrec_two_pow using 1;
+                  convert primrec_two_pow_aux using 1;
                 exact h_primrec.comp ‹_›;
               convert h_primrec.comp ( show Primrec
                   ( fun p : ℕ × ℕ × BitString × BitString × ℕ => ( p.1, p.2.1 ) )
@@ -379,8 +383,8 @@ lemma exists_approxEnum (approx : ℕ → BitString → BitString → ℕ)
                 ( Computable.const ( 0, [ ], [ ] ) ) ) using 1;
             simp +decide [ Encodable.encodek ];
           obtain ⟨ h, hh₁, hh₂ ⟩ := h_total;
-          have := @Nat.Partrec.Code.exists_code;
-          obtain ⟨ c, hc ⟩ := this.mp (Partrec.nat_iff.mp hh₁)
+          obtain ⟨c, hc⟩ := Nat.Partrec.Code.exists_code.mp
+            (Partrec.nat_iff.mp hh₁.partrec)
           exact ⟨ c, fun s out ctx => by simp +decide [ ← hh₂, hc ] ⟩;
         refine ⟨ Encodable.encode c, fun out ctx =>
             le_antisymm ?_ ?_ ⟩ <;>
@@ -461,6 +465,7 @@ def makeMono (approx : ℕ → BitString → BitString → ℕ) : ℕ → BitStr
   | 0, out, ctx => approx 0 out ctx
   | (s+1), out, ctx => max (2 * makeMono approx s out ctx) (approx (s+1) out ctx)
 
+/-- Monotonisation makes the dyadic stage values non-decreasing in the stage. -/
 lemma makeMono_mono (approx : ℕ → BitString → BitString → ℕ) (s : ℕ) (out ctx : BitString) :
     dyadicValue (makeMono approx s out ctx) s ≤ dyadicValue (makeMono approx (s + 1) out ctx)
         (s + 1) := by
@@ -486,6 +491,7 @@ lemma makeMono_mono (approx : ℕ → BitString → BitString → ℕ) (s : ℕ)
           exact_mod_cast Nat.le_max_left (2 * makeMono approx s out ctx)
             (approx (s + 1) out ctx)
 
+/-- Monotonisation only increases a stage value. -/
 lemma makeMono_ge (approx : ℕ → BitString → BitString → ℕ) (s : ℕ) (out ctx : BitString) :
     dyadicValue (approx s out ctx) s ≤ dyadicValue (makeMono approx s out ctx) s := by
   cases s with
@@ -500,20 +506,7 @@ lemma makeMono_ge (approx : ℕ → BitString → BitString → ℕ) (s : ℕ) (
       exact_mod_cast Nat.le_max_right (2 * makeMono approx s out ctx)
         (approx (s + 1) out ctx)
 
-lemma dyadicValue_two_mul_succ (n s : ℕ) :
-    dyadicValue (2 * n) (s + 1) = dyadicValue n s := by
-  unfold dyadicValue
-  rw [pow_succ', div_eq_mul_inv, div_eq_mul_inv]
-  rw [ENNReal.mul_inv]
-  · norm_num
-    rw [show (2 : ℝ≥0∞) * (n : ℝ≥0∞) *
-          ((2 : ℝ≥0∞)⁻¹ * ((2 : ℝ≥0∞) ^ s)⁻¹)
-        = (n : ℝ≥0∞) *
-          (((2 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹) * ((2 : ℝ≥0∞) ^ s)⁻¹) by ring,
-      ENNReal.mul_inv_cancel two_ne_zero ENNReal.ofNat_ne_top, one_mul]
-  · exact Or.inl two_ne_zero
-  · exact Or.inl ENNReal.ofNat_ne_top
-
+/-- The monotonisation of a computable family of stage approximations is computable. -/
 lemma makeMono_computable (approx : ℕ → BitString → BitString → ℕ)
     (hcomp : Computable (fun p : ℕ × BitString × BitString => approx p.1 p.2.1 p.2.2)) :
     Computable (fun p : ℕ × BitString × BitString => makeMono approx p.1 p.2.1 p.2.2) := by
@@ -550,6 +543,19 @@ lemma makeMono_computable (approx : ℕ → BitString → BitString → ℕ)
           = makeMono approx (s + 1) p.2.1 p.2.2
         simp [makeMono, step, ih])
 
+local instance makeMonoBitsPairPrimcodable :
+    Primcodable (BitString × BitString) := Primcodable.prod
+local instance makeMonoIndexPrimcodable :
+    Primcodable (ℕ × BitString × BitString) := Primcodable.prod
+local instance makeMonoInputPrimcodable :
+    Primcodable (ℕ × ℕ × BitString × BitString) := Primcodable.prod
+local instance makeMonoNatPairPrimcodable :
+    Primcodable (ℕ × ℕ) := Primcodable.prod
+local instance makeMonoAuxPrimcodable :
+    Primcodable ((ℕ × BitString × BitString) × ℕ) := Primcodable.prod
+local instance makeMonoStepPrimcodable :
+    Primcodable (((ℕ × BitString × BitString) × ℕ) × (ℕ × ℕ)) := Primcodable.prod
+
 /-
 Uniform (index-parameterized) computability of `makeMono`: a jointly
 computable family of approximations `b i` yields a jointly computable family
@@ -560,46 +566,84 @@ lemma makeMono_computable_uniform (b : ℕ → ℕ → BitString → BitString �
     (hb : Computable (fun p : ℕ × ℕ × BitString × BitString => b p.1 p.2.1 p.2.2.1 p.2.2.2)) :
     Computable (fun p : ℕ × ℕ × BitString × BitString =>
       makeMono (b p.1) p.2.1 p.2.2.1 p.2.2.2) := by
-  apply Computable.of_eq
-  · apply Computable.nat_rec
-    case hf => exact Computable.fst.comp Computable.snd
-    case hg =>
-      exact hb.comp (Computable.fst.pair ((Computable.const 0).pair
-        (Computable.snd.comp Computable.snd)))
-    case h => exact fun p q => max ( 2 * q.2 ) ( b p.1 ( q.1 + 1 ) p.2.2.1 p.2.2.2 )
-    case hh =>
-      apply Computable.of_eq
-      rotate_right
-      · exact fun p => max ( 2 * p.2.2 ) ( b p.1.1 ( p.2.1 + 1 ) p.1.2.2.1 p.1.2.2.2 )
-      · apply Computable.of_eq
-        · apply Computable.comp (Primrec.nat_max.to_comp)
-          rotate_left
-          · exact fun p =>
-            ( 2 * p.2.2, b p.1.1 ( p.2.1 + 1 ) p.1.2.2.1 p.1.2.2.2 )
-          · apply Computable.pair
-            · apply Computable.comp (Primrec.nat_mul.to_comp)
-                (Computable.const 2 |> Computable.pair <| Computable.snd.comp Computable.snd)
-            · convert hb.comp _ using 1
-              rotate_left
-              · exact fun p => ( p.1.1, p.2.1 + 1, p.1.2.2.1, p.1.2.2.2 )
-              · apply Computable.pair
-                · exact Computable.fst.comp Computable.fst
-                · apply Computable.pair
-                  · exact Computable.succ.comp ( Computable.fst.comp ( Computable.snd ) )
-                  · apply Computable.pair
-                    · exact Computable.fst.comp ( Computable.snd.comp
-                        ( Computable.snd.comp Computable.fst ) )
-                    · exact Computable.snd.comp ( Computable.snd.comp
-                        ( Computable.snd.comp Computable.fst ) )
-              · rfl
-        · grind
-      · grind +extAll
-  · intro n; induction n.2.1 <;> simp +decide [ *, makeMono ]
+  have hmul : Computable (fun n : ℕ => 2 * n) :=
+    (Primrec.nat_mul.comp (Primrec.const 2) Primrec.id).to_comp
+  have haux : Computable
+      (fun p : (ℕ × BitString × BitString) × ℕ =>
+        makeMono (b p.1.1) p.2 p.1.2.1 p.1.2.2) := by
+    have hf : Computable (fun p : (ℕ × BitString × BitString) × ℕ => p.2) :=
+      Computable.snd
+    have hargs0 : Computable
+        (fun p : (ℕ × BitString × BitString) × ℕ => (p.1.1, (0, p.1.2))) :=
+      (Computable.fst.comp Computable.fst).pair
+        ((Computable.const (0 : ℕ)).pair (Computable.snd.comp Computable.fst))
+    have hg : Computable
+        (fun p : (ℕ × BitString × BitString) × ℕ =>
+          b p.1.1 0 p.1.2.1 p.1.2.2) :=
+      @Computable.comp
+        ((ℕ × BitString × BitString) × ℕ)
+        (ℕ × ℕ × BitString × BitString) ℕ
+        makeMonoAuxPrimcodable makeMonoInputPrimcodable
+        (inferInstance : Primcodable ℕ)
+        (fun q => b q.1 q.2.1 q.2.2.1 q.2.2.2)
+        (fun p => (p.1.1, (0, p.1.2)))
+        hb hargs0
+    have hh_uncurried : Computable
+        (fun r : ((ℕ × BitString × BitString) × ℕ) × (ℕ × ℕ) =>
+          max (2 * r.2.2) (b r.1.1.1 (r.2.1 + 1) r.1.1.2.1 r.1.1.2.2)) := by
+      have hleft : Computable
+          (fun r : ((ℕ × BitString × BitString) × ℕ) × (ℕ × ℕ) => 2 * r.2.2) :=
+        hmul.comp (Computable.snd.comp Computable.snd)
+      have hstage : Computable
+          (fun r : ((ℕ × BitString × BitString) × ℕ) × (ℕ × ℕ) => r.2.1 + 1) :=
+        Computable.succ.comp (Computable.fst.comp Computable.snd)
+      have hcontext : Computable
+          (fun r : ((ℕ × BitString × BitString) × ℕ) × (ℕ × ℕ) => r.1.1.2) :=
+        Computable.snd.comp (Computable.fst.comp Computable.fst)
+      have hargs : Computable
+          (fun r : ((ℕ × BitString × BitString) × ℕ) × (ℕ × ℕ) =>
+            (r.1.1.1, (r.2.1 + 1, r.1.1.2))) :=
+        (Computable.fst.comp (Computable.fst.comp Computable.fst)).pair
+          (hstage.pair hcontext)
+      have hright : Computable
+          (fun r : ((ℕ × BitString × BitString) × ℕ) × (ℕ × ℕ) =>
+            b r.1.1.1 (r.2.1 + 1) r.1.1.2.1 r.1.1.2.2) :=
+        @Computable.comp
+          (((ℕ × BitString × BitString) × ℕ) × (ℕ × ℕ))
+          (ℕ × ℕ × BitString × BitString) ℕ
+          makeMonoStepPrimcodable makeMonoInputPrimcodable
+          (inferInstance : Primcodable ℕ)
+          (fun q => b q.1 q.2.1 q.2.2.1 q.2.2.2)
+          (fun r => (r.1.1.1, (r.2.1 + 1, r.1.1.2)))
+          hb hargs
+      exact Primrec.nat_max.to_comp.comp hleft hright
+    have hrec := Computable.nat_rec hf hg hh_uncurried.to₂
+    exact hrec.of_eq (fun p => by
+      induction p.2 with
+      | zero => rfl
+      | succ s ih =>
+          change Nat.rec (b p.1.1 0 p.1.2.1 p.1.2.2)
+              (fun y ih => max (2 * ih) (b p.1.1 (y + 1) p.1.2.1 p.1.2.2)) (s + 1) =
+            makeMono (b p.1.1) (s + 1) p.1.2.1 p.1.2.2
+          simp [makeMono, ih])
+  have hreorder : Computable
+      (fun p : ℕ × ℕ × BitString × BitString => ((p.1, p.2.2), p.2.1)) :=
+    (Computable.fst.pair (Computable.snd.comp Computable.snd)).pair
+      (Computable.fst.comp Computable.snd)
+  exact @Computable.comp
+    (ℕ × ℕ × BitString × BitString)
+    ((ℕ × BitString × BitString) × ℕ) ℕ
+    makeMonoInputPrimcodable makeMonoAuxPrimcodable
+    (inferInstance : Primcodable ℕ)
+    (fun p => makeMono (b p.1.1) p.2 p.1.2.1 p.1.2.2)
+    (fun p => ((p.1, p.2.2), p.2.1))
+    haux hreorder
 
 /-- A sanitised LSC approximation generated by truncating `makeMono (approxEnum i)` to unit mass. -/
 noncomputable def lscEnum (i : ℕ) : BitString → BitString → ℝ≥0∞ :=
   truncG (makeMono (approxEnum i)) 0
 
+/-- Every member of the enumeration is lower semicomputable. -/
 lemma lscEnum_isLSC (i : ℕ) : IsLSC (lscEnum i) := by
   refine ⟨truncGapprox (makeMono (approxEnum i)) 0, ?_, ?_, ?_⟩
   · intro S out ctx; exact truncGapprox_mono 0 S out ctx
@@ -609,10 +653,12 @@ lemma lscEnum_isLSC (i : ℕ) : IsLSC (lscEnum i) := by
       (approxEnum_computable.comp
         ((Computable.const i).pair (Computable.fst.pair Computable.snd)))
 
+/-- Every member of the enumeration is a semimeasure in its output argument. -/
 lemma lscEnum_isSemimeasure (i : ℕ) : IsSemimeasure (fun x => lscEnum i x []) := by
   change (∑' x, truncG (makeMono (approxEnum i)) 0 x []) ≤ 1
   exact tsum_truncG_le 0 []
 
+/-- Monotonisation does not change the supremum of the stage values. -/
 lemma iSup_makeMono_eq_iSup (approx : ℕ → BitString → BitString → ℕ) (out ctx : BitString) :
     (⨆ s, dyadicValue (makeMono approx s out ctx) s) = (⨆ s, dyadicValue (approx s out ctx) s) := by
   apply le_antisymm
@@ -787,7 +833,7 @@ lemma isLSC_unaryMixture_dyadicWeight_of_uniform
           rotate_right
           · exact fun p => 2 ^ ( p.1.1 - ( p.2 + 1 ) - p.1.1 / 2 )
           · convert Primrec.to_comp _
-            convert Primrec.comp ( primrec_two_pow )
+            convert Primrec.comp ( primrec_two_pow_aux )
               ( Primrec.nat_sub.comp ( Primrec.nat_sub.comp ( Primrec.fst.comp (
                 Primrec.fst ) ) ( Primrec.succ.comp ( Primrec.snd ) ) ) (
                   Primrec.nat_div.comp ( Primrec.fst.comp ( Primrec.fst ) )

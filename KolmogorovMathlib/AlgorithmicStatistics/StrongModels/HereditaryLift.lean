@@ -1,6 +1,7 @@
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.Basic
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.Partition
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.SufficientStatistic
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.Partition.Part01
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.Partition
 
 /-!
 # G → L model lifting (S8, hereditary chain)
@@ -79,6 +80,7 @@ is primitive recursive. -/
 def clogEqBool (m r : Nat) : Bool :=
   decide (m ≤ 2 ^ r ∧ (r = 0 ∨ 2 ^ (r - 1) < m))
 
+/-- The dyadic bracket test succeeds exactly when the binary ceiling logarithm of `m` equals `r`. -/
 theorem clogEqBool_iff (m r : Nat) :
     clogEqBool m r = true ↔ Nat.clog 2 m = r := by
   unfold clogEqBool
@@ -97,15 +99,16 @@ theorem clogEqBool_iff (m r : Nat) :
     · exact Or.inl h0
     · exact Or.inr ((Nat.lt_clog_iff_pow_lt (by norm_num)).mp (by omega))
 
+/-- The dyadic bracket test is primitive recursive in both arguments. -/
 theorem clogEqBool_primrec : Primrec₂ clogEqBool := by
   have h : PrimrecPred (fun p : ℕ × ℕ =>
       p.1 ≤ 2 ^ p.2 ∧ (p.2 = 0 ∨ 2 ^ (p.2 - 1) < p.1)) :=
     PrimrecPred.and
-      (Primrec.nat_le.comp Primrec.fst (twoPow_primrec.comp Primrec.snd))
+      (Primrec.nat_le.comp Primrec.fst (primrec_two_pow_aux.comp Primrec.snd))
       (PrimrecPred.or
         (Primrec.eq.comp Primrec.snd (Primrec.const 0))
         (Primrec.nat_lt.comp
-          (twoPow_primrec.comp (Primrec.nat_sub.comp Primrec.snd (Primrec.const 1)))
+          (primrec_two_pow_aux.comp (Primrec.nat_sub.comp Primrec.snd (Primrec.const 1)))
           Primrec.fst))
   exact h.decide
 
@@ -117,6 +120,7 @@ noncomputable def hereditaryLiftList (Gcode : BitString) (r : Nat) : List BitStr
     (fun w => clogEqBool (canonicalPointListOfCode w).length r)).flatMap
     (fun w => canonicalPointListOfCode w)
 
+/-- The list-level hereditary lift is primitive recursive in the family code and the level. -/
 theorem hereditaryLiftList_primrec :
     Primrec (fun p : BitString × Nat => hereditaryLiftList p.1 p.2) := by
   have hfilter : Primrec (fun p : BitString × Nat =>
@@ -147,6 +151,8 @@ theorem finiteSetLogCard_toFinset_eq_clog (w : BitString) :
   unfold finiteSetLogCard
   rw [List.toFinset_card_of_nodup (canonicalPointListOfCode_nodup w)]
 
+/-- A coded set has log-cardinality `r` exactly when the dyadic bracket test accepts the length of
+its point list. -/
 theorem hereditaryLift_filter_pred (w : BitString) (r : Nat) :
     (finiteSetLogCard (canonicalPointListOfCode w).toFinset = r) ↔
       (clogEqBool (canonicalPointListOfCode w).length r = true) := by
@@ -171,6 +177,7 @@ theorem hereditaryLiftCode_eq_image (Gcode : BitString) (r : Nat) :
   unfold hereditaryLiftCode canonicalImageCodeOfList canonicalFiniteSetCode
   rw [hereditaryLift_toFinset_eq]
 
+/-- The code-level hereditary lift is computable in the family code and the level. -/
 theorem hereditaryLiftCode_computable :
     Computable₂ hereditaryLiftCode := by
   refine (canonicalImageCodeOfList_primrec.comp hereditaryLiftList_primrec).to_comp.of_eq ?_
@@ -197,6 +204,7 @@ noncomputable def hereditaryLiftPlainDecompressor (V : Map) : Map := fun pr =>
   (V (decodeSecond pr.1, [])).map (fun Gcode =>
     hereditaryLiftCode Gcode (bitsToNat (decodeFirst pr.1)))
 
+/-- The machine that describes a family and then takes its hereditary lift is a decompressor. -/
 theorem hereditaryLiftPlainDecompressor_partrec (V : Map) (hV : isDecompressor V) :
     isDecompressor (hereditaryLiftPlainDecompressor V) := by
   unfold hereditaryLiftPlainDecompressor
@@ -208,6 +216,8 @@ theorem hereditaryLiftPlainDecompressor_partrec (V : Map) (hV : isDecompressor V
       (bitsToNat_computable.comp
         (decodeFirst_computable.comp (Computable.fst.comp Computable.fst)))
 
+/-- If `p` plainly describes the family code, then `p` together with the level `r` plainly describes
+the code of the level-`r` hereditary lift. -/
 theorem hereditaryLiftPlainDecompressor_produces (V : Map) (Gcode p : BitString) (r : Nat)
     (h : produces V p [] Gcode) :
     produces (hereditaryLiftPlainDecompressor V) (pairCode (Nat.bits r) p) []

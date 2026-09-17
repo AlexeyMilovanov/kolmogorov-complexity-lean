@@ -99,7 +99,7 @@ theorem lenMap_isPrefixDecompressor (U : Map) (hU : IsPrefixDecompressor U) :
       hU.isDecompressor.comp (Computable.fst.pair (Computable.const []))
     have hg : Computable₂
         (fun (_ : BitString × BitString) (z : BitString) => Nat.bits z.length) :=
-      (natBitsComputable.comp (Computable.list_length.comp Computable.snd)).to₂
+      (natBits_computable.comp (Computable.list_length.comp Computable.snd)).to₂
     exact (hf.map hg).of_eq (fun pr => rfl)
   · intro y
     rw [domainAt_lenMap]
@@ -138,7 +138,7 @@ theorem lengthMarginal_le_aprioriMeasure_lenMap (U : Map) (n : ℕ) :
   refine ENNReal.tsum_le_tsum (fun p => ?_)
   by_cases hp : ∃ x ∈ stringsOfLength n, produces U p [] x
   · obtain ⟨x₀, hx₀mem, hx₀⟩ := hp
-    have hx₀len : x₀.length = n := (memStringsOfLength n x₀).mp hx₀mem
+    have hx₀len : x₀.length = n := (mem_stringsOfLength n x₀).mp hx₀mem
     have hsum : (∑ x ∈ stringsOfLength n, if produces U p [] x then progWeight p else 0)
         = progWeight p := by
       rw [Finset.sum_eq_single x₀]
@@ -158,7 +158,7 @@ theorem lengthMarginal_le_aprioriMeasure_lenMap (U : Map) (n : ℕ) :
       intro x hxmem
       rw [if_neg (hp x hxmem)]
     rw [hzero]
-    exact zero_le
+    exact bot_le
 
 /-! ### The crux: the length-marginal coding bound -/
 

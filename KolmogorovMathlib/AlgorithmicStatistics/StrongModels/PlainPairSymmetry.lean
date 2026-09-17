@@ -12,7 +12,7 @@ bounded by the budget `N`.  This module bridges the already formalized *prefix*
 lower chain `KPPair_chain_lower` to ordinary plain complexity:
 
 * `C(x) ≤ K(x) + O(1)` and `C(y | x) ≤ K(y | x) + O(1)`
-  (`plainK_le_KPPlain`, `condK_le_KP`);
+  (`plain_le_prefix`, `condK_le_KP`);
 * `K(y | x) ≤ K(y | (x, K(x))) + K(K(x)) + O(1)`
   (`KP_cond_remove_short_info`), where the extra term is `O(log N)` by
   `KPPlain_natCode_le_log`;
@@ -81,7 +81,7 @@ theorem plainK_add_condK_le_plainK_pair
     exact le_rfl
   -- Numeric bookkeeping for the logarithmic terms.
   have hMbound : p ≤ (cB + 1) * N + cB := by
-    have hlen := length_natBits_le_self N
+    have hlen := length_natBits_le N
     have hmul : cB * (Nat.bits N).length ≤ cB * N := Nat.mul_le_mul_left _ hlen
     have hls : logSlack cB N = cB * (Nat.bits N).length + cB := rfl
     nlinarith [hple, hkxN]
@@ -150,7 +150,7 @@ theorem plainK_pair_ge_plainK_add_length_of_random
       kx + y.length ≤
         kxy + epsilon + logSlack c (x.length + y.length) := by
   obtain ⟨C, hC⟩ := plainK_add_condK_le_plainK_pair V U hV hU
-  obtain ⟨cLen, hLen⟩ := plainKLeLength V hV
+  obtain ⟨cLen, hLen⟩ := plainK_le_length V hV
   obtain ⟨cFold, hFold⟩ := logSlack_linear_bound C 2 (1 + cLen)
   refine ⟨cFold, ?_⟩
   intro x y epsilon kx kxy hkx hkxy hrandom

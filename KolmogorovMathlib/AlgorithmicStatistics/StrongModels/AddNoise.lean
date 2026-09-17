@@ -12,6 +12,8 @@ mass and multiplicative-deficiency calculation.
 -/
 
 namespace Kolmogorov
+
+open CodedFiniteDistribution
 open scoped ENNReal
 open Kolmogorov.CodedFiniteDistribution
 
@@ -40,7 +42,7 @@ theorem deficiency_pairUniformExtension_of_complexity
   have hcancel :
       (2 : ENNReal)⁻¹ ^ delta * (2 : ENNReal) ^ delta = 1 := by
     rw [← mul_pow, ENNReal.inv_mul_cancel (by norm_num) (by norm_num), one_pow]
-  unfold DeficiencyLe CodedFiniteDistribution.DeficiencyLe at *
+  unfold CodedFiniteDistribution.DeficiencyLe at *
   rw [codedPairUniformExtension_mass_pairCode P m a u hu]
   calc
     complexityWeight
@@ -78,12 +80,12 @@ theorem conditionalPlainLengthDecompressor_partrec
     apply Primrec.to_comp
     apply Primrec₂.comp Primrec.beq
     · apply Primrec.list_length.comp Primrec.fst
-    · apply primrecDecodeBits.comp (decodeSecond_primrec'.comp Primrec.snd)
+    · apply primrec_decodeBits.comp (decodeSecond_primrec.comp Primrec.snd)
   have hbody : Partrec (fun (pr : BitString × BitString) => V (pr.1, decodeFirst pr.2)) := by
     apply hV.comp
     apply Computable.pair
     · exact Computable.fst
-    · apply Primrec.to_comp (decodeFirst_primrec'.comp Primrec.snd)
+    · apply Primrec.to_comp (decodeFirst_primrec.comp Primrec.snd)
   exact Partrec.cond hcond hbody Partrec.none
 
 /-- At each context, the fixed-length wrapper has prefix-free domain. -/
@@ -181,7 +183,7 @@ theorem deficiency_fstPushforward_of_complexity
       (complexityWeight_le_of_le hcomplexity)
   have hcancel : (2 : ENNReal)⁻¹ ^ delta * (2 : ENNReal) ^ delta = 1 := by
     rw [← mul_pow, ENNReal.inv_mul_cancel (by norm_num) (by norm_num), one_pow]
-  unfold DeficiencyLe CodedFiniteDistribution.DeficiencyLe at *
+  unfold CodedFiniteDistribution.DeficiencyLe at *
   calc
     complexityWeight (KP U (decodeFirst z) (codedFstPushforward P).code)
         = complexityWeight (KP U (decodeFirst z) (codedFstPushforward P).code) * 1 := by

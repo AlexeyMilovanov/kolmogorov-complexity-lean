@@ -1,6 +1,7 @@
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.PropUpwardFrontier
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.BudgetedCornerHardRegime
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.BudgetedCornerMinimality
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.LemmaUpwardCruxStatement
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.PropUpwardFrontier
 
 /-!
 # Narrowing the upward crux to its hard regime
@@ -39,34 +40,9 @@ statement is only ever taken as a hypothesis.
 
 namespace Kolmogorov
 
+open CodedFiniteDistribution
 open Kolmogorov.CodedFiniteDistribution
 open scoped ENNReal
-
-/-- **Pareto-minimal stochasticity witness.**  Below any stochasticity pair
-`(alpha, beta)` for `x` there is a pair `(a, b) ≤ (alpha, beta)` which is still a
-stochasticity pair and which is minimal in each coordinate separately: no
-strictly smaller second parameter works with `a`, and no strictly smaller first
-parameter works with `b`.  Take a pair below `(alpha, beta)` minimizing the sum
-`a + b`. -/
-theorem exists_pareto_minimal_stochastic_witness
-    (U : Map) (x : BitString) (alpha beta : ℕ) (hst : IsStochastic U x alpha beta) :
-    ∃ a b : ℕ, a ≤ alpha ∧ b ≤ beta ∧ IsStochastic U x a b ∧
-      (∀ b' : ℕ, b' < b → ¬ IsStochastic U x a b') ∧
-      (∀ a' : ℕ, a' < a → ¬ IsStochastic U x a' b) := by
-  classical
-  set T : Set ℕ :=
-    {s | ∃ a b : ℕ, a ≤ alpha ∧ b ≤ beta ∧ a + b = s ∧ IsStochastic U x a b} with hT
-  have hTne : (alpha + beta) ∈ T := ⟨alpha, beta, le_rfl, le_rfl, rfl, hst⟩
-  obtain ⟨a, b, ha, hb, hab, hstab⟩ : sInf T ∈ T := Nat.sInf_mem ⟨alpha + beta, hTne⟩
-  refine ⟨a, b, ha, hb, hstab, ?_, ?_⟩
-  · intro b' hb' hcon
-    have hmem : a + b' ∈ T := ⟨a, b', ha, le_trans hb'.le hb, rfl, hcon⟩
-    have hle := Nat.sInf_le hmem
-    omega
-  · intro a' ha' hcon
-    have hmem : a' + b ∈ T := ⟨a', b, le_trans ha'.le ha, hb, rfl, hcon⟩
-    have hle := Nat.sInf_le hmem
-    omega
 
 /-- **The singleton optimal-set model.**  For every `x` the canonical uniform
 model on `{x}` witnesses `IsOptimalSetStochastic U x (K(x) + c) beta` as soon as
@@ -131,10 +107,8 @@ theorem setComplexity_fullCube_le_KPPlain_natCode
         convert canonicalUniformCodeOfList_computable.comp
           (_ : Computable fun w => canonicalFinsetList (stringsOfLength (decodeNatCode w)))
           using 1
-        convert canonicalFinsetList_toFinset_primrec.comp
-          (allStrings_primrec.comp decodeNatCode_primrec) |>.to_comp using 1
-        ext a
-        rfl)
+        exact Computable.of_eq (canonicalFinsetList_toFinset_primrec.comp
+          (allStrings_primrec.comp decodeNatCode_primrec)).to_comp (by intro x; rfl))
   refine ⟨c₁, fun n => ?_⟩
   have hcode : canonicalUniformCodeOfList (canonicalFinsetList (stringsOfLength n))
       = (codedUniformOn (stringsOfLength n) (codedStringsOfLength_nonempty n)).code :=
@@ -157,7 +131,7 @@ theorem isOptimalSetStochastic_fullCube_of_simple_length
   obtain ⟨c, hc⟩ := setComplexity_fullCube_le_KPPlain_natCode U hU
   refine ⟨c, fun x p m beta hp hm hsum => ?_⟩
   set n := x.length with hn
-  have hxmem : x ∈ stringsOfLength n := (memStringsOfLength n x).mpr rfl
+  have hxmem : x ∈ stringsOfLength n := (mem_stringsOfLength n x).mpr rfl
   have hcomp : setComplexity U (stringsOfLength n) (codedStringsOfLength_nonempty n)
       ≤ ((m + c : ℕ) : ENat) := by
     refine (hc n).trans ?_
@@ -166,7 +140,7 @@ theorem isOptimalSetStochastic_fullCube_of_simple_length
   refine ⟨stringsOfLength n, codedStringsOfLength_nonempty n, hxmem, hcomp, ?_⟩
   have hmass : (codedUniformOn (stringsOfLength n) (codedStringsOfLength_nonempty n)).mass x
       = (2 : ℝ≥0∞)⁻¹ ^ n := by
-    rw [codedUniformOn_mass_of_mem _ _ _ hxmem, cardStringsOfLength]
+    rw [codedUniformOn_mass_of_mem _ _ _ hxmem, card_stringsOfLength]
     push_cast
     rw [← ENNReal.inv_pow]
   have hw : complexityWeight (((m + c : ℕ) : ENat))

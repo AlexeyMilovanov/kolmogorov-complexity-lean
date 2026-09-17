@@ -1,11 +1,12 @@
 /-
-Copyright (c) 2026 Alexey Milovanov. All rights reserved.
+Copyright (c) 2024 Alexey Milovanov. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Alexey Milovanov
 -/
+
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.PaperTheorems
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.CurveRealization
-import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.ProfileRealization
+import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.Realization
 
 /-!
 # The standard machine bundle
@@ -27,6 +28,7 @@ paper-facing statements are added here as `StandardMachine` wrappers.**
 
 namespace Kolmogorov
 
+open CodedFiniteDistribution
 /-- An optimal prefix-conditional decompressor, bundled with its optimality
 proof. Paper-facing theorems are stated against this bundle. -/
 structure StandardMachine where
@@ -44,12 +46,12 @@ variable (M : StandardMachine)
 
 /-! ### Derived gates -/
 
-/-- Gate B1, discharged: singleton set complexity is bounded by plain prefix
-complexity up to logarithmic slack. -/
+/-- The set complexity of a singleton is bounded by the prefix complexity of its element, up to
+logarithmic slack. -/
 theorem singletonGate : SingletonSetComplexityGate M.U :=
   singletonSetComplexityGate M.U M.optimal
 
-/-- Gate B2, discharged: the full length-`n` cube has set complexity `O(log n)`. -/
+/-- The full length-`n` cube has set complexity `O(log n)`. -/
 theorem fullGate : FullSetComplexityGate M.U :=
   fullSetComplexityGate M.U M.optimal
 
@@ -57,7 +59,7 @@ theorem fullGate : FullSetComplexityGate M.U :=
 
 /-- Staged symmetry of information for pairs:
 `K(x,y) = K(x) + K(y | x, K(x)) + O(1)`. -/
-theorem symmetryOfInformation :
+theorem symmetry_of_information :
     ∃ cUpper : Nat, ∃ cLower : Nat,
       ∀ x y : BitString, ∀ kx : Nat,
         HasPrefixComplexityValue M.U x kx →
@@ -69,7 +71,7 @@ theorem symmetryOfInformation :
 
 /-- Conditional staged symmetry of information:
 `K(x,y | z) = K(x | z) + K(y | z, x, K(x|z)) + O(1)`. -/
-theorem condSymmetryOfInformation :
+theorem cond_symmetry_of_information :
     ∃ cUpper : Nat, ∃ cLower : Nat,
       ∀ x y z : BitString, ∀ kx : Nat,
         HasCondPrefixComplexityValue M.U x z kx →
@@ -122,7 +124,7 @@ theorem deficiencies_tight :
         setComplexity M.U B hB + (delta - d : ℕ) ≤
           setComplexity M.U A hA + (logSlack c (n + delta + d) : ENat) ∧
         SetOptimalityDeficiencyLe M.U B hB x (d + logSlack c (n + delta + d)) :=
-  deficiencies_theorem_tight_thm M.U M.optimal
+  deficiencies_theorem_tight_of_optimal M.U M.optimal
 
 /-- Optimal set stochasticity yields an explicit description profile point. -/
 theorem optimalStochastic_imp_profile :
@@ -130,7 +132,7 @@ theorem optimalStochastic_imp_profile :
       IsOptimalSetStochastic M.U x alpha beta →
       KPPlain M.U x + beta ≤ (alpha : ENat) + j →
       InDescriptionProfile M.U x (alpha + logSlack c (alpha + beta + j)) (j + 1) :=
-  optimal_stochasticity_imp_profile_thm M.U M.optimal
+  isOptimalSetStochastic_imp_profile M.U M.optimal
 
 /-- Theorem 3 direction: any stochasticity witness converts into an optimal
 uniform-set witness up to `O(log)` slack. -/
@@ -144,8 +146,10 @@ theorem stochastic_to_optimalSet :
 
 /-! ### Structure function -/
 
-/-- Corrected Section-3 admissibility of the structure function, with both
-set-complexity gates discharged from optimality. -/
+/-- There is a constant `c` such that for every `x` of length `n` with `KPPlain M.U x = kx`,
+the map `structureFunction M.U x` is antitone, is at most `n` at `logSlack c n`, vanishes at
+`kx + logSlack c n`, and obeys the lower bound `kx ≤ i + j + logSlack c (n + i + j)` whenever
+`structureFunction M.U x i ≤ j`. -/
 theorem structureFunction_admissible :
     ∃ c : ℕ, ∀ (x : BitString) (n kx : ℕ), x.length = n → KPPlain M.U x = (kx : ENat) →
       Antitone (structureFunction M.U x) ∧

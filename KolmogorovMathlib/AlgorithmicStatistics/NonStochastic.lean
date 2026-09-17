@@ -10,7 +10,7 @@ import KolmogorovMathlib.AlgorithmicStatistics.Stochasticity
 import KolmogorovMathlib.Foundation.RecursivelyEnumerable
 
 /-!
-# Non-Stochastic Skeleton
+# Non-stochastic objects
 
 This module defines abstract level-set cover lemmas and non-stochastic existence.
 The numerical gap follows the SUV/arXiv finite-set route:
@@ -19,19 +19,18 @@ The numerical gap follows the SUV/arXiv finite-set route:
 
 namespace Kolmogorov
 
+open CodedFiniteDistribution
 open scoped ENNReal
 
-theorem length_exactLengthPrograms (n : Nat) : (exactLengthPrograms n).length = 2 ^ n := by
-  induction n with
-  | zero => simp [exactLengthPrograms]
-  | succ n ih => simp [exactLengthPrograms, ih, Nat.pow_succ, Nat.mul_comm]
-
+/-- The strings of length at most `n + 1` are those of length at most `n` followed by those of
+length exactly `n + 1`. -/
 theorem boundedPrograms_succ (n : Nat) :
     boundedPrograms (n + 1) = boundedPrograms n ++ exactLengthPrograms (n + 1) := by
   unfold boundedPrograms
   rw [List.range_succ]
   simp [List.flatMap_append]
 
+/-- There are fewer than `2 ^ (n + 1)` strings of length at most `n`. -/
 theorem length_boundedPrograms_le (n : Nat) : (boundedPrograms n).length ≤ 2 ^ (n + 1) := by
   induction n with
   | zero => simp [boundedPrograms, length_exactLengthPrograms]
@@ -96,6 +95,7 @@ noncomputable def probModelOfCode (c : BitString) : CodedFiniteDistribution := b
   exact if h : ∃ P : CodedFiniteDistribution, P.code = c ∧ P.IsProbability then h.choose
     else codedDirac []
 
+/-- The distribution decoded from an arbitrary code word is a probability distribution. -/
 theorem probModelOfCode_isProbability (c : BitString) :
     (probModelOfCode c).IsProbability := by
   classical
@@ -104,6 +104,7 @@ theorem probModelOfCode_isProbability (c : BitString) :
   · rename_i h; exact h.choose_spec.2
   · exact codedDirac_isProbability []
 
+/-- Decoding the code of a probability distribution returns that distribution. -/
 theorem probModelOfCode_eq {P : CodedFiniteDistribution} (hP : P.IsProbability) :
     probModelOfCode P.code = P := by
   classical
@@ -129,7 +130,7 @@ theorem exists_uncovered_nbit_string (U : Map) (n alpha max_k : ℕ)
         (fun c ↦ (Finset.range (max_k + 1)).biUnion (fun k ↦ levelSet (probModelOfCode c) k)) := by
     contrapose! h
     calc
-      2 ^ n = (stringsOfLength n).card := by rw [Kolmogorov.cardStringsOfLength]
+      2 ^ n = (stringsOfLength n).card := by rw [Kolmogorov.card_stringsOfLength]
       _ ≤ ((modelsWithComplexityLe U alpha).biUnion fun c ↦
           (Finset.range (max_k + 1)).biUnion fun k ↦ levelSet (probModelOfCode c) k).card :=
         Finset.card_le_card h
@@ -203,31 +204,7 @@ theorem KPPlain_partrec_map_le (U : Map) (hU : IsOptimalPrefixConditional U)
       _ ≤ (programLength p : ENat) + (c : ENat) := by gcongr
       _ = KPPlain U x + (c : ENat) := by rw [hp_len, KPPlain_eq_KP]
 
-/-- The finite-set enumeration/counting step (SUV Theorem 248, algorithmic core).
-
-If the union of the level sets of all *probability* models of prefix complexity
-`≤ alpha` at thresholds `k ≤ max_k` is smaller than the space of `n`-bit strings,
-then there is an `n`-bit string outside that union whose plain prefix complexity
-is `alpha + O(log n)`.
-
-The two halves of the argument are already available in this file:
-* the pure counting/existence half is `exists_uncovered_nbit_string`, which uses
-  `card_modelsWithComplexityLe`, `levelSet_card_le`, and `probModelOfCode`;
-* the coding half is `KPPlain_partrec_map_le`, the partial-recursive analogue of
-  `KPPlain_map_le`, which bounds the complexity of any value produced from a
-  short input by a partial-recursive map.
-
-What remains is the *constructive* bridge: a single partial-recursive selector
-that, fed the canonical encoding of `(n, alpha, max_k)` together with the count
-`h` of length-`≤ alpha` programs that halt under `U`, dovetails `U` until exactly
-`h` of them halt (so that every model of complexity `≤ alpha` has been seen),
-builds the finite cover with a computable rational-mass level-set test, and
-returns the first uncovered `n`-bit string.  Its output is then an uncovered
-string whose complexity is bounded via `KPPlain_partrec_map_le` by the
-complexity of the input encoding, namely `alpha + O(log n)` (the `alpha` term is
-the cost of `h`, encoded in `Nat.bits h` of length `≤ alpha + O(1)`, and the
-`O(log n)` term is the cost of `(n, alpha, max_k)`).  This selector, its
-`Partrec` proof, and the computable-cover correctness are the remaining work. -/
+/-- The four-way packing of bit strings: `pairCode a (pairCode b (pairCode c d))`. -/
 def pack4 (a b c d : BitString) : BitString :=
   pairCode a (pairCode b (pairCode c d))
 
@@ -349,12 +326,14 @@ theorem stochastic_mem_levelSet_of_KPPlain_bound
   refine ⟨P, hprob, hcomp, ?_⟩
   simp_all +decide only [KPPlain_eq_KP, levelSet, Finset.mem_filter]
   refine ⟨ KP U x P.code |> ENat.toNat |> (· + beta), ?_, ?_, ?_ ⟩;
-  · have hKP_le : KP U x P.code ≤ (kxBound + c : ENat) := by
-      exact le_trans ( hc _ _ ) ( by gcongr );
-    cases h : KP U x P.code <;> simp_all +arith +decide
-    norm_cast at hKP_le
+  · have hKP_le : KP U x P.code ≤ (kxBound + c : ENat) :=
+      le_trans (hc _ _) (by gcongr)
+    have hnat := ENat.toNat_le_toNat hKP_le (ENat.natCast_ne_top _)
+    rw [ENat.toNat_add (by simp) (by simp), ENat.toNat_natCast,
+      ENat.toNat_natCast] at hnat
+    change (KP U x P.code).toNat + beta ≤ max_k
     omega
-  · contrapose! hdef; simp_all +decide only [DeficiencyLe];
+  · contrapose! hdef;
     simp_all +decide only [CodedFiniteDistribution.DeficiencyLe, not_false_eq_true,
       CodedFiniteDistribution.mass_eq_zero_of_not_mem_support, mul_zero, nonpos_iff_eq_zero];
     cases h : KP U x P.code <;>
@@ -368,7 +347,7 @@ theorem stochastic_mem_levelSet_of_KPPlain_bound
     cases h : KP U x P.code <;>
       simp_all +decide only [complexityWeight_top, complexityWeight_coe, zero_le, ENat.toNat_top,
         ENat.toNat_natCast, zero_add, pow_add, ge_iff_le];
-    · have := hc x P.code; simp_all +decide
+    · have := hc x P.code; simp_all +decide;
     · calc
         _ ≤ ((2 : ENNReal) ^ beta * P.mass x) * (2 : ENNReal)⁻¹ ^ beta := by gcongr
         _ = P.mass x := by

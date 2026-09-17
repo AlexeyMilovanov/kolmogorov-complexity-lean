@@ -1,12 +1,33 @@
 import KolmogorovMathlib.CommonInformation.IncidenceCodecs
 import KolmogorovMathlib.CommonInformation.Interfaces
-import KolmogorovMathlib.AlgorithmicStatistics.BoundedComplexityLists.OmegaEquivalence
+import KolmogorovMathlib.AlgorithmicStatistics.BoundedLists.OmegaPrefix
+
+/-!
+# Coding the incident pairs of the concrete plane
+
+`concreteIncidentPairCodes n` lists the pair codes of all incident point–line pairs of the
+affine plane over `ConcreteField n`: duplicate-free, of length `concretePrime n ^ 3`, and
+primitive recursive in `n`.  This is the enumeration that gives an incident pair its
+complexity.
+
+The two reconstruction maps make the conditional estimates effective:
+`concretePointFromLineCode` recovers a point from its line and its abscissa,
+`concreteLineFromPointCode` a line from its point and its slope, and
+`concreteIncidentPairFromEdgeCode` splits a single edge code into the coded pair.  The
+complexity statements that follow are `plainK_concreteIncidentPair_le`,
+`condK_concreteLine_given_point_le` and `condK_concretePoint_given_line_le`: an incident pair
+costs about `3n` bits, and each coordinate costs `n + 1` more given the other.
+-/
 
 namespace Kolmogorov
 
+/-- The list of `pairCode` encodings of all incident point–line pairs of the affine
+plane over the field with `concretePrime n` elements. -/
 def concreteIncidentPairCodes (n : Nat) : List BitString :=
   (concreteIncidentEdgeCodePairs n).map fun p => pairCode p.1 p.2
 
+/-- A string belongs to `concreteIncidentPairCodes n` exactly when it is the pair
+code of the point code and the line code of some incident point–line pair. -/
 lemma concreteIncidentPairCodes_mem_iff (n : Nat) (w : BitString) :
     w ∈ concreteIncidentPairCodes n ↔
       ∃ e : ConcreteIncidentEdge n,
@@ -23,6 +44,8 @@ lemma concreteIncidentPairCodes_mem_iff (n : Nat) (w : BitString) :
         (concreteIncidentEdgeCodePairs_mem_iff n _).mpr ⟨e, rfl⟩,
         rfl⟩
 
+/-- Distinct incident point–line pairs get distinct codes, so
+`concreteIncidentPairCodes n` has no repetitions. -/
 lemma concreteIncidentPairCodes_nodup (n : Nat) :
     (concreteIncidentPairCodes n).Nodup :=
   by
@@ -32,20 +55,27 @@ lemma concreteIncidentPairCodes_nodup (n : Nat) :
     · simpa only [decodeFirst_pairCode] using congrArg decodeFirst hab
     · simpa only [decodeSecond_pairCode] using congrArg decodeSecond hab
 
+/-- The affine plane over a field with `concretePrime n` elements has
+`concretePrime n ^ 3` incident point–line pairs. -/
 lemma concreteIncidentPairCodes_length (n : Nat) :
     (concreteIncidentPairCodes n).length = concretePrime n ^ 3 :=
   by
     rw [concreteIncidentPairCodes, List.length_map,
       concreteIncidentEdgeCodePairs_length]
 
+/-- The list of incident-pair codes is primitive recursive in `n`. -/
 lemma concreteIncidentPairCodes_primrec :
     Primrec concreteIncidentPairCodes :=
   by
     exact Primrec.list_map concreteIncidentEdgeCodePairs_primrec
-      ((pairCode_primrec.comp
+      ((CodedFiniteDistribution.pairCode_primrec.comp
         (Primrec.fst.comp Primrec.snd)
         (Primrec.snd.comp Primrec.snd)).to₂)
 
+/-- From the code of a line and the code of a field element `x`, the code of the
+point of that line with abscissa `x`: the ordinate is computed as `m * x + b`
+modulo the prime, where `m` and `b` are the slope and intercept read off the
+line code. -/
 def concretePointFromLineCode (lineCode program : BitString) : BitString :=
   let width := lineCode.length / 2
   let n := width - 1
@@ -55,6 +85,8 @@ def concretePointFromLineCode (lineCode program : BitString) : BitString :=
   program ++ fixedWidthNatCode
     ((m * x + b) % concretePrime n) width
 
+/-- Reconstruction is correct: for a point `p` incident to a line `ell`, decoding
+`ell` together with the abscissa of `p` returns the code of `p`. -/
 lemma concretePointFromLineCode_incident {n : Nat}
     {p : AffineIncidence.Point (ConcreteField n)}
     {ell : AffineIncidence.Line (ConcreteField n)}
@@ -84,6 +116,8 @@ lemma concretePointFromLineCode_incident {n : Nat}
     rw [hmTake, hbDrop]
     simp [concretePointCode, concreteFieldCode, hy]
 
+/-- Reconstructing a point from a line code and an abscissa code is primitive
+recursive in the two arguments. -/
 lemma concretePointFromLineCode_primrec :
     Primrec₂ concretePointFromLineCode :=
   by
@@ -99,10 +133,10 @@ lemma concretePointFromLineCode_primrec :
       boundedPrimeSearch_primrec.comp hn
     have htake : Primrec (fun q : BitString × BitString =>
         q.1.take (q.1.length / 2)) :=
-      primrec_list_take.comp Primrec.fst hwidth
+      Primrec.list_take.comp hwidth Primrec.fst
     have hdrop : Primrec (fun q : BitString × BitString =>
         q.1.drop (q.1.length / 2)) :=
-      primrec_list_drop.comp Primrec.fst hwidth
+      Primrec.list_drop.comp hwidth Primrec.fst
     have hm : Primrec (fun q : BitString × BitString =>
         decodeFixedWidthNatCode (q.1.take (q.1.length / 2))) :=
       decodeFixedWidthNatCode_primrec.comp htake
@@ -130,12 +164,17 @@ lemma concretePointFromLineCode_primrec :
     exact (Primrec.list_append.comp Primrec.snd hcode).of_eq
       (fun q => rfl)
 
+/-- From the code of an incident point–line pair as a single string (line code
+followed by the abscissa of the point), the pair code of the point code and the
+line code. -/
 def concreteIncidentPairFromEdgeCode (w : BitString) : BitString :=
   let width := w.length / 3
   let lineCode := w.take (2 * width)
   let xCode := w.drop (2 * width)
   pairCode (concretePointFromLineCode lineCode xCode) lineCode
 
+/-- On the code of an incident pair `e`, `concreteIncidentPairFromEdgeCode` returns
+the pair code of the point code and the line code of `e`. -/
 lemma concreteIncidentPairFromEdgeCode_edge (n : Nat) (e : ConcreteIncidentEdge n) :
     concreteIncidentPairFromEdgeCode (concreteIncidentEdgeCode n e) =
       pairCode (concretePointCode n e.1.1) (concreteLineCode n e.1.2) :=
@@ -157,6 +196,7 @@ lemma concreteIncidentPairFromEdgeCode_edge (n : Nat) (e : ConcreteIncidentEdge 
     simp only [concreteIncidentPairFromEdgeCode, hwidth]
     rw [hline, hx, concretePointFromLineCode_incident hinc]
 
+/-- Splitting an incident-pair code into a coded pair is primitive recursive. -/
 lemma concreteIncidentPairFromEdgeCode_primrec :
     Primrec concreteIncidentPairFromEdgeCode :=
   by
@@ -166,16 +206,16 @@ lemma concreteIncidentPairFromEdgeCode_primrec :
       Primrec.nat_mul.comp (Primrec.const 2) hwidth
     have hline : Primrec (fun w : BitString =>
         w.take (2 * (w.length / 3))) :=
-      primrec_list_take.comp Primrec.id htwice
+      Primrec.list_take.comp htwice Primrec.id
     have hx : Primrec (fun w : BitString =>
         w.drop (2 * (w.length / 3))) :=
-      primrec_list_drop.comp Primrec.id htwice
+      Primrec.list_drop.comp htwice Primrec.id
     have hpoint : Primrec (fun w : BitString =>
         concretePointFromLineCode
           (w.take (2 * (w.length / 3)))
           (w.drop (2 * (w.length / 3)))) :=
       concretePointFromLineCode_primrec.comp hline hx
-    exact (pairCode_primrec.comp hpoint hline).of_eq (fun w => rfl)
+    exact (CodedFiniteDistribution.pairCode_primrec.comp hpoint hline).of_eq (fun w => rfl)
 
 private def concreteHalfCodeWidth (w : BitString) : Nat :=
   w.length / 2
@@ -207,6 +247,9 @@ private def concreteLineFromPointCodePair
     (q : BitString × BitString) : BitString :=
   q.2 ++ concreteLineInterceptCode q
 
+/-- From the code of a point and the code of a field element `m`, the code of the
+line of slope `m` through that point: the intercept is recovered from the
+point's coordinates. -/
 def concreteLineFromPointCode (pointCode program : BitString) : BitString :=
   concreteLineFromPointCodePair (pointCode, program)
 
@@ -219,13 +262,13 @@ private lemma concreteFirstHalfNat_primrec :
     Primrec concreteFirstHalfNat := by
   unfold concreteFirstHalfNat
   exact decodeFixedWidthNatCode_primrec.comp
-    (primrec_list_take.comp Primrec.id concreteHalfCodeWidth_primrec)
+    (Primrec.list_take.comp concreteHalfCodeWidth_primrec Primrec.id)
 
 private lemma concreteSecondHalfNat_primrec :
     Primrec concreteSecondHalfNat := by
   unfold concreteSecondHalfNat
   exact decodeFixedWidthNatCode_primrec.comp
-    (primrec_list_drop.comp Primrec.id concreteHalfCodeWidth_primrec)
+    (Primrec.list_drop.comp concreteHalfCodeWidth_primrec Primrec.id)
 
 private lemma concreteLineInterceptNat_primrec :
     Primrec₂ concreteLineInterceptNat := by
@@ -266,6 +309,8 @@ private lemma concreteLineInterceptCode_primrec :
   unfold concreteLineInterceptCode
   exact fixedWidthNatCode_primrec.comp concreteLineInterceptData_primrec
 
+/-- Reconstruction is correct: for a point `p` incident to a line `ell`, decoding
+`p` together with the slope of `ell` returns the code of `ell`. -/
 lemma concreteLineFromPointCode_incident {n : Nat} {p : AffineIncidence.Point (ConcreteField n)}
     {ell : AffineIncidence.Line (ConcreteField n)}
     (hinc : AffineIncidence.Incident p ell) :
@@ -322,10 +367,16 @@ private lemma concreteLineFromPointCodePair_primrec :
   exact Primrec.list_append.comp Primrec.snd
     concreteLineInterceptCode_primrec
 
+/-- Reconstructing a line from a point code and a slope code is primitive recursive
+in the two arguments. -/
 lemma concreteLineFromPointCode_primrec :
     Primrec₂ concreteLineFromPointCode :=
-  concreteLineFromPointCodePair_primrec
+  by
+    exact concreteLineFromPointCodePair_primrec
 
+/-- An incident point–line pair of the affine plane of order `concretePrime n` has
+plain complexity at most `3 * (n + 1)` up to an additive constant: three field
+elements of `n + 1` bits each describe it. -/
 theorem plainK_concreteIncidentPair_le (V : Map) (hV : isOptimalConditional V) :
     ∃ c, ∀ n (e : ConcreteIncidentEdge n),
       pairPlainK V (concretePointCode n e.1.1) (concreteLineCode n e.1.2)
@@ -337,7 +388,7 @@ theorem plainK_concreteIncidentPair_le (V : Map) (hV : isOptimalConditional V) :
       dsimp only [f]
       exact concreteIncidentPairFromEdgeCode_primrec.to_comp.partrec
     obtain ⟨cMap, hMap⟩ := plainK_partrec_map_le V hV f hf
-    obtain ⟨cLength, hLength⟩ := plainKLeLength V hV
+    obtain ⟨cLength, hLength⟩ := plainK_le_length V hV
     refine ⟨cLength + cMap, fun n e => ?_⟩
     have hrec :
         pairCode (concretePointCode n e.1.1)
@@ -364,6 +415,8 @@ theorem plainK_concreteIncidentPair_le (V : Map) (hV : isOptimalConditional V) :
           push_cast
           ring
 
+/-- Given a point of an incident pair, its line costs at most `n + 1` further bits
+up to an additive constant, namely the slope. -/
 theorem condK_concreteLine_given_point_le (V : Map) (hV : isOptimalConditional V) :
     ∃ c, ∀ n (e : ConcreteIncidentEdge n),
       condK V (concreteLineCode n e.1.2) (concretePointCode n e.1.1)
@@ -399,6 +452,8 @@ theorem condK_concreteLine_given_point_le (V : Map) (hV : isOptimalConditional V
           push_cast
           ring
 
+/-- Given a line of an incident pair, its point costs at most `n + 1` further bits
+up to an additive constant, namely the abscissa. -/
 theorem condK_concretePoint_given_line_le (V : Map) (hV : isOptimalConditional V) :
     ∃ c, ∀ n (e : ConcreteIncidentEdge n),
       condK V (concretePointCode n e.1.1) (concreteLineCode n e.1.2)

@@ -1,3 +1,4 @@
+import KolmogorovMathlib.CommonInformation.PlainSymmetry
 import KolmogorovMathlib.CommonInformation.Intermediate
 
 /-!
@@ -20,9 +21,9 @@ theorem condK_take_given_pairCode_le
     (decodeFirst ctx).take (decodeNatCode (decodeSecond ctx))
   have hf : Computable f := by
     exact
-      (Primrec.list_take.comp (decodeNatCode_primrec.comp decodeSecond_primrec')
-        decodeFirst_primrec').to_comp
-  obtain ⟨c, hc⟩ := condKComp V hV f hf
+      (Primrec.list_take.comp (decodeNatCode_primrec.comp decodeSecond_primrec)
+        decodeFirst_primrec).to_comp
+  obtain ⟨c, hc⟩ := condK_comp V hV f hf
   refine ⟨c, fun w n => ?_⟩
   simpa [f, decodeFirst_pairCode, decodeSecond_pairCode,
     decodeNatCode_natCode] using hc (pairCode w (natCode n))
@@ -36,11 +37,12 @@ theorem condK_append_recover_le (V : Map) (hV : isOptimalConditional V) :
     decodeFirst ctx ++ decodeSecond ctx
   have hf : Computable f :=
     Computable.list_append.comp decodeFirst_computable decodeSecond_computable
-  obtain ⟨c, hc⟩ := condKComp V hV f hf
+  obtain ⟨c, hc⟩ := condK_comp V hV f hf
   refine ⟨c, fun a b => ?_⟩
   simpa [f, decodeFirst_pairCode, decodeSecond_pairCode] using
     hc (pairCode a b)
 
+/-- A shortest conditional prefix program is plain incompressible up to a logarithmic slack. -/
 theorem plainIncompressible_of_conditionalPrefixProgram_value
     (V U : Map) (hV : isOptimalConditional V)
     (hU : IsOptimalPrefixConditional U) :
@@ -115,6 +117,8 @@ theorem plainIncompressible_of_conditionalPrefixProgram_value
   exact_mod_cast hIncomp
 
 
+/-- Given the concatenation of a program for `y` and a program for `x` from `y`, the string `x`
+has bounded conditional complexity. -/
 theorem condK_output_given_prefixConcat_le
     (V U : Map) (hV : isOptimalConditional V)
     (hU : IsOptimalPrefixConditional U) :
@@ -164,6 +168,7 @@ theorem condK_output_given_prefixConcat_le
       exact sInf_le ⟨[], hDprod, rfl⟩
     _ = (c : ENat) := zero_add _
 
+/-- A shortest prefix description of `y` is plain equivalent to `y` up to a logarithmic slack. -/
 theorem prefixShortestDescription_equivalent
     (V U : Map) (hV : isOptimalConditional V)
     (hU : IsOptimalPrefixConditional U) :
@@ -431,6 +436,197 @@ theorem prefixConcat_plainPair_bounds
         gcongr
         exact_mod_cast (show cXX ≤ C by dsimp [C]; omega)
 
+/-- The total length of shortest prefix descriptions of `y` and `x` given `y` is bounded by
+`C(x, y)` plus logarithmic slack. -/
+private theorem prefixConcat_length_le
+    (V U : Map) (hV : isOptimalConditional V)
+    (hU : IsOptimalPrefixConditional U) :
+    ∃ c : Nat, ∀ (x y p q : BitString) (kxy : Nat),
+      HasPlainComplexityValue V (pairCode x y) kxy →
+      (p.length : ENat) = KP U y [] →
+      (q.length : ENat) = KP U x y →
+      p.length + q.length ≤ kxy + logSlack c (kxy + 1) := by
+  obtain ⟨cLower, hLower⟩ := pairPlainK_chain_lower_values V hV
+  obtain ⟨cRight, hRight⟩ := pairPlainK_right_le V hV
+  obtain ⟨cLeft, hLeft⟩ := pairPlainK_left_le V hV
+  obtain ⟨cCond, hCond⟩ := condK_le_plainK V hV
+  obtain ⟨cBridge, hBridge⟩ := KP_le_condK_add_log_of_value U V hU hV
+  have hPairCode₂ :
+      Computable₂ (fun a b : BitString => pairCode a b) :=
+    pairCode_computable
+  have hSwapComputable :
+      Computable (fun w : BitString => pairCode (decodeSecond w) (decodeFirst w)) :=
+    hPairCode₂.comp decodeSecond_computable decodeFirst_computable
+  obtain ⟨cSwap, hSwap⟩ := plainK_map_le V hV _ hSwapComputable
+  obtain ⟨cBridgeLogs, hBridgeLogs⟩ :=
+    logSlack_two_values_le_pair cBridge cBridge cRight (cCond + cLeft)
+  obtain ⟨cSwapFold, hSwapFold⟩ := logSlack_linear_bound cLower 1 cSwap
+  let C := cSwapFold + cBridgeLogs + cSwap
+  refine ⟨C, fun x y p q kxy hkxy hpLenE hqLenE => ?_⟩
+  obtain ⟨ky, hky⟩ := exists_plainComplexityValue V hV y
+  obtain ⟨kxyCond, hkxyCond⟩ := exists_plainConditionalComplexityValue V hV x y
+  obtain ⟨kSwap, hkSwap⟩ := exists_plainComplexityValue V hV (pairCode y x)
+  have hkyBoundE : (ky : ENat) ≤ (kxy : ENat) + (cRight : ENat) := by
+    calc
+      (ky : ENat) = plainK V y := hky.symm
+      _ ≤ pairPlainK V x y + (cRight : ENat) := hRight x y
+      _ = (kxy : ENat) + (cRight : ENat) := by rw [pairPlainK, hkxy]
+  have hkyBound : ky ≤ kxy + cRight := by exact_mod_cast hkyBoundE
+  have hkxyCondBoundE :
+      (kxyCond : ENat) ≤ (kxy : ENat) + ((cCond + cLeft : Nat) : ENat) := by
+    calc
+      (kxyCond : ENat) = condK V x y := hkxyCond.symm
+      _ ≤ plainK V x + (cCond : ENat) := hCond x y
+      _ ≤ (pairPlainK V x y + (cLeft : ENat)) + (cCond : ENat) := by
+        gcongr; exact hLeft x y
+      _ = (kxy : ENat) + ((cCond + cLeft : Nat) : ENat) := by
+        rw [pairPlainK, hkxy]
+        push_cast
+        simp [add_assoc, add_comm, add_left_comm]
+  have hkxyCondBound : kxyCond ≤ kxy + (cCond + cLeft) := by exact_mod_cast hkxyCondBoundE
+  have hkSwapBoundE : (kSwap : ENat) ≤ (kxy : ENat) + (cSwap : ENat) := by
+    calc
+      (kSwap : ENat) = plainK V (pairCode y x) := hkSwap.symm
+      _ = plainK V (pairCode (decodeSecond (pairCode x y)) (decodeFirst (pairCode x y))) := by
+        simp [decodeFirst_pairCode, decodeSecond_pairCode]
+      _ ≤ plainK V (pairCode x y) + (cSwap : ENat) := hSwap (pairCode x y)
+      _ = (kxy : ENat) + (cSwap : ENat) := by rw [hkxy]
+  have hkSwapBound : kSwap ≤ kxy + cSwap := by exact_mod_cast hkSwapBoundE
+  have hChain : ky + kxyCond ≤ kSwap + logSlack cLower (kSwap + 1) :=
+    hLower y x ky kxyCond kSwap hky hkxyCond hkSwap
+  have hSwapLog : logSlack cLower (kSwap + 1) ≤ logSlack cSwapFold (kxy + 1) := by
+    calc
+      logSlack cLower (kSwap + 1) ≤ logSlack cLower (1 * (kxy + 1) + cSwap) :=
+        logSlack_mono_right cLower (by omega)
+      _ ≤ logSlack cSwapFold (kxy + 1) := hSwapFold (kxy + 1)
+  have hTwoBridgeLogs :
+      logSlack cBridge (ky + 1) + logSlack cBridge (kxyCond + 1) ≤
+        logSlack cBridgeLogs (kxy + 1) :=
+    hBridgeLogs ky kxyCond kxy hkyBound hkxyCondBound
+  have hkpUpperE : (p.length : ENat) ≤ (ky : ENat) + (logSlack cBridge (ky + 1) : ENat) := by
+    rw [hpLenE]
+    exact hBridge y [] ky hky
+  have hkpUpper : p.length ≤ ky + logSlack cBridge (ky + 1) := by exact_mod_cast hkpUpperE
+  have hkqUpperE : (q.length : ENat) ≤ (kxyCond : ENat) +
+      (logSlack cBridge (kxyCond + 1) : ENat) := by
+    rw [hqLenE]
+    exact hBridge x y kxyCond hkxyCond
+  have hkqUpper : q.length ≤ kxyCond + logSlack cBridge (kxyCond + 1) := by
+    exact_mod_cast hkqUpperE
+  have hRepOverhead :
+      logSlack cSwapFold (kxy + 1) + logSlack cBridgeLogs (kxy + 1) + cSwap ≤
+        logSlack C (kxy + 1) := by
+    calc
+      logSlack cSwapFold (kxy + 1) + logSlack cBridgeLogs (kxy + 1) + cSwap
+          = logSlack (cSwapFold + cBridgeLogs) (kxy + 1) + cSwap := by
+        rw [logSlack_add_const]
+      _ ≤ logSlack C (kxy + 1) := by
+        simpa [C] using logSlack_add_nat_le (cSwapFold + cBridgeLogs) cSwap (kxy + 1)
+  omega
+
+/-- The conditional complexity of the nested program `p ++ q` given `x` is bounded by
+`C(y | x)` plus logarithmic slack in `C(x, y)`. -/
+private theorem condK_prefixConcat_given_orig_le
+    (V U : Map) (hV : isOptimalConditional V)
+    (hU : IsOptimalPrefixConditional U) (cRep : Nat) :
+    ∃ c : Nat, ∀ (x y p q : BitString) (kyx kxy : Nat),
+      HasPlainConditionalComplexityValue V y x kyx →
+      HasPlainComplexityValue V (pairCode x y) kxy →
+      produces U p [] y →
+      produces U q y x →
+      (p ++ q).length ≤ kxy + logSlack cRep (kxy + 1) →
+      condK V (p ++ q) x ≤ (kyx + logSlack (cRep + c) (kxy + 1) : ENat) := by
+  obtain ⟨cMeta, hMeta⟩ := prefixConcat_plainPair_bounds V U hV hU
+  obtain ⟨cLen, hLen⟩ := plainK_le_length V hV
+  obtain ⟨cLower, hLower⟩ := pairPlainK_chain_lower_values V hV
+  obtain ⟨cUpper, hUpper⟩ := pairPlainK_chain_upper_values V hV
+  obtain ⟨bRep, hRepLinear⟩ := logSlack_le_add_const cRep
+  let bXX := bRep + cLen + cMeta
+  obtain ⟨cLowerXX, hLowerXX⟩ := logSlack_linear_bound cLower 2 bXX
+  let C := cUpper + cLowerXX + (cLen + cMeta)
+  refine ⟨C, fun x y p q kyx kxy hkyx hkxy hp hq hxLen => ?_⟩
+  let x' := p ++ q
+  have hx'Len : x'.length ≤ kxy + logSlack cRep (kxy + 1) := hxLen
+  obtain ⟨kx, hkx⟩ := exists_plainComplexityValue V hV x
+  obtain ⟨kxPrime, hkxPrime⟩ := exists_plainComplexityValue V hV x'
+  obtain ⟨kPairXX, hkPairXX⟩ := exists_plainComplexityValue V hV (pairCode x x')
+  obtain ⟨kCondXX, hkCondXX⟩ := exists_plainConditionalComplexityValue V hV x' x
+  have hMetaInst := hMeta p q x y hp hq
+  have hkPairXXBoundE : (kPairXX : ENat) ≤ (kxPrime : ENat) + (cMeta : ENat) := by
+    calc
+      (kPairXX : ENat) = pairPlainK V x x' := by rw [pairPlainK, hkPairXX]
+      _ = pairPlainK V x (p ++ q) := rfl
+      _ ≤ plainK V (p ++ q) + (cMeta : ENat) := hMetaInst.2
+      _ = (kxPrime : ENat) + (cMeta : ENat) := by rw [show p ++ q = x' from rfl, hkxPrime]
+  have hkPairXXBound : kPairXX ≤ kxPrime + cMeta := by exact_mod_cast hkPairXXBoundE
+  have hkxPrimeLengthE : (kxPrime : ENat) ≤ (x'.length : ENat) + (cLen : ENat) := by
+    calc
+      (kxPrime : ENat) = plainK V x' := hkxPrime.symm
+      _ ≤ (x'.length : ENat) + (cLen : ENat) := hLen x'
+  have hkxPrimeLength : kxPrime ≤ x'.length + cLen := by exact_mod_cast hkxPrimeLengthE
+  have hkPairXXLinear : kPairXX + 1 ≤ 2 * (kxy + 1) + bXX := by
+    dsimp [bXX, x'] at *
+    have hLog := hRepLinear (kxy + 1)
+    omega
+  have hLowerXXLog : logSlack cLower (kPairXX + 1) ≤ logSlack cLowerXX (kxy + 1) := by
+    calc
+      logSlack cLower (kPairXX + 1) ≤ logSlack cLower (2 * (kxy + 1) + bXX) :=
+        logSlack_mono_right cLower hkPairXXLinear
+      _ ≤ logSlack cLowerXX (kxy + 1) := hLowerXX (kxy + 1)
+  have hUpperXY : kxy ≤ kx + kyx + logSlack cUpper (kxy + 1) :=
+    hUpper x y kx kyx kxy hkx hkyx hkxy
+  have hLowerXXInst : kx + kCondXX ≤ kPairXX + logSlack cLower (kPairXX + 1) :=
+    hLower x x' kx kCondXX kPairXX hkx hkCondXX hkPairXX
+  have hReverseOverhead :
+      logSlack cRep (kxy + 1) + logSlack cUpper (kxy + 1) +
+          logSlack cLowerXX (kxy + 1) + (cLen + cMeta) ≤
+        logSlack (cRep + C) (kxy + 1) := by
+    calc
+      logSlack cRep (kxy + 1) + logSlack cUpper (kxy + 1) +
+            logSlack cLowerXX (kxy + 1) + (cLen + cMeta)
+          = (logSlack (cRep + cUpper) (kxy + 1) + logSlack cLowerXX (kxy + 1)) +
+              (cLen + cMeta) := by
+        rw [← logSlack_add_const cRep cUpper (kxy + 1)]
+      _ = logSlack (cRep + cUpper + cLowerXX) (kxy + 1) + (cLen + cMeta) := by
+        rw [logSlack_add_const]
+      _ ≤ logSlack (cRep + C) (kxy + 1) := by
+        simpa [C, add_assoc] using
+          logSlack_add_nat_le (cRep + cUpper + cLowerXX) (cLen + cMeta) (kxy + 1)
+  have hReverse : kCondXX ≤ kyx + logSlack (cRep + C) (kxy + 1) := by omega
+  calc
+    condK V (p ++ q) x = (kCondXX : ENat) := hkCondXX
+    _ ≤ ((kyx + logSlack (cRep + C) (kxy + 1) : Nat) : ENat) := by exact_mod_cast hReverse
+
+/-- The program `p ++ q` is plain incompressible within `logSlack (cRep + cMeta) (kxy + 1)`. -/
+private theorem prefixConcat_incompressible_of_length_le
+    (V U : Map) (hV : isOptimalConditional V)
+    (hU : IsOptimalPrefixConditional U) (cRep : Nat) :
+    ∃ cMeta : Nat, ∀ (p q x y : BitString) (kxy : Nat),
+      produces U p [] y →
+      produces U q y x →
+      HasPlainComplexityValue V (pairCode x y) kxy →
+      (p ++ q).length ≤ kxy + logSlack cRep (kxy + 1) →
+      PlainIncompressibleWithin V (p ++ q) (logSlack (cRep + cMeta) (kxy + 1)) := by
+  obtain ⟨cMeta, hMeta⟩ := prefixConcat_plainPair_bounds V U hV hU
+  refine ⟨cMeta, fun p q x y kxy hp hq hkxy hxLen => ?_⟩
+  let x' := p ++ q
+  have hx'Len : x'.length ≤ kxy + logSlack cRep (kxy + 1) := hxLen
+  obtain ⟨kxPrime, hkxPrime⟩ := exists_plainComplexityValue V hV x'
+  have hMetaInst := hMeta p q x y hp hq
+  have hkxyToPrimeE : (kxy : ENat) ≤ (kxPrime : ENat) + (cMeta : ENat) := by
+    calc
+      (kxy : ENat) = pairPlainK V x y := by rw [pairPlainK, hkxy]
+      _ ≤ plainK V (p ++ q) + (cMeta : ENat) := hMetaInst.1
+      _ = (kxPrime : ENat) + (cMeta : ENat) := by rw [show p ++ q = x' from rfl, hkxPrime]
+  have hkxyToPrime : kxy ≤ kxPrime + cMeta := by exact_mod_cast hkxyToPrimeE
+  have hXIncompOverhead :
+      logSlack cRep (kxy + 1) + cMeta ≤ logSlack (cRep + cMeta) (kxy + 1) := by
+    simpa using logSlack_add_nat_le cRep cMeta (kxy + 1)
+  have hXIncomp : x'.length ≤ kxPrime + logSlack (cRep + cMeta) (kxy + 1) := by omega
+  unfold PlainIncompressibleWithin
+  rw [hkxPrime]
+  exact_mod_cast hXIncomp
+
 /-- SUV Theorem 222: two strings have incompressible representatives
 which are nested by literal prefix.  The equivalence and incompressibility
 budget is exactly the source's
@@ -457,60 +653,25 @@ theorem exists_nested_incompressibleRepresentations
     condK_output_given_prefixConcat_le V U hV hU
   obtain ⟨cEquiv, hEquiv⟩ :=
     prefixShortestDescription_equivalent V U hV hU
-  obtain ⟨cMeta, hMeta⟩ :=
-    prefixConcat_plainPair_bounds V U hV hU
-  obtain ⟨cLen, hLen⟩ := plainKLeLength V hV
-  obtain ⟨cLower, hLower⟩ :=
-    pairPlainK_chain_lower_values V hV
-  obtain ⟨cUpper, hUpper⟩ :=
-    pairPlainK_chain_upper_values V hV
   obtain ⟨cRight, hRight⟩ := pairPlainK_right_le V hV
-  obtain ⟨cLeft, hLeft⟩ := pairPlainK_left_le V hV
-  obtain ⟨cCond, hCond⟩ := condKLePlainK V hV
   obtain ⟨cBridge, hBridge⟩ :=
     KP_le_condK_add_log_of_value U V hU hV
-  let swapPair : BitString → BitString := fun w =>
-    pairCode (decodeSecond w) (decodeFirst w)
-  have hPairCode₂ :
-      Computable₂ (fun a b : BitString => pairCode a b) :=
-    pairCode_computable
-  have hSwapComputable : Computable swapPair :=
-    hPairCode₂.comp decodeSecond_computable
-      decodeFirst_computable
-  obtain ⟨cSwap, hSwap⟩ :=
-    plainKMapLe V hV swapPair hSwapComputable
-  obtain ⟨cBridgeLogs, hBridgeLogs⟩ :=
-    logSlack_two_values_le_pair cBridge cBridge
-      cRight (cCond + cLeft)
-  obtain ⟨cSwapFold, hSwapFold⟩ :=
-    logSlack_linear_bound cLower 1 cSwap
-  let cRep := cSwapFold + cBridgeLogs + cSwap
-  obtain ⟨cYEquiv, hYEquiv⟩ :=
-    logSlack_linear_bound cEquiv 1 cRight
-  obtain ⟨cYIncomp, hYIncomp⟩ :=
-    logSlack_linear_bound cIncomp 1 cRight
+  obtain ⟨cRep, hRep⟩ := prefixConcat_length_le V U hV hU
+  obtain ⟨cRev, hRev⟩ := condK_prefixConcat_given_orig_le V U hV hU cRep
+  obtain ⟨cMeta, hMetaIncomp⟩ := prefixConcat_incompressible_of_length_le V U hV hU cRep
+  obtain ⟨cYEquiv, hYEquiv⟩ := logSlack_linear_bound cEquiv 1 cRight
+  obtain ⟨cYIncomp, hYIncomp⟩ := logSlack_linear_bound cIncomp 1 cRight
   let cXIncomp := cRep + cMeta
-  obtain ⟨bRep, hRepLinear⟩ :=
-    logSlack_le_add_const cRep
-  let bXX := bRep + cLen + cMeta
-  obtain ⟨cLowerXX, hLowerXX⟩ :=
-    logSlack_linear_bound cLower 2 bXX
-  let cReverse :=
-    cRep + cUpper + cLowerXX + (cLen + cMeta)
-  let C :=
-    cConcat + cYEquiv + cYIncomp + cXIncomp + cReverse
+  let cReverse := cRep + cRev
+  let C := cConcat + cYEquiv + cYIncomp + cXIncomp + cReverse
   refine ⟨C, fun x y kyx kxy hkyx hkxy => ?_⟩
   obtain ⟨ky, hky⟩ := exists_plainComplexityValue V hV y
-  obtain ⟨kxyCond, hkxyCond⟩ :=
-    exists_plainConditionalComplexityValue V hV x y
-  obtain ⟨kx, hkx⟩ := exists_plainComplexityValue V hV x
+  obtain ⟨kxyCond, hkxyCond⟩ := exists_plainConditionalComplexityValue V hV x y
   obtain ⟨kp, hkp⟩ := exists_prefixComplexityValue U hU y
   have hkqFinite : KP U x y ≠ ⊤ := by
     have h := hBridge x y kxyCond hkxyCond
     exact ne_top_of_le_ne_top
-      (by
-        rw [← Nat.cast_add]
-        exact ENat.natCast_ne_top _)
+      (WithTop.add_ne_top.mpr ⟨ENat.natCast_ne_top _, ENat.natCast_ne_top _⟩)
       h
   obtain ⟨kq, hkq⟩ := ENat.ne_top_iff_exists.mp hkqFinite
   obtain ⟨p, hp, hpLenE⟩ :=
@@ -523,289 +684,73 @@ theorem exists_nested_incompressibleRepresentations
   obtain ⟨q, hq, hqLenE⟩ :=
     exists_program_of_KP_ne_top
       (M := U) (x := x) (y := y) hkqFinite
-  have hpLen : p.length = kp := by
-    exact_mod_cast (hpLenE.trans hkp.symm)
-  have hqLen : q.length = kq := by
-    exact_mod_cast (hqLenE.trans hkq.symm)
+  have hpLen : p.length = kp := by exact_mod_cast (hpLenE.trans hkp.symm)
+  have hqLen : q.length = kq := by exact_mod_cast (hqLenE.trans hkq.symm)
   let x' := p ++ q
   let y' := p
   have hyx : y' <+: x' := List.prefix_append p q
-  obtain ⟨kSwap, hkSwap⟩ :=
-    exists_plainComplexityValue V hV (pairCode y x)
-  have hkyBoundE :
-      (ky : ENat) ≤ (kxy : ENat) + (cRight : ENat) := by
-    calc
-      (ky : ENat) = plainK V y := hky.symm
-      _ ≤ pairPlainK V x y + (cRight : ENat) := hRight x y
-      _ = (kxy : ENat) + (cRight : ENat) := by
-        rw [pairPlainK, hkxy]
-  have hkyBound : ky ≤ kxy + cRight := by
-    exact_mod_cast hkyBoundE
-  have hkxyCondBoundE :
-      (kxyCond : ENat) ≤
-        (kxy : ENat) + ((cCond + cLeft : Nat) : ENat) := by
-    calc
-      (kxyCond : ENat) = condK V x y := hkxyCond.symm
-      _ ≤ plainK V x + (cCond : ENat) := hCond x y
-      _ ≤ (pairPlainK V x y + (cLeft : ENat)) +
-          (cCond : ENat) := by
-        gcongr
-        exact hLeft x y
-      _ = (kxy : ENat) +
-          ((cCond + cLeft : Nat) : ENat) := by
-        rw [pairPlainK, hkxy]
-        push_cast
-        simp [add_assoc, add_comm, add_left_comm]
-  have hkxyCondBound :
-      kxyCond ≤ kxy + (cCond + cLeft) := by
-    exact_mod_cast hkxyCondBoundE
-  have hkSwapBoundE :
-      (kSwap : ENat) ≤ (kxy : ENat) + (cSwap : ENat) := by
-    calc
-      (kSwap : ENat) = plainK V (pairCode y x) := hkSwap.symm
-      _ = plainK V (swapPair (pairCode x y)) := by
-        simp [swapPair, decodeFirst_pairCode, decodeSecond_pairCode]
-      _ ≤ plainK V (pairCode x y) + (cSwap : ENat) :=
-        hSwap (pairCode x y)
-      _ = (kxy : ENat) + (cSwap : ENat) := by
-        rw [hkxy]
-  have hkSwapBound : kSwap ≤ kxy + cSwap := by
-    exact_mod_cast hkSwapBoundE
-  have hChain :
-      ky + kxyCond ≤
-        kSwap + logSlack cLower (kSwap + 1) :=
-    hLower y x ky kxyCond kSwap hky hkxyCond hkSwap
-  have hSwapLog :
-      logSlack cLower (kSwap + 1) ≤
-        logSlack cSwapFold (kxy + 1) := by
-    calc
-      logSlack cLower (kSwap + 1)
-          ≤ logSlack cLower
-              (1 * (kxy + 1) + cSwap) :=
-        logSlack_mono_right cLower (by omega)
-      _ ≤ logSlack cSwapFold (kxy + 1) :=
-        hSwapFold (kxy + 1)
-  have hTwoBridgeLogs :
-      logSlack cBridge (ky + 1) +
-          logSlack cBridge (kxyCond + 1) ≤
-        logSlack cBridgeLogs (kxy + 1) :=
-    hBridgeLogs ky kxyCond kxy hkyBound hkxyCondBound
-  have hkpUpperE :
-      (kp : ENat) ≤
-        (ky : ENat) +
-          (logSlack cBridge (ky + 1) : ENat) := by
-    rw [hkp]
-    exact hBridge y [] ky hky
-  have hkpUpper :
-      kp ≤ ky + logSlack cBridge (ky + 1) := by
-    exact_mod_cast hkpUpperE
-  have hkqUpperE :
-      (kq : ENat) ≤
-        (kxyCond : ENat) +
-          (logSlack cBridge (kxyCond + 1) : ENat) := by
-    rw [hkq]
-    exact hBridge x y kxyCond hkxyCond
-  have hkqUpper :
-      kq ≤ kxyCond +
-        logSlack cBridge (kxyCond + 1) := by
-    exact_mod_cast hkqUpperE
-  have hRepOverhead :
-      logSlack cSwapFold (kxy + 1) +
-          logSlack cBridgeLogs (kxy + 1) + cSwap ≤
-        logSlack cRep (kxy + 1) := by
-    calc
-      logSlack cSwapFold (kxy + 1) +
-            logSlack cBridgeLogs (kxy + 1) + cSwap
-          = logSlack (cSwapFold + cBridgeLogs)
-              (kxy + 1) + cSwap := by
-        rw [logSlack_add_const]
-      _ ≤ logSlack cRep (kxy + 1) := by
-        simpa [cRep] using
-          logSlack_add_nat_le
-            (cSwapFold + cBridgeLogs) cSwap (kxy + 1)
-  have hxLen :
-      x'.length ≤ kxy + logSlack cRep (kxy + 1) := by
+  have hxLen : x'.length ≤ kxy + logSlack cRep (kxy + 1) := by
     dsimp [x']
-    rw [List.length_append, hpLen, hqLen]
-    omega
-  obtain ⟨kxPrime, hkxPrime⟩ :=
-    exists_plainComplexityValue V hV x'
-  obtain ⟨kPairXX, hkPairXX⟩ :=
-    exists_plainComplexityValue V hV (pairCode x x')
-  obtain ⟨kCondXX, hkCondXX⟩ :=
-    exists_plainConditionalComplexityValue V hV x' x
-  have hMetaInst := hMeta p q x y hp hq
-  have hkxyToPrimeE :
-      (kxy : ENat) ≤
-        (kxPrime : ENat) + (cMeta : ENat) := by
+    rw [List.length_append]
+    exact hRep x y p q kxy hkxy hpLenE hqLenE
+  have hRevInst : condK V x' x ≤ (kyx + logSlack cReverse (kxy + 1) : ENat) :=
+    hRev x y p q kyx kxy hkyx hkxy hp hq hxLen
+  have hYEquivFold : logSlack cEquiv (ky + 1) ≤ logSlack cYEquiv (kxy + 1) := by
+    have hkyBoundE : (ky : ENat) ≤ (kxy : ENat) + (cRight : ENat) := by
+      calc
+        (ky : ENat) = plainK V y := hky.symm
+        _ ≤ pairPlainK V x y + (cRight : ENat) := hRight x y
+        _ = (kxy : ENat) + (cRight : ENat) := by rw [pairPlainK, hkxy]
+    have hkyBound : ky ≤ kxy + cRight := by exact_mod_cast hkyBoundE
     calc
-      (kxy : ENat) = pairPlainK V x y := by
-        rw [pairPlainK, hkxy]
-      _ ≤ plainK V (p ++ q) + (cMeta : ENat) :=
-        hMetaInst.1
-      _ = (kxPrime : ENat) + (cMeta : ENat) := by
-        rw [show p ++ q = x' from rfl, hkxPrime]
-  have hkxyToPrime : kxy ≤ kxPrime + cMeta := by
-    exact_mod_cast hkxyToPrimeE
-  have hkPairXXBoundE :
-      (kPairXX : ENat) ≤
-        (kxPrime : ENat) + (cMeta : ENat) := by
-    calc
-      (kPairXX : ENat) = pairPlainK V x x' := by
-        rw [pairPlainK, hkPairXX]
-      _ = pairPlainK V x (p ++ q) := rfl
-      _ ≤ plainK V (p ++ q) + (cMeta : ENat) :=
-        hMetaInst.2
-      _ = (kxPrime : ENat) + (cMeta : ENat) := by
-        rw [show p ++ q = x' from rfl, hkxPrime]
-  have hkPairXXBound :
-      kPairXX ≤ kxPrime + cMeta := by
-    exact_mod_cast hkPairXXBoundE
-  have hkxPrimeLengthE :
-      (kxPrime : ENat) ≤
-        (x'.length : ENat) + (cLen : ENat) := by
-    calc
-      (kxPrime : ENat) = plainK V x' := hkxPrime.symm
-      _ ≤ (x'.length : ENat) + (cLen : ENat) := hLen x'
-  have hkxPrimeLength :
-      kxPrime ≤ x'.length + cLen := by
-    exact_mod_cast hkxPrimeLengthE
-  have hXIncompOverhead :
-      logSlack cRep (kxy + 1) + cMeta ≤
-        logSlack cXIncomp (kxy + 1) := by
-    simpa [cXIncomp] using
-      logSlack_add_nat_le cRep cMeta (kxy + 1)
-  have hXIncomp :
-      x'.length ≤
-        kxPrime + logSlack cXIncomp (kxy + 1) := by
-    omega
-  have hkPairXXLinear :
-      kPairXX + 1 ≤ 2 * (kxy + 1) + bXX := by
-    have hLog := hRepLinear (kxy + 1)
-    dsimp [bXX]
-    omega
-  have hLowerXXLog :
-      logSlack cLower (kPairXX + 1) ≤
-        logSlack cLowerXX (kxy + 1) := by
-    calc
-      logSlack cLower (kPairXX + 1)
-          ≤ logSlack cLower
-              (2 * (kxy + 1) + bXX) :=
-        logSlack_mono_right cLower hkPairXXLinear
-      _ ≤ logSlack cLowerXX (kxy + 1) :=
-        hLowerXX (kxy + 1)
-  have hUpperXY :
-      kxy ≤ kx + kyx + logSlack cUpper (kxy + 1) :=
-    hUpper x y kx kyx kxy hkx hkyx hkxy
-  have hLowerXXInst :
-      kx + kCondXX ≤
-        kPairXX + logSlack cLower (kPairXX + 1) :=
-    hLower x x' kx kCondXX kPairXX
-      hkx hkCondXX hkPairXX
-  have hReverseOverhead :
-      logSlack cRep (kxy + 1) +
-          logSlack cUpper (kxy + 1) +
-          logSlack cLowerXX (kxy + 1) +
-          (cLen + cMeta) ≤
-        logSlack cReverse (kxy + 1) := by
-    calc
-      logSlack cRep (kxy + 1) +
-            logSlack cUpper (kxy + 1) +
-            logSlack cLowerXX (kxy + 1) +
-            (cLen + cMeta)
-          = (logSlack (cRep + cUpper) (kxy + 1) +
-              logSlack cLowerXX (kxy + 1)) +
-              (cLen + cMeta) := by
-        rw [← logSlack_add_const cRep cUpper (kxy + 1)]
-      _ = logSlack (cRep + cUpper + cLowerXX)
-              (kxy + 1) + (cLen + cMeta) := by
-        rw [logSlack_add_const]
-      _ ≤ logSlack cReverse (kxy + 1) := by
-        simpa [cReverse] using
-          logSlack_add_nat_le
-            (cRep + cUpper + cLowerXX)
-            (cLen + cMeta) (kxy + 1)
-  have hReverse :
-      kCondXX ≤ kyx + logSlack cReverse (kxy + 1) := by
-    omega
-  have hYEquivFold :
-      logSlack cEquiv (ky + 1) ≤
-        logSlack cYEquiv (kxy + 1) := by
-    calc
-      logSlack cEquiv (ky + 1)
-          ≤ logSlack cEquiv
-              (1 * (kxy + 1) + cRight) :=
+      logSlack cEquiv (ky + 1) ≤ logSlack cEquiv (1 * (kxy + 1) + cRight) :=
         logSlack_mono_right cEquiv (by omega)
-      _ ≤ logSlack cYEquiv (kxy + 1) :=
-        hYEquiv (kxy + 1)
-  have hYIncompFold :
-      logSlack cIncomp (ky + 1) ≤
-        logSlack cYIncomp (kxy + 1) := by
+      _ ≤ logSlack cYEquiv (kxy + 1) := hYEquiv (kxy + 1)
+  have hYIncompFold : logSlack cIncomp (ky + 1) ≤ logSlack cYIncomp (kxy + 1) := by
+    have hkyBoundE : (ky : ENat) ≤ (kxy : ENat) + (cRight : ENat) := by
+      calc
+        (ky : ENat) = plainK V y := hky.symm
+        _ ≤ pairPlainK V x y + (cRight : ENat) := hRight x y
+        _ = (kxy : ENat) + (cRight : ENat) := by rw [pairPlainK, hkxy]
+    have hkyBound : ky ≤ kxy + cRight := by exact_mod_cast hkyBoundE
     calc
-      logSlack cIncomp (ky + 1)
-          ≤ logSlack cIncomp
-              (1 * (kxy + 1) + cRight) :=
+      logSlack cIncomp (ky + 1) ≤ logSlack cIncomp (1 * (kxy + 1) + cRight) :=
         logSlack_mono_right cIncomp (by omega)
-      _ ≤ logSlack cYIncomp (kxy + 1) :=
-        hYIncomp (kxy + 1)
-  have hConstBudget (d : Nat) (hd : d ≤ C) :
-      d ≤ kyx + logSlack C (kxy + 1) := by
-    unfold logSlack
-    omega
+      _ ≤ logSlack cYIncomp (kxy + 1) := hYIncomp (kxy + 1)
+  have hConstBudget (d : Nat) (hd : d ≤ C) : d ≤ kyx + logSlack C (kxy + 1) := by
+    unfold logSlack; omega
   have hLogBudget (d : Nat) (hd : d ≤ C) :
-      logSlack d (kxy + 1) ≤
-        kyx + logSlack C (kxy + 1) := by
-    exact (logSlack_mono_left hd (kxy + 1)).trans
-      (Nat.le_add_left _ _)
+      logSlack d (kxy + 1) ≤ kyx + logSlack C (kxy + 1) :=
+    (logSlack_mono_left hd (kxy + 1)).trans (Nat.le_add_left _ _)
   refine ⟨x', y', hyx, ?_, ?_, ?_, ?_⟩
   · unfold PlainEquivalentWithin
     constructor
     · exact (hConcat p q x y hp hq).trans
-        (by
-          exact_mod_cast hConstBudget cConcat
-            (by dsimp [C]; omega))
+        (by exact_mod_cast hConstBudget cConcat (by dsimp [C]; omega))
     · calc
-        condK V x' x = (kCondXX : ENat) := hkCondXX
-        _ ≤ ((kyx + logSlack cReverse
-              (kxy + 1) : Nat) : ENat) := by
-          exact_mod_cast hReverse
-        _ ≤ ((kyx + logSlack C
-              (kxy + 1) : Nat) : ENat) := by
+        condK V x' x ≤ ((kyx + logSlack cReverse (kxy + 1) : Nat) : ENat) := hRevInst
+        _ ≤ ((kyx + logSlack C (kxy + 1) : Nat) : ENat) := by
           exact_mod_cast Nat.add_le_add_left
-            (logSlack_mono_left
-              (show cReverse ≤ C by dsimp [C]; omega)
-              (kxy + 1)) kyx
-  · have h :=
-      hEquiv y p ky kp hky hkp hp hpLen
+            (logSlack_mono_left (show cReverse ≤ C by dsimp [C]; omega) (kxy + 1)) kyx
+  · have h := hEquiv y p ky kp hky hkp hp hpLen
     unfold PlainEquivalentWithin at h ⊢
     constructor
     · exact h.1.trans (by
-        exact_mod_cast
-          (hYEquivFold.trans
-            (hLogBudget cYEquiv
-              (by dsimp [C]; omega))))
+        exact_mod_cast (hYEquivFold.trans (hLogBudget cYEquiv (by dsimp [C]; omega))))
     · exact h.2.trans (by
-        exact_mod_cast
-          (hYEquivFold.trans
-            (hLogBudget cYEquiv
-              (by dsimp [C]; omega))))
-  · unfold PlainIncompressibleWithin
-    rw [hkxPrime]
-    exact_mod_cast hXIncomp.trans
-      (Nat.add_le_add_left
-        (hLogBudget cXIncomp
-          (by dsimp [C]; omega)) kxPrime)
-  · have h :=
-      hIncomp y [] p ky kp hky hkp hp hpLen
+        exact_mod_cast (hYEquivFold.trans (hLogBudget cYEquiv (by dsimp [C]; omega))))
+  · have h := hMetaIncomp p q x y kxy hp hq hkxy hxLen
+    unfold PlainIncompressibleWithin at h ⊢
+    exact h.trans (by
+      have hs : logSlack cXIncomp (kxy + 1) ≤ kyx + logSlack C (kxy + 1) :=
+        hLogBudget cXIncomp (by dsimp [C]; omega)
+      exact add_le_add_right (by exact_mod_cast hs) _)
+  · have h := hIncomp y [] p ky kp hky hkp hp hpLen
     unfold PlainIncompressibleWithin at h ⊢
     dsimp [y']
     exact h.trans (by
-      have hs :
-          logSlack cIncomp (ky + 1) ≤
-            kyx + logSlack C (kxy + 1) :=
-        hYIncompFold.trans
-          (hLogBudget cYIncomp
-            (by dsimp [C]; omega))
+      have hs : logSlack cIncomp (ky + 1) ≤ kyx + logSlack C (kxy + 1) :=
+        hYIncompFold.trans (hLogBudget cYIncomp (by dsimp [C]; omega))
       exact add_le_add_right (by exact_mod_cast hs) _)
 
 end Kolmogorov

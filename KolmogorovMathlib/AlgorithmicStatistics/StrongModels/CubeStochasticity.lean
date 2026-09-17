@@ -1,9 +1,9 @@
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.BudgetedCornerMinimalWitness
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.BudgetedCornerMinimality
 
 /-!
 # The length-uniform model as a stochasticity witness, and what minimality forces
 
-The corner research direction isolated in `BudgetedCornerMinimalWitness.lean` may be
+The corner research direction isolated in `BudgetedCornerMinimality.lean` may be
 assumed to concern a Pareto-minimal stochasticity witness.  This module extracts
 a concrete structural consequence of that minimality, using the cheapest model
 available for an arbitrary string: the uniform distribution on the cube
@@ -30,6 +30,7 @@ Nothing here assumes an open statement.
 
 namespace Kolmogorov
 
+open CodedFiniteDistribution
 open scoped ENNReal
 
 /-- **Additive form of the deficiency bound for the length-uniform model.**  The
@@ -50,7 +51,7 @@ theorem deficiencyLe_codedLengthUniform_of_length_le
   have hnetop : ((2 : ℝ≥0∞) ^ beta) ≠ ⊤ := ENNReal.pow_ne_top (by simp)
   have hcancel : (2 : ℝ≥0∞) ^ beta * (2 : ℝ≥0∞)⁻¹ ^ beta = 1 := by
     rw [← ENNReal.inv_pow, ENNReal.mul_inv_cancel hne0 hnetop]
-  unfold DeficiencyLe CodedFiniteDistribution.DeficiencyLe
+  unfold CodedFiniteDistribution.DeficiencyLe
   rw [codedLengthUniform_mass_of_mem n x hx]
   calc complexityWeight (KP U x (codedLengthUniform n).code)
       = (2 : ℝ≥0∞) ^ beta *

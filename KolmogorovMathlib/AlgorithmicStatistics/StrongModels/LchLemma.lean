@@ -13,6 +13,10 @@ public quantifier order or any of its four conclusions.
 namespace Kolmogorov
 open Kolmogorov.CodedFiniteDistribution
 
+/-- Data of the bounded iteration behind the LCH descent: two sequences of models `A_seq` and
+`B_seq` through `x`, each `A_seq r` a strong model, with the two-part budget, the cap, and
+the conditional complexity of `B_seq r` given `A_seq r` and given the halting sequence all
+controlled by `logSlack c n`, and each step of `A_seq` costing at most `2 * alpha` more. -/
 structure LchIterates (V T : Map) (x : BitString) (n : Nat) (A : Finset BitString)
     (hA : A.Nonempty) (epsilon alpha c : Nat) (q : Nat.Partrec.Code) where
   A_seq : Nat → Finset BitString
@@ -144,16 +148,6 @@ lemma exists_lch_iterates
     h_cardA_B := fun r => hcardABg (f r)
   }⟩
 
-/-- Round-count bound: the number of nonterminal LCH rounds `N` is `O(√n)`.
-From `N·√n ≤ 4n + 2·logSlack c_strong n` (the descent budget) and the sqrt
-identities `n ≤ (√n)² + 2√n`, `bits ≤ √n + 2`. -/
-private lemma lch_N_bound (n N s b c_strong : Nat) (hs : 1 ≤ s)
-    (hn : n ≤ s * s + 2 * s) (hb : b ≤ s + 2)
-    (hNs : N * s ≤ 4 * n + 2 * (c_strong * b + c_strong)) :
-    N ≤ 4 * s + 8 + 8 * c_strong := by
-  apply Nat.le_of_mul_le_mul_right _ hs
-  nlinarith [hNs, hn, hb, hs, Nat.zero_le c_strong, Nat.mul_le_mul_right s hb]
-
 /-- The conclusion-2 accumulation arithmetic of Lemma `lch`.  Given the
 round-count bound `N ≤ 4√n + O(1)`, the accumulated two-part loss
 `2α + N·(2α + logSlack cR n)` fits into `c·(α + logSlack c n)·√n` once `c`
@@ -199,9 +193,55 @@ private lemma lch_concl2_arith
     exact le_trans hh (Nat.mul_le_mul_right _ hc2)
   nlinarith [hA, hB1, hB2]
 
-/-- Worker form of VS40 Lemma `lch` retaining the membership fact carried by
-the constructed iterate.  The frozen public interface predates this field, so
-`lemma_lch` below forgets it. -/
+/-- A single constant dominating the four budgets of the `lch` assembly: it is positive, it
+absorbs `26 + 16 c_strong`, its square absorbs `(12 + 8 c_strong) cR`, and it absorbs
+`7 cR + 4 C1 + C2`. -/
+private lemma exists_lch_uniform_constant (c_strong cR C1 C2 : Nat) :
+    ∃ c : Nat, 1 ≤ c ∧ 26 + 16 * c_strong ≤ c ∧ (12 + 8 * c_strong) * cR ≤ c * c ∧
+      7 * cR + 4 * C1 + C2 ≤ c := by
+  refine ⟨26 + 16 * c_strong + (12 + 8 * c_strong) * cR + 7 * cR + 4 * C1 + C2 + 1,
+    by omega, by omega, ?_, by omega⟩
+  exact le_trans
+    (show (12 + 8 * c_strong) * cR ≤
+      26 + 16 * c_strong + (12 + 8 * c_strong) * cR + 7 * cR + 4 * C1 + C2 + 1 by omega)
+    (Nat.le_mul_of_pos_left _ (by omega))
+
+/-- The visible budget `n + epsilon + logSlack (a + b) n` of the closing step is linear in `n`
+whenever `epsilon ≤ n`. -/
+private lemma lch_ambient_le_linear {n epsilon a b : Nat} (heps : epsilon ≤ n) :
+    n + epsilon + logSlack (a + b) n ≤ (2 + a + b) * n + (a + b) := by
+  have hbits : (Nat.bits n).length ≤ n := length_natBits_le n
+  have hls : logSlack (a + b) n ≤ (a + b) * n + (a + b) := by
+    unfold logSlack
+    gcongr
+  have hdist : (2 + a + b) * n = 2 * n + (a + b) * n := by ring
+  omega
+
+/-- The four slack contributions of the closing step fit inside `c * √n + logSlack c n` once
+`c` absorbs `7 cR + 4 C1 + C2`. -/
+private lemma lch_closing_slack_le {cR C1 C2 c n x y : Nat} (hc_pos : 1 ≤ c)
+    (hx : x ≤ logSlack C1 n) (hy : y ≤ logSlack C2 n) (hc3 : 7 * cR + 4 * C1 + C2 ≤ c) :
+    4 * (logSlack cR n + x) + n.sqrt + 3 * logSlack cR n + y ≤ c * n.sqrt + logSlack c n := by
+  have h7 : 7 * logSlack cR n + 4 * logSlack C1 n + logSlack C2 n =
+      logSlack (7 * cR + 4 * C1 + C2) n := by
+    unfold logSlack
+    ring
+  have hmono2 : logSlack (7 * cR + 4 * C1 + C2) n ≤ logSlack c n := logSlack_mono_left hc3 n
+  have hs1 : n.sqrt ≤ c * n.sqrt := Nat.le_mul_of_pos_left n.sqrt hc_pos
+  calc 4 * (logSlack cR n + x) + n.sqrt + 3 * logSlack cR n + y
+      ≤ 4 * (logSlack cR n + logSlack C1 n) + n.sqrt +
+          3 * logSlack cR n + logSlack C2 n := by gcongr
+    _ = n.sqrt + (7 * logSlack cR n + 4 * logSlack C1 n + logSlack C2 n) := by ring
+    _ = n.sqrt + logSlack (7 * cR + 4 * C1 + C2) n := by rw [h7]
+    _ ≤ c * n.sqrt + logSlack c n := Nat.add_le_add hs1 hmono2
+
+/-- The statement of Lemma `lch` in the form used by the hereditary assembly: there is a
+constant `c` such that every normal string `x` of length `n` in a nonempty model `A`, with
+`2 * alpha < sqrt n` and `epsilon ≤ n`, lies in a nonempty `H` which is a strong set model of
+`x` with parameter `epsilon`, whose two-part cost exceeds that of `A` by at most
+`c * (alpha + logSlack c n) * sqrt n`, whose code has conditional complexity at most
+`c * sqrt n + logSlack c n` given the corresponding `Ω` prefix, and whose plain set complexity
+exceeds that of `A` by at most `alpha`.  Unlike `lemma_lch`, this form also records `x ∈ H`. -/
 def LemmaLchWithMemStatement (V T : Map) : Prop :=
   ∃ c : Nat,
     ∀ x n A (hA : A.Nonempty) epsilon alpha (q : Nat.Partrec.Code),
@@ -238,15 +278,7 @@ theorem lemma_lch_with_mem
   obtain ⟨C2, hC2⟩ := logSlack_linear_bound c_close (2 + c_strong + cR) (c_strong + cR)
   -- Choose the uniform constant abstractly so downstream `omega`/`nlinarith`
   -- never re-expand the (large) explicit witness.
-  obtain ⟨c, hc_pos, hc1, hc2, hc3⟩ :
-      ∃ c : Nat, 1 ≤ c ∧ 26 + 16 * c_strong ≤ c ∧
-        (12 + 8 * c_strong) * cR ≤ c * c ∧ 7 * cR + 4 * C1 + C2 ≤ c := by
-    refine ⟨26 + 16 * c_strong + (12 + 8 * c_strong) * cR + 7 * cR + 4 * C1 + C2 + 1,
-      by omega, by omega, ?_, by omega⟩
-    exact le_trans
-      (show (12 + 8 * c_strong) * cR ≤
-        26 + 16 * c_strong + (12 + 8 * c_strong) * cR + 7 * cR + 4 * C1 + C2 + 1 by omega)
-      (Nat.le_mul_of_pos_left _ (by omega))
+  obtain ⟨c, hc_pos, hc1, hc2, hc3⟩ := exists_lch_uniform_constant c_strong cR C1 C2
   refine ⟨c, ?_⟩
   intro x n A hA epsilon alpha q hq hn hxA heps halpha hnorm
   obtain ⟨iter⟩ := h_iter x n A hA epsilon alpha hn hxA hnorm
@@ -275,49 +307,23 @@ theorem lemma_lch_with_mem
     have h := iter.h_compA_B r
     rw [hfval (r + 1), hgval r] at h
     exact_mod_cast h
-  obtain ⟨i0, hi0le, hi0pred⟩ :=
-    exists_lch_terminal_gap f gseq n.sqrt alpha halpha hnext
-  have hex : ∃ i, f i - gseq i ≤ n.sqrt := ⟨i0, hi0pred⟩
-  set N := Nat.find hex with hN_def
-  have hNspec : f N - gseq N ≤ n.sqrt := Nat.find_spec hex
-  have hNmin : ∀ m, m < N → ¬ (f m - gseq m ≤ n.sqrt) :=
-    fun m hm => Nat.find_min hex hm
-  set d : Nat := n.sqrt + 1 - alpha with hd_def
-  have hstep_dec : ∀ m, m < N → f (m + 1) + d ≤ f m := by
-    intro m hm
-    have h1 := hNmin m hm
-    have h2 := hnext m
-    omega
-  have h2d : n.sqrt ≤ 2 * d := by omega
   -- initial strong-model complexity bound
   have hf0 : f 0 ≤ n + epsilon + logSlack c_strong n := by
     have h := h_strong x (iter.A_seq 0) (iter.hA_seq 0) n epsilon hn (iter.h_strong_A 0)
     have h2 : (f 0 : ENat) ≤ ((n + epsilon + logSlack c_strong n : Nat) : ENat) := by
-      rw [← hfval 0]; exact_mod_cast h
+      rw [← hfval 0]
+      exact_mod_cast h
     exact_mod_cast h2
-  -- N * √n bound
-  have hNd : f N + N * d ≤ f 0 := descent_mul_le_of_step f N d hstep_dec
-  have hNsqrt : N * n.sqrt ≤ 2 * (n + epsilon + logSlack c_strong n) := by
-    calc N * n.sqrt ≤ N * (2 * d) := by gcongr
-      _ = 2 * (N * d) := by ring
-      _ ≤ 2 * f 0 := by omega
-      _ ≤ 2 * (n + epsilon + logSlack c_strong n) := by omega
+  -- the closing round and the resulting `N = O(√n)`
+  obtain ⟨N, hNspec, hNsqrt, hfN_le_f0⟩ :=
+    exists_lch_closing_index f gseq n.sqrt alpha halpha hnext
   have hNs : N * n.sqrt ≤ 4 * n + 2 * (c_strong * (Nat.bits n).length + c_strong) := by
-    have : logSlack c_strong n = c_strong * (Nat.bits n).length + c_strong := rfl
+    have hls : logSlack c_strong n = c_strong * (Nat.bits n).length + c_strong := rfl
     omega
-  have hNfin : N ≤ 4 * n.sqrt + 8 + 8 * c_strong :=
-    lch_N_bound n N n.sqrt (Nat.bits n).length c_strong hs_pos hn_sqrt hb_sqrt hNs
-  -- monotonicity of the complexity sequence
-  have hmono : ∀ j, j ≤ N → f j ≤ f 0 := by
-    intro j
-    induction j with
-    | zero => intro _; exact le_rfl
-    | succ j ih =>
-      intro hj
-      have h1 : f (j + 1) ≤ f j := by have := hstep_dec j (by omega); omega
-      have h2 : f j ≤ f 0 := ih (by omega)
-      omega
-  have hfN_le_f0 : f N ≤ f 0 := hmono N le_rfl
+  have hNfin : N ≤ 4 * n.sqrt + 8 + 8 * c_strong := by
+    apply Nat.le_of_mul_le_mul_right _ hs_pos
+    nlinarith [hNs, hn_sqrt, hb_sqrt, hs_pos, Nat.zero_le c_strong,
+      Nat.mul_le_mul_right n.sqrt hb_sqrt]
   refine ⟨iter.A_seq N, iter.hA_seq N, iter.h_x_in_A N, iter.h_strong_A N, ?_, ?_, ?_⟩
   · -- Conclusion 2: two-part growth
     have hFstep : ∀ r, f (r + 1) + finiteSetLogCard (iter.A_seq (r + 1)) ≤
@@ -370,7 +376,7 @@ theorem lemma_lch_with_mem
     have hb_le : gseq N ≤ Nbnd := by
       have h := iter.h_capB N
       have h2 : plainSetComplexity V (iter.B_seq N) (iter.hB_seq N) ≤
-          (n + logSlack cR n : ENat) := le_trans (le_add_of_nonneg_right (zero_le)) h
+          (n + logSlack cR n : ENat) := le_trans (le_add_of_nonneg_right (bot_le)) h
       rw [hgval N] at h2
       have h3 : gseq N ≤ n + logSlack cR n := by exact_mod_cast h2
       omega
@@ -385,30 +391,13 @@ theorem lemma_lch_with_mem
       n.sqrt (logSlack cR n + logSlack c_fwd Nbnd) (logSlack cR n)
       hHcode hBcode ha_le hb_le (iter.h_condB_A N) hs'_le hab htau (iter.h_condB_Omega N)
     refine le_trans hclose ?_
-    have hNbnd_le : Nbnd ≤ (2 + c_strong + cR) * n + (c_strong + cR) := by
-      have hbits : (Nat.bits n).length ≤ n := length_natBits_le_self n
-      have hls : logSlack (c_strong + cR) n ≤ (c_strong + cR) * n + (c_strong + cR) := by
-        unfold logSlack; gcongr
-      have hdist : (2 + c_strong + cR) * n = 2 * n + (c_strong + cR) * n := by ring
-      omega
+    have hNbnd_le : Nbnd ≤ (2 + c_strong + cR) * n + (c_strong + cR) :=
+      lch_ambient_le_linear heps
     have hfwd_abs : logSlack c_fwd Nbnd ≤ logSlack C1 n :=
       le_trans (logSlack_mono_right c_fwd hNbnd_le) (hC1 n)
     have hclose_abs : logSlack c_close Nbnd ≤ logSlack C2 n :=
       le_trans (logSlack_mono_right c_close hNbnd_le) (hC2 n)
-    have hs1 : n.sqrt ≤ c * n.sqrt := Nat.le_mul_of_pos_left n.sqrt hc_pos
-    have hfinal : 4 * (logSlack cR n + logSlack c_fwd Nbnd) + n.sqrt +
-        3 * logSlack cR n + logSlack c_close Nbnd ≤ c * n.sqrt + logSlack c n := by
-      have h7 : 7 * logSlack cR n + 4 * logSlack C1 n + logSlack C2 n =
-          logSlack (7 * cR + 4 * C1 + C2) n := by unfold logSlack; ring
-      have hmono2 : logSlack (7 * cR + 4 * C1 + C2) n ≤ logSlack c n :=
-        logSlack_mono_left hc3 n
-      calc 4 * (logSlack cR n + logSlack c_fwd Nbnd) + n.sqrt +
-            3 * logSlack cR n + logSlack c_close Nbnd
-          ≤ 4 * (logSlack cR n + logSlack C1 n) + n.sqrt +
-              3 * logSlack cR n + logSlack C2 n := by gcongr
-        _ = n.sqrt + (7 * logSlack cR n + 4 * logSlack C1 n + logSlack C2 n) := by ring
-        _ = n.sqrt + logSlack (7 * cR + 4 * C1 + C2) n := by rw [h7]
-        _ ≤ c * n.sqrt + logSlack c n := Nat.add_le_add hs1 hmono2
+    have hfinal := lch_closing_slack_le (cR := cR) (c := c) hc_pos hfwd_abs hclose_abs hc3
     exact_mod_cast hfinal
   · -- Conclusion 4: complexity does not grow past `C(A) + alpha`
     rw [hfval N, haAval]

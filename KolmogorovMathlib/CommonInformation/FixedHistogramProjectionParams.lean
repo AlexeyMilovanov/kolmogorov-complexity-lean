@@ -1,5 +1,6 @@
-import KolmogorovMathlib.CommonInformation.FixedHistogramRank
 import Mathlib.Logic.Equiv.Fin.Basic
+import KolmogorovMathlib.CommonInformation.FixedHistogramRank.FibreEnumeration
+import KolmogorovMathlib.CommonInformation.FixedHistogramRank
 
 /-!
 # Fibre complexity with the histogram carried by the program
@@ -27,6 +28,7 @@ noncomputable section
 
 /-! ### Permutation invariance of the numeric enumerations -/
 
+/-- Permuting the alphabet permutes the enumeration of the words of a given length. -/
 theorem allWordsFrom_perm {A : Type*} {s t : List A} (h : s.Perm t) (k : ℕ) :
     (allWordsFrom s k).Perm (allWordsFrom t k) := by
   induction k with
@@ -36,6 +38,7 @@ theorem allWordsFrom_perm {A : Type*} {s t : List A} (h : s.Perm t) (k : ℕ) :
         (t.flatMap fun a => (allWordsFrom t k).map (a :: ·))
       exact h.flatMap fun a _ => ih.map _
 
+/-- Permuting the histogram table permutes the enumeration of the words with that histogram. -/
 theorem numericFixedHistogramWords_perm {T₁ T₂ : List (ℕ × ℕ)} (h : T₁.Perm T₂) :
     (numericFixedHistogramWords T₁).Perm (numericFixedHistogramWords T₂) := by
   have hpred : (fun w : List ℕ => decide (∀ e ∈ T₁, w.count e.1 = e.2)) =
@@ -47,6 +50,7 @@ theorem numericFixedHistogramWords_perm {T₁ T₂ : List (ℕ × ℕ)} (h : T�
   rw [hpred, (h.map Prod.snd).sum_eq]
   exact (allWordsFrom_perm (h.map Prod.fst) _).filter _
 
+/-- Permuting the histogram table permutes the fibre enumeration. -/
 theorem numericFixedHistogramFiberWords_perm (projection : List ℕ)
     {T₁ T₂ : List (ℕ × ℕ)} (h : T₁.Perm T₂) :
     (numericFixedHistogramFiberWords projection T₁).Perm
@@ -61,6 +65,7 @@ def prodHistogramTable (m n : ℕ) (f : Fin m × Fin n → ℕ) : List (ℕ × �
   List.ofFn fun j : Fin (m * n) =>
     (FiniteLetterCode.encode (finProdFinEquiv.symm j), f (finProdFinEquiv.symm j))
 
+/-- The product histogram table is a permutation of the table indexed by the product alphabet. -/
 theorem prodHistogramTable_perm (m n : ℕ) (f : Fin m × Fin n → ℕ) :
     (prodHistogramTable m n f).Perm
       ((univ : Finset (Fin m × Fin n)).toList.map
@@ -108,6 +113,7 @@ def fixedHistogramProdLiftDecoder : Map := fun pr =>
         (prodParamTable pr.1)).map numericWordCode).getD
       (decodeFixedWidthNatCode (prodParamState pr.1).1.2) [])
 
+/-- Reassembling the product histogram table from its tagged form is primitive recursive. -/
 theorem prodTableOfTagged_primrec :
     Primrec (fun p : ℕ × List (ℕ × ℕ) => prodTableOfTagged p.1 p.2) := by
   unfold prodTableOfTagged
@@ -122,6 +128,7 @@ theorem prodTableOfTagged_primrec :
     (Primrec₂.natPair.comp (Primrec.nat_div.comp he1 hn) (Primrec.nat_mod.comp he1 hn))
     he2).to₂
 
+/-- The parameter state read by the product lift decoder is primitive recursive. -/
 theorem prodParamState_primrec : Primrec prodParamState := by
   have hm : Primrec (fun p : BitString => bitsToNat (decodeFirst p)) :=
     bitsToNat_primrec.comp CodedFiniteDistribution.decodeFirst_primrec
@@ -140,6 +147,7 @@ theorem prodParamState_primrec : Primrec prodParamState := by
     ?_
   exact (peelStep_primrec.comp (Primrec.snd.comp Primrec.snd)).to₂
 
+/-- The parameter table read by the product lift decoder is primitive recursive. -/
 theorem prodParamTable_primrec : Primrec prodParamTable := by
   have hn : Primrec (fun p : BitString => bitsToNat (decodeFirst (decodeSecond p))) :=
     bitsToNat_primrec.comp (CodedFiniteDistribution.decodeFirst_primrec.comp
@@ -147,6 +155,8 @@ theorem prodParamTable_primrec : Primrec prodParamTable := by
   exact prodTableOfTagged_primrec.comp
     (Primrec.pair hn (Primrec.fst.comp (Primrec.fst.comp prodParamState_primrec)))
 
+/-- The decoder lifting a projected word over a product alphabet, with the histogram supplied in
+the program, is a decompressor. -/
 theorem fixedHistogramProdLiftDecoder_isDecompressor :
     isDecompressor fixedHistogramProdLiftDecoder := by
   have hlist : Primrec (fun pr : BitString × BitString =>
@@ -176,6 +186,7 @@ variable {A B : Type*} [Fintype A] [DecidableEq A] [FiniteLetterCode A]
   [Fintype B] [DecidableEq B] [FiniteLetterCode B]
 
 omit [Fintype A] [DecidableEq A] [Fintype B] [DecidableEq B] in
+/-- Taking the first component commutes with the pair coding of the letters. -/
 theorem map_encode_unpair_fst_gen (v : List (A × B)) :
     (v.map FiniteLetterCode.encode).map (fun code : ℕ => code.unpair.1) =
       (v.map Prod.fst).map (FiniteLetterCode.encode : A → ℕ) := by
@@ -184,6 +195,8 @@ theorem map_encode_unpair_fst_gen (v : List (A × B)) :
   rintro ⟨a, b⟩ -
   simp [finiteLetterCode_encode_prod]
 
+/-- The fibre enumeration lists exactly the codes of the words of the prescribed histogram
+projecting to the given word. -/
 theorem mem_numericFiber_gen (f : A × B → ℕ) (w_A : List A) (w' : List ℕ) :
     w' ∈ numericFixedHistogramFiberWords (w_A.map FiniteLetterCode.encode)
         (Finset.univ.toList.map (fun ab : A × B => (FiniteLetterCode.encode ab, f ab))) ↔
@@ -200,6 +213,7 @@ theorem mem_numericFiber_gen (f : A × B → ℕ) (w_A : List A) (w' : List ℕ)
     exact ⟨⟨v, hv, rfl⟩, by rw [map_encode_unpair_fst_gen, hmap]⟩
 
 omit [DecidableEq A] [DecidableEq B] in
+/-- The fibre enumeration has no repetitions. -/
 theorem numericFiber_nodup_gen (f : A × B → ℕ) (w_A : List A) :
     (numericFixedHistogramFiberWords (w_A.map FiniteLetterCode.encode)
       (Finset.univ.toList.map
@@ -207,6 +221,8 @@ theorem numericFiber_nodup_gen (f : A × B → ℕ) (w_A : List A) :
   (numericGeneral_nodup f).filter _
 
 omit [DecidableEq B] in
+/-- When the projection has the right marginal histogram, the fibre has
+`∏ₐ multinomial (f(a, ·))` elements. -/
 theorem length_numericFiber_gen (f : A × B → ℕ) (w_A : List A)
     (hmargin : ∀ a, w_A.count a = ∑ b, f (a, b)) :
     (numericFixedHistogramFiberWords (w_A.map FiniteLetterCode.encode)
@@ -240,6 +256,7 @@ theorem length_numericFiber_gen (f : A × B → ℕ) (w_A : List A)
 
 end GeneralLetterCode
 
+/-- Tagging the flattened histogram and reassembling it returns the product histogram table. -/
 theorem prodTableOfTagged_taggedFrom (m n : ℕ) (f : Fin m × Fin n → ℕ) :
     prodTableOfTagged n
         (taggedFrom 0 (List.ofFn fun j : Fin (m * n) => f (finProdFinEquiv.symm j))) =
@@ -253,6 +270,7 @@ theorem prodTableOfTagged_taggedFrom (m n : ℕ) (f : Fin m × Fin n → ℕ) :
   simp only [Function.comp_apply, hcode]
   rfl
 
+/-- The total length of the self-delimiting codes of the histogram entries. -/
 theorem sum_natsCode_lengths (m n : ℕ) (f : Fin m × Fin n → ℕ) :
     (((List.ofFn fun j : Fin (m * n) => f (finProdFinEquiv.symm j)).map
         fun x => 2 * Nat.size x + 1).sum) = 2 * (∑ ab, Nat.size (f ab)) + m * n := by
@@ -267,6 +285,8 @@ theorem sum_natsCode_lengths (m n : ℕ) (f : Fin m × Fin n → ℕ) :
   rw [hequiv]
   simp
 
+/-- A word over a product alphabet is recovered from its projection by a program of length at
+most the logarithm of the fibre size plus the cost of the histogram. -/
 theorem fixedHistogramProdLiftDecoder_recovers
     (m n : ℕ) (f : Fin m × Fin n → ℕ) (w : List (Fin m × Fin n))
     (hw : ∀ ab, w.count ab = f ab) :

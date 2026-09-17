@@ -1,7 +1,7 @@
 import KolmogorovMathlib.Complexity.Incompressibility
 import KolmogorovMathlib.Complexity.Properties
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.T1MarkingStreams
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.T1EffectiveRun
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.T1Run
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.T3
 
 /-!
@@ -56,14 +56,14 @@ theorem highComplexity_lengthSlice_card_lower (V : Map) (hV : isOptimalCondition
       c ≤ eps → eps ≤ k → k ≤ n →
       2 ^ (k - eps) ≤
         ((stringsOfLength n).filter (fun x => (k : ENat) ≤ plainK V x)).card := by
-  obtain ⟨cLen, hLen⟩ := plainKLeLength V hV
+  obtain ⟨cLen, hLen⟩ := plainK_le_length V hV
   refine ⟨cLen + 1, fun n k eps hc heps hkn => ?_⟩
   have hk1 : 1 ≤ k := le_trans (Nat.le_add_left 1 cLen) (le_trans hc heps)
   set m := k - (cLen + 1) with hm_def
   -- Short slice: every length-`m` string is compressible of budget `k - 1`.
   have h_short_sub : stringsOfLength m ⊆ compressibleWords V [] (k - 1) := by
     intro x hx
-    rw [memStringsOfLength] at hx
+    rw [mem_stringsOfLength] at hx
     have hpk : plainK V x < (k : ENat) := by
       have h1 : plainK V x ≤ (x.length : ENat) + (cLen : ENat) := hLen x
       rw [hx] at h1
@@ -84,8 +84,8 @@ theorem highComplexity_lengthSlice_card_lower (V : Map) (hV : isOptimalCondition
       ((stringsOfLength n).filter (fun x => ¬ ((k : ENat) ≤ plainK V x))) := by
     rw [Finset.disjoint_left]
     intro x hxm hxn
-    rw [memStringsOfLength] at hxm
-    rw [Finset.mem_filter, memStringsOfLength] at hxn
+    rw [mem_stringsOfLength] at hxm
+    rw [Finset.mem_filter, mem_stringsOfLength] at hxn
     omega
   -- Disjoint union of both slices sits inside the compressible words.
   have h_union_sub :
@@ -113,7 +113,7 @@ theorem highComplexity_lengthSlice_card_lower (V : Map) (hV : isOptimalCondition
     rw [← h_union_card]
     exact Finset.card_le_card h_union_sub
   have h_comp_lt : (compressibleWords V [] (k - 1)).card < 2 ^ k := by
-    have h := cardCompressibleWordsLt V [] (k - 1)
+    have h := card_compressibleWordsLt V [] (k - 1)
     have hk_eq : (k - 1) + 1 = k := by omega
     rwa [hk_eq] at h
   -- Partition of the length-`n` cube into high- and low-complexity slices.
@@ -122,23 +122,29 @@ theorem highComplexity_lengthSlice_card_lower (V : Map) (hV : isOptimalCondition
         ((stringsOfLength n).filter (fun x => ¬ ((k : ENat) ≤ plainK V x))).card =
         (stringsOfLength n).card :=
     Finset.card_filter_add_card_filter_not (fun x => (k : ENat) ≤ plainK V x)
-  rw [cardStringsOfLength] at h_part
-  rw [cardStringsOfLength] at h_card_union
+  rw [card_stringsOfLength] at h_part
+  rw [card_stringsOfLength] at h_card_union
   have h2m_le : 2 ^ (k - eps) ≤ 2 ^ m :=
     Nat.pow_le_pow_right (by decide) (by omega)
   have h2k_le : 2 ^ k ≤ 2 ^ n := Nat.pow_le_pow_right (by decide) hkn
   omega
 
+/-- The state of the T3 boundary run: the current candidate block, the strings already discarded as
+having been marked, and the number of rebuilds performed so far. -/
 structure T3BoundaryDRunState where
   current : List BitString
   dSeen : List BitString
   rebuilds : ℕ
 
+/-- The initial T3 boundary state: the first `2 ^ (k - epsilon)` strings of length `n`, nothing
+discarded, no rebuild yet. -/
 def t3BoundaryDInitial (n k epsilon : ℕ) : T3BoundaryDRunState :=
   let S := canonicalFinsetList (stringsOfLength n)
   let current := S.take (2 ^ (k - epsilon))
   ⟨current, [], 0⟩
 
+/-- Tests whether the current block already contains the quota `2 ^ (k - epsilon - delta)` of
+strings marked by stage `t` of the enumeration. -/
 def t3BoundaryDQuotaReached
     (c : Nat.Partrec.Code) (n k epsilon delta t : ℕ)
     (s : T3BoundaryDRunState) : Bool :=
@@ -147,6 +153,8 @@ def t3BoundaryDQuotaReached
   let marked := s.current.filter (fun x => dStage.contains x)
   marked.length ≥ quota
 
+/-- Discards the strings of the current block marked by stage `t`, refills the block from the
+strings of length `n` not yet discarded, and increments the rebuild counter. -/
 def t3BoundaryDRebuild
     (c : Nat.Partrec.Code) (n k epsilon t : ℕ)
     (s : T3BoundaryDRunState) : T3BoundaryDRunState :=
@@ -157,6 +165,8 @@ def t3BoundaryDRebuild
   let newCurrent := available.take (2 ^ (k - epsilon))
   ⟨newCurrent, newDSeen, s.rebuilds + 1⟩
 
+/-- One step of the T3 boundary run: rebuild when the quota of marked strings is reached, otherwise
+keep the state unchanged. -/
 def t3BoundaryDStep
     (c : Nat.Partrec.Code) (n k epsilon delta t : ℕ)
     (s : T3BoundaryDRunState) : T3BoundaryDRunState :=
@@ -165,6 +175,7 @@ def t3BoundaryDStep
   else
     s
 
+/-- The T3 boundary state after `t` steps, starting from the initial block. -/
 def t3BoundaryDRun (c : Nat.Partrec.Code) (n k epsilon delta t : ℕ) : T3BoundaryDRunState :=
   match t with
   | 0 => t3BoundaryDInitial n k epsilon
@@ -172,6 +183,9 @@ def t3BoundaryDRun (c : Nat.Partrec.Code) (n k epsilon delta t : ℕ) : T3Bounda
       t3BoundaryDStep c n k epsilon delta (t' + 1)
         (t3BoundaryDRun c n k epsilon delta t')
 
+/-- As long as every discarded string has plain complexity below `k`, enough strings of length `n`
+remain undiscarded to refill a block of size `2 ^ (k - epsilon)`, so a rebuild is always
+possible. -/
 theorem t3BoundaryD_rebuild_available (V : Map) (hV : isOptimalConditional V) :
     ∃ c0 : ℕ, ∀ (n k epsilon : ℕ) (dSeen : List BitString),
       c0 ≤ epsilon → epsilon ≤ k → k ≤ n →
@@ -211,6 +225,8 @@ structure T3BoundaryDRunInvariant (quota : ℕ) (s : T3BoundaryDRunState) : Prop
   current_fresh : ∀ x ∈ s.current, x ∉ s.dSeen
   charged : s.rebuilds * quota ≤ s.dSeen.length
 
+/-- The initial T3 boundary state satisfies the run invariant for the quota
+`2 ^ (k - epsilon - delta)`. -/
 theorem t3BoundaryDInitial_invariant (n k epsilon delta : ℕ) :
     T3BoundaryDRunInvariant (2 ^ (k - epsilon - delta))
       (t3BoundaryDInitial n k epsilon) := by
@@ -220,6 +236,7 @@ theorem t3BoundaryDInitial_invariant (n k epsilon delta : ℕ) :
       (canonicalFinsetList_nodup _)
   · simp [t3BoundaryDInitial]
 
+/-- Rebuilding when the quota is reached preserves the run invariant. -/
 theorem t3BoundaryDRebuild_preserves_invariant
     (c : Nat.Partrec.Code) (n k epsilon t quota : ℕ)
     (s : T3BoundaryDRunState)
@@ -265,6 +282,8 @@ theorem t3BoundaryDRebuild_preserves_invariant
       ⟨newCurrent, newDSeen, s.rebuilds + 1⟩ from
         ⟨hnewCurrent_nodup, hnewDSeen_nodup, hfresh, hcharged⟩)
 
+/-- Every state of the T3 boundary run satisfies the run invariant for the quota
+`2 ^ (k - epsilon - delta)`. -/
 theorem t3BoundaryDRun_invariant
     (c : Nat.Partrec.Code) (n k epsilon delta t : ℕ) :
     T3BoundaryDRunInvariant (2 ^ (k - epsilon - delta))
@@ -323,7 +342,7 @@ theorem t3BoundaryDRun_current_length
   induction t with
   | zero =>
       simp only [t3BoundaryDRun, t3BoundaryDInitial, List.length_take,
-        length_canonicalFinsetList, cardStringsOfLength]
+        length_canonicalFinsetList, card_stringsOfLength]
       exact Nat.min_eq_left
         (Nat.pow_le_pow_right (by decide) (by omega))
   | succ t ih =>
@@ -368,6 +387,8 @@ theorem t3BoundaryDRun_current_subset_cube
       · rw [t3BoundaryDStep, if_neg hreach]
         exact ih
 
+/-- Each rebuild discards a full quota of strings, so the number of rebuilds times the quota is at
+most the number of discarded strings. -/
 theorem t3BoundaryD_rebuilds_le (c : Nat.Partrec.Code) (n k epsilon delta t : ℕ) :
     (t3BoundaryDRun c n k epsilon delta t).rebuilds * 2 ^ (k - epsilon - delta) ≤
       (t3BoundaryDRun c n k epsilon delta t).dSeen.length :=
@@ -402,7 +423,7 @@ theorem t3BoundaryDRun_dSeen_length_lt
           (List.toFinset_card_of_nodup
             (t3BoundaryDRun_invariant c n (k + 1) epsilon delta t).dSeen_nodup).symm
         _ ≤ (compressibleWords V [] k).card := Finset.card_le_card hsubset
-        _ < 2 ^ (k + 1) := cardCompressibleWordsLt V [] k
+        _ < 2 ^ (k + 1) := card_compressibleWordsLt V [] k
 
 /-- The strict version bound obtained by charging each rebuild to a fresh
 quota-sized batch of D marks. -/
@@ -425,6 +446,9 @@ theorem t3BoundaryD_rebuilds_lt
   have hquota_pos : 0 < quota := by simp [quota]
   nlinarith
 
+/-- There is a set `A` of `2 ^ (k - epsilon)` strings of length `n` all of whose elements outside an
+exceptional part of size at most `2 ^ (k - epsilon - delta)` have plain complexity at least `k`,
+obtained by a run using at most `2 ^ (epsilon + delta + 1)` rebuilds. -/
 theorem exists_t3_boundary_d_only_structural (V : Map) (hV : isOptimalConditional V) :
     ∃ c0 : ℕ, ∀ (n k epsilon delta : ℕ),
       c0 ≤ epsilon → epsilon ≤ k → delta ≤ k - epsilon → k ≤ n →
@@ -631,7 +655,7 @@ theorem exists_t3BoundaryD_terminal_model (V : Map) (hV : isOptimalConditional V
       have hxcube : x ∈ stringsOfLength n :=
         t3BoundaryDRun_current_subset_cube c n k epsilon delta t
           (List.mem_toFinset.mpr hxcur)
-      exact (memStringsOfLength n x).mp hxcube
+      exact (mem_stringsOfLength n x).mp hxcube
     by_contra hlow
     exact hxbad ⟨hxcur, by simpa using hcomplete x hxlen (not_le.mp hlow)⟩
   · exact t3BoundaryD_rebuilds_lt hc n k epsilon delta t hepsilon hdelta

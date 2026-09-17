@@ -1,3 +1,4 @@
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.ProfileOmpRadius
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.LemmaOmp
 
 /-!
@@ -5,13 +6,13 @@ import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.LemmaOmp
 
 The frozen `LemmaOmpStatement` is blocked at the exact radius `epsilon` only by
 the possibility that a member `x` of the `epsilon`-neighbourhood of `P` has
-complexity strictly above the endpoint `k_P`; the neighbourhood only forces
-`C(x) ≤ k_P + 2 * epsilon`, and the missing `2 * epsilon` is not absorbable by
-logarithmic slack (`ProfileOmpExactObstruction.lean`).
+complexity strictly above the endpoint `kP`; the neighbourhood only forces
+`C(x) ≤ kP + 2 * epsilon`, and the missing `2 * epsilon` is not absorbable by
+logarithmic slack (`ProfileOmpObstruction.lean`).
 
 This module discharges the exact-radius statement for the complementary class:
 neighbourhood members whose complexity does not exceed the endpoint,
-`C(x) ≤ k_P`.  For those, the standard-block route of the source proof goes
+`C(x) ≤ kP`.  For those, the standard-block route of the source proof goes
 through verbatim at the exact radius:
 
 * `m_P_eps_le_standardBlock_complexity_of_plainK_le_k_P` — the exact-`epsilon`
@@ -26,19 +27,19 @@ open Kolmogorov.CodedFiniteDistribution
 /-- **The exact-`epsilon` corner for a tight-complexity neighbourhood member.**
 
 If `x` lies in the `epsilon`-neighbourhood of an admissible `P`, has complexity
-`m ≤ k_P`, and `(i, r)` is the two-part budget of a genuine standard block of
-`x` at level `m`, then the shifted diagonal defining `m_P_eps` at the *exact*
+`m ≤ kP`, and `(i, r)` is the two-part budget of a genuine standard block of
+`x` at level `m`, then the shifted diagonal defining `mPEps` at the *exact*
 radius `epsilon` is met at complexity `i`. -/
 theorem m_P_eps_le_standardBlock_complexity_of_plainK_le_k_P
     (V : Map) (P : Set (Nat × Nat)) (kp epsilon c c' i r m : Nat) (x : BitString)
     (hUp : IsUpperSet P)
-    (hkP : k_P P = (kp : ENat))
+    (hkP : kP P = (kp : ENat))
     (hx : x ∈ profileNeighborhood V P epsilon)
     (hpoint : (i, r) ∈ plainDescriptionProfileSet V x)
     (hmkp : m ≤ kp)
     (hbudget : i + r ≤ m + logSlack c m)
     (hc : 2 * c ≤ c') :
-    m_P_eps P kp epsilon c' ≤ (i : ENat) := by
+    mPEps P kp epsilon c' ≤ (i : ENat) := by
   rcases Nat.lt_or_ge i kp with hik | hik
   · have hkpos : 1 ≤ kp := by omega
     have hshift : (i + epsilon, r + epsilon) ∈ P :=
@@ -71,8 +72,8 @@ theorem m_P_eps_le_standardBlock_complexity_of_plainK_le_k_P
   · exact (m_P_eps_le_k_P_of_eq P kp epsilon c' hUp hkP).trans (by exact_mod_cast hik)
 
 /-- The frozen `LemmaOmpStatement` restricted to neighbourhood members whose
-plain complexity does not exceed the complexity endpoint `k_P`.  Everything
-else, including the exact neighbourhood radius `epsilon` inside `m_P_eps`, is
+plain complexity does not exceed the complexity endpoint `kP`.  Everything
+else, including the exact neighbourhood radius `epsilon` inside `mPEps`, is
 verbatim the frozen statement. -/
 def LemmaOmpTightComplexityStatement (V : Map) : Prop :=
   ∃ c : Nat,
@@ -81,9 +82,9 @@ def LemmaOmpTightComplexityStatement (V : Map) : Prop :=
     IsAdmissibleProfileSet P →
     IsCodeFor q V →
     epsilon ≤ kp →
-    k_P P = (kp : ENat) →
-    n_P P = (np : ENat) →
-    m_P_eps P kp epsilon c = (mp_eps : ENat) →
+    kP P = (kp : ENat) →
+    nP P = (np : ENat) →
+    mPEps P kp epsilon c = (mp_eps : ENat) →
     x ∈ profileNeighborhood V P epsilon →
     plainK V x ≤ (kp : ENat) →
     condK V (omegaFixedCode q mp_eps) x ≤ (logSlack c np : ENat)
@@ -92,13 +93,13 @@ def LemmaOmpTightComplexityStatement (V : Map) : Prop :=
 (fully proved).**
 
 For `x` in the `epsilon`-neighbourhood of an admissible profile `P` with
-`C(x) ≤ k_P`, the finite Ω-code `Ω_{m_P(epsilon)}` at the *exact* radius is
-`O(log n_P)`-simple given `x`.
+`C(x) ≤ kP`, the finite Ω-code `Ω_{mP(epsilon)}` at the *exact* radius is
+`O(log nP)`-simple given `x`.
 
 Proof: take the standard block of `x` at level `C(x)`; it is a genuine profile
 point of `x` with two-part budget `C(x) + O(log)`, so
 `m_P_eps_le_standardBlock_complexity_of_plainK_le_k_P` reads off
-`m_P(epsilon) ≤ i`, and the visible-scale Ω-bridge transports `Ω_{m_P(epsilon)}`
+`mP(epsilon) ≤ i`, and the visible-scale Ω-bridge transports `Ω_{mP(epsilon)}`
 back to `x`.  The bound is code-independent. -/
 theorem lemma_omp_tightComplexity (V : Map) (hV : isOptimalConditional V) :
     LemmaOmpTightComplexityStatement V := by
@@ -149,11 +150,11 @@ theorem lemma_omp_tightComplexity (V : Map) (hV : isOptimalConditional V) :
   have hpoint : (i, r) ∈ plainDescriptionProfileSet V x :=
     ⟨standardBlock q0 m r x, ⟨x, hxblk⟩, hxblk, le_of_eq hi, hcard⟩
   -- The exact-`epsilon` corner.
-  have hcorner : m_P_eps P kp epsilon c_corner ≤ (i : ENat) :=
+  have hcorner : mPEps P kp epsilon c_corner ≤ (i : ENat) :=
     m_P_eps_le_standardBlock_complexity_of_plainK_le_k_P V P kp epsilon c_blk
       c_corner i r m x hadm.isUpperSet hkP hxnb hpoint hmkp hbudget (by omega)
   have hanti :
-      m_P_eps P kp epsilon (c_corner + c_br) ≤ m_P_eps P kp epsilon c_corner :=
+      mPEps P kp epsilon (c_corner + c_br) ≤ mPEps P kp epsilon c_corner :=
     m_P_eps_antitone_of_isUpperSet P kp epsilon c_corner (c_corner + c_br)
       hadm.isUpperSet (by omega)
   have hmp : mp_eps ≤ i + logSlack c_corner np := by

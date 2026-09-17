@@ -1,6 +1,6 @@
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.PlainSymmetry
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.AddNoiseTruncation
-import KolmogorovMathlib.AlgorithmicStatistics.BoundedComplexityLists.OmegaEquivalence
+import KolmogorovMathlib.AlgorithmicStatistics.BoundedLists.OmegaPrefix
 
 /-!
 # Finite-set symmetry for the add-noise truncation

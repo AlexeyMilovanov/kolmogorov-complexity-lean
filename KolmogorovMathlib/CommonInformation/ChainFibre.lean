@@ -1,10 +1,11 @@
 import KolmogorovMathlib.CommonInformation.ChainHistogram
-import KolmogorovMathlib.CommonInformation.FixedHistogramRank
 import KolmogorovMathlib.CommonInformation.FixedHistogramProjectionParams
+import KolmogorovMathlib.CommonInformation.FixedHistogramRank
 import KolmogorovMathlib.CommonInformation.PlainCoding
 import KolmogorovMathlib.CommonInformation.PlainSymmetry
 import KolmogorovMathlib.CommonInformation.Splitting
 import KolmogorovMathlib.CommonInformation.TypeBounds
+import KolmogorovMathlib.Complexity.Information.MutualInformation
 
 /-!
 # Alphabet recoding tools for chain fibre arguments
@@ -32,7 +33,7 @@ open Finset
 
 /-! ### Counting arithmetic -/
 
-/-- The number of words of a given length over `Fin m`. -/
+/-- There are `m ^ n` words of length `n` over `Fin m`: `(allWords m n).length = m ^ n`. -/
 theorem length_allWords (m n : ℕ) : (allWords m n).length = m ^ n := by
   induction n with
   | zero => simp [allWords]
@@ -75,19 +76,6 @@ theorem size_le_self (n : ℕ) : Nat.size n ≤ n := by
       omega)
     have h3 : n < 2 ^ n := Nat.lt_two_pow_self
     omega
-
-/-- Binary size is subadditive under multiplication. -/
-theorem size_mul_le (a b : ℕ) : Nat.size (a * b) ≤ Nat.size a + Nat.size b := by
-  rcases Nat.eq_zero_or_pos a with rfl | ha
-  · simp
-  rcases Nat.eq_zero_or_pos b with rfl | hb
-  · simp
-  have h1 : a < 2 ^ Nat.size a := Nat.lt_size_self a
-  have h2 : b < 2 ^ Nat.size b := Nat.lt_size_self b
-  have hlt : a * b < 2 ^ (Nat.size a + Nat.size b) := by
-    rw [pow_add]
-    exact Nat.mul_lt_mul_of_lt_of_lt h1 h2
-  exact Nat.size_le.mpr hlt
 
 /-- Multinomial coefficients are invariant under reindexing by an equivalence. -/
 theorem multinomial_comp_equiv {A B : Type*} [Fintype A] [Fintype B]
@@ -186,11 +174,13 @@ theorem exists_natTable {A : Type*} [Finite A] (c1 c2 : A → ℕ)
 noncomputable def decodeNatWord (z : BitString) : List ℕ :=
   ((Encodable.decode (bitsToNat z) : Option (List ℕ))).getD []
 
+/-- Decoding a coded word of naturals is primitive recursive. -/
 theorem decodeNatWord_primrec : Primrec decodeNatWord := by
   unfold decodeNatWord
   exact Primrec.option_getD.comp (Primrec.decode.comp bitsToNat_primrec)
     (Primrec.const [])
 
+/-- Decoding the code of a list of naturals returns that list. -/
 @[simp]
 theorem decodeNatWord_numericWordCode (l : List ℕ) :
     decodeNatWord (numericWordCode l) = l := by
@@ -202,6 +192,7 @@ theorem decodeNatWord_numericWordCode (l : List ℕ) :
 noncomputable def recodeWordCode (tab : List ℕ) (z : BitString) : BitString :=
   numericWordCode ((decodeNatWord z).map (fun x => tab.getD x 0))
 
+/-- Relabelling the letters of a coded word through a table is computable. -/
 theorem recodeWordCode_computable (tab : List ℕ) : Computable (recodeWordCode tab) := by
   unfold recodeWordCode
   have h4 : Primrec (fun x : ℕ => tab.getD x 0) :=
@@ -209,6 +200,7 @@ theorem recodeWordCode_computable (tab : List ℕ) : Computable (recodeWordCode 
   exact (numericWordCode_primrec.comp
     (Primrec.list_map decodeNatWord_primrec ((h4.comp Primrec.snd).to₂))).to_comp
 
+/-- Relabelling acts letterwise through the table. -/
 theorem recodeWordCode_numericWordCode (tab : List ℕ) (l : List ℕ) :
     recodeWordCode tab (numericWordCode l) =
       numericWordCode (l.map fun x => tab.getD x 0) := by
@@ -220,16 +212,14 @@ table. -/
 noncomputable def bitProjWord (tab : List ℕ) (z : BitString) : BitString :=
   (decodeNatWord z).map (fun x => tab.getD x 0 == 1)
 
+/-- Projecting a coded word onto a bit through a table is computable. -/
 theorem bitProjWord_computable (tab : List ℕ) : Computable (bitProjWord tab) := by
   unfold bitProjWord
-  have h4 : Primrec (fun x : ℕ => tab.getD x 0 == 1) := by
-    have h : PrimrecPred (fun x : ℕ => tab.getD x 0 = 1) :=
-      Primrec.eq.comp ((Primrec.list_getD 0).comp (Primrec.const tab) Primrec.id)
-        (Primrec.const 1)
-    obtain ⟨_, h'⟩ := h
-    exact h'.of_eq (fun x => by apply Bool.eq_iff_iff.mpr; simp [beq_iff_eq])
+  have h4 : Primrec (fun x : ℕ => tab.getD x 0 == 1) :=
+    Primrec.beq.comp ((Primrec.list_getD 0).comp (Primrec.const tab) Primrec.id) (Primrec.const 1)
   exact (Primrec.list_map decodeNatWord_primrec ((h4.comp Primrec.snd).to₂)).to_comp
 
+/-- The bit projection reads the table entry of each letter and tests it against one. -/
 theorem bitProjWord_numericWordCode (tab : List ℕ) (l : List ℕ) :
     bitProjWord tab (numericWordCode l) = l.map (fun x => tab.getD x 0 == 1) := by
   unfold bitProjWord
@@ -240,6 +230,7 @@ code, packaged with the chapter's canonical pair code. -/
 noncomputable def pairBitProjWords (tab₁ tab₂ : List ℕ) (z : BitString) : BitString :=
   pairCode (bitProjWord tab₁ z) (bitProjWord tab₂ z)
 
+/-- Taking two bit projections of a coded word at once is computable. -/
 theorem pairBitProjWords_computable (tab₁ tab₂ : List ℕ) :
     Computable (pairBitProjWords tab₁ tab₂) := by
   unfold pairBitProjWords
@@ -253,6 +244,7 @@ noncomputable def tripleBitProjWords (tab₁ tab₂ tab₃ : List ℕ)
     (z : BitString) : BitString :=
   pairCode (pairBitProjWords tab₁ tab₂ z) (bitProjWord tab₃ z)
 
+/-- Taking three bit projections of a coded word at once is computable. -/
 theorem tripleBitProjWords_computable (tab₁ tab₂ tab₃ : List ℕ) :
     Computable (tripleBitProjWords tab₁ tab₂ tab₃) := by
   unfold tripleBitProjWords
@@ -266,6 +258,7 @@ with the code itself. -/
 noncomputable def pairSelfBitProj (tab : List ℕ) (z : BitString) : BitString :=
   pairCode (bitProjWord tab z) z
 
+/-- Pairing a coded word with one of its bit projections is computable. -/
 theorem pairSelfBitProj_computable (tab : List ℕ) :
     Computable (pairSelfBitProj tab) := by
   unfold pairSelfBitProj
@@ -274,21 +267,6 @@ theorem pairSelfBitProj_computable (tab : List ℕ) :
 
 /-! ### Complexity transfers -/
 
-/-- Replacing the *condition* by something computable from it can only help. -/
-theorem condK_cond_map_le (V : Map) (hV : isOptimalConditional V)
-    (s : BitString → BitString) (hs : Computable s) :
-    ∃ c : ℕ, ∀ x y : BitString, condK V x y ≤ condK V x (s y) + (c : ENat) := by
-  let D : Map := fun pr => V (pr.1, s pr.2)
-  have hD : isDecompressor D :=
-    hV.1.comp (Computable.pair Computable.fst (hs.comp Computable.snd))
-  obtain ⟨c, hc⟩ := hV.2 D hD
-  refine ⟨c, fun x y => ?_⟩
-  refine le_trans (hc x y) ?_
-  gcongr
-  apply sInf_le_sInf
-  rintro n ⟨p, hp, rfl⟩
-  exact ⟨p, hp, rfl⟩
-
 /-- Recoding the alphabet of the described word costs `O(1)`. -/
 theorem condK_numericWord_recode_le (V : Map) (hV : isOptimalConditional V)
     {A : Type*} [Finite A] (c1 c2 : A → ℕ) (h1 : Function.Injective c1) :
@@ -296,7 +274,7 @@ theorem condK_numericWord_recode_le (V : Map) (hV : isOptimalConditional V)
       condK V (numericWordCode (w.map c2)) y ≤
         condK V (numericWordCode (w.map c1)) y + (c : ENat) := by
   obtain ⟨tab, htab⟩ := exists_natTable c1 c2 h1
-  obtain ⟨c, hc⟩ := condKMapLe V hV (recodeWordCode tab) (recodeWordCode_computable tab)
+  obtain ⟨c, hc⟩ := condK_map_le V hV (recodeWordCode tab) (recodeWordCode_computable tab)
   refine ⟨c, fun w y => ?_⟩
   have hval : recodeWordCode tab (numericWordCode (w.map c1)) =
       numericWordCode (w.map c2) := by
@@ -350,7 +328,7 @@ theorem plainK_pairCode_boolProj_le (V : Map) (hV : isOptimalConditional V)
       plainK V (pairCode (w.map g) (numericWordCode (w.map c1))) ≤
         plainK V (numericWordCode (w.map c1)) + (c : ENat) := by
   obtain ⟨tab, htab⟩ := exists_natTable c1 (fun a => if g a then 1 else 0) h1
-  obtain ⟨c, hc⟩ := plainKMapLe V hV (pairSelfBitProj tab)
+  obtain ⟨c, hc⟩ := plainK_map_le V hV (pairSelfBitProj tab)
     (pairSelfBitProj_computable tab)
   refine ⟨c, fun w => ?_⟩
   have hval : pairSelfBitProj tab (numericWordCode (w.map c1)) =
@@ -376,7 +354,7 @@ theorem plainK_pairCode_two_boolProjections_le (V : Map)
     exists_natTable c₁ (fun a => if g₁ a then 1 else 0) hc₁
   obtain ⟨tab₂, htab₂⟩ :=
     exists_natTable c₁ (fun a => if g₂ a then 1 else 0) hc₁
-  obtain ⟨c, hc⟩ := plainKMapLe V hV (pairBitProjWords tab₁ tab₂)
+  obtain ⟨c, hc⟩ := plainK_map_le V hV (pairBitProjWords tab₁ tab₂)
     (pairBitProjWords_computable tab₁ tab₂)
   refine ⟨c, fun w => ?_⟩
   have hproj₁ : bitProjWord tab₁ (numericWordCode (w.map c₁)) = w.map g₁ := by
@@ -408,7 +386,7 @@ theorem plainK_pairCode_three_boolProjections_le (V : Map)
     exists_natTable c₁ (fun a => if g₂ a then 1 else 0) hc₁
   obtain ⟨tab₃, htab₃⟩ :=
     exists_natTable c₁ (fun a => if g₃ a then 1 else 0) hc₁
-  obtain ⟨c, hc⟩ := plainKMapLe V hV (tripleBitProjWords tab₁ tab₂ tab₃)
+  obtain ⟨c, hc⟩ := plainK_map_le V hV (tripleBitProjWords tab₁ tab₂ tab₃)
     (tripleBitProjWords_computable tab₁ tab₂ tab₃)
   refine ⟨c, fun w => ?_⟩
   have hproj₁ : bitProjWord tab₁ (numericWordCode (w.map c₁)) = w.map g₁ := by
@@ -454,13 +432,16 @@ private theorem primrec_boolBit :
   Primrec.ite (Primrec.eq.comp Primrec.id (Primrec.const true))
     (Primrec.const 1) (Primrec.const 0)
 
+/-- Merging two coded bit words letterwise into a word over four letters is computable. -/
 theorem mergeTwoBitWordsCode_computable : Computable mergeTwoBitWordsCode := by
   have hrange : Primrec (fun z : BitString => List.range (decodeFirst z).length) :=
-    Primrec.list_range.comp (Primrec.list_length.comp decodeFirst_primrec')
+    Primrec.list_range.comp (Primrec.list_length.comp CodedFiniteDistribution.decodeFirst_primrec)
   have hu : Primrec (fun p : BitString × ℕ => (decodeFirst p.1).getD p.2 false) :=
-    (Primrec.list_getD false).comp (decodeFirst_primrec'.comp Primrec.fst) Primrec.snd
+    (Primrec.list_getD false).comp (CodedFiniteDistribution.decodeFirst_primrec.comp Primrec.fst)
+      Primrec.snd
   have hv : Primrec (fun p : BitString × ℕ => (decodeSecond p.1).getD p.2 false) :=
-    (Primrec.list_getD false).comp (decodeSecond_primrec'.comp Primrec.fst) Primrec.snd
+    (Primrec.list_getD false).comp (CodedFiniteDistribution.decodeSecond_primrec.comp Primrec.fst)
+      Primrec.snd
   have hbody : Primrec (fun p : BitString × ℕ =>
       2 * (if (decodeFirst p.1).getD p.2 false then 1 else 0) +
         (if (decodeSecond p.1).getD p.2 false then 1 else 0)) :=
@@ -469,11 +450,12 @@ theorem mergeTwoBitWordsCode_computable : Computable mergeTwoBitWordsCode := by
       (primrec_boolBit.comp hv)
   exact (numericWordCode_primrec.comp (Primrec.list_map hrange hbody.to₂)).to_comp
 
+/-- Merging three coded bit words letterwise into a word over eight letters is computable. -/
 theorem mergeThreeBitWordsCode_computable : Computable mergeThreeBitWordsCode := by
   have hff : Primrec (fun z : BitString => decodeFirst (decodeFirst z)) :=
-    decodeFirst_primrec'.comp decodeFirst_primrec'
+    CodedFiniteDistribution.decodeFirst_primrec.comp CodedFiniteDistribution.decodeFirst_primrec
   have hsf : Primrec (fun z : BitString => decodeSecond (decodeFirst z)) :=
-    decodeSecond_primrec'.comp decodeFirst_primrec'
+    CodedFiniteDistribution.decodeSecond_primrec.comp CodedFiniteDistribution.decodeFirst_primrec
   have hrange : Primrec
       (fun z : BitString => List.range (decodeFirst (decodeFirst z)).length) :=
     Primrec.list_range.comp (Primrec.list_length.comp hff)
@@ -484,7 +466,8 @@ theorem mergeThreeBitWordsCode_computable : Computable mergeThreeBitWordsCode :=
       (decodeSecond (decodeFirst p.1)).getD p.2 false) :=
     (Primrec.list_getD false).comp (hsf.comp Primrec.fst) Primrec.snd
   have hw : Primrec (fun p : BitString × ℕ => (decodeSecond p.1).getD p.2 false) :=
-    (Primrec.list_getD false).comp (decodeSecond_primrec'.comp Primrec.fst) Primrec.snd
+    (Primrec.list_getD false).comp (CodedFiniteDistribution.decodeSecond_primrec.comp Primrec.fst)
+      Primrec.snd
   have hbody : Primrec (fun p : BitString × ℕ =>
       4 * (if (decodeFirst (decodeFirst p.1)).getD p.2 false then 1 else 0) +
         2 * (if (decodeSecond (decodeFirst p.1)).getD p.2 false then 1 else 0) +
@@ -526,6 +509,7 @@ theorem range_map_getD_three {A : Type*} (W : List A) (g₁ g₂ g₃ : A → Bo
       List.getD_eq_getElem _ _ (by simpa using h2)]
     simp
 
+/-- Merging the two bit projections of a sample gives the word of the two-bit letters. -/
 theorem mergeTwoBitWordsCode_pairCode {A : Type*} (W : List A) (g₁ g₂ : A → Bool) :
     mergeTwoBitWordsCode (pairCode (W.map g₁) (W.map g₂)) =
       numericWordCode (W.map (fun v =>
@@ -535,6 +519,7 @@ theorem mergeTwoBitWordsCode_pairCode {A : Type*} (W : List A) (g₁ g₂ : A �
   rw [range_map_getD_two W g₁ g₂
     (fun a b => 2 * (if a then 1 else 0) + (if b then 1 else 0))]
 
+/-- Merging the three bit projections of a sample gives the word of the three-bit letters. -/
 theorem mergeThreeBitWordsCode_pairCode {A : Type*} (W : List A)
     (g₁ g₂ g₃ : A → Bool) :
     mergeThreeBitWordsCode
@@ -645,7 +630,7 @@ theorem plainK_pairCode_map_self_le (V : Map) (hV : isOptimalConditional V)
       plainK V (pairCode (s z) z) ≤ plainK V z + (c : ENat) := by
   have hpair : Computable₂ (fun x y : BitString => pairCode x y) :=
     pairCode_computable
-  obtain ⟨c, hc⟩ := plainKMapLe V hV (fun z => pairCode (s z) z)
+  obtain ⟨c, hc⟩ := plainK_map_le V hV (fun z => pairCode (s z) z)
     (hpair.comp hs Computable.id)
   exact ⟨c, fun z => hc z⟩
 

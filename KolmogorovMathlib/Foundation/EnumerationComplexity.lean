@@ -43,18 +43,23 @@ theorem distinctAt_mono (E : StagedEnumeration) (t : ℕ) :
   rw [← hl, List.eraseDups_append]
   exact List.prefix_append _ _
 
+/-- The distinct elements listed by stage `t₁` are a prefix of those listed by any
+later stage. -/
 theorem prefix_of_le (E : StagedEnumeration) {t1 t2 : ℕ} (hle : t1 ≤ t2) :
     E.distinctAt t1 <+: E.distinctAt t2 := by
   induction hle with
   | refl => exact List.prefix_refl _
   | step ht ih => exact List.IsPrefix.trans ih (distinctAt_mono E _)
 
-/-- Extractor function. -/
+/-- The extractor of a staged enumeration: on a program `w` of length `k + 1` it waits for the
+first stage at which at least `k + 1` distinct strings have appeared and returns the `k`-th
+one. -/
 def F (E : StagedEnumeration) : BitString →. BitString := fun w =>
   let k := w.length - 1
   (Nat.rfind (fun t => Part.some (decide (k < (E.distinctAt t).length)))).bind
     (fun t => Part.some ((E.distinctAt t).getD k []))
 
+/-- The extractor of a staged enumeration is partial computable. -/
 theorem F_partrec (E : StagedEnumeration) : Partrec (F E) := by
   have hk : Computable (fun (p : BitString × ℕ) => p.1.length - 1) :=
     Computable.pred.comp (Computable.list_length.comp Computable.fst)
@@ -76,12 +81,16 @@ theorem F_partrec (E : StagedEnumeration) : Partrec (F E) := by
     h_getD.comp h_distinctAt hk
   exact Partrec.bind (Partrec.rfind h_check.partrec₂) h_post.partrec₂
 
+/-- Reading an index below the length of a prefix gives the same element in the
+prefix and in the whole list. -/
 theorem getD_eq_of_prefix {α} (l1 l2 : List α) (h : l1 <+: l2) (k : ℕ) (d : α) (hk : k < l1.length)
     :
     l2.getD k d = l1.getD k d := by
   obtain ⟨r, rfl⟩ := h
   exact List.getD_append l1 r d k hk
 
+/-- The extractor returns the `k`-th distinct element as soon as some stage has
+listed more than `k` of them. -/
 theorem F_eval (E : StagedEnumeration) (t k : ℕ) (hk : k < (E.distinctAt t).length) :
     ((E.distinctAt t).getD k []) ∈ F E (natCode k) := by
   unfold F
@@ -92,11 +101,15 @@ theorem F_eval (E : StagedEnumeration) (t k : ℕ) (hk : k < (E.distinctAt t).le
   let h_exists : ∃ t', k < (E.distinctAt t').length := ⟨t, hk⟩
   let t0 := Nat.find h_exists
   refine ⟨t0, ?_, ?_⟩
-  · refine Nat.mem_rfind.mpr ⟨?_, ?_⟩
-    · simpa using Nat.find_spec h_exists
+  · let test : PFun Nat Bool := fun t' =>
+      Part.some (decide (k < (E.distinctAt t').length))
+    change t0 ∈ Nat.rfind test
+    rw [Nat.mem_rfind]
+    refine ⟨?_, ?_⟩
+    · simpa [test] using Nat.find_spec h_exists
     · intro m hm
       have hnot := Nat.find_min h_exists hm
-      simp [hnot]
+      simp [test, hnot]
   · have ht0 : k < (E.distinctAt t0).length := Nat.find_spec h_exists
     have ht0_le_t : t0 ≤ t :=
       Nat.find_le (p := fun t' => k < (E.distinctAt t').length) hk
@@ -104,10 +117,13 @@ theorem F_eval (E : StagedEnumeration) (t k : ℕ) (hk : k < (E.distinctAt t).le
     have hget := getD_eq_of_prefix (E.distinctAt t0) (E.distinctAt t) hpre k [] ht0
     simpa [hget]
 
+/-- The distinct elements enumerated by stage `t` from the context `y`. -/
 def condDistinctAt (enum : BitString → ℕ → List BitString)
     (y : BitString) (t : ℕ) : List BitString :=
   (enum y t).eraseDups
 
+/-- One more stage of a conditional enumeration only extends the list of distinct
+elements. -/
 theorem condDistinctAt_mono (enum : BitString → ℕ → List BitString)
     (hmono : ∀ y t, enum y t <+: enum y (t + 1)) (y : BitString) (t : ℕ) :
     condDistinctAt enum y t <+: condDistinctAt enum y (t + 1) := by
@@ -116,6 +132,8 @@ theorem condDistinctAt_mono (enum : BitString → ℕ → List BitString)
   rw [← hl, List.eraseDups_append]
   exact List.prefix_append _ _
 
+/-- The distinct elements listed by stage `t₁` from the context `y` are a prefix of
+those listed by any later stage. -/
 theorem condPrefix_of_le (enum : BitString → ℕ → List BitString)
     (hmono : ∀ y t, enum y t <+: enum y (t + 1))
     (y : BitString) {t1 t2 : ℕ} (hle : t1 ≤ t2) :
@@ -132,6 +150,8 @@ def condF (enum : BitString → ℕ → List BitString) :
   (Nat.rfind (fun t => Part.some (decide (k < (condDistinctAt enum y t).length)))).bind
     (fun t => Part.some ((condDistinctAt enum y t).getD k []))
 
+/-- The conditional extractor is partial computable in the pair (index code,
+context). -/
 theorem condF_partrec (enum : BitString → ℕ → List BitString)
     (henum : Computable fun p : BitString × ℕ => enum p.1 p.2) :
     Partrec (fun p : BitString × BitString => condF enum p.2 p.1) := by
@@ -157,6 +177,8 @@ theorem condF_partrec (enum : BitString → ℕ → List BitString)
     h_getD.comp h_distinctAt hk
   exact Partrec.bind (Partrec.rfind h_check.partrec₂) h_post.partrec₂
 
+/-- The conditional extractor returns the `k`-th distinct element enumerated from
+`y` as soon as some stage has listed more than `k` of them. -/
 theorem condF_eval (enum : BitString → ℕ → List BitString)
     (hmono : ∀ y t, enum y t <+: enum y (t + 1))
     (y : BitString) (t k : ℕ) (hk : k < (condDistinctAt enum y t).length) :
@@ -169,11 +191,15 @@ theorem condF_eval (enum : BitString → ℕ → List BitString)
   let h_exists : ∃ t', k < (condDistinctAt enum y t').length := ⟨t, hk⟩
   let t0 := Nat.find h_exists
   refine ⟨t0, ?_, ?_⟩
-  · refine Nat.mem_rfind.mpr ⟨?_, ?_⟩
-    · simpa using Nat.find_spec h_exists
+  · let test : PFun Nat Bool := fun t' =>
+      Part.some (decide (k < (condDistinctAt enum y t').length))
+    change t0 ∈ Nat.rfind test
+    rw [Nat.mem_rfind]
+    refine ⟨?_, ?_⟩
+    · simpa [test] using Nat.find_spec h_exists
     · intro m hm
       have hnot := Nat.find_min h_exists hm
-      simp [hnot]
+      simp [test, hnot]
   · have ht0 : k < (condDistinctAt enum y t0).length := Nat.find_spec h_exists
     have ht0_le_t : t0 ≤ t :=
       Nat.find_le (p := fun t' => k < (condDistinctAt enum y t').length) hk
@@ -255,6 +281,8 @@ def condFFixedLength (enum : BitString → ℕ → List BitString) :
   (Nat.rfind (fun t => Part.some (decide (k < (condDistinctAt enum y t).length)))).bind
     (fun t => Part.some ((condDistinctAt enum y t).getD k []))
 
+/-- The fixed-length conditional extractor is partial computable in the pair
+(index code, context). -/
 theorem condFFixedLength_partrec (enum : BitString → ℕ → List BitString)
     (henum : Computable fun p : BitString × ℕ => enum p.1 p.2) :
     Partrec (fun p : BitString × BitString => condFFixedLength enum p.2 p.1) := by
@@ -280,6 +308,8 @@ theorem condFFixedLength_partrec (enum : BitString → ℕ → List BitString)
     h_getD.comp h_distinctAt hk
   exact Partrec.bind (Partrec.rfind h_check.partrec₂) h_post.partrec₂
 
+/-- The fixed-length conditional extractor returns the element indexed by `z` as
+soon as some stage has listed more than `bitsToNat z` distinct elements. -/
 theorem condFFixedLength_eval (enum : BitString → ℕ → List BitString)
     (hmono : ∀ y t, enum y t <+: enum y (t + 1))
     (y z : BitString) (t : ℕ) (hk : bitsToNat z < (condDistinctAt enum y t).length) :
@@ -290,11 +320,15 @@ theorem condFFixedLength_eval (enum : BitString → ℕ → List BitString)
   let h_exists : ∃ t', k < (condDistinctAt enum y t').length := ⟨t, hk⟩
   let t0 := Nat.find h_exists
   refine ⟨t0, ?_, ?_⟩
-  · refine Nat.mem_rfind.mpr ⟨?_, ?_⟩
-    · simpa using Nat.find_spec h_exists
+  · let test : PFun Nat Bool := fun t' =>
+      Part.some (decide (bitsToNat z < (condDistinctAt enum y t').length))
+    change t0 ∈ Nat.rfind test
+    rw [Nat.mem_rfind]
+    refine ⟨?_, ?_⟩
+    · simpa [test] using Nat.find_spec h_exists
     · intro m hm
       have hnot := Nat.find_min h_exists hm
-      simpa [k] using hnot
+      simpa [test, k] using hnot
   · have ht0 : k < (condDistinctAt enum y t0).length := Nat.find_spec h_exists
     have ht0_le_t : t0 ≤ t :=
       Nat.find_le (p := fun t' => k < (condDistinctAt enum y t').length) hk

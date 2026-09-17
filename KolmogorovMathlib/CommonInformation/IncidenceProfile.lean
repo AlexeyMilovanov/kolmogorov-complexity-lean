@@ -2,8 +2,24 @@ import KolmogorovMathlib.CommonInformation.IncidenceCoding
 import KolmogorovMathlib.CommonInformation.Counting
 import KolmogorovMathlib.CommonInformation.PlainSymmetry
 
+/-!
+# The complexity profile of an incident pair
+
+`incident_edge_profile`: an incident point–line pair of high pair complexity has the profile
+the non-extractability argument needs — each coordinate of complexity about `2n`, the pair of
+complexity about `3n`, and hence mutual information about `n`.
+
+`exists_incidentPairCode_not_compressible` and
+`exists_highComplexity_concreteIncidentEdge` produce such a pair by counting;
+`pairPlainK_swap_values_close` and `mutualInformationWithin_of_close_plain_values` turn the
+three complexity values into the mutual-information statement, and `logSlack_profile_fold`
+folds the three slack terms into one.
+-/
+
 namespace Kolmogorov
 
+/-- Some incident pair of the concrete incidence structure has plain complexity at least
+`3n`. -/
 lemma exists_incidentPairCode_not_compressible
     (V : Map) {n : Nat} (hn : 0 < n) :
     ∃ w, w ∈ concreteIncidentPairCodes n ∧
@@ -19,7 +35,7 @@ lemma exists_incidentPairCode_not_compressible
   have hcard := Finset.card_le_card hsub
   rw [List.toFinset_card_of_nodup (concreteIncidentPairCodes_nodup n),
     concreteIncidentPairCodes_length] at hcard
-  have hcompress := cardCompressibleWordsLt V [] (3 * n - 1)
+  have hcompress := card_compressibleWordsLt V [] (3 * n - 1)
   have hexponent : 3 * n - 1 + 1 = 3 * n := by omega
   rw [hexponent] at hcompress
   have hprime : 2 ^ (3 * n) < concretePrime n ^ 3 := by
@@ -30,6 +46,7 @@ lemma exists_incidentPairCode_not_compressible
     exact Nat.pow_lt_pow_left (concretePrime_lower n) (by omega)
   omega
 
+/-- Some incident edge has a pair code of plain complexity at least `3n`. -/
 lemma exists_highComplexity_concreteIncidentEdge
     (V : Map) (hV : isOptimalConditional V) {n : Nat} (hn : 0 < n) :
     ∃ e : ConcreteIncidentEdge n, ∃ kxy,
@@ -52,6 +69,7 @@ lemma exists_highComplexity_concreteIncidentEdge
     exact_mod_cast hle
   omega
 
+/-- The plain complexities of a pair and of the swapped pair differ by at most a constant. -/
 lemma pairPlainK_swap_values_close
     (V : Map) (hV : isOptimalConditional V) :
     ∃ c, ∀ x y kxy kyx,
@@ -69,6 +87,8 @@ lemma pairPlainK_swap_values_close
     rw [pairPlainK, pairPlainK, hyx, hxy] at h
     exact_mod_cast h
 
+/-- If the three complexities are within `d` of values whose defect is `m`, the mutual information
+of the pair is `m` within `3d`. -/
 lemma mutualInformationWithin_of_close_plain_values
     (V : Map) {x y : BitString} {kx ky kxy ax ay axy d m : Nat} :
     HasPlainComplexityValue V x kx →
@@ -87,12 +107,15 @@ lemma mutualInformationWithin_of_close_plain_values
   · exact_mod_cast (show kxy + m ≤ kx + ky + 3 * d by omega)
   · exact_mod_cast (show kx + ky ≤ kxy + m + 3 * d by omega)
 
+/-- Three logarithmic slacks can be folded into a single one. -/
 lemma logSlack_profile_fold (c₁ c₂ c₃ : Nat) :
     ∃ C, ∀ n, logSlack c₁ n + logSlack c₂ n + logSlack c₃ n ≤ logSlack C n := by
   refine ⟨c₁ + c₂ + c₃, fun n => ?_⟩
   rw [logSlack_add_const, logSlack_add_const]
 
-theorem exercise_309_incident_edge_profile
+/-- An incident edge of high pair complexity has the intended profile: both coordinates have
+complexity about `2n`, the pair about `3n`, and their mutual information about `n`. -/
+theorem incident_edge_profile
     (V : Map) (hV : isOptimalConditional V) :
     ∀ d, ∃ C, ∀ n (e : ConcreteIncidentEdge n) kxy,
       HasPlainComplexityValue V
@@ -106,7 +129,7 @@ theorem exercise_309_incident_edge_profile
         NatCloseWithin kxy (3 * n) (logSlack C n) ∧
         MutualInformationWithin V
           (concretePointCode n e.1.1) (concreteLineCode n e.1.2) n (logSlack C n) := by
-  obtain ⟨cLength, hLength⟩ := plainKLeLength V hV
+  obtain ⟨cLength, hLength⟩ := plainK_le_length V hV
   obtain ⟨cPair, hPair⟩ := plainK_concreteIncidentPair_le V hV
   obtain ⟨cLine, hLine⟩ := condK_concreteLine_given_point_le V hV
   obtain ⟨cPoint, hPoint⟩ := condK_concretePoint_given_line_le V hV

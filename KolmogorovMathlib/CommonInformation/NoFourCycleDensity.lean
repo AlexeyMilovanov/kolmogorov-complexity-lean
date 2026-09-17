@@ -4,10 +4,23 @@ import Mathlib.Data.Rel
 import Mathlib.Data.Nat.Choose.Basic
 import KolmogorovMathlib.CommonInformation.RectangleCover
 
+/-!
+# Kővári–Sós–Turán for a four-cycle-free relation
+
+`noFourCycle_interedges_card_le_pow`: in a relation with no four-cycle, a rectangle with sides
+`2 ^ β'` and `2 ^ γ'` contains at most about `2 ^ (β' + γ'/2)` edges — and
+`noFourCycle_interedges_card_le_pow_transpose` the same with the sides exchanged.
+`noFourCycle_rectangleFamilyEdges_card_le_pow` sums the bound over a family of rectangles;
+this is what limits how many pairs a family of common witnesses can serve.
+`ceilHalf_pow_square_bounds` is the rounding used in the count.
+-/
+
 namespace Kolmogorov
 
 variable {α β : Type*}
 
+/-- The rounding used in the four-cycle count: `2^γ` is at most the square of `2^{⌈γ/2⌉}`, whose
+number of unordered pairs is in turn at most `2^γ`. -/
 lemma ceilHalf_pow_square_bounds (γ : Nat) :
   2 ^ γ ≤ (2 ^ ((γ + 1) / 2)) ^ 2 ∧
   Nat.choose (2 ^ ((γ + 1) / 2)) 2 ≤ 2 ^ γ := by
@@ -35,6 +48,8 @@ lemma ceilHalf_pow_square_bounds (γ : Nat) :
       _ = 2 * 2 ^ γ := by rw [pow_succ, mul_comm]
 
 open Classical in
+/-- Kővári–Sós–Turán for a four-cycle-free relation: a rectangle with sides `2^{β'}` and `2^γ`
+spans at most `2^{γ+1} + 2^{β' + ⌈γ/2⌉ + 1}` edges. -/
 lemma noFourCycle_interedges_card_le_pow
     (r : α → β → Prop) {A : Finset α} {B : Finset β} {β' γ : Nat} :
   NoFourCycle r →
@@ -87,6 +102,7 @@ lemma noFourCycle_interedges_card_le_pow
     exact hedge.trans (Nat.le_add_left _ _)
 
 open Classical in
+/-- The same bound with the roles of the two sides exchanged. -/
 lemma noFourCycle_interedges_card_le_pow_transpose
     (r : α → β → Prop) {A : Finset α} {B : Finset β} {β' γ : Nat} :
   NoFourCycle r →
@@ -117,9 +133,10 @@ lemma noFourCycle_interedges_card_le_pow_transpose
   rwa [hcard]
 
 open Classical in
-lemma noFourCycle_rectangleFamilyEdges_card_le_pow_of_noFourCycle
-    (r : α → β → Prop) {𝓡 : Finset (CombinatorialRectangle α β)}
-    {α' β' γ : Nat} :
+/-- The bound on the number of edges covered by a rectangle family of a four-cycle-free
+relation. -/
+lemma noFourCycle_rectangleFamilyEdges_card_le_pow
+    (r : α → β → Prop) {𝓡 : Finset (CombinatorialRectangle α β)} {α' β' γ : Nat} :
   NoFourCycle r →
   𝓡.card ≤ 2 ^ α' →
   (∀ R ∈ 𝓡,
@@ -156,17 +173,5 @@ lemma noFourCycle_rectangleFamilyEdges_card_le_pow_of_noFourCycle
           _ = 2 ^ (α' + β' + (γ + 1) / 2 + 1) := by
             congr 1
             omega
-
-open Classical in
-lemma noFourCycle_rectangleFamilyEdges_card_le_pow
-    (r : α → β → Prop) {𝓡 : Finset (CombinatorialRectangle α β)} {α' β' γ : Nat} :
-  NoFourCycle r →
-  𝓡.card ≤ 2 ^ α' →
-  (∀ R ∈ 𝓡,
-    R.1.card ≤ 2 ^ β' ∧ R.2.card ≤ 2 ^ γ) →
-  (rectangleFamilyEdges r 𝓡).card ≤
-    2 ^ (α' + γ + 1) +
-      2 ^ (α' + β' + (γ + 1) / 2 + 1) :=
-  noFourCycle_rectangleFamilyEdges_card_le_pow_of_noFourCycle r
 
 end Kolmogorov

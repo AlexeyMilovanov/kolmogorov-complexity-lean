@@ -1,10 +1,10 @@
 import KolmogorovMathlib.Restricted.Family
 import KolmogorovMathlib.Restricted.GreedyCover
+import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.Snapshots
 import KolmogorovMathlib.Foundation.EnumerationComplexity
-import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.DescriptionSnapshot
 
 /-!
-# M4: Substrategy Bookkeeping
+# Substrategy Bookkeeping
 
 This file provides the finite-stage bookkeeping for the improving descriptions
 strategy.  The proved selection lemmas choose a small indexed greedy subcover of
@@ -39,6 +39,8 @@ noncomputable def familyStageModelCodes (c : Code) (i : ℕ) (𝒜 : PreDescript
   exact ((𝒜.enumeration.enum t).toFinset ∩ (snapshotCodes c i t).toFinset).filter
     (fun w => IsFamilyModelCode 𝒜 j w)
 
+/-- The stage model codes are the codes enumerated by both the family and the complexity snapshot
+that describe a set of at most `2 ^ j` points. -/
 theorem mem_familyStageModelCodes (c : Code) (i : ℕ) (𝒜 : PreDescriptionFamily)
     (j t : ℕ) (w : BitString) :
     w ∈ familyStageModelCodes c i 𝒜 j t ↔
@@ -54,6 +56,7 @@ noncomputable def familyStageDescriptionCodes (c : Code) (i : ℕ) (𝒜 : PreDe
   exact ((𝒜.enumeration.enum t).toFinset ∩ (snapshotCodes c i t).toFinset).filter
     (fun w => IsFamilyDescriptionCode 𝒜 j x w)
 
+/-- The stage description codes of `x` are the stage codes whose set contains `x`. -/
 theorem mem_familyStageDescriptionCodes (c : Code) (i : ℕ) (𝒜 : PreDescriptionFamily)
     (j t : ℕ) (x w : BitString) :
     w ∈ familyStageDescriptionCodes c i 𝒜 j t x ↔
@@ -68,6 +71,7 @@ noncomputable def selectionCoverSet (𝒜 : PreDescriptionFamily) (n j : ℕ)
   classical
   exact (stringsOfLength n).filter (fun x => IsFamilyDescriptionCode 𝒜 j x w)
 
+/-- The cover set of a code consists of the length-`n` strings it describes. -/
 theorem mem_selectionCoverSet (𝒜 : PreDescriptionFamily) (n j : ℕ)
     (x w : BitString) :
     x ∈ selectionCoverSet 𝒜 n j w ↔
@@ -83,12 +87,14 @@ noncomputable def selectionTarget (c : Code) (𝒜 : PreDescriptionFamily)
   exact (stringsOfLength n).filter
     (fun x => 2 ^ k ≤ (familyStageDescriptionCodes c i 𝒜 j t x).card)
 
+/-- A code describing `x` is in particular a family model code. -/
 theorem isFamilyModelCode_of_description {𝒜 : PreDescriptionFamily} {j : ℕ}
     {x w : BitString} (h : IsFamilyDescriptionCode 𝒜 j x w) :
     IsFamilyModelCode 𝒜 j w := by
   rcases h with ⟨S, hS, hmem, hcode, hcard, _hxS⟩
   exact ⟨S, hS, hmem, hcode, hcard⟩
 
+/-- The descriptions of `x` are the stage model codes whose cover set contains `x`. -/
 theorem familyStageDescriptionCodes_eq_filter_cover (c : Code) (i : ℕ)
     (𝒜 : PreDescriptionFamily) (n j t : ℕ) (x : BitString) (hxlen : x.length = n) :
     familyStageDescriptionCodes c i 𝒜 j t x =
@@ -102,7 +108,7 @@ theorem familyStageDescriptionCodes_eq_filter_cover (c : Code) (i : ℕ)
     rw [Finset.mem_filter, mem_familyStageModelCodes]
     refine ⟨⟨hw.1, isFamilyModelCode_of_description hw.2⟩, ?_⟩
     rw [mem_selectionCoverSet]
-    exact ⟨(memStringsOfLength n x).mpr hxlen, hw.2⟩
+    exact ⟨(mem_stringsOfLength n x).mpr hxlen, hw.2⟩
   · intro hw
     rw [Finset.mem_filter, mem_familyStageModelCodes] at hw
     rw [mem_familyStageDescriptionCodes]
@@ -110,6 +116,7 @@ theorem familyStageDescriptionCodes_eq_filter_cover (c : Code) (i : ℕ)
       exact (mem_selectionCoverSet 𝒜 n j x w).mp hw.2 |>.2
     exact ⟨hw.1.1, hdesc⟩
 
+/-- There are at most `2 ^ (i + 1)` stage model codes, one per program of length at most `i`. -/
 theorem familyStageModelCodes_card_le (c : Code) (i : ℕ)
     (𝒜 : PreDescriptionFamily) (j t : ℕ) :
     (familyStageModelCodes c i 𝒜 j t).card ≤ 2 ^ (i + 1) := by
@@ -128,6 +135,7 @@ theorem familyStageModelCodes_card_le (c : Code) (i : ℕ)
       _ < 2 ^ (i + 1) := length_boundedPrograms_lt i
   exact Nat.le_of_lt hlt
 
+/-- The selection target is a set of length-`n` strings, so its binary logarithm is at most `n`. -/
 theorem selectionTarget_log_bound (c : Code) (𝒜 : PreDescriptionFamily)
     (n i j k t : ℕ) :
     Nat.log2 (selectionTarget c 𝒜 n i j k t).card + 1 ≤ n + 1 := by
@@ -139,7 +147,7 @@ theorem selectionTarget_log_bound (c : Code) (𝒜 : PreDescriptionFamily)
     rw [selectionTarget, Finset.mem_filter] at hx'
     exact hx'.1
   have hcard : T.card ≤ 2 ^ n := by
-    rw [← cardStringsOfLength n]
+    rw [← card_stringsOfLength n]
     exact Finset.card_le_card hsub
   by_cases hzero : T.card = 0
   · simp [hzero]
@@ -152,6 +160,8 @@ theorem selectionTarget_log_bound (c : Code) (𝒜 : PreDescriptionFamily)
       omega
     omega
 
+/-- Some list of at most `(i + 1) ^ 2 (n + 1) 2 ^ (i + 1 - k)` codes contains a description of
+every length-`n` string having `2 ^ k` descriptions at stage `t`. -/
 theorem exists_selectionStrategy (c : Code) (𝒜 : PreDescriptionFamily)
     (n i j k t : ℕ) :
     ∃ L : List BitString,
@@ -168,7 +178,7 @@ theorem exists_selectionStrategy (c : Code) (𝒜 : PreDescriptionFamily)
       intro x hxT
       have hxT' : x ∈ selectionTarget c 𝒜 n i j k t := by simpa [T] using hxT
       rw [selectionTarget, Finset.mem_filter] at hxT'
-      have hxlen : x.length = n := (memStringsOfLength n x).mp hxT'.1
+      have hxlen : x.length = n := (mem_stringsOfLength n x).mp hxT'.1
       have hEq := familyStageDescriptionCodes_eq_filter_cover c i 𝒜 n j t x hxlen
       simpa [S, cover, hEq] using hxT'.2
     obtain ⟨C, hCS, hcov, hCbound⟩ :=
@@ -210,7 +220,7 @@ theorem exists_selectionStrategy (c : Code) (𝒜 : PreDescriptionFamily)
       have hxT : x ∈ T := by
         have hxT' : x ∈ selectionTarget c 𝒜 n i j k t := by
           rw [selectionTarget, Finset.mem_filter]
-          exact ⟨(memStringsOfLength n x).mpr hxlen, hxmany⟩
+          exact ⟨(mem_stringsOfLength n x).mpr hxlen, hxmany⟩
         simpa [T] using hxT'
       have hxU : x ∈ C.biUnion cover := hcov hxT
       rw [Finset.mem_biUnion] at hxU
@@ -226,7 +236,7 @@ theorem exists_selectionStrategy (c : Code) (𝒜 : PreDescriptionFamily)
     have hxT : x ∈ T := by
       have hxT' : x ∈ selectionTarget c 𝒜 n i j k t := by
         rw [selectionTarget, Finset.mem_filter]
-        exact ⟨(memStringsOfLength n x).mpr hxlen, hxmany⟩
+        exact ⟨(mem_stringsOfLength n x).mpr hxlen, hxmany⟩
       simpa [T] using hxT'
     rw [hTempty] at hxT
     simp at hxT

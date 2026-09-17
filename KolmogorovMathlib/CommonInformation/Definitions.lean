@@ -35,20 +35,26 @@ bits of mutual information. -/
 def MutualInformationAtLeast (V : Map) (x y : BitString) (m : Nat) : Prop :=
   pairPlainK V x y + (m : ENat) <= plainK V x + plainK V y
 
+/-- Two natural numbers differ by at most `d`. -/
 def NatCloseWithin (a b d : Nat) : Prop :=
   a ≤ b + d ∧ b ≤ a + d
 
+/-- The slack `c d + logSlack c n` used throughout the common-information estimates: a multiple
+of the input slack plus a logarithmic term. -/
 def commonInformationSlack (c d n : Nat) : Nat :=
   c * d + logSlack c n
 
+/-- The mutual information of `x` and `y` is at most `m`: `K(x) + K(y) ≤ K(x, y) + m`. -/
 def MutualInformationAtMost
     (V : Map) (x y : BitString) (m : Nat) : Prop :=
   plainK V x + plainK V y ≤ pairPlainK V x y + (m : ENat)
 
+/-- The mutual information of `x` and `y` is exactly `m`: `K(x, y) + m = K(x) + K(y)`. -/
 def MutualInformationEq
     (V : Map) (x y : BitString) (m : Nat) : Prop :=
   pairPlainK V x y + (m : ENat) = plainK V x + plainK V y
 
+/-- The mutual information of `x` and `y` is `m` up to an additive slack `d`. -/
 def MutualInformationWithin
     (V : Map) (x y : BitString) (m d : Nat) : Prop :=
   pairPlainK V x y + (m : ENat) ≤
@@ -56,6 +62,8 @@ def MutualInformationWithin
   plainK V x + plainK V y ≤
       pairPlainK V x y + (m : ENat) + (d : ENat)
 
+/-- The string `z` extracts `m` bits of common information from `x` and `y` within slack `d`: it
+is cheap given either of them and has complexity about `m`. -/
 def ExtractableCommonInformationWithin
     (V : Map) (x y z : BitString) (m d : Nat) : Prop :=
   condK V z x ≤ (d : ENat) ∧
@@ -63,8 +71,10 @@ def ExtractableCommonInformationWithin
   plainK V z ≤ (m + d : Nat) ∧
   (m : ENat) ≤ plainK V z + (d : ENat)
 
+/-- A triple of thresholds `(K(z), K(x|z), K(y|z))` describing a candidate common description. -/
 abbrev CommonInformationTriple := Nat × Nat × Nat
 
+/-- The set of threshold triples realised by some common description `z` of the pair `(x, y)`. -/
 def CommonInformationRegion
     (V : Map) (x y : BitString) : Set CommonInformationTriple :=
   {t | ∃ z,
@@ -72,6 +82,8 @@ def CommonInformationRegion
     condK V x z < (t.2.1 : ENat) ∧
     condK V y z < (t.2.2 : ENat)}
 
+/-- A representation of the pair `(x, y)` by a single incompressible string `u` of length `K(x,y)`
+whose prefix is equivalent to `x` and whose suffix is equivalent to `y`, all within slack `d`. -/
 def OverlapRepresentationWithin
     (V : Map) (x y u : BitString)
     (kx ky kxy d : Nat) : Prop :=
@@ -86,6 +98,9 @@ def OverlapRepresentationWithin
     PlainEquivalentWithin V (pairCode x y) u d ∧
     PlainIncompressibleWithin V u d
 
+/-- A three-block description of the pair: a program `p` for a shared part `z`, and programs `a`
+and `b` producing `x` and `y` from `z`, with the block lengths matching the three complexities and
+the mutual information within slack `d`. -/
 def RawSharedDescriptionWithin
     (V : Map) (x y z a p b : BitString)
     (kx ky kxy m d : Nat) : Prop :=

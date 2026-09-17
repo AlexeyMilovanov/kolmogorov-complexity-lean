@@ -19,19 +19,23 @@ noncomputable def plainSetComplexity
     (V : Map) (S : Finset BitString) (hS : S.Nonempty) : ENat :=
   plainK V (codedUniformOn S hS).code
 
-/-- A finite-set `(i,j)`-description using ordinary plain complexity. -/
+/-- `S` is a plain `(i, j)`-description of `x`: `x ∈ S`, the plain complexity of the canonical
+code of `S` is at most `i`, and `S.card ≤ 2 ^ j`. -/
 noncomputable def IsPlainIJDescription
     (V : Map) (x : BitString) (S : Finset BitString)
     (hS : S.Nonempty) (i j : Nat) : Prop :=
   x ∈ S ∧ plainSetComplexity V S hS ≤ (i : ENat) ∧
     S.card ≤ 2 ^ j
 
-/-- The source-facing ordinary plain description profile. -/
+/-- `(i, j)` lies in the plain description profile of `x`: some nonempty finite set is a plain
+`(i, j)`-description of `x`. -/
 noncomputable def InPlainDescriptionProfile
     (V : Map) (x : BitString) (i j : Nat) : Prop :=
   ∃ (S : Finset BitString) (hS : S.Nonempty),
     IsPlainIJDescription V x S hS i j
 
+/-- Being a plain `(i, j)`-description is preserved when the model-complexity budget `i` is
+enlarged. -/
 theorem IsPlainIJDescription.mono_i
     {V : Map} {x : BitString} {S : Finset BitString}
     {hS : S.Nonempty} {i i' j : Nat}
@@ -40,6 +44,8 @@ theorem IsPlainIJDescription.mono_i
     IsPlainIJDescription V x S hS i' j := by
   exact ⟨h.1, h.2.1.trans (by exact_mod_cast hii), h.2.2⟩
 
+/-- Being a plain `(i, j)`-description is preserved when the log-cardinality budget `j` is enlarged.
+Being a plain `(i, j)`-description is preserved when the log-cardinality budget `j` is enlarged. -/
 theorem IsPlainIJDescription.mono_j
     {V : Map} {x : BitString} {S : Finset BitString}
     {hS : S.Nonempty} {i j j' : Nat}
@@ -49,6 +55,8 @@ theorem IsPlainIJDescription.mono_j
   exact ⟨h.1, h.2.1,
     h.2.2.trans (Nat.pow_le_pow_right (by decide) hjj)⟩
 
+/-- Membership in the plain description profile is preserved when the model-complexity budget `i` is
+enlarged. -/
 theorem InPlainDescriptionProfile.mono_i
     {V : Map} {x : BitString} {i i' j : Nat}
     (hii : i ≤ i')
@@ -57,6 +65,8 @@ theorem InPlainDescriptionProfile.mono_i
   obtain ⟨S, hS, hdesc⟩ := h
   exact ⟨S, hS, hdesc.mono_i hii⟩
 
+/-- Membership in the plain description profile is preserved when the log-cardinality budget `j` is
+enlarged. -/
 theorem InPlainDescriptionProfile.mono_j
     {V : Map} {x : BitString} {i j j' : Nat}
     (hjj : j ≤ j')
@@ -70,6 +80,7 @@ def plainDescriptionProfileSet
     (V : Map) (x : BitString) : Set (Nat × Nat) :=
   {q | InPlainDescriptionProfile V x q.1 q.2}
 
+/-- The plain description profile set is upward closed in both budgets. -/
 theorem plainDescriptionProfileSet_isUpperSet
     (V : Map) (x : BitString) :
     IsUpperSet (plainDescriptionProfileSet V x) := by
@@ -123,12 +134,14 @@ theorem ProfileSetsWithinNeighborhood.refl
   constructor <;> intro q hq <;>
     exact ⟨q, hq, by simp [natPairLInfDistance]⟩
 
+/-- Being within distance `delta` of one another is a symmetric relation between profile sets. -/
 theorem ProfileSetsWithinNeighborhood.symm
     {P Q : Set (Nat × Nat)} {delta : Nat}
     (h : ProfileSetsWithinNeighborhood P Q delta) :
     ProfileSetsWithinNeighborhood Q P delta :=
   ⟨h.2, h.1⟩
 
+/-- Two profile sets within distance `delta` are also within any larger distance. -/
 theorem ProfileSetsWithinNeighborhood.mono
     {P Q : Set (Nat × Nat)} {δ δ' : Nat}
     (hδ : δ ≤ δ')
@@ -196,6 +209,8 @@ noncomputable def plainCanonicalImageDecompressor
       totalProgramImageCodeFromSetCode D
         (decodeFirst input.1, Acode)
 
+/-- The machine that plainly describes a set code and then maps it by a total program is a
+decompressor. -/
 theorem plainCanonicalImageDecompressor_partrec
     (D V : Map) (hD : isDecompressor D)
     (hV : isDecompressor V) :
@@ -221,6 +236,8 @@ theorem plainCanonicalImageDecompressor_partrec
         Computable.snd)
   exact Partrec.bind hfirst hsecond
 
+/-- If `q` plainly describes the code of `A` and `p` maps that code to the code of `B`, then the
+pair `(p, q)` plainly describes the code of `B`. -/
 lemma plainCanonicalImageDecompressor_produces
     {D V : Map} {p q Acode Bcode : BitString}
     (hA : produces V q [] Acode)
@@ -254,7 +271,7 @@ theorem plainK_canonicalImageCode_le
   refine ⟨c + 1, ?_⟩
   intro p Acode Bcode i himage hAcomp
   obtain ⟨q, hqLen, hq⟩ :=
-    (condKLeIff V Acode [] i).mp hAcomp
+    (condK_le_iff V Acode [] i).mp hAcomp
   change q.length ≤ i at hqLen
   have hprod :
       produces (plainCanonicalImageDecompressor D V)

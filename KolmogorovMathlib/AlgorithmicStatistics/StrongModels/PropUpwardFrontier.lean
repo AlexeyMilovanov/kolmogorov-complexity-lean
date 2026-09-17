@@ -1,11 +1,11 @@
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.UpwardOrdinalNoiseTransport
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.UpwardOrdinalTransport
 
 /-!
 # The budget-scale witness purity route to `prop:upward`
 
 **Superseded.**  `prop:upward` is now proved unconditionally in
-`UpwardOrdinalNoiseBetaRegime.lean` (`prop_upward`), through the unconditional
-`strongModelOrdinalNoiseTransport`.  The purity statement below is no longer a
+`UpwardOrdinalBetaRegime.lean` (`prop_upward`), through the unconditional
+`strongModel_ordinal_noise_transport`.  The purity statement below is no longer a
 remaining obligation of the section; it is kept as a documented alternative
 route and is still never assumed outside the wrapper that consumes it.
 
@@ -26,6 +26,7 @@ endpoint should target the strong-model-specific ordinal consumer at a weakened 
 
 namespace Kolmogorov
 
+open CodedFiniteDistribution
 /-- **The Budget-Scale Purity Statement.**
 The frozen O(ε + log l(x)) radius requires that an arbitrary stochasticity witness for
 the model code `z` can be purified: there must exist a stochasticity witness `P` whose

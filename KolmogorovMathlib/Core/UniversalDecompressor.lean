@@ -22,8 +22,11 @@ namespace Kolmogorov
 def unaryPrefix (n : ℕ) : List Bool :=
   List.replicate n true ++ [false]
 
+/-- The unary prefix of `n` is `n + 1` bits long: `n` ones and the terminating zero. -/
 @[simp] lemma length_unaryPrefix (n : ℕ) : (unaryPrefix n).length = n + 1 := by simp [unaryPrefix]
 
+/-- Reading ones off `unaryPrefix n ++ p` stops at the terminating zero, after exactly `n`
+bits: the prefix is self-delimiting whatever payload `p` follows it. -/
 @[simp] lemma takeWhile_unaryPrefix (n : ℕ) (p : List Bool) :
     ((unaryPrefix n ++ p).takeWhile id).length = n := by
   induction n with
@@ -32,6 +35,8 @@ def unaryPrefix (n : ℕ) : List Bool :=
     change ((unaryPrefix n ++ p).takeWhile id).length + 1 = n + 1
     omega
 
+/-- Dropping the `n + 1` bits of `unaryPrefix n` from `unaryPrefix n ++ p` leaves the
+payload `p`. -/
 @[simp] lemma drop_unaryPrefix (n : ℕ) (p : List Bool) :
     (unaryPrefix n ++ p).drop (n + 1) = p := by
   induction n with
@@ -55,7 +60,7 @@ def universalDecompressor : Map := fun p =>
         (fun r => (Encodable.decode r : Option BitString).getD [])
 
 /-- Simulation lemma: `U(prefix(i) ++ p, y) = Decompressor_i(p, y)`. -/
-lemma universalSimulation (code : Nat.Partrec.Code) (p y : BitString) :
+lemma universal_simulation (code : Nat.Partrec.Code) (p y : BitString) :
     universalDecompressor (unaryPrefix (Encodable.encode code) ++ p, y) =
     (code.eval (Encodable.encode (p, y))).map
       (fun r => (Encodable.decode r : Option BitString).getD []) := by
@@ -74,7 +79,7 @@ def parseTapeNat (n : ℕ) : ℕ × ℕ :=
 /-- `List.drop` is primitive recursive in its arguments (proved by recursion on the
 number of elements dropped, peeling one tail at a time). -/
 lemma primrec_list_drop : Primrec₂ (fun (l : List Bool) (n : ℕ) => l.drop n) :=
-  (Primrec.list_drop.comp Primrec.snd Primrec.fst).to₂
+  Primrec.list_drop.comp Primrec.snd Primrec.fst
 
 /-- The length of the leading run of `true`s equals the index of the first `false`,
 so the unary-prefix length is computed by `List.findIdx`. -/
@@ -89,7 +94,7 @@ lemma takeWhile_id_length_eq_findIdx (s : List Bool) :
       simp only [List.takeWhile_cons, id_eq, List.findIdx_cons]; simp [ih]
 
 /-- The tape parser is primitive recursive. -/
-lemma primrecParseTapeNat : Primrec parseTapeNat := by
+lemma primrec_parseTapeNat : Primrec parseTapeNat := by
   have hform : parseTapeNat = fun n =>
       Option.casesOn (Encodable.decode n : Option BitString) (0, 0)
         (fun s => (s.findIdx (fun b => !b),
@@ -103,7 +108,7 @@ lemma primrecParseTapeNat : Primrec parseTapeNat := by
   have hidx : Primrec (fun p : ℕ × BitString => p.2.findIdx (fun b => !b)) :=
     Primrec.list_findIdx Primrec.snd (Primrec.not.comp Primrec.snd).to₂
   have hdrop : Primrec (fun p : ℕ × BitString => p.2.drop (p.2.findIdx (fun b => !b) + 1)) :=
-    primrec_list_drop.comp Primrec.snd (Primrec.succ.comp hidx)
+    Primrec.list_drop.comp (Primrec.succ.comp hidx) Primrec.snd
   have hsome : Primrec₂ (fun (n : ℕ) (s : BitString) =>
       (s.findIdx (fun b => !b), Encodable.encode (s.drop (s.findIdx (fun b => !b) + 1)))) :=
     (hidx.pair (Primrec.encode.comp hdrop)).to₂
@@ -116,10 +121,10 @@ def univNat (p : ℕ × ℕ) : Part ℕ :=
     (fun code => code.eval (Nat.pair parsed.2 p.2))
 
 /-- The core numerical map is partial recursive. -/
-lemma partrecUnivNat : Partrec univNat := by
+lemma partrec_univNat : Partrec univNat := by
   unfold univNat
   have h_parsed : Primrec (fun p : ℕ × ℕ => parseTapeNat p.1) :=
-    primrecParseTapeNat.comp Primrec.fst
+    primrec_parseTapeNat.comp Primrec.fst
   apply Partrec.bind
   · exact Computable.ofOption
       (Computable.decode.comp (Primrec.to_comp (Primrec.fst.comp h_parsed)))
@@ -131,7 +136,7 @@ lemma partrecUnivNat : Partrec univNat := by
           (Primrec.snd.comp Primrec.fst))
 
 /-- Decode-with-default is primitive recursive. -/
-private lemma primrecDecodeGetD :
+lemma primrecDecodeGetD :
     Primrec (fun r : ℕ => (Encodable.decode r : Option BitString).getD []) := by
   have : (fun r : ℕ => (Encodable.decode r : Option BitString).getD []) =
       fun r => Option.casesOn (Encodable.decode r : Option BitString) ([] : BitString) id := by
@@ -141,7 +146,7 @@ private lemma primrecDecodeGetD :
     (Primrec.const []) Primrec.snd
 
 /-- `universalDecompressor` is a computable partial function. -/
-lemma isDecompressorUniversalDecompressor : isDecompressor universalDecompressor := by
+lemma isDecompressor_universalDecompressor : isDecompressor universalDecompressor := by
   have heq : universalDecompressor = fun p : BitString × BitString =>
       (univNat (Encodable.encode p.1, Encodable.encode p.2)).map
         (fun r => (Encodable.decode r : Option BitString).getD []) := by
@@ -159,7 +164,7 @@ lemma isDecompressorUniversalDecompressor : isDecompressor universalDecompressor
     (Primrec.encode.comp Primrec.fst).to_comp.pair (Primrec.encode.comp Primrec.snd).to_comp
   have hcomp : Partrec (fun p : BitString × BitString =>
       univNat (Encodable.encode p.1, Encodable.encode p.2)) :=
-    partrecUnivNat.comp hpre
+    partrec_univNat.comp hpre
   exact Partrec.map hcomp (primrecDecodeGetD.comp Primrec.snd).to_comp.to₂
 
 end Kolmogorov

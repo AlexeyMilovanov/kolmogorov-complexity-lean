@@ -4,7 +4,7 @@ import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.Lemma4Support
 # Enumerator-uniform complexity bounds for standard blocks
 
 The bounds `plainK_standardBlock_upper` and `plainKNat_omegaCount_lower` in
-`BoundedComplexityLists` are stated with a constant that depends on the
+`BoundedLists` are stated with a constant that depends on the
 enumerating code `q`.  VS40 Lemma 4 needs both of them *uniformly* in `q`, with
 the `q`-dependence paid for by `C(q)` — concretely, by the plain complexity of
 the canonical enumerator code `standardEnumeratorCode q`.
@@ -26,15 +26,17 @@ open Kolmogorov.CodedFiniteDistribution
 noncomputable def uniformBlockSelector (p : Code × BitString) : Part BitString :=
   completedDyadicBlockSelector p.1 p.2
 
+/-- The completed dyadic block selector is partial recursive in the machine code and its input
+together. -/
 theorem uniformBlockSelector_partrec : Partrec uniformBlockSelector := by
   have hm : Primrec completedDyadicBlockInputM :=
     bitsToNat_primrec.comp
-      (decodeFirst_primrec'.comp decodeFirst_primrec')
+      (decodeFirst_primrec.comp decodeFirst_primrec)
   have hj : Primrec completedDyadicBlockInputJ :=
     bitsToNat_primrec.comp
-      (decodeSecond_primrec'.comp decodeFirst_primrec')
+      (decodeSecond_primrec.comp decodeFirst_primrec)
   have hidx : Primrec completedDyadicBlockInputIndex :=
-    decodeFixedWidthNatCode_primrec.comp decodeSecond_primrec'
+    decodeFixedWidthNatCode_primrec.comp decodeSecond_primrec
   have hm' : Primrec (fun w : (Code × BitString) × ℕ =>
       completedDyadicBlockInputM w.1.2) :=
     hm.comp (Primrec.snd.comp Primrec.fst)
@@ -46,7 +48,7 @@ theorem uniformBlockSelector_partrec : Partrec uniformBlockSelector := by
     hidx.comp (Primrec.snd.comp Primrec.fst)
   have hpow : Primrec (fun w : (Code × BitString) × ℕ =>
       2 ^ completedDyadicBlockInputJ w.1.2) :=
-    Kolmogorov.CodedFiniteDistribution.twoPow_primrec.comp hj'
+    Kolmogorov.primrec_two_pow_aux.comp hj'
   have hend : Primrec (fun w : (Code × BitString) × ℕ =>
       (completedDyadicBlockInputIndex w.1.2 + 1) *
         2 ^ completedDyadicBlockInputJ w.1.2) :=
@@ -107,6 +109,8 @@ noncomputable def uniformBlockDecoder (V : Map) : Map := fun input =>
       (Encodable.decode (α := Code) (bitsToNat q_enum))).bind fun q =>
       uniformBlockSelector (q, decodeSecond input.1)
 
+/-- The block decoder that first decodes the enumerator code from a program is partial recursive
+whenever the underlying decompressor is. -/
 theorem uniformBlockDecoder_partrec (V : Map) (hV : isDecompressor V) :
     Partrec (uniformBlockDecoder V) := by
   have hrun : Partrec (fun input : BitString × BitString =>
@@ -145,7 +149,7 @@ theorem plainK_standardBlock_upper_uniform
       (fun z : BitString => uniformBlockDecoder V (z, []))
       ((uniformBlockDecoder_partrec V hV.1).comp
         (Computable.pair Computable.id (Computable.const [])))
-  obtain ⟨Clen, hlen⟩ := plainKLeLength V hV
+  obtain ⟨Clen, hlen⟩ := plainK_le_length V hV
   refine ⟨Clen + Cmap + 10, ?_⟩
   set C := Clen + Cmap + 10 with hC
   intro q m j x hx hA
@@ -282,19 +286,9 @@ theorem omegaDiagonalSelector_partrec_uniform (V : Map) (hV : isDecompressor V) 
       canonicalFinsetList (stringsOfLength
         ((decodeSecond st.1.1.2).length +
           bitsToNat (decodeFirst st.1.1.2) + 1))) := by
-    have h_pred := canonicalFinsetList_toFinset_primrec.comp
-      (allStrings_primrec.comp (Primrec.succ.comp hm))
-    have h_eq : (fun (st : ((Code × BitString) × BitString) × ℕ) =>
-        canonicalFinsetList (stringsOfLength
-          ((decodeSecond st.1.1.2).length + bitsToNat (decodeFirst st.1.1.2) + 1))) =
-        (fun (a : ((Code × BitString) × BitString) × ℕ) =>
-          canonicalFinsetList (allStrings
-            ((decodeSecond a.1.1.2).length + bitsToNat (decodeFirst a.1.1.2)).succ).toFinset) := by
-      ext a
-      dsimp [stringsOfLength]
-      rfl
-    rw [h_eq]
-    exact h_pred
+    exact (canonicalFinsetList_toFinset_primrec.comp
+      (allStrings_primrec.comp (Primrec.succ.comp hm))).of_eq
+      (fun _ => by unfold stringsOfLength; rfl)
   have hnotmem : Primrec₂
       (fun (st : ((Code × BitString) × BitString) × ℕ) (s : BitString) =>
         decide (s ∉ boundedOutputStage st.1.1.1
@@ -352,8 +346,10 @@ theorem omegaDiagonalSelector_partrec_uniform (V : Map) (hV : isDecompressor V) 
             (fun x => Part.some x))) :=
     (Partrec.bind hsearch hfind).to₂
   unfold omegaDiagonalSelector
-  exact (Partrec.bind hrun hafter).of_eq (fun a => rfl)
+  exact (Partrec.bind hrun hafter).of_eq (fun _ => rfl)
 
+/-- The diagonal decoder that produces a string outside the bounded output enumeration is
+partial recursive whenever the underlying decompressor is. -/
 theorem uniformOmegaDiagonalDecoder_partrec (V : Map) (hV : isDecompressor V) :
     Partrec (uniformOmegaDiagonalDecoder V) := by
   have hrun : Partrec (fun input : BitString × BitString =>
@@ -388,7 +384,7 @@ theorem plainKNat_omegaCount_lower_uniform
       (fun z : BitString => uniformOmegaDiagonalDecoder V (z, []))
       ((uniformOmegaDiagonalDecoder_partrec V hV.1).comp
         (Computable.pair Computable.id (Computable.const [])))
-  obtain ⟨Clen, hlen⟩ := plainKLeLength V hV
+  obtain ⟨Clen, hlen⟩ := plainK_le_length V hV
   refine ⟨Clen + Cmap + 6, ?_⟩
   set C := Clen + Cmap + 6 with hC
   intro q hq m

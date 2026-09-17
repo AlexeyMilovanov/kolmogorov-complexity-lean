@@ -1,8 +1,9 @@
 /-
-Copyright (c) 2026 Alexey Milovanov. All rights reserved.
+Copyright (c) 2024 Alexey Milovanov. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Alexey Milovanov
 -/
+
 import KolmogorovMathlib.AlgorithmicStatistics.Stochasticity
 import KolmogorovMathlib.AlgorithmicProbability.PairProjection
 
@@ -17,6 +18,7 @@ for an explicitly supplied coded image model `Q`; its complexity is measured by
 
 namespace Kolmogorov
 
+open CodedFiniteDistribution
 open scoped ENNReal
 
 /-- Deficiency is conserved under a mapped coded model once the image model has
@@ -30,7 +32,6 @@ theorem deficiency_conserved (U : Map) (P Q : CodedFiniteDistribution)
         (2 : ENNReal) ^ c * complexityWeight (KP U x P.code)) :
     DeficiencyLe U P x d -> DeficiencyLe U Q (f x) (d + c) := by
   intro h_def
-  unfold DeficiencyLe at *
   unfold CodedFiniteDistribution.DeficiencyLe at *
   calc
     complexityWeight (KP U (f x) Q.code)
@@ -43,8 +44,14 @@ theorem deficiency_conserved (U : Map) (P Q : CodedFiniteDistribution)
     _ <= (2 : ENNReal) ^ (d + c) * Q.mass (f x) := by
       exact mul_le_mul_right h_mass _
 
-/-- A coded witness-level conservation statement.  The image model `Q` must be
-constructed elsewhere as finite rational data; no arbitrary code label is used. -/
+/-- Stochasticity transfers along a map: if `Q` is a probability model whose complexity exceeds
+that of `P` by at most `c_comp`, if `Q` gives `f x` at least the mass `P` gives `x`, if the
+complexity weight of `f x` under `Q` is at most `2 ^ c_def` times that of `x` under `P`, and if
+`P` has complexity at most `alpha` and `x` has deficiency at most `beta` in `P` -- `P` itself
+is not assumed to be a probability model, so these last two bounds are weaker than
+`IsStochastic U x alpha beta` -- then `Q` witnesses
+`IsStochastic U (f x) (alpha + c_comp) (beta + c_def)`: both parameters grow by those two
+constants and by nothing else. -/
 theorem isStochastic_map_of_model (U : Map) (P Q : CodedFiniteDistribution)
     (f : BitString -> BitString) (x : BitString)
     (alpha beta c_comp c_def : Nat)
@@ -69,7 +76,8 @@ theorem isStochastic_map_of_model (U : Map) (P Q : CodedFiniteDistribution)
 
 /-- Conservation for an existential stochasticity witness, parameterized by a
 canonical coded image model assignment and the structural bounds it satisfies. -/
-theorem IsStochastic.map (U : Map) (f : BitString -> BitString)
+theorem CodedFiniteDistribution.IsStochastic.map (U : Map)
+    (f : BitString -> BitString)
     (imageModel : CodedFiniteDistribution -> CodedFiniteDistribution) (x : BitString)
     (alpha beta c_comp c_def : Nat)
     (h_prob : ∀ P, (imageModel P).IsProbability)

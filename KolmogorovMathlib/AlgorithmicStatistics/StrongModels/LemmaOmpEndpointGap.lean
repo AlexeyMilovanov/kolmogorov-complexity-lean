@@ -1,37 +1,37 @@
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.LemmaOmp
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.ProfileOmpExactObstruction
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.ProfileOmpObstruction
 
 /-!
 # The exact-`epsilon` corner of Lemma `omp` for a controlled endpoint gap
 
 `ProfileOmpRadius.lean` records two sufficient conditions under which the
-shifted diagonal defining `m_P_eps` is met at complexity `0`, so that the frozen
+shifted diagonal defining `mPEps` is met at complexity `0`, so that the frozen
 exact-`epsilon` Lemma `omp` conclusion follows from the uniform bound
 `condK_omegaFixedCode_zero_le_of_profileNeighborhood`:
 
 * `m_P_eps_eq_zero_of_isUnitDropProfileSet` (jump-free profile sets), and
 * `m_P_eps_eq_zero_of_n_P_le` (height endpoint within
-  `k_P + epsilon + c log`), which only uses that `P` is an upper set.
+  `kP + epsilon + c log`), which only uses that `P` is an upper set.
 
 The second condition is not optimal: admissibility gives more than upward
 closure, namely the *step* (shift) rule `(a, b + c) ∈ P → (a + b, c) ∈ P`.
-Applying the step rule to the height endpoint `(0, n_P)` before closing upwards
+Applying the step rule to the height endpoint `(0, nP)` before closing upwards
 buys one extra `epsilon`:
 
 `m_P_eps_eq_zero_of_n_P_le_add_two_mul` — for an **admissible** `P`,
-`n_P ≤ k_P + 2 * epsilon + c * log(k_P + 2 * epsilon)` already forces
-`m_P_eps P k_P epsilon c = 0`.
+`nP ≤ kP + 2 * epsilon + c * log(kP + 2 * epsilon)` already forces
+`mPEps P kP epsilon c = 0`.
 
 This is sharp for the geometry available here: the kernel-checked obstruction
 `not_m_P_eps_le_of_neighboring_diagonal_profile` (`ProfileOmpExactObstruction`)
-lives at `n_P = k_P + 3 * epsilon`.
+lives at `nP = kP + 3 * epsilon`.
 
 The consequence for the frozen interface is `lemma_omp_endpointGap` below: the
 frozen `LemmaOmpStatement` holds verbatim — at the exact radius `epsilon` — for
-every admissible profile set whose endpoints satisfy `n_P ≤ k_P + 2 * epsilon`.
-It strictly extends `lemma_omp_narrow` (`n_P ≤ k_P + epsilon`).
+every admissible profile set whose endpoints satisfy `nP ≤ kP + 2 * epsilon`.
+It strictly extends `lemma_omp_narrow` (`nP ≤ kP + epsilon`).
 
-We also record the unconditional bound `m_P_eps ≤ k_P - epsilon`
+We also record the unconditional bound `mPEps ≤ kP - epsilon`
 (`m_P_eps_le_k_P_sub_of_isUpperSet`), which is exactly the value taken by the
 obstruction profile.
 -/
@@ -42,15 +42,15 @@ open Kolmogorov.CodedFiniteDistribution
 
 /-! The two profile-geometry facts used below,
 `m_P_eps_eq_zero_of_n_P_le_add_two_mul` (the height endpoint reaches the shifted
-diagonal at complexity `0` once `n_P ≤ k_P + 2 * epsilon + c * log`) and
+diagonal at complexity `0` once `nP ≤ kP + 2 * epsilon + c * log`) and
 `m_P_eps_le_k_P_sub_of_isUpperSet` (the unconditional bound
-`m_P_eps ≤ k_P - epsilon`), are stated and proved in `ProfileOmpRadius`, so that
+`mPEps ≤ kP - epsilon`), are stated and proved in `ProfileOmpRadius`, so that
 the exact-radius corner reduction in `LemmaOmp` can use them as well. -/
 
 /-- **The `2 * epsilon` endpoint gap is sharp.**
 
 For every constant `C` there is an admissible profile set with finite endpoints
-and `n_P = k_P + 3 * epsilon` whose shifted diagonal at radius `epsilon` is *not*
+and `nP = kP + 3 * epsilon` whose shifted diagonal at radius `epsilon` is *not*
 met at complexity `0`.  Hence the hypothesis of
 `m_P_eps_eq_zero_of_n_P_le_add_two_mul` cannot be relaxed from `2 * epsilon` to
 `3 * epsilon`, and the exact-radius blind spot of Lemma `omp` starts exactly
@@ -60,10 +60,10 @@ theorem exists_admissible_n_P_eq_add_three_mul_and_m_P_eps_ne_zero (C : Nat) :
     ∃ (P : Set (Nat × Nat)) (kp np epsilon : Nat),
       IsAdmissibleProfileSet P ∧
       epsilon ≤ kp ∧
-      k_P P = (kp : ENat) ∧
-      n_P P = (np : ENat) ∧
+      kP P = (kp : ENat) ∧
+      nP P = (np : ENat) ∧
       np = kp + 3 * epsilon ∧
-      m_P_eps P kp epsilon C ≠ 0 := by
+      mPEps P kp epsilon C ≠ 0 := by
   obtain ⟨K, hK⟩ := exists_two_pow_gt_linear C
   set E : Nat := 2 ^ K with hE
   have hE1 : 1 ≤ E := Nat.one_le_two_pow
@@ -81,7 +81,7 @@ theorem exists_admissible_n_P_eq_add_three_mul_and_m_P_eps_ne_zero (C : Nat) :
     isAdmissibleProfileSet_ompObstructionProfile E, by omega,
     k_P_ompObstructionProfile E, n_P_ompObstructionProfile E, by omega, ?_⟩
   have hlow : ((3 * E : Nat) : ENat) ≤
-      m_P_eps (ompObstructionProfile E) (4 * E) E C := by
+      mPEps (ompObstructionProfile E) (4 * E) E C := by
     refine le_sInf ?_
     rintro _ ⟨t, rfl, ht⟩
     have hL : C * (Nat.bits (4 * E + 2 * E)).length ≤ C * (K + 3) :=
@@ -97,7 +97,7 @@ theorem exists_admissible_n_P_eq_add_three_mul_and_m_P_eps_ne_zero (C : Nat) :
 /-- The frozen `LemmaOmpStatement` restricted to admissible profile sets whose
 height endpoint exceeds the complexity endpoint by at most `2 * epsilon`.
 Everything else, including the exact neighbourhood radius `epsilon` inside
-`m_P_eps`, is verbatim the frozen statement. -/
+`mPEps`, is verbatim the frozen statement. -/
 def LemmaOmpEndpointGapStatement (V : Map) : Prop :=
   ∃ c : Nat,
     ∀ (P : Set (Nat × Nat)) (epsilon kp np mp_eps : Nat)
@@ -105,22 +105,22 @@ def LemmaOmpEndpointGapStatement (V : Map) : Prop :=
     IsAdmissibleProfileSet P →
     IsCodeFor q V →
     epsilon ≤ kp →
-    k_P P = (kp : ENat) →
-    n_P P = (np : ENat) →
+    kP P = (kp : ENat) →
+    nP P = (np : ENat) →
     np ≤ kp + 2 * epsilon →
-    m_P_eps P kp epsilon c = (mp_eps : ENat) →
+    mPEps P kp epsilon c = (mp_eps : ENat) →
     x ∈ profileNeighborhood V P epsilon →
     condK V (omegaFixedCode q mp_eps) x ≤ (logSlack c np : ENat)
 
 /-- **Lemma `omp` at the exact radius `epsilon`, for a controlled endpoint gap
 (fully proved).**
 
-When `n_P ≤ k_P + 2 * epsilon`, the height endpoint of an admissible `P`
+When `nP ≤ kP + 2 * epsilon`, the height endpoint of an admissible `P`
 reaches the shifted diagonal at complexity `0`
 (`m_P_eps_eq_zero_of_n_P_le_add_two_mul`), so the target Ω-index vanishes and
 `condK_omegaFixedCode_zero_le_of_profileNeighborhood` gives the frozen
 conclusion.  This strictly extends `lemma_omp_narrow`, whose hypothesis is
-`n_P ≤ k_P + epsilon`. -/
+`nP ≤ kP + epsilon`. -/
 theorem lemma_omp_endpointGap (V : Map) (hV : isOptimalConditional V) :
     LemmaOmpEndpointGapStatement V := by
   obtain ⟨c, hc⟩ := condK_omegaFixedCode_zero_le_of_profileNeighborhood V hV

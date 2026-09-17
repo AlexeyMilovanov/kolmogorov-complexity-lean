@@ -80,6 +80,8 @@ private lemma foldr_ite_eq_true_iff (f : Nat → Nat) (l : List Nat) :
         · intro h t ht
           exact h t (List.mem_cons_of_mem _ ht)
 
+/-- The search test succeeds at the index `i` exactly when the monic quadratic with
+coefficients `(i / p, i % p)` has no root among the residues below `p`. -/
 theorem quadTest_eq_true_iff (p i : Nat) :
     quadTest p i = true ↔ ∀ t < p, (t * t + (i / p) * t + (i % p)) % p ≠ 0 := by
   rw [quadTest, foldr_ite_eq_true_iff]
@@ -89,6 +91,8 @@ theorem quadTest_eq_true_iff (p i : Nat) :
   · intro h t htmem
     exact h t (List.mem_range.mp htmem)
 
+/-- The search test succeeds at `i` exactly when the corresponding monic quadratic
+has no root in `ZMod p`. -/
 theorem quadTest_iff (p : Nat) [NeZero p] (i : Nat) :
     quadTest p i = true ↔
       ∀ x : ZMod p, x ^ 2 + ((i / p : Nat) : ZMod p) * x + ((i % p : Nat) : ZMod p) ≠ 0 := by
@@ -147,6 +151,8 @@ def quadCoeffA (m : Nat) : Nat := quadIndex m / concretePrime m
 /-- The constant coefficient of the chosen irreducible quadratic. -/
 def quadCoeffB (m : Nat) : Nat := quadIndex m % concretePrime m
 
+/-- The index found by the search is below `p ^ 2` and passes the test: an
+irreducible monic quadratic over the prime field is always found. -/
 theorem quadIndex_spec (m : Nat) :
     quadIndex m < concretePrime m * concretePrime m ∧
       quadTest (concretePrime m) (quadIndex m) = true := by
@@ -190,11 +196,15 @@ theorem quadIndex_spec (m : Nat) :
       rw [hval]
       exact ⟨hjlt, hjtest⟩
 
+/-- The linear coefficient of the chosen quadratic is a residue below
+`concretePrime m`. -/
 theorem quadCoeffA_lt (m : Nat) : quadCoeffA m < concretePrime m := by
   have h := (quadIndex_spec m).1
   rw [quadCoeffA]
   exact Nat.div_lt_of_lt_mul (by omega)
 
+/-- The constant coefficient of the chosen quadratic is a residue below
+`concretePrime m`. -/
 theorem quadCoeffB_lt (m : Nat) : quadCoeffB m < concretePrime m :=
   Nat.mod_lt _ (concretePrime_prime m).pos
 
@@ -208,6 +218,7 @@ theorem quadCoeff_no_root (m : Nat) (x : ConcreteField m) :
 
 /-! ### Primitive recursiveness of the structure constants -/
 
+/-- The rootlessness test is primitive recursive in the prime and the index. -/
 lemma quadTest_primrec : Primrec₂ quadTest := by
   have hbody : Primrec (fun z : (Nat × Nat) × Nat × Bool =>
       (z.2.1 * z.2.1 + (z.1.2 / z.1.1) * z.2.1 + (z.1.2 % z.1.1)) % z.1.1) := by
@@ -230,6 +241,7 @@ lemma quadTest_primrec : Primrec₂ quadTest := by
   exact (Primrec.list_foldr (Primrec.list_range.comp Primrec.fst)
     (Primrec.const true) hstep).to₂
 
+/-- The index of the chosen quadratic is primitive recursive in `m`. -/
 lemma quadIndex_primrec : Primrec quadIndex := by
   have hpow : Primrec (fun m : Nat => concretePrime m * concretePrime m) :=
     Primrec.nat_mul.comp boundedPrimeSearch_primrec boundedPrimeSearch_primrec
@@ -257,9 +269,11 @@ lemma quadIndex_primrec : Primrec quadIndex := by
       (fun m => heq (concretePrime m) (List.range (concretePrime m * concretePrime m)))
   exact (Primrec.option_getD.comp hfind (Primrec.const 0)).of_eq (fun _ => rfl)
 
+/-- The linear coefficient of the chosen quadratic is primitive recursive in `m`. -/
 lemma quadCoeffA_primrec : Primrec quadCoeffA :=
   Primrec.nat_div.comp quadIndex_primrec boundedPrimeSearch_primrec
 
+/-- The constant coefficient of the chosen quadratic is primitive recursive in `m`. -/
 lemma quadCoeffB_primrec : Primrec quadCoeffB :=
   Primrec.nat_mod.comp quadIndex_primrec boundedPrimeSearch_primrec
 
@@ -270,16 +284,21 @@ noncomputable def quadPoly (m : Nat) : Polynomial (ConcreteField m) :=
   X ^ 2 + C ((quadCoeffA m : Nat) : ConcreteField m) * X +
     C ((quadCoeffB m : Nat) : ConcreteField m)
 
+/-- The chosen polynomial has degree two. -/
 lemma quadPoly_natDegree (m : Nat) : (quadPoly m).natDegree = 2 := by
   unfold quadPoly
   compute_degree!
 
+/-- The chosen polynomial evaluates to `t ^ 2 + A * t + B` at a prime-field element
+`t`. -/
 lemma quadPoly_eval (m : Nat) (t : ConcreteField m) :
     (quadPoly m).eval t =
       t ^ 2 + ((quadCoeffA m : Nat) : ConcreteField m) * t +
         ((quadCoeffB m : Nat) : ConcreteField m) := by
   simp [quadPoly]
 
+/-- The chosen polynomial is irreducible over the prime field, having no root there
+and degree two. -/
 lemma quadPoly_irreducible (m : Nat) : Irreducible (quadPoly m) := by
   apply Polynomial.irreducible_of_degree_le_three_of_not_isRoot
   · rw [quadPoly_natDegree]; decide
@@ -325,12 +344,16 @@ abbrev quadFieldA (m : Nat) : ConcreteField m := ((quadCoeffA m : Nat) : Concret
 /-- The base-field image of the constant coefficient of the chosen quadratic. -/
 abbrev quadFieldB (m : Nat) : ConcreteField m := ((quadCoeffB m : Nat) : ConcreteField m)
 
+/-- The chosen generator is a root of `X ^ 2 + A * X + B` in the quadratic
+extension. -/
 lemma quadGen_root (m : Nat) :
     quadGen m ^ 2 +
         algebraMap (ConcreteField m) (ConcreteQuadraticField m) (quadFieldA m) * quadGen m +
       algebraMap (ConcreteField m) (ConcreteQuadraticField m) (quadFieldB m) = 0 :=
   (exists_quadPoly_root m).choose_spec
 
+/-- The square of the generator, rewritten as a base-field combination of `1` and
+the generator. -/
 lemma quadGen_sq (m : Nat) :
     quadGen m ^ 2 =
       -(algebraMap (ConcreteField m) (ConcreteQuadraticField m) (quadFieldA m) * quadGen m) -
@@ -338,10 +361,13 @@ lemma quadGen_sq (m : Nat) :
   have h := quadGen_root m
   linear_combination h
 
+/-- The constant coefficient of the chosen quadratic is nonzero, since the
+polynomial has no root in the prime field. -/
 lemma quadFieldB_ne_zero (m : Nat) : quadFieldB m ≠ 0 := by
   have h := quadCoeff_no_root m 0
   simpa using h
 
+/-- The chosen generator is nonzero. -/
 lemma quadGen_ne_zero (m : Nat) : quadGen m ≠ 0 := by
   intro h0
   have h := quadGen_root m
@@ -351,6 +377,7 @@ lemma quadGen_ne_zero (m : Nat) : quadGen m ≠ 0 := by
   exact quadFieldB_ne_zero m
     ((algebraMap (ConcreteField m) (ConcreteQuadraticField m)).injective (by simpa using h))
 
+/-- The chosen generator lies outside the prime field. -/
 lemma quadGen_not_base (m : Nat) (t : ConcreteField m) :
     algebraMap (ConcreteField m) (ConcreteQuadraticField m) t ≠ quadGen m := by
   intro ht
@@ -367,6 +394,7 @@ lemma quadGen_not_base (m : Nat) (t : ConcreteField m) :
       algebraMap (ConcreteField m) (ConcreteQuadraticField m) 0)
   exact quadCoeff_no_root m t this
 
+/-- `1` and the generator are linearly independent over the prime field. -/
 lemma quadGen_linearIndependent (m : Nat) :
     LinearIndependent (ConcreteField m) ![(1 : ConcreteQuadraticField m), quadGen m] := by
   rw [linearIndependent_fin2]
@@ -386,6 +414,7 @@ lemma quadGen_linearIndependent (m : Nat) :
     rw [ha, ← map_mul, mul_inv_cancel₀ ha0, map_one]
   exact quadGen_not_base m a⁻¹ (mul_left_cancel₀ halg hstep).symm
 
+/-- The quadratic extension has dimension two over the prime field. -/
 lemma concreteQuadraticField_finrank (m : Nat) :
     Module.finrank (ConcreteField m) (ConcreteQuadraticField m) = 2 :=
   GaloisField.finrank (concretePrime m) (by omega)
@@ -396,11 +425,13 @@ noncomputable def concreteQuadraticBasis (m : Nat) :
   basisOfLinearIndependentOfCardEqFinrank (quadGen_linearIndependent m)
     (by simp [concreteQuadraticField_finrank])
 
+/-- The first basis vector is `1`. -/
 lemma concreteQuadraticBasis_zero (m : Nat) :
     concreteQuadraticBasis m 0 = 1 := by
   rw [concreteQuadraticBasis, coe_basisOfLinearIndependentOfCardEqFinrank]
   simp
 
+/-- The second basis vector is the chosen generator. -/
 lemma concreteQuadraticBasis_one (m : Nat) :
     concreteQuadraticBasis m 1 = quadGen m := by
   rw [concreteQuadraticBasis, coe_basisOfLinearIndependentOfCardEqFinrank]
@@ -411,12 +442,15 @@ noncomputable def quadMk (m : Nat) (u0 u1 : ConcreteField m) : ConcreteQuadratic
   algebraMap (ConcreteField m) (ConcreteQuadraticField m) u0 +
     algebraMap (ConcreteField m) (ConcreteQuadraticField m) u1 * quadGen m
 
+/-- The element built from two coordinates is the corresponding combination of the
+two basis vectors. -/
 lemma quadMk_eq_smul (m : Nat) (u0 u1 : ConcreteField m) :
     quadMk m u0 u1 =
       u0 • concreteQuadraticBasis m 0 + u1 • concreteQuadraticBasis m 1 := by
   rw [concreteQuadraticBasis_zero, concreteQuadraticBasis_one]
   simp [quadMk, Algebra.smul_def]
 
+/-- The first coordinate of `quadMk m u0 u1` is `u0`. -/
 @[simp]
 lemma quadMk_repr_zero (m : Nat) (u0 u1 : ConcreteField m) :
     (concreteQuadraticBasis m).repr (quadMk m u0 u1) 0 = u0 := by
@@ -424,6 +458,7 @@ lemma quadMk_repr_zero (m : Nat) (u0 u1 : ConcreteField m) :
     Module.Basis.repr_self]
   simp
 
+/-- The second coordinate of `quadMk m u0 u1` is `u1`. -/
 @[simp]
 lemma quadMk_repr_one (m : Nat) (u0 u1 : ConcreteField m) :
     (concreteQuadraticBasis m).repr (quadMk m u0 u1) 1 = u1 := by
@@ -439,11 +474,14 @@ lemma quadMk_repr_self (m : Nat) (a : ConcreteQuadraticField m) :
   rw [Fin.sum_univ_two] at hsum
   exact hsum
 
+/-- Coordinates add componentwise. -/
 lemma quadMk_add (m : Nat) (u0 u1 v0 v1 : ConcreteField m) :
     quadMk m u0 u1 + quadMk m v0 v1 = quadMk m (u0 + v0) (u1 + v1) := by
   simp [quadMk, map_add]
   ring
 
+/-- Multiplication in coordinates: `(u0, u1) * (v0, v1)` has coordinates
+`u0v0 - B u1v1` and `u0v1 + u1v0 - A u1v1`. -/
 lemma quadMk_mul (m : Nat) (u0 u1 v0 v1 : ConcreteField m) :
     quadMk m u0 u1 * quadMk m v0 v1 =
       quadMk m (u0 * v0 - quadFieldB m * (u1 * v1))

@@ -2,19 +2,41 @@ import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.ProgramList
 import KolmogorovMathlib.AlgorithmicStatistics.NormalizedCodedFiniteDistribution
 import KolmogorovMathlib.AlgorithmicStatistics.Selector
 
+/-!
+# The graph of a total program on a distribution
+
+Applying a program `p` to every point of a coded distribution and recording the pair
+`(point, output)` gives the *graph distribution*.  `TotalProgramGraphEntry` relates an entry to
+its image, `totalProgramGraphData` performs the construction on distribution data, and
+`totalProgramGraphCode` is the induced partial map on codes.
+
+The module proves it is well behaved: partial recursive
+(`totalProgramGraphData_partrec`, `totalProgramGraphCode_partrec`), specified exactly by the
+entry relation (`totalProgramGraphData_spec`), defined everywhere when `p` is total
+(`totalProgramGraphData_dom_of_total`), and correct on codes
+(`totalProgramGraphCode_eval`).  `TotalGraphConservation` uses it to transport stochasticity
+along a total program.
+-/
+
 namespace Kolmogorov
 
+/-- Relates an entry of a distribution to the entry of its graph: the point is replaced by the pair
+of the output of `p` on it and the point itself, with the mass unchanged. -/
 def TotalProgramGraphEntry (T : Map) (p : BitString) (e e' : CodedDistributionEntry) : Prop :=
   ∃ y, produces T p e.point y ∧
     e'.point = pairCode y e.point ∧
     e'.mass = e.mass
 
+/-- Runs the program `p` on every point of a distribution's data and returns the data of the graph
+distribution, pairing each output with its input and keeping the masses. -/
 def totalProgramGraphData (T : Map)
     (input : BitString × List CodedDistributionEntry) :
     Part (List CodedDistributionEntry) :=
   (totalProgramMapList T (input.1, input.2.map CodedDistributionEntry.point)).map fun ys =>
     (ys.zip input.2).map fun (y, e) => { point := pairCode y e.point, mass := e.mass }
 
+/-- The partial map on codes induced by the graph construction: it decodes a distribution code, runs
+`p` on its support, and re-encodes the graph distribution. -/
 def totalProgramGraphCode (T : Map) : BitString × BitString →. BitString :=
   fun input =>
     (totalProgramGraphData T
@@ -123,6 +145,8 @@ private theorem totalProgramMapList_mem_of_forall₂
   have heq : ys = zs := hunique hrel hzs_rel
   rwa [heq]
 
+/-- The graph construction on distribution data is a partial recursive function of the program and
+the data. -/
 theorem totalProgramGraphData_partrec (T : Map) (hT : isDecompressor T) :
     Partrec (totalProgramGraphData T) := by
   have hinput : Computable (fun input : BitString × List CodedDistributionEntry =>
@@ -135,11 +159,12 @@ theorem totalProgramGraphData_partrec (T : Map) (hT : isDecompressor T) :
       ({ point := pairCode q.1 q.2.point, mass := q.2.mass } : CodedDistributionEntry)) := by
     have hpair : Primrec (fun q : BitString × CodedDistributionEntry =>
         (pairCode q.1 q.2.point, q.2.mass)) :=
-      (CodedFiniteDistribution.pairCode_primrec.comp Primrec.fst
+      (Kolmogorov.CodedFiniteDistribution.pairCode_primrec.comp Primrec.fst
         (CodedFiniteDistribution.entry_point_primrec.comp Primrec.snd)).pair
         (CodedFiniteDistribution.entry_mass_primrec.comp Primrec.snd)
-    exact (Primrec.of_equiv_symm
-      (e := CodedFiniteDistribution.CodedDistributionEntry.equivProd)).comp hpair
+    exact ((Primrec.of_equiv_symm
+      (e := CodedFiniteDistribution.CodedDistributionEntry.equivProd)).comp hpair).of_eq
+      (fun _ => rfl)
   have hpost : Computable₂ (fun (input : BitString × List CodedDistributionEntry)
       (ys : List BitString) =>
         (ys.zip input.2).map fun q =>
@@ -163,6 +188,8 @@ theorem totalProgramGraphCode_partrec (T : Map) (hT : isDecompressor T) :
     (CodedFiniteDistribution.codedDistributionDataCode_primrec.comp Primrec.snd).to_comp.to₂
   exact Partrec.map ((totalProgramGraphData_partrec T hT).comp hinput) hcode
 
+/-- The graph construction outputs exactly those lists related entrywise to the input data by the
+graph relation for `p`. -/
 theorem totalProgramGraphData_spec (T : Map) (p : BitString)
     (data out : List CodedDistributionEntry) :
     out ∈ totalProgramGraphData T (p, data) ↔
@@ -200,6 +227,7 @@ theorem totalProgramGraphData_spec (T : Map) (p : BitString)
     refine ⟨ys, totalProgramMapList_mem_of_forall₂
       (List.forall₂_map_left_iff.mpr hys), hout⟩
 
+/-- When `p` is a total program the graph construction halts on every distribution data list. -/
 theorem totalProgramGraphData_dom_of_total (T : Map) (p : BitString)
     (hp : IsTotalProgram T p) (data : List CodedDistributionEntry) :
     (totalProgramGraphData T (p, data)).Dom := by
@@ -209,6 +237,8 @@ theorem totalProgramGraphData_dom_of_total (T : Map) (p : BitString)
     (totalProgramMapList_dom_of_total hp (data.map CodedDistributionEntry.point))
   exact ⟨_, (Part.mem_map_iff _).2 ⟨ys, hys, rfl⟩⟩
 
+/-- Any output of the graph construction on the data of `P` yields, once encoded, an output of the
+graph construction on the code of `P`. -/
 theorem totalProgramGraphCode_eval (T : Map) (p : BitString)
     (P : CodedFiniteDistribution) (out : List CodedDistributionEntry)
     (h_out : out ∈ totalProgramGraphData T (p, P.data)) :
@@ -217,6 +247,7 @@ theorem totalProgramGraphCode_eval (T : Map) (p : BitString)
   rw [CodedFiniteDistribution.decodeDistributionData_code]
   exact (Part.mem_map_iff _).2 ⟨out, h_out, rfl⟩
 
+/-- The graph construction preserves total mass. -/
 theorem totalProgramGraph_totalMassRat (T : Map) (p : BitString)
     (data out : List CodedDistributionEntry)
     (h_rel : List.Forall₂ (TotalProgramGraphEntry T p) data out) :
@@ -228,6 +259,8 @@ theorem totalProgramGraph_totalMassRat (T : Map) (p : BitString)
       change e'.mass.add (totalMassRat out) = e.mass.add (totalMassRat data)
       rw [hmass, ih]
 
+/-- The graph distribution gives the pair `(y, x)` the mass that the original distribution gives
+`x`, whenever `p` maps `x` to `y`. -/
 theorem totalProgramGraph_mass_pair (T : Map) (p : BitString)
     (data out : List CodedDistributionEntry)
     (h_rel : List.Forall₂ (TotalProgramGraphEntry T p) data out)
@@ -252,6 +285,7 @@ theorem totalProgramGraph_mass_pair (T : Map) (p : BitString)
           exact hx hsecond
         simp [hne, hx, ih]
 
+/-- The graph of a probability distribution is again a probability distribution. -/
 theorem totalProgramGraph_isProbability (T : Map) (p : BitString)
     (P : CodedFiniteDistribution) (out : List CodedDistributionEntry)
     (h_rel : List.Forall₂ (TotalProgramGraphEntry T p) P.data out)
@@ -261,6 +295,7 @@ theorem totalProgramGraph_isProbability (T : Map) (p : BitString)
   rw [mass_total, totalProgramGraph_totalMassRat T p P.data out h_rel, ← mass_total]
   exact hP
 
+/-- States that `G` is the graph distribution of `P` under the program `p`, entry by entry. -/
 def IsTotalProgramGraphModel (T : Map) (p : BitString) (P G : CodedFiniteDistribution) : Prop :=
   List.Forall₂ (TotalProgramGraphEntry T p) P.data G.data
 
@@ -291,6 +326,8 @@ theorem IsTotalProgramGraphModel.isProbability
     (hP : P.IsProbability) : G.IsProbability :=
   totalProgramGraph_isProbability T p P G.data hG hP
 
+/-- Every total program and every coded distribution admit a graph distribution, whose code is
+produced by the graph construction from the code of `P`. -/
 theorem exists_totalProgramGraphModel (T : Map) (p : BitString)
     (hp : IsTotalProgram T p) (P : CodedFiniteDistribution) :
     ∃ G, IsTotalProgramGraphModel T p P G ∧

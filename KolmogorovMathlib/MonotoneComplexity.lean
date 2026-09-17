@@ -1,0 +1,152 @@
+/-
+Copyright (c) 2024 Alexey Milovanov. All rights reserved.
+Released under Apache 2.0 license as described in the file LICENSE.
+Authors: Alexey Milovanov
+-/
+import KolmogorovMathlib.MonotoneComplexity.Stream
+import KolmogorovMathlib.MonotoneComplexity.StreamTopology
+import KolmogorovMathlib.MonotoneComplexity.TreeSemimeasure
+import KolmogorovMathlib.MonotoneComplexity.CylinderMass
+import KolmogorovMathlib.MonotoneComplexity.EffectiveOpen
+import KolmogorovMathlib.MonotoneComplexity.ProbabilisticGenerator
+import KolmogorovMathlib.MonotoneComplexity.CopyGenerator
+import KolmogorovMathlib.MonotoneComplexity.AntichainSum
+import KolmogorovMathlib.MonotoneComplexity.SimpleTreeApproximation
+import KolmogorovMathlib.MonotoneComplexity.PrefixStream
+import KolmogorovMathlib.MonotoneComplexity.TreeAllocation
+import KolmogorovMathlib.MonotoneComplexity.NestedAllocation
+import KolmogorovMathlib.MonotoneComplexity.SemimeasureRealization
+import KolmogorovMathlib.MonotoneComplexity.MeasureRepresentation
+import KolmogorovMathlib.MonotoneComplexity.MaximalSemimeasure
+import KolmogorovMathlib.MonotoneComplexity.TreeMixture
+import KolmogorovMathlib.MonotoneComplexity.TreeSemimeasureSanitizer
+import KolmogorovMathlib.MonotoneComplexity.UniformTreeSanitizer
+import KolmogorovMathlib.MonotoneComplexity.TreeSemimeasureEnumeration
+import KolmogorovMathlib.MonotoneComplexity.FloorSelectorObstruction
+import KolmogorovMathlib.MonotoneComplexity.TwoSidedMeasureRepresentation
+import KolmogorovMathlib.MonotoneComplexity.PrefixFreeEnvelope
+import KolmogorovMathlib.MonotoneComplexity.BranchRecovery
+import KolmogorovMathlib.MonotoneComplexity.APrioriComplexity
+import KolmogorovMathlib.MonotoneComplexity.APrioriMinimality
+import KolmogorovMathlib.MonotoneComplexity.APrioriBranching
+import KolmogorovMathlib.MonotoneComplexity.DiscreteContinuousBridge
+import KolmogorovMathlib.MonotoneComplexity.ContinuousStreamMap
+import KolmogorovMathlib.MonotoneComplexity.PartialNatMap
+import KolmogorovMathlib.MonotoneComplexity.ContinuousStreamMapTopology
+import KolmogorovMathlib.MonotoneComplexity.REClosure
+import KolmogorovMathlib.MonotoneComplexity.StreamGapFill
+import KolmogorovMathlib.MonotoneComplexity.StreamRelationEnumeration
+import KolmogorovMathlib.MonotoneComplexity.StreamRelationSanitizer
+import KolmogorovMathlib.MonotoneComplexity.StreamMapEnumeration
+import KolmogorovMathlib.MonotoneComplexity.MonotoneOptimality
+import KolmogorovMathlib.MonotoneComplexity.MonotoneComplexityBounds
+import KolmogorovMathlib.MonotoneComplexity.MonotoneFromPrefix
+import KolmogorovMathlib.MonotoneComplexity.ConcatenationBound
+import KolmogorovMathlib.MonotoneComplexity.PlainMonotoneComparison
+import KolmogorovMathlib.MonotoneComplexity.MonotoneAPriori
+import KolmogorovMathlib.MonotoneComplexity.MonotoneProperties
+import KolmogorovMathlib.MonotoneComplexity.PartialNatPushforward
+import KolmogorovMathlib.MonotoneComplexity.MonotoneInfinite
+import KolmogorovMathlib.MonotoneComplexity.ConsistentRelationComplexity
+import KolmogorovMathlib.MonotoneComplexity.GeneratorComposition
+import KolmogorovMathlib.MonotoneComplexity.APrioriConservation
+import KolmogorovMathlib.MonotoneComplexity.LevinSchnorrMass
+import KolmogorovMathlib.MonotoneComplexity.SubSemimeasureDomination
+import KolmogorovMathlib.MonotoneComplexity.EffectiveOpenBridge
+import KolmogorovMathlib.MonotoneComplexity.PlainPrefixDips
+import KolmogorovMathlib.MonotoneComplexity.PlainMonotoneSeparation
+import KolmogorovMathlib.MonotoneComplexity.RobustMachine
+import KolmogorovMathlib.MonotoneComplexity.RobustMachineConverse
+import KolmogorovMathlib.MonotoneComplexity.NatLogCode
+import KolmogorovMathlib.MonotoneComplexity.APrioriSublevelTree
+import KolmogorovMathlib.MonotoneComplexity.ComputableListTools
+import KolmogorovMathlib.MonotoneComplexity.GacsDayGame
+import KolmogorovMathlib.MonotoneComplexity.GacsDayBinaryEncoding
+import KolmogorovMathlib.MonotoneComplexity.GacsDayBlockCode
+import KolmogorovMathlib.MonotoneComplexity.GacsDayEmbedding
+import KolmogorovMathlib.MonotoneComplexity.GacsDayMass
+import KolmogorovMathlib.MonotoneComplexity.GacsDayReplay
+import KolmogorovMathlib.MonotoneComplexity.GacsDayWaste
+import KolmogorovMathlib.MonotoneComplexity.GacsDayBlocking
+import KolmogorovMathlib.MonotoneComplexity.GacsDayStaticWin
+import KolmogorovMathlib.MonotoneComplexity.GacsDaySeparationReduction
+import KolmogorovMathlib.MonotoneComplexity.GacsDayGrayArea
+import KolmogorovMathlib.MonotoneComplexity.GacsDayGrayBridge
+import KolmogorovMathlib.MonotoneComplexity.GacsDayGrayComposition
+import KolmogorovMathlib.MonotoneComplexity.GacsDaySubtree
+import KolmogorovMathlib.MonotoneComplexity.GacsDayFamilyGame
+import KolmogorovMathlib.MonotoneComplexity.GacsDayGrayWitness
+import KolmogorovMathlib.MonotoneComplexity.GacsDayHalfAmplification
+import KolmogorovMathlib.MonotoneComplexity.GacsDayStageTwo
+import KolmogorovMathlib.MonotoneComplexity.GacsDayStageTwoComputable
+import KolmogorovMathlib.MonotoneComplexity.GacsDayAmplificationBarrier
+import KolmogorovMathlib.MonotoneComplexity.GacsDayServer
+import KolmogorovMathlib.MonotoneComplexity.GacsDayRequestFamily
+import KolmogorovMathlib.MonotoneComplexity.GacsDayMixture
+import KolmogorovMathlib.MonotoneComplexity.GacsDaySubtreeEmbedding
+import KolmogorovMathlib.MonotoneComplexity.GacsDayAccumulation
+import KolmogorovMathlib.MonotoneComplexity.GacsDayRoundCounting
+import KolmogorovMathlib.MonotoneComplexity.GacsDayGrayTestComputable
+import KolmogorovMathlib.MonotoneComplexity.GacsDayEndgameComputability
+import KolmogorovMathlib.MonotoneComplexity.GacsDayReserveComputable
+import KolmogorovMathlib.MonotoneComplexity.GacsDayReserveMass
+import KolmogorovMathlib.MonotoneComplexity.GacsDayGrayRefine
+import KolmogorovMathlib.MonotoneComplexity.GacsDayLadderCode
+import KolmogorovMathlib.MonotoneComplexity.GacsDayLadderGraft
+import KolmogorovMathlib.MonotoneComplexity.GacsDayLadderRungs
+import KolmogorovMathlib.MonotoneComplexity.GacsDayLadderCodeStep
+import KolmogorovMathlib.MonotoneComplexity.GacsDayLadderTailAggregate
+import KolmogorovMathlib.MonotoneComplexity.GacsDayLadderTailPointwise
+import KolmogorovMathlib.MonotoneComplexity.GacsDayLadderTailAnchor
+import KolmogorovMathlib.MonotoneComplexity.GacsDayLadderTailAnchorSearch
+import KolmogorovMathlib.MonotoneComplexity.GacsDayLadderTailSelectedSum
+import KolmogorovMathlib.MonotoneComplexity.GacsDayLadderTailStable
+import KolmogorovMathlib.MonotoneComplexity.GacsDayLadderTailFloorArithmetic
+import KolmogorovMathlib.MonotoneComplexity.GacsDayLadderTailOwner
+import KolmogorovMathlib.MonotoneComplexity.GacsDayLadderTailRoundSplit
+import KolmogorovMathlib.MonotoneComplexity.GacsDayLadderTailCoupled
+import KolmogorovMathlib.MonotoneComplexity.GacsDayLadderTailOwnerIndex
+import KolmogorovMathlib.MonotoneComplexity.GacsDayChargedTailDisplay
+import KolmogorovMathlib.MonotoneComplexity.GacsDayEndgameLift
+import KolmogorovMathlib.MonotoneComplexity.GacsDayEndgameScale
+import KolmogorovMathlib.MonotoneComplexity.GacsDayTheorems
+import KolmogorovMathlib.MonotoneComplexity.SharedCoding
+import KolmogorovMathlib.MonotoneComplexity.ExpectationBoundedDeficiency
+import KolmogorovMathlib.MonotoneComplexity.LevinSchnorr.Basic
+import KolmogorovMathlib.MonotoneComplexity.LevinSchnorr.Criteria
+import KolmogorovMathlib.MonotoneComplexity.LevinSchnorr.Exercises
+import KolmogorovMathlib.MonotoneComplexity.Omega.Basic
+import KolmogorovMathlib.MonotoneComplexity.Omega.Solovay
+import KolmogorovMathlib.MonotoneComplexity.Omega.Prediction
+import KolmogorovMathlib.MonotoneComplexity.Omega.SolovayFunctions
+import KolmogorovMathlib.MonotoneComplexity.Omega.Exercises
+import KolmogorovMathlib.MonotoneComplexity.Dimension.Basic
+import KolmogorovMathlib.MonotoneComplexity.Dimension.Hausdorff
+import KolmogorovMathlib.MonotoneComplexity.Dimension.ChangeOfMeasure
+import KolmogorovMathlib.MonotoneComplexity.Dimension.Exercises
+
+/-!
+# Monotone complexity, a priori probability and randomness of `Ω`
+
+The chapter-level group of the theory built on continuous semimeasures and monotone machines.
+
+### Outline
+
+* **Semimeasures on the tree.** Streams and their topology, continuous tree semimeasures,
+  probabilistic generators, tree allocations, and the realisation and representation results
+  linking semimeasures, generators and measures on Cantor space, ending in the enumeration of
+  the lower semicomputable ones and a maximal semimeasure.
+* **A priori complexity.** The a priori probability, `KA`, its minimality and branching
+  properties, its sublevel trees, and the bridge to the discrete universal semimeasure.
+* **Monotone complexity.** Continuous stream maps, the enumeration of enumerable stream
+  relations, optimal monotone decompressors, `KMOf` and its bounds, the comparison with plain
+  and prefix complexity, and monotone complexity of infinite sequences.
+* **The Gács–Day separation.** The request game, its binary embedding, the gray-area and waste
+  estimates, the ladder and charged controllers with their computability, and the mixture that
+  turns a client win into the separation of `KM` from `KA`.
+* **Randomness.** The Levin–Schnorr criterion, Chaitin's `Ω` with Solovay reducibility,
+  Solovay functions and busy beavers, and effective Hausdorff dimension with the change of
+  measure.
+
+Source: SUV, chapter 5.
+-/

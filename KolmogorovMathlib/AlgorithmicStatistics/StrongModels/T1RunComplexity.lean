@@ -1,9 +1,31 @@
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.T1EffectiveRunCharging
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.T1RunCharging
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.T1VersionDecoder
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.T1RunBounds
 
+/-!
+# The versions of the run are simple
+
+Each candidate list the run ever holds must be describable in about `epsilon` bits, since it
+is the model that witnesses the strong side of Theorem T1.
+`plainSetComplexity_t1RunVersion_le` states that: a reachable version has plain set complexity
+at most `epsilon` plus a logarithmic term.  It is proved by naming a version by its ordinal in
+the version list and decoding it with the version decoder
+(`plainSetComplexity_of_t1VersionDecoder_eval`), so what is needed is a bound on that ordinal:
+`t1RunAt_totalC_le_of_model_spec` bounds the accumulated charge and
+`t1RunAt_version_lt_width_of_model_spec` turns it, through the charging invariant of
+`T1RunCharging`, into a fixed-width ordinal bound.
+
+`T1RunVersionsModelInvariant` — every recorded version is a duplicate-free list of
+`2 ^ (k - epsilon)` strings of length `n` — is established along the run by
+`t1InitialRunState_versions_model`, `t1RunStep_preserves_versions_model` and
+`t1RunFromEvents_versions_model_spec`, and `t1RunAt_reachable_version_spec` is the combined
+statement used by `T1Core`.
+-/
+
 namespace Kolmogorov
 
+/-- Every version recorded by the run is a duplicate-free list of `2 ^ (k - epsilon)` strings of
+length `n`. -/
 def T1RunVersionsModelInvariant
     (n k epsilon : Nat) (s : T1RunState) : Prop :=
   ∀ L ∈ s.versions,
@@ -11,6 +33,7 @@ def T1RunVersionsModelInvariant
     L.length = 2 ^ (k - epsilon) ∧
     L.toFinset ⊆ stringsOfLength n
 
+/-- The initial T1 run state satisfies the versions invariant. -/
 theorem t1InitialRunState_versions_model
     {n k epsilon : Nat}
     (hepsilon : epsilon ≤ k) (hkn : k ≤ n) :
@@ -23,6 +46,8 @@ theorem t1InitialRunState_versions_model
     t1InitialCurrent_length hepsilon hkn,
     t1InitialCurrent_subset_stringsOfLength n k epsilon⟩
 
+/-- A step preserves the versions invariant, provided the resulting current block is itself a
+duplicate-free block of the right size inside the strings of length `n`. -/
 theorem t1RunStep_preserves_versions_model
     {cSparse n k epsilon quota : Nat} {s : T1RunState} {event : T1MarkEvent}
     (hversions : T1RunVersionsModelInvariant n k epsilon s)
@@ -59,6 +84,8 @@ theorem t1RunStep_preserves_versions_model
       subst L
       exact hcurrent'
 
+/-- If every prefix of the event list keeps the run's model invariant, the final state satisfies the
+versions invariant. -/
 theorem t1RunFromEvents_versions_model_of_prefix_model
     {cSparse n k epsilon quota : Nat} {events : List T1MarkEvent}
     (hprefixModel :
@@ -94,6 +121,8 @@ theorem t1RunFromEvents_versions_model_of_prefix_model
       rw [t1RunFromEvents_append] at hmodel
       exact ⟨hmodel.1, hmodel.2.1, hmodel.2.2.1⟩
 
+/-- For suitable constants the run on the marking events of any stage satisfies both the core
+invariant and the versions invariant. -/
 theorem t1RunFromEvents_versions_model_spec
     (V : Map) (c : Nat.Partrec.Code) (hc : IsCodeFor c V) :
     ∀ cDesc, ∃ c0 cSparse, ∀ n k epsilon quota t,
@@ -125,6 +154,8 @@ theorem t1RunFromEvents_versions_model_spec
   exact (hcore n k epsilon quota t pref hc0 hepsilon hkn hquota
     (hpref.trans (List.prefix_refl events))).1
 
+/-- The accumulated C-charge is at most the number of C'-events times the sparsity bound
+`cSparse * n + cSparse`. -/
 theorem t1RunAt_totalC_le_of_model_spec
     {cSparse n k epsilon quota : Nat} {events : List T1MarkEvent}
     (hprefixModel : ∀ pref, pref <+: events →
@@ -246,6 +277,7 @@ theorem t1RunAt_version_lt_width_of_model_spec
     simpa [s, quota] using hversion
   omega
 
+/-- A version of the block, having `2 ^ (k - epsilon)` entries, is nonempty as a finite set. -/
 theorem t1RunVersion_nonempty
     {L : List BitString} {k epsilon : Nat}
     (hlength : L.length = 2 ^ (k - epsilon)) :
@@ -272,7 +304,7 @@ theorem plainSetComplexity_of_t1VersionDecoder_eval
     plainK_partrec_map_le V hV
       (t1VersionDecoder c cDesc cSparse)
       (t1VersionDecoder_partrec c cDesc cSparse)
-  obtain ⟨cLiteral, hLiteral⟩ := plainKLeLength V hV
+  obtain ⟨cLiteral, hLiteral⟩ := plainK_le_length V hV
   refine ⟨cLiteral + cMap, ?_⟩
   intro p L hL hEval
   unfold plainSetComplexity
@@ -289,6 +321,8 @@ theorem plainSetComplexity_of_t1VersionDecoder_eval
       push_cast
       ac_rfl
 
+/-- Each reachable version of the block has plain set complexity at most `epsilon` plus a
+logarithmic term in `n`, since it is recovered from its index by the version decoder. -/
 theorem plainSetComplexity_t1RunVersion_le
     (V : Map) (hV : isOptimalConditional V)
     (c : Nat.Partrec.Code) (cDesc cSparse cWidth : Nat) :
@@ -342,6 +376,10 @@ theorem plainSetComplexity_t1RunVersion_le
         unfold logSlack
         nlinarith [Nat.zero_le ((Nat.bits n).length)])
 
+/-- For suitable constants, the run at any stage satisfies the core invariant and each of its
+versions is a duplicate-free block of `2 ^ (k - epsilon)` strings of length `n`, indexed below
+`2 ^ (epsilon + logSlack cWidth n)` and of plain set complexity at most `epsilon` plus a
+logarithmic term. -/
 theorem t1RunAt_reachable_version_spec
     (V : Map) (hV : isOptimalConditional V)
     (c : Nat.Partrec.Code) (hc : IsCodeFor c V) :

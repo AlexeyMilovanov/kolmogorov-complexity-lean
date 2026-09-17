@@ -60,9 +60,10 @@ structure T3Witness
   good : ∀ x ∈ A \ exceptional,
     T3GoodElement V T x n k epsilon delta cStrength cProfile
 
-/-- Honest, unproved target proposition for VS40 Theorem `t3`.  The three
-uniform constants precede every varying numerical parameter.  A future public
-theorem `t3` must prove this proposition from optimality of `V` and `T`; merely
+/-- The target proposition for VS40 Theorem `t3`, used as a hypothesis and not
+proved here.  The three uniform constants precede every varying numerical
+parameter.  Any proof of `t3` must establish this proposition from optimality of
+`V` and `T`; merely
 constructing a `T3Witness` from an assumed profile neighborhood would not
 discharge the source claim. -/
 def T3Statement (V T : Map) : Prop :=
@@ -178,6 +179,8 @@ theorem T3Witness.good_of_mem_not_exceptional
     T3GoodElement V T x n k epsilon delta cStrength cProfile := by
   exact w.good x (Finset.mem_sdiff.mpr ⟨hxA, hxBad⟩)
 
+/-- The non-exceptional part of a T3 witness set consists of strings of length `n` with plain
+complexity at least `k`. -/
 theorem T3Witness.good_subset_highComplexity
     {V T : Map} {n k epsilon delta cStrength cProfile : Nat}
     (w : T3Witness V T n k epsilon delta cStrength cProfile) :
@@ -188,10 +191,12 @@ theorem T3Witness.good_subset_highComplexity
   have hgood := w.good x hx
   rw [Finset.mem_filter]
   constructor
-  · rw [memStringsOfLength]
+  · rw [mem_stringsOfLength]
     exact hgood.1
   · exact hgood.2.1
 
+/-- The non-exceptional part of a T3 witness set is no larger than the set of strings of length
+`n` with plain complexity at least `k`. -/
 theorem T3Witness.good_card_le_highComplexity
     {V T : Map} {n k epsilon delta cStrength cProfile : Nat}
     (w : T3Witness V T n k epsilon delta cStrength cProfile) :
@@ -493,18 +498,21 @@ noncomputable def t3VersionDecoder
   let L := (t1RunAt c cDesc cSparse n k epsilon quota t).versions.getD version []
   Part.some (canonicalImageCodeOfList L)
 
-/-- The quota-aware T3 version decoder is partial recursive. -/
-theorem t3VersionDecoder_partrec
+/-- Constructing a `T1RunInput` from the header parameters of a T3 version
+program and a time step is computable. -/
+private theorem t3RunInput_computable
     (c : Nat.Partrec.Code) (cDesc cSparse : Nat) :
-    Partrec (t3VersionDecoder c cDesc cSparse) := by
-  have hversions : Computable (fun input : T1RunInput => input.run.versions) := by
-    have ht : Primrec (fun s : T1RunState => s.toProd) := Primrec.of_equiv
-    have hv : Primrec (fun p : T1RunStateData => p.2.2.2.2.2.2.1) :=
-      Primrec.fst.comp (Primrec.snd.comp (Primrec.snd.comp
-        (Primrec.snd.comp (Primrec.snd.comp
-          (Primrec.snd.comp Primrec.snd)))))
-    exact (hv.comp ht).to_comp.comp t1RunAt_computable_uniform
-  open Nat.Partrec (Code) in
+    Computable (fun p : BitString × Nat =>
+      ({ c := c
+       , cDesc := cDesc
+       , cSparse := cSparse
+       , n := bitsToNat ((decodeListCode (decodeFirst p.1)).getD 0 [])
+       , k := bitsToNat ((decodeListCode (decodeFirst p.1)).getD 1 [])
+       , epsilon := bitsToNat ((decodeListCode (decodeFirst p.1)).getD 2 [])
+       , quota := 2 ^ (bitsToNat ((decodeListCode (decodeFirst p.1)).getD 1 []) -
+           bitsToNat ((decodeListCode (decodeFirst p.1)).getD 2 []) -
+           bitsToNat ((decodeListCode (decodeFirst p.1)).getD 3 []))
+       , t := p.2 } : T1RunInput)) := by
   have hheader : Computable (fun input : BitString =>
       decodeListCode (decodeFirst input)) :=
     decodeListCode_computable.comp decodeFirst_computable
@@ -527,94 +535,81 @@ theorem t3VersionDecoder_partrec
       bitsToNat ((decodeListCode (decodeFirst input)).getD 3 [])) :=
     bitsToNat_primrec.to_comp.comp
       (hget.comp hheader (Computable.const 3))
-  have hversion : Computable (fun input : BitString =>
-      bitsToNat (decodeSecond input)) :=
-    bitsToNat_primrec.to_comp.comp decodeSecond_computable
   have hquota : Computable (fun input : BitString =>
       2 ^ (bitsToNat ((decodeListCode (decodeFirst input)).getD 1 []) -
         bitsToNat ((decodeListCode (decodeFirst input)).getD 2 []) -
         bitsToNat ((decodeListCode (decodeFirst input)).getD 3 []))) :=
-    Kolmogorov.CodedFiniteDistribution.twoPow_primrec.to_comp.comp
+    Kolmogorov.primrec_two_pow_aux.to_comp.comp
       (Primrec.nat_sub.to_comp.comp
         (Primrec.nat_sub.to_comp.comp hk hepsilon) hdelta)
-  have hinput : Computable (fun p : BitString × Nat =>
-      ({ c := c
-       , cDesc := cDesc
-       , cSparse := cSparse
-       , n := bitsToNat ((decodeListCode (decodeFirst p.1)).getD 0 [])
-       , k := bitsToNat ((decodeListCode (decodeFirst p.1)).getD 1 [])
-       , epsilon := bitsToNat ((decodeListCode (decodeFirst p.1)).getD 2 [])
-       , quota := 2 ^ (bitsToNat ((decodeListCode (decodeFirst p.1)).getD 1 []) -
-           bitsToNat ((decodeListCode (decodeFirst p.1)).getD 2 []) -
-           bitsToNat ((decodeListCode (decodeFirst p.1)).getD 3 []))
-       , t := p.2 } : T1RunInput)) := by
-    have h1 : Computable (fun p : BitString × Nat => c) := Computable.const c
-    have h2 : Computable (fun p : BitString × Nat => cDesc) := Computable.const cDesc
-    have h3 : Computable (fun p : BitString × Nat => cSparse) := Computable.const cSparse
-    have h4 : Computable (fun p : BitString × Nat =>
-        bitsToNat ((decodeListCode (decodeFirst p.1)).getD 0 [])) := hn.comp Computable.fst
-    have h5 : Computable (fun p : BitString × Nat =>
-        bitsToNat ((decodeListCode (decodeFirst p.1)).getD 1 [])) := hk.comp Computable.fst
-    have h6 : Computable (fun p : BitString × Nat =>
-        bitsToNat ((decodeListCode (decodeFirst p.1)).getD 2 [])) := hepsilon.comp Computable.fst
-    have h7 : Computable (fun p : BitString × Nat =>
-        2 ^ (bitsToNat ((decodeListCode (decodeFirst p.1)).getD 1 []) -
-          bitsToNat ((decodeListCode (decodeFirst p.1)).getD 2 []) -
-          bitsToNat ((decodeListCode (decodeFirst p.1)).getD 3 []))) :=
-      hquota.comp Computable.fst
-    have h8 : Computable (fun p : BitString × Nat => p.2) := Computable.snd
-    -- Use the same pattern as T1VersionDecoder
-    let Data := ((Nat.Partrec.Code × Nat) × (Nat × Nat)) × ((Nat × Nat) × (Nat × Nat))
-    let ofData : Data → T1RunInput := fun p =>
-      { c := p.1.1.1
-      , cDesc := p.1.1.2
-      , cSparse := p.1.2.1
-      , n := p.1.2.2
-      , k := p.2.1.1
-      , epsilon := p.2.1.2
-      , quota := p.2.2.1
-      , t := p.2.2.2 }
-    have hofData : Computable ofData := by
-      exact Primrec.of_equiv_symm.to_comp
-    let buildData : BitString × Nat → Data := fun p =>
-      ⟨((c, cDesc), (cSparse, bitsToNat ((decodeListCode (decodeFirst p.1)).getD 0 []))),
-       ((bitsToNat ((decodeListCode (decodeFirst p.1)).getD 1 []),
-         bitsToNat ((decodeListCode (decodeFirst p.1)).getD 2 [])),
-        (2 ^ (bitsToNat ((decodeListCode (decodeFirst p.1)).getD 1 []) -
-              bitsToNat ((decodeListCode (decodeFirst p.1)).getD 2 []) -
-              bitsToNat ((decodeListCode (decodeFirst p.1)).getD 3 [])), p.2))⟩
-    have hbuildData : Computable buildData := by
-      have ha : Computable (fun p : BitString × Nat => (c, cDesc)) :=
-        (Computable.const c).pair (Computable.const cDesc)
-      have hb : Computable (fun p : BitString × Nat =>
-          (cSparse, bitsToNat
-            ((decodeListCode (decodeFirst p.1)).getD 0 []))) :=
-        (Computable.const cSparse).pair (hn.comp Computable.fst)
-      have hc : Computable (fun p : BitString × Nat =>
-          ((c, cDesc), (cSparse, bitsToNat
-            ((decodeListCode (decodeFirst p.1)).getD 0 [])))) :=
-        ha.pair hb
-      have hd : Computable (fun p : BitString × Nat =>
-          (bitsToNat ((decodeListCode (decodeFirst p.1)).getD 1 []),
-            bitsToNat ((decodeListCode (decodeFirst p.1)).getD 2 []))) :=
-        (hk.comp Computable.fst).pair (hepsilon.comp Computable.fst)
-      have he : Computable (fun p : BitString × Nat =>
-          (2 ^ (bitsToNat
-              ((decodeListCode (decodeFirst p.1)).getD 1 []) -
+  let Data := ((Nat.Partrec.Code × Nat) × (Nat × Nat)) × ((Nat × Nat) × (Nat × Nat))
+  let ofData : Data → T1RunInput := fun p =>
+    { c := p.1.1.1
+    , cDesc := p.1.1.2
+    , cSparse := p.1.2.1
+    , n := p.1.2.2
+    , k := p.2.1.1
+    , epsilon := p.2.1.2
+    , quota := p.2.2.1
+    , t := p.2.2.2 }
+  have hofData : Computable ofData := Primrec.of_equiv_symm.to_comp
+  have ha : Computable (fun p : BitString × Nat => (c, cDesc)) :=
+    (Computable.const c).pair (Computable.const cDesc)
+  have hb : Computable (fun p : BitString × Nat =>
+      (cSparse, bitsToNat ((decodeListCode (decodeFirst p.1)).getD 0 []))) :=
+    (Computable.const cSparse).pair (hn.comp Computable.fst)
+  have hc : Computable (fun p : BitString × Nat =>
+      ((c, cDesc), (cSparse, bitsToNat
+        ((decodeListCode (decodeFirst p.1)).getD 0 [])))) :=
+    ha.pair hb
+  have hd : Computable (fun p : BitString × Nat =>
+      (bitsToNat ((decodeListCode (decodeFirst p.1)).getD 1 []),
+        bitsToNat ((decodeListCode (decodeFirst p.1)).getD 2 []))) :=
+    (hk.comp Computable.fst).pair (hepsilon.comp Computable.fst)
+  have he : Computable (fun p : BitString × Nat =>
+      (2 ^ (bitsToNat ((decodeListCode (decodeFirst p.1)).getD 1 []) -
+        bitsToNat ((decodeListCode (decodeFirst p.1)).getD 2 []) -
+        bitsToNat ((decodeListCode (decodeFirst p.1)).getD 3 [])), p.2)) :=
+    (hquota.comp Computable.fst).pair Computable.snd
+  have hf : Computable (fun p : BitString × Nat =>
+      ((bitsToNat ((decodeListCode (decodeFirst p.1)).getD 1 []),
+        bitsToNat ((decodeListCode (decodeFirst p.1)).getD 2 [])),
+       (2 ^ (bitsToNat ((decodeListCode (decodeFirst p.1)).getD 1 []) -
             bitsToNat ((decodeListCode (decodeFirst p.1)).getD 2 []) -
-            bitsToNat ((decodeListCode (decodeFirst p.1)).getD 3 [])), p.2)) :=
-        (hquota.comp Computable.fst).pair Computable.snd
-      have hf : Computable (fun p : BitString × Nat =>
-          ((bitsToNat ((decodeListCode (decodeFirst p.1)).getD 1 []),
-            bitsToNat ((decodeListCode (decodeFirst p.1)).getD 2 [])),
-           (2 ^ (bitsToNat
-                ((decodeListCode (decodeFirst p.1)).getD 1 []) -
-              bitsToNat ((decodeListCode (decodeFirst p.1)).getD 2 []) -
-              bitsToNat ((decodeListCode (decodeFirst p.1)).getD 3 [])), p.2))) :=
-        hd.pair he
-      exact hc.pair hf
-    have := hofData.comp hbuildData
-    exact this.of_eq (fun p => rfl)
+            bitsToNat ((decodeListCode (decodeFirst p.1)).getD 3 [])), p.2))) :=
+    hd.pair he
+  have hbuildData : Computable (fun p : BitString × Nat =>
+      (⟨((c, cDesc), (cSparse, bitsToNat ((decodeListCode (decodeFirst p.1)).getD 0 []))),
+        ((bitsToNat ((decodeListCode (decodeFirst p.1)).getD 1 []),
+          bitsToNat ((decodeListCode (decodeFirst p.1)).getD 2 [])),
+         (2 ^ (bitsToNat ((decodeListCode (decodeFirst p.1)).getD 1 []) -
+               bitsToNat ((decodeListCode (decodeFirst p.1)).getD 2 []) -
+               bitsToNat ((decodeListCode (decodeFirst p.1)).getD 3 [])), p.2))⟩ : Data)) :=
+    hc.pair hf
+  exact (hofData.comp hbuildData).of_eq (fun _ => rfl)
+
+/-- The `k`-th field of an encoded T3 request, read as a number: the request carries its
+parameters as a list in its first component. -/
+private def t3RequestField (input : BitString) (k : Nat) : Nat :=
+  bitsToNat ((decodeListCode (decodeFirst input)).getD k [])
+
+/-- The T1 run that the T3 version decoder inspects for the request `input` at stage `m`: the
+run of `c` on the first three request fields, with quota `2 ^ (field 1 - field 2 - field 3)`. -/
+private noncomputable def t3RequestRun (c : Nat.Partrec.Code) (cDesc cSparse : Nat)
+    (input : BitString) (m : Nat) :=
+  t1RunAt c cDesc cSparse (t3RequestField input 0) (t3RequestField input 1)
+    (t3RequestField input 2)
+    (2 ^ (t3RequestField input 1 - t3RequestField input 2 - t3RequestField input 3)) m
+
+/-- The search condition checking whether the requested version exists at stage
+`m` is binary computable. -/
+private theorem t3VersionDecoder_check_computable
+    (c : Nat.Partrec.Code) (cDesc cSparse : Nat) :
+    Computable₂
+      (fun (input : BitString) (m : Nat) =>
+        decide (bitsToNat (decodeSecond input) <
+          (t3RequestRun c cDesc cSparse input m).versions.length)) := by
+  have hinput := t3RunInput_computable c cDesc cSparse
   have hruns : Computable (fun p : BitString × Nat =>
       (t1RunAt c cDesc cSparse
         (bitsToNat ((decodeListCode (decodeFirst p.1)).getD 0 []))
@@ -623,11 +618,11 @@ theorem t3VersionDecoder_partrec
         (2 ^ (bitsToNat ((decodeListCode (decodeFirst p.1)).getD 1 []) -
             bitsToNat ((decodeListCode (decodeFirst p.1)).getD 2 []) -
             bitsToNat ((decodeListCode (decodeFirst p.1)).getD 3 [])))
-        p.2).versions) := by
-    exact (hversions.comp hinput).of_eq (fun p => by rfl)
+        p.2).versions) :=
+    (t1RunAt_versions_computable_uniform.comp hinput).of_eq (fun _ => rfl)
   have hversionR : Computable (fun p : BitString × Nat =>
       bitsToNat (decodeSecond p.1)) :=
-    hversion.comp Computable.fst
+    (bitsToNat_primrec.to_comp.comp decodeSecond_computable).comp Computable.fst
   have hlength : Computable (fun p : BitString × Nat =>
       (t1RunAt c cDesc cSparse
         (bitsToNat ((decodeListCode (decodeFirst p.1)).getD 0 []))
@@ -638,27 +633,15 @@ theorem t3VersionDecoder_partrec
             bitsToNat ((decodeListCode (decodeFirst p.1)).getD 3 [])))
         p.2).versions.length) :=
     Computable.list_length.comp hruns
-  have hlt : Computable₂
-      (fun a b : Nat => decide (a < b)) :=
+  have hlt : Computable₂ (fun a b : Nat => decide (a < b)) :=
     (PrimrecPred.decide Primrec.nat_lt).to_comp
-  have hcheck : Computable₂
-      (fun (input : BitString) (m : Nat) =>
-        decide (bitsToNat (decodeSecond input) <
-          (t1RunAt c cDesc cSparse
-            (bitsToNat
-              ((decodeListCode (decodeFirst input)).getD 0 []))
-            (bitsToNat
-              ((decodeListCode (decodeFirst input)).getD 1 []))
-            (bitsToNat
-              ((decodeListCode (decodeFirst input)).getD 2 []))
-            (2 ^ (bitsToNat
-              ((decodeListCode (decodeFirst input)).getD 1 []) -
-                bitsToNat
-                  ((decodeListCode (decodeFirst input)).getD 2 []) -
-                bitsToNat
-                  ((decodeListCode (decodeFirst input)).getD 3 [])))
-            m).versions.length)) :=
-    hlt.comp hversionR hlength
+  exact hlt.comp hversionR hlength
+
+/-- The quota-aware T3 version decoder is partial recursive. -/
+theorem t3VersionDecoder_partrec
+    (c : Nat.Partrec.Code) (cDesc cSparse : Nat) :
+    Partrec (t3VersionDecoder c cDesc cSparse) := by
+  have hcheck := t3VersionDecoder_check_computable c cDesc cSparse
   have hfind : Partrec (fun input : BitString =>
       Nat.rfind fun m =>
         Part.some (decide (bitsToNat (decodeSecond input) <
@@ -677,6 +660,20 @@ theorem t3VersionDecoder_partrec
                   ((decodeListCode (decodeFirst input)).getD 3 [])))
             m).versions.length))) :=
     Partrec.rfind hcheck.partrec₂
+  have hinput := t3RunInput_computable c cDesc cSparse
+  have hruns : Computable (fun p : BitString × Nat =>
+      (t1RunAt c cDesc cSparse
+        (bitsToNat ((decodeListCode (decodeFirst p.1)).getD 0 []))
+        (bitsToNat ((decodeListCode (decodeFirst p.1)).getD 1 []))
+        (bitsToNat ((decodeListCode (decodeFirst p.1)).getD 2 []))
+        (2 ^ (bitsToNat ((decodeListCode (decodeFirst p.1)).getD 1 []) -
+            bitsToNat ((decodeListCode (decodeFirst p.1)).getD 2 []) -
+            bitsToNat ((decodeListCode (decodeFirst p.1)).getD 3 [])))
+        p.2).versions) :=
+    (t1RunAt_versions_computable_uniform.comp hinput).of_eq (fun _ => rfl)
+  have hversionR : Computable (fun p : BitString × Nat =>
+      bitsToNat (decodeSecond p.1)) :=
+    (bitsToNat_primrec.to_comp.comp decodeSecond_computable).comp Computable.fst
   have hgetVersion : Computable₂
       (fun (l : List (List BitString)) (i : Nat) =>
         l.getD i []) :=
@@ -714,6 +711,8 @@ theorem t3VersionDecoder_partrec
   exact (Partrec.bind hfind hpost.partrec₂).of_eq
     (fun _ => rfl)
 
+/-- On the version program of a version reached by time `t` and within the width budget, the T3
+version decoder outputs the code of that version's model. -/
 theorem t3VersionDecoder_eval
     (c : Nat.Partrec.Code)
     (cDesc cSparse cWidth n k epsilon delta t version : Nat)
@@ -764,13 +763,14 @@ theorem t3VersionDecoder_eval
     Nat.find_spec hex
   have ht0_le : t0 ≤ t :=
     Nat.find_min' hex hseen
-  have hfind : Nat.rfind (fun m =>
+  let p : ℕ →. Bool := fun m =>
       Part.some
-        (decide (version < (run m).versions.length))) =
+        (decide (version < (run m).versions.length))
+  have hfind : Nat.rfind p =
       Part.some t0 := by
-    rw [Part.eq_some_iff]
-    exact Nat.mem_rfind.mpr ⟨by simpa using ht0, fun {m} hm => by
-      simpa using Nat.find_min hex hm⟩
+    rw [Part.eq_some_iff, Nat.mem_rfind]
+    exact ⟨Part.mem_some_iff.mpr (decide_eq_true ht0).symm, fun {m} hm =>
+      Part.mem_some_iff.mpr (decide_eq_false (Nat.find_min hex hm)).symm⟩
   have hget :
       (run t).versions.getD version [] =
         (run t0).versions.getD version [] := by
@@ -782,9 +782,7 @@ theorem t3VersionDecoder_eval
   change canonicalImageCodeOfList
       ((t1RunAt c cDesc cSparse n k epsilon
         (2 ^ (k - epsilon - delta)) t).versions.getD version []) ∈
-    (Nat.rfind (fun m => Part.some (decide (version <
-      (t1RunAt c cDesc cSparse n k epsilon
-        (2 ^ (k - epsilon - delta)) m).versions.length)))).bind
+    (Nat.rfind p).bind
       (fun m => Part.some (canonicalImageCodeOfList
         ((t1RunAt c cDesc cSparse n k epsilon
           (2 ^ (k - epsilon - delta)) m).versions.getD version [])))

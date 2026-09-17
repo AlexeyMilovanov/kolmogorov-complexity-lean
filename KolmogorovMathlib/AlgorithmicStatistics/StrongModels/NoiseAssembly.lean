@@ -4,7 +4,7 @@ import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.RemAddNoiseHalfPlane
 /-!
 # Attaching a random tail to a realization of the auxiliary profile
 
-Let `P` be an admissible profile with endpoints `k_P = kp`, `m_P = mp` and let
+Let `P` be an admissible profile with endpoints `kP = kp`, `mP = mp` and let
 `y` be a string whose plain description profile is `e`-close to the auxiliary
 profile `P̃ = auxiliaryProfile P mp kp` and whose plain complexity is `eta`-close
 to `mp`.  Appending a conditionally random tail `z` of length `d = kp - mp`
@@ -20,15 +20,15 @@ namespace Kolmogorov
 open Kolmogorov.CodedFiniteDistribution
 
 /-- Admissibility forces every profile point to lie above the sufficiency line
-`i + j ≥ k_P`. -/
+`i + j ≥ kP`. -/
 theorem admissibleProfile_k_P_le_add
     {P : Set (Nat × Nat)} {kp : ℕ}
-    (hadm : IsAdmissibleProfileSet P) (hkP : k_P P = (kp : ENat)) :
+    (hadm : IsAdmissibleProfileSet P) (hkP : kP P = (kp : ENat)) :
     ∀ q ∈ P, kp ≤ q.1 + q.2 := by
   rintro ⟨a, b⟩ hab
   have hstep := hadm.step
   have hstep' : (a + b, 0) ∈ P := by simpa using hstep a b 0 (by simpa using hab)
-  have hle : k_P P ≤ ((a + b : ℕ) : ENat) := sInf_le ⟨a + b, rfl, hstep'⟩
+  have hle : kP P ≤ ((a + b : ℕ) : ENat) := sInf_le ⟨a + b, rfl, hstep'⟩
   rw [hkP] at hle
   exact_mod_cast hle
 
@@ -55,8 +55,8 @@ theorem exists_noise_finset_near_profile
     (hU : IsOptimalPrefixConditional U) :
     ∃ C : ℕ, ∀ (P : Set (Nat × Nat)) (kp mp : ℕ) (y : BitString) (e eta ky : ℕ),
       IsAdmissibleProfileSet P →
-      k_P P = (kp : ENat) →
-      m_P P kp = (mp : ENat) →
+      kP P = (kp : ENat) →
+      mP P kp = (mp : ENat) →
       plainK V y = (ky : ENat) →
       ky ≤ mp + eta →
       mp ≤ ky + eta →

@@ -7,11 +7,27 @@ import Mathlib.Algebra.Field.ZMod
 import KolmogorovMathlib.CommonInformation.AffineIncidence
 import KolmogorovMathlib.Foundation.PrimrecExtras
 
+/-!
+# A concrete finite field of a prescribed size
+
+`ConcreteField n` is the prime field of order `concretePrime n`, the first prime in
+`(2 ^ n, 2 ^ (n + 1)]`; the interval is nonempty by Bertrand's postulate
+(`exists_prime_pow_two_window`), and the bounded search that finds it is primitive recursive
+(`primeTest_primrec`, `boundedPrimeSearch_primrec`), so the field may be named by `n` alone.
+
+`concreteField_card_bounds` records its size, and `concreteIncidentEdges_noFourCycle` and
+`concreteIncidentEdges_card_bounds` transport the two properties of the affine incidence graph
+that the common-information arguments use: no four-cycle, and between `2 ^ (3n)` and
+`2 ^ (3n + 3)` incident pairs.
+-/
+
 namespace Kolmogorov
 
+/-- The boolean primality test used to search for the prime of a concrete field. -/
 def primeTest (p : Nat) : Bool :=
   decide (2 ≤ p ∧ ∀ d < p, d < 2 ∨ p % d ≠ 0)
 
+/-- The primality test is primitive recursive. -/
 lemma primeTest_primrec : Primrec primeTest := by
   have hgood : PrimrecRel (fun d p : Nat => d < 2 ∨ p % d ≠ 0) :=
     PrimrecPred.or
@@ -22,6 +38,7 @@ lemma primeTest_primrec : Primrec primeTest := by
     hgood.forall_lt.comp Primrec.id Primrec.id
   exact ((Primrec.nat_le.comp (Primrec.const 2) Primrec.id).and hall).decide
 
+/-- The primality test is correct. -/
 lemma primeTest_eq_true_iff {p : Nat} : primeTest p = true ↔ Nat.Prime p := by
   rw [show primeTest p = decide (2 ≤ p ∧ ∀ d < p, d < 2 ∨ p % d ≠ 0) by rfl]
   rw [decide_eq_true_eq]
@@ -46,6 +63,7 @@ lemma primeTest_eq_true_iff {p : Nat} : primeTest p = true ↔ Nat.Prime p := by
 def primeWindow (n : Nat) : List Nat :=
   (List.range (2 ^ (n + 1) + 1)).drop (2 ^ n + 1)
 
+/-- Membership in the search window lists exactly the numbers in `(2^n, 2^{n+1}]`. -/
 lemma primeWindow_mem_iff {p n : Nat} :
   p ∈ (List.range (2 ^ (n + 1) + 1)).drop (2 ^ n + 1) ↔
     2 ^ n < p ∧ p ≤ 2 ^ (n + 1) := by
@@ -62,6 +80,7 @@ lemma primeWindow_mem_iff {p n : Nat} :
     · rw [List.getElem_range]
       omega
 
+/-- Bertrand's postulate in the form used here: there is a prime in `(2^n, 2^{n+1}]`. -/
 lemma exists_prime_pow_two_window (n : Nat) :
   ∃ p, Nat.Prime p ∧ 2 ^ n < p ∧ p ≤ 2 ^ (n + 1) := by
   obtain ⟨p, hp, hlower, hupper⟩ := Nat.bertrand (2 ^ n) (by positivity)
@@ -79,8 +98,10 @@ private lemma primeWindow_find_primrec :
     convert Nat.Primrec.pow.comp
       (Nat.Primrec.pair (Nat.Primrec.const 2) Nat.Primrec.id) using 1
     simp
+  have hdrop : Primrec₂ (fun (k : Nat) (l : List Nat) => l.drop k) :=
+    Primrec.list_drop
   have hwindow : Primrec primeWindow := by
-    exact Primrec.list_drop.comp
+    exact hdrop.comp
       (Primrec.succ.comp hpow)
       (Primrec.list_range.comp
         (Primrec.succ.comp (hpow.comp (Primrec.succ.comp Primrec.id))))
@@ -102,10 +123,12 @@ private lemma primeWindow_find_primrec :
   exact (Primrec.list_foldr hwindow (Primrec.const none) hstep).of_eq
     (fun n => heq (primeWindow n))
 
+/-- The bounded search producing the prime of the concrete field is primitive recursive. -/
 lemma boundedPrimeSearch_primrec : Primrec concretePrime := by
   exact (Primrec.option_getD.comp primeWindow_find_primrec (Primrec.const 2)).of_eq
     (fun _ => rfl)
 
+/-- The selected prime is prime and lies in `(2^n, 2^{n+1}]`. -/
 lemma concretePrime_spec (n : Nat) :
     Nat.Prime (concretePrime n) ∧ 2 ^ n < concretePrime n ∧
       concretePrime n ≤ 2 ^ (n + 1) := by
@@ -128,36 +151,45 @@ lemma concretePrime_spec (n : Nat) :
         primeWindow_mem_iff.mp hqmem
       simpa [concretePrime, hfind] using ⟨hqprime, hqwindow⟩
 
+/-- The selected number is prime. -/
 lemma concretePrime_prime (n : Nat) : Nat.Prime (concretePrime n) :=
   (concretePrime_spec n).1
 
+/-- The selected prime exceeds `2^n`. -/
 lemma concretePrime_lower (n : Nat) : 2 ^ n < concretePrime n :=
   (concretePrime_spec n).2.1
 
+/-- The selected prime is at most `2^{n+1}`. -/
 lemma concretePrime_upper (n : Nat) : concretePrime n ≤ 2 ^ (n + 1) :=
   (concretePrime_spec n).2.2
 
+/-- The selected prime is a computable function of `n`. -/
 lemma concretePrime_computable : Computable concretePrime :=
   boundedPrimeSearch_primrec.to_comp
 
+/-- The prime field of order `concretePrime n`, of size between `2^n` and `2^{n+1}`. -/
 abbrev ConcreteField (n : Nat) := ZMod (concretePrime n)
 
 instance (n : Nat) : Fact (Nat.Prime (concretePrime n)) := ⟨concretePrime_prime n⟩
 
+/-- The concrete field has `concretePrime n` elements. -/
 lemma concreteField_card_eq (n : Nat) :
   Fintype.card (ConcreteField n) = concretePrime n :=
   ZMod.card (concretePrime n)
 
+/-- The concrete field has between `2^n` and `2^{n+1}` elements. -/
 lemma concreteField_card_bounds (n : Nat) :
   2 ^ n < Fintype.card (ConcreteField n) ∧
   Fintype.card (ConcreteField n) ≤ 2 ^ (n + 1) := by
   rw [concreteField_card_eq]
   exact ⟨concretePrime_lower n, concretePrime_upper n⟩
 
+/-- The point-line incidence relation of the concrete affine plane is four-cycle-free. -/
 lemma concreteIncidentEdges_noFourCycle (n : Nat) :
     NoFourCycle (AffineIncidence.Incident (F := ConcreteField n)) :=
-  AffineIncidence.noFourCycle
+  AffineIncidence.no_four_cycle
 
+/-- The concrete affine plane has between `2^{3n}` and `2^{3n+3}` incident point-line pairs. -/
 lemma concreteIncidentEdges_card_bounds (n : Nat) :
   2 ^ (3 * n) < (AffineIncidence.incidentEdges (ConcreteField n)).card ∧
   (AffineIncidence.incidentEdges (ConcreteField n)).card ≤ 2 ^ (3 * n + 3) := by

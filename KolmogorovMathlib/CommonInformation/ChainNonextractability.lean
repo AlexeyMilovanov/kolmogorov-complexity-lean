@@ -26,7 +26,7 @@ The endpoint is assembled from three kernel-checked layers:
   * `chain_sample_iterated_nonextractability` — iteration-3 engine: for a maximal
     sample of an independence chain the free string `z` obeys
     `C(z) ≤ 2 ^ k · (C(z|α₀) + C(z|β₀)) + O(log N)` (coefficient exactly `2 ^ k`).
-* `exercise_316_nonextractability` assembles those inputs into the public
+* `chain_pair_nonextractability` assembles those inputs into the public
   denominator-aligned plain-complexity statement for one pair `x, y`.
 -/
 
@@ -263,14 +263,9 @@ theorem fiveEighths_sample_mutualInformation_values
     ring
   omega
 
-/-- **Iteration-3 engine.**  For one maximal sample `W` of an
-`IsIndep315Chain` with rational atoms and `Q ∣ N`, every string `z` obeys the
-iterated non-extractability bound with coefficient exactly `2 ^ k`:
-`C(z) ≤ 2 ^ k · (C(z | α₀) + C(z | β₀)) + O(log N)`, the constant depending only
-on `k`.  Proof route: convert each `chain_link_mutualInformation_defect` /
-`chain_top_mutualInformation_defect` to complexity form on the *same* `W`, apply
-`base_conditional_mutualInformation_inequality` per link, and close with
-`iterated_conditional_independence_bound_values`. -/
+/-- For one maximal sample `W` of an `IsIndep315Chain` with rational atoms and `Q ∣ N`, every
+string `z` obeys the iterated non-extractability bound with coefficient exactly `2 ^ k`:
+`C(z) ≤ 2 ^ k · (C(z | α₀) + C(z | β₀)) + O(log N)`, with a constant depending only on `k`. -/
 theorem chain_sample_iterated_nonextractability (V : Map)
     (hV : isOptimalConditional V) (k : ℕ) :
     ∃ C : ℕ, ∀ (D : ChainDist k) (Q : ℕ) (hQ : D.RationalAtoms Q) (N : ℕ)
@@ -390,17 +385,15 @@ theorem chain_sample_iterated_nonextractability (V : Map)
     rw [hzero] at hres'
     exact hres'
 
-/-- **Public Exercise 316.**  For every `N` with `32 ∣ N` there is a
-bottom pair `x, y` of length `N` with a *linear* mutual-information gap
-`I(x : y) ≥ N / 32 - O(log N)` (encoded additively as
-`C(x, y) + N/32 ≤ C(x) + C(y) + O(log N)`) whose common information is
-non-extractable: `C(z) ≤ 2 · (C(z | x) + C(z | y)) + O(log N)` for every `z`.
-Both faces hold for the *same* `x, y` and use plain complexity throughout.
-Instantiates `chain_sample_iterated_nonextractability` at the concrete `k = 1`,
-`Q = 32` chain of `exists_fiveEighths_rationalAtom_chain`, with the bottom
+/-- For every `N` with `32 ∣ N` there is a bottom pair `x, y` of length `N` with a *linear*
+mutual-information gap `I(x : y) ≥ N / 32 - O(log N)` (encoded additively as `C(x, y) + N/32
+≤ C(x) + C(y) + O(log N)`) whose common information is non-extractable: `C(z) ≤ 2 · (C(z |
+x) + C(z | y)) + O(log N)` for every `z`. Both faces hold for the *same* `x, y` and use
+plain complexity throughout. Instantiates `chain_sample_iterated_nonextractability` at the
+concrete `k = 1`, `Q = 32` chain of `exists_fiveEighths_rationalAtom_chain`, with the bottom
 gap discharged by `balanced_binary_typeLog_lower` and
-`five_pow_twenty_mul_three_pow_twelve_ge`. -/
-theorem exercise_316_nonextractability (V : Map) (hV : isOptimalConditional V) :
+`five_pow_twenty_mul_three_pow_twelve_ge`.  Public Exercise 316. -/
+theorem chain_pair_nonextractability (V : Map) (hV : isOptimalConditional V) :
     ∃ C : ℕ, ∀ N, 32 ∣ N → ∃ x y kx ky kxy,
       x.length = N ∧ y.length = N ∧
       HasPlainComplexityValue V x kx ∧ HasPlainComplexityValue V y ky ∧

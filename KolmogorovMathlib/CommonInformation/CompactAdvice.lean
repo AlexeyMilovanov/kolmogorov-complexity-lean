@@ -68,7 +68,7 @@ theorem card_conditionalDescriptionPairsLe_lt
     (conditionalDescriptionPairsLe V α β).card <
       2 ^ ((α + 1) + (β + 1)) := by
   unfold conditionalDescriptionPairsLe
-  have hα := cardCompressibleWordsLt V [] α
+  have hα := card_compressibleWordsLt V [] α
   have hEach :
       ∀ z ∈ compressibleWords V [] α,
         ((compressibleWords V z β).image fun v => pairCode z v).card ≤
@@ -76,7 +76,7 @@ theorem card_conditionalDescriptionPairsLe_lt
     intro z _
     calc ((compressibleWords V z β).image fun v => pairCode z v).card
         ≤ (compressibleWords V z β).card := Finset.card_image_le
-      _ ≤ 2 ^ (β + 1) := (cardCompressibleWordsLt V z β).le
+      _ ≤ 2 ^ (β + 1) := (card_compressibleWordsLt V z β).le
   calc
     ((compressibleWords V [] α).biUnion fun z =>
         (compressibleWords V z β).image fun v => pairCode z v).card
@@ -108,11 +108,13 @@ def conditionalDescriptionPairsStage
       (conditionalDescriptionPairsStage c α β t ++
         conditionalDescriptionPairsSnapshot c α β (t + 1)).eraseDups
 
+/-- The stage-`t` list of coded description pairs has no repetitions. -/
 theorem conditionalDescriptionPairsStage_nodup
     (c : Code) (α β t : Nat) :
     (conditionalDescriptionPairsStage c α β t).Nodup := by
   cases t <;> exact nodup_eraseDups_bitString _
 
+/-- The stage lists of coded description pairs grow by extension. -/
 theorem conditionalDescriptionPairsStage_prefix
     (c : Code) (α β t : Nat) :
     conditionalDescriptionPairsStage c α β t <+:
@@ -133,6 +135,7 @@ theorem conditionalDescriptionPairsStage_prefix_of_le
 
 /-! ### Soundness -/
 
+/-- Every string in a stage snapshot codes a pair `(z, v)` with `K(z) ≤ α` and `K(v | z) ≤ β`. -/
 theorem mem_conditionalDescriptionPairsSnapshot_sound
     {V : Map} {c : Code} (hc : IsCodeFor c V)
     {α β t : Nat} {w : BitString}
@@ -148,13 +151,14 @@ theorem mem_conditionalDescriptionPairsSnapshot_sound
   obtain ⟨pz, hpz, hpzRun⟩ := hz
   obtain ⟨pv, hpv, hpvRun⟩ := hv
   refine ⟨z, v, rfl, ?_, ?_⟩
-  · apply (condKLeIff V z [] α).2
+  · apply (condK_le_iff V z [] α).2
     exact ⟨pz, (mem_boundedPrograms_iff pz α).1 hpz,
       conditionalRunOut_sound hc hpzRun⟩
-  · apply (condKLeIff V v z β).2
+  · apply (condK_le_iff V v z β).2
     exact ⟨pv, (mem_boundedPrograms_iff pv β).1 hpv,
       conditionalRunOut_sound hc hpvRun⟩
 
+/-- Every string in the stage list codes a pair `(z, v)` with `K(z) ≤ α` and `K(v | z) ≤ β`. -/
 theorem mem_conditionalDescriptionPairsStage_sound
     {V : Map} {c : Code} (hc : IsCodeFor c V)
     {α β t : Nat} {w : BitString}
@@ -175,6 +179,7 @@ theorem mem_conditionalDescriptionPairsStage_sound
           mem_eraseDups_bitString] using hw
       exact hw'.elim ih (mem_conditionalDescriptionPairsSnapshot_sound hc)
 
+/-- The snapshot at a stage is contained in the stage list. -/
 theorem conditionalDescriptionPairsSnapshot_mem_stage
     (c : Code) (α β t : Nat) {w : BitString}
     (hw : w ∈ conditionalDescriptionPairsSnapshot c α β t) :
@@ -277,8 +282,8 @@ theorem mem_conditionalDescriptionPairsStage_eventually_iff
     cases hzv
     exact ⟨hz, hv⟩
   · rintro ⟨hz, hv⟩
-    obtain ⟨pz, hpzLen, hpz⟩ := (condKLeIff V z [] α).1 hz
-    obtain ⟨pv, hpvLen, hpv⟩ := (condKLeIff V v z β).1 hv
+    obtain ⟨pz, hpzLen, hpz⟩ := (condK_le_iff V z [] α).1 hz
+    obtain ⟨pv, hpvLen, hpv⟩ := (condK_le_iff V v z β).1 hv
     obtain ⟨tz, htz⟩ := conditionalRunOut_complete hc hpz
     obtain ⟨tv, htv⟩ := conditionalRunOut_complete hc hpv
     let T := max tz tv

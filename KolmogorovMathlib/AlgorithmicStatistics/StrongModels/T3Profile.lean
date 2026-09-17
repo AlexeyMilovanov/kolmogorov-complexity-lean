@@ -112,8 +112,8 @@ theorem t3_polygon_to_plainProfile
   have hfull :
       InPlainDescriptionProfile V x (logSlack cCube n) n := by
     refine ⟨stringsOfLength n, codedStringsOfLength_nonempty n,
-      (memStringsOfLength n x).mpr hxlen, hCube n, ?_⟩
-    rw [cardStringsOfLength]
+      (mem_stringsOfLength n x).mpr hxlen, hCube n, ?_⟩
+    rw [card_stringsOfLength]
   have hmiddle :
       InPlainDescriptionProfile V x
         (epsilon + delta + logSlack cA n) (k - epsilon) := by
@@ -660,6 +660,8 @@ theorem t3_delta_zero
   · intro x hx
     simp [A] at hx
 
+/-- In the boundary regime `k ≤ n < k + 4`, every string of length `n` whose plain complexity is
+between `k` and `k + delta + logSlack cA n` is a good element for T3. -/
 theorem t3_boundary_goodElement_at_strength
     (V T : Map) (hV : isOptimalConditional V)
     (hT : IsOptimalTotalConditional T) :
@@ -677,7 +679,7 @@ theorem t3_boundary_goodElement_at_strength
         (k + delta + logSlack cA n : ENat) →
       T3GoodElement V T x n k epsilon delta
         cStrength cProfile := by
-  obtain ⟨cLen, hLen⟩ := plainKLeLength V hV
+  obtain ⟨cLen, hLen⟩ := plainK_le_length V hV
   let cK := cLen + 4
   obtain ⟨c0, cStrengthMin, hPointwise⟩ :=
     t1_boundary_pointwise_profile V T hV hT
@@ -719,6 +721,8 @@ theorem t3_boundary_goodElement_at_strength
         dsimp [cProfile]
         omega) n) (k + delta))
 
+/-- In the boundary regime `k ≤ n < k + 4`, a T3 witness exists for every positive `delta` at
+most `k - epsilon`. -/
 theorem t3_boundary_at_strength
     (V T : Map) (hV : isOptimalConditional V)
     (hT : IsOptimalTotalConditional T) :
@@ -792,7 +796,7 @@ theorem t3_boundary_at_strength
   intro x hx
   have hxA : x ∈ A := (Finset.mem_sdiff.mp hx).1
   have hxlen : x.length = n :=
-    (memStringsOfLength n x).mp (hAcube hxA)
+    (mem_stringsOfLength n x).mp (hAcube hxA)
   have hKupperBase :
       plainK V x ≤
         (k + delta + logSlack cK n : ENat) :=
@@ -808,6 +812,7 @@ theorem t3_boundary_at_strength
   exact hGood cStrength n k epsilon delta x hStrength hGood0
     hepsilon hkn hboundary hxlen (hKlower x hx) hKupperInput
 
+/-- A T3 witness for a profile constant remains one for any larger profile constant. -/
 def T3Witness.mono_profile
     {V T : Map}
     {n k epsilon delta cStrength cProfile cProfile' : Nat}
@@ -839,6 +844,8 @@ def T3Witness.mono_profile
     · exact Nat.add_le_add_left hSlack delta
     · exact Nat.add_le_add_left hSlack delta
 
+/-- Theorem T3 holds for an optimal plain conditional machine and an optimal total conditional
+machine. -/
 theorem t3
     (V T : Map)
     (hV : isOptimalConditional V)

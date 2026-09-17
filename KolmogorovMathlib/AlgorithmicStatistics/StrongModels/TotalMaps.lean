@@ -14,15 +14,18 @@ namespace Kolmogorov
 def contextReturnDecompressor : Map :=
   fun pair => Part.some pair.2
 
+/-- The machine that returns its condition unchanged is a decompressor. -/
 lemma contextReturnDecompressor_partrec :
     isDecompressor contextReturnDecompressor :=
   Computable.partrec Computable.snd
 
+/-- The empty program halts on every condition under the condition-returning machine. -/
 lemma contextReturnDecompressor_empty_total :
     IsTotalProgram contextReturnDecompressor [] := by
   intro y
   trivial
 
+/-- On the empty program the condition-returning machine outputs its condition. -/
 lemma contextReturnDecompressor_empty_produces (x : BitString) :
     produces contextReturnDecompressor [] x x := by
   exact ⟨trivial, rfl⟩
@@ -32,12 +35,14 @@ def totalOutputMapDecompressor
     (T : Map) (f : BitString → BitString) : Map :=
   fun pair => (T pair).map f
 
+/-- Post-composing a decompressor with a computable map on outputs again gives a decompressor. -/
 lemma totalOutputMapDecompressor_partrec
     (T : Map) (hT : isDecompressor T)
     (f : BitString → BitString) (hf : Computable f) :
     isDecompressor (totalOutputMapDecompressor T f) :=
   Partrec.map hT (Computable.comp hf Computable.snd)
 
+/-- A program total for `T` stays total after post-composing `T` with a map on outputs. -/
 lemma IsTotalProgram.outputMap
     {T : Map} {p : BitString}
     (hp : IsTotalProgram T p)
@@ -46,6 +51,8 @@ lemma IsTotalProgram.outputMap
   intro y
   exact hp y
 
+/-- Applying `f` to outputs can only shorten descriptions: the total conditional complexity of
+`f x` under the post-composed machine is at most that of `x` under `T`. -/
 lemma totalCondK_outputMap_le
     (T : Map) (f : BitString → BitString)
     (x y : BitString) :
@@ -62,6 +69,7 @@ def totalContextMapDecompressor
     (T : Map) (f : BitString → BitString) : Map :=
   fun pr => T (pr.1, f pr.2)
 
+/-- Pre-composing a decompressor with a computable map on conditions again gives a decompressor. -/
 lemma totalContextMapDecompressor_partrec
     (T : Map) (hT : isDecompressor T)
     (f : BitString → BitString) (hf : Computable f) :
@@ -71,6 +79,7 @@ lemma totalContextMapDecompressor_partrec
   change Partrec (fun pr : BitString × BitString => T (pr.1, f pr.2))
   exact Partrec.comp hT this
 
+/-- A program total for `T` stays total after pre-composing `T` with a map on conditions. -/
 lemma IsTotalProgram.contextMap
     {T : Map} {p : BitString}
     (hp : IsTotalProgram T p)
@@ -80,6 +89,8 @@ lemma IsTotalProgram.contextMap
   change (T (p, f y)).Dom
   exact hp (f y)
 
+/-- The total conditional complexity of `x` given `y` under the machine that first applies `f` to
+its condition is at most the complexity of `x` given `f y` under `T`. -/
 lemma totalCondK_contextMap_le
     (T : Map) (f : BitString → BitString)
     (x y : BitString) :
@@ -97,6 +108,7 @@ it at the empty context and ignoring the displayed condition. -/
 def plainProgramTotalDecompressor (V : Map) : Map :=
   fun pr => V (pr.1, [])
 
+/-- The machine that runs a plain program on the empty condition is a decompressor. -/
 lemma plainProgramTotalDecompressor_partrec
     (V : Map) (hV : isDecompressor V) :
     isDecompressor (plainProgramTotalDecompressor V) := by
@@ -104,6 +116,8 @@ lemma plainProgramTotalDecompressor_partrec
   exact Partrec.comp hV
     (Computable.pair Computable.fst (Computable.const []))
 
+/-- A plain program that halts on the empty condition is a total program of the associated machine.
+A plain program that halts on the empty condition is a total program of the associated machine. -/
 lemma plainProgramTotalDecompressor_program_total
     {V : Map} {p x : BitString}
     (hp : produces V p [] x) :
@@ -112,6 +126,8 @@ lemma plainProgramTotalDecompressor_program_total
   change (V (p, [])).Dom
   exact Part.dom_iff_mem.mpr ⟨x, hp⟩
 
+/-- Total conditional complexity under the machine built from `V` never exceeds the plain complexity
+under `V`, for any condition. -/
 lemma totalCondK_plainProgramTotal_le
     (V : Map) (x y : BitString) :
     totalCondK (plainProgramTotalDecompressor V) x y ≤

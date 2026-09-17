@@ -17,6 +17,7 @@ stochasticity at a larger one (`isStochastic_radius_mono`).
 
 namespace Kolmogorov
 
+open CodedFiniteDistribution
 /-- The charged radius `c * epsilon + logSlack c n` is monotone in the
 constant `c`. -/
 theorem logSlack_radius_mono {c c' : ℕ} (h : c' ≤ c) (epsilon n : ℕ) :

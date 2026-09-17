@@ -1,6 +1,6 @@
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.Separation
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.StrongSufficientStatistic
-import KolmogorovMathlib.AlgorithmicStatistics.BoundedComplexityLists.StandardDescriptions
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.StepWiseTotal
+import KolmogorovMathlib.AlgorithmicStatistics.BoundedLists.StandardBlock
 
 /-!
 # Support lemmas for VS40 Lemma 4
@@ -31,6 +31,8 @@ noncomputable def canonicalHeadOfTotal (T : Map) : Map := fun pr =>
   (T pr).bind fun w =>
     Part.some ((decodeDistributionData w).map CodedDistributionEntry.point).headI
 
+/-- Running a decompressor and taking the lexicographically first point of the decoded
+distribution again gives a decompressor. -/
 theorem canonicalHeadOfTotal_partrec {T : Map} (hT : isDecompressor T) :
     isDecompressor (canonicalHeadOfTotal T) := by
   have H : Computable (fun p : (BitString × BitString) × BitString =>
@@ -174,6 +176,8 @@ The Lemma 4 decoders receive that code through a shortest description of
 `standardEnumeratorCode q`, so their searches must be uniform in the decoded
 code. -/
 
+/-- The snapshot enumeration is primitive recursive jointly in the machine code, the level and
+the stage, not only for a fixed code. -/
 theorem snapshotCodes_primrec_uniform :
     Primrec (fun p : (Nat.Partrec.Code × Nat) × Nat =>
       snapshotCodes p.1.1 p.1.2 p.2) := by
@@ -190,6 +194,8 @@ theorem snapshotCodes_primrec_uniform :
         (fun _ => rfl)
   · exact Primrec.decode.comp Primrec.snd
 
+/-- The bounded-output enumeration is primitive recursive jointly in the machine code, the level
+and the stage. -/
 theorem boundedOutputStage_primrec_uniform :
     Primrec (fun p : (Nat.Partrec.Code × Nat) × Nat =>
       boundedOutputStage p.1.1 p.1.2 p.2) := by

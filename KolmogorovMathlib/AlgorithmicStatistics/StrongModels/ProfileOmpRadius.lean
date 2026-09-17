@@ -1,28 +1,28 @@
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.ProfileEndpointBound
 
 /-!
-# The neighborhood radius in the `m_P_eps` corner of Lemma `omp`
+# The neighborhood radius in the `mPEps` corner of Lemma `omp`
 
 A member `x` of the `epsilon`-neighborhood of a profile `P` carries a standard
 block `(i, j)` whose two-part budget satisfies `i + j ≤ C(x) + O(log C(x))`, and
-the endpoint estimate bounds `C(x)` by `k_P + 2 * epsilon + O(log (k_P + 2 eps))`.
-Transporting such a block into the shifted diagonal that defines `m_P_eps`
+the endpoint estimate bounds `C(x)` by `kP + 2 * epsilon + O(log (kP + 2 eps))`.
+Transporting such a block into the shifted diagonal that defines `mPEps`
 costs `epsilon` on each coordinate, so the total budget available at radius
-`epsilon` is `k_P + O(log)`, whereas the block only supplies
-`k_P + 2 * epsilon + O(log)`.
+`epsilon` is `kP + O(log)`, whereas the block only supplies
+`kP + 2 * epsilon + O(log)`.
 
 This file settles that quantitative corner:
 
 * `m_P_eps_le_of_profileNeighborhood_point_widened` and
   `m_P_eps_three_radius_le_standardBlock_complexity` show that the transfer *is*
-  available once the radius used inside `m_P_eps` is enlarged from `epsilon` to
+  available once the radius used inside `mPEps` is enlarged from `epsilon` to
   `3 * epsilon`; the enlargement absorbs exactly the missing `2 * epsilon`.
 * `not_m_P_eps_le_neighborhood_point_add_logSlack` shows that at the original
   radius `epsilon` the corresponding profile-geometric conclusion is false:
   for every constant `c` there is an admissible profile `P` and a transferred
   neighborhood point `(i, j)` obeying every numerical budget used by that
   geometry argument, with
-  `m_P_eps P k_P epsilon c > i + logSlack c n_P`.
+  `mPEps P kP epsilon c > i + logSlack c nP`.
 
 So the missing `2 * epsilon` cannot be removed by any argument that uses only
 the profile geometry (upper closure, the step condition, and the endpoint
@@ -62,10 +62,10 @@ theorem profileNeighborhood_shift_mem
     ((j - q.2) + (q.2 - j))).trans hdist
   exact hUp (show q ≤ (i + epsilon, j + epsilon) from ⟨by omega, by omega⟩) hq
 
-/-- Widened-radius transfer into the shifted diagonal defining `m_P_eps`: a
+/-- Widened-radius transfer into the shifted diagonal defining `mPEps`: a
 two-part description of a member of the `epsilon`-neighborhood of `P` whose
-budget `i + j` exceeds the visible scale `k_P` by at most `delta` plus
-logarithmic slack certifies `m_P_eps ≤ i` at radius `epsilon + delta`.
+budget `i + j` exceeds the visible scale `kP` by at most `delta` plus
+logarithmic slack certifies `mPEps ≤ i` at radius `epsilon + delta`.
 
 For `delta = 0` this is `m_P_eps_le_of_profileNeighborhood_point`; the point of
 the statement is that every unit of excess budget can be paid by one unit of
@@ -73,12 +73,12 @@ extra neighborhood radius. -/
 theorem m_P_eps_le_of_profileNeighborhood_point_widened
     (V : Map) (P : Set (Nat × Nat)) (kp epsilon delta c i j : Nat) (x : BitString)
     (hUp : IsUpperSet P)
-    (hkP : k_P P = (kp : ENat))
+    (hkP : kP P = (kp : ENat))
     (hx : x ∈ profileNeighborhood V P epsilon)
     (hij : (i, j) ∈ plainDescriptionProfileSet V x)
     (hbudget :
       i + j ≤ kp + delta + c * (kp + 2 * (epsilon + delta)).bits.length) :
-    m_P_eps P kp (epsilon + delta) c ≤ (i : ENat) := by
+    mPEps P kp (epsilon + delta) c ≤ (i : ENat) := by
   rcases Nat.lt_or_ge i kp with hik | hik
   · have hshift : (i + epsilon, j + epsilon) ∈ P :=
       profileNeighborhood_shift_mem V P epsilon i j x hUp hx hij
@@ -91,7 +91,7 @@ theorem m_P_eps_le_of_profileNeighborhood_point_widened
 /-- **Standard-block corner at radius `3 * epsilon`.**  For a member `x` of the
 `epsilon`-neighborhood of `P`, any standard block of `x` at its own plain
 complexity level whose two-part budget is within logarithmic slack of `C(x)`
-witnesses `m_P_eps P k_P (3 * epsilon) C ≤ i`, where `i` is the plain complexity
+witnesses `mPEps P kP (3 * epsilon) C ≤ i`, where `i` is the plain complexity
 of the block's canonical uniform code.
 
 The radius `3 * epsilon` is exactly `epsilon` (paid by the neighborhood
@@ -104,13 +104,13 @@ theorem m_P_eps_three_radius_le_standardBlock_complexity
     ∃ C : Nat, ∀ (P : Set (Nat × Nat)) (q : Nat.Partrec.Code)
         (kp epsilon m j i : Nat) (x : BitString),
       IsUpperSet P →
-      k_P P = (kp : ENat) →
+      kP P = (kp : ENat) →
       x ∈ profileNeighborhood V P epsilon →
       plainK V x = (m : ENat) →
       (hx : x ∈ standardBlock q m j x) →
       plainK V (codedUniformOn (standardBlock q m j x) ⟨x, hx⟩).code = (i : ENat) →
       i + j ≤ m + logSlack c_in m →
-      m_P_eps P kp (3 * epsilon) C ≤ (i : ENat) := by
+      mPEps P kp (3 * epsilon) C ≤ (i : ENat) := by
   obtain ⟨c₀, hsharp⟩ := plainK_upper_of_profileNeighborhood_endpoint_sharp V hV
   obtain ⟨C₁, hC₁⟩ := logSlack_linear_bound c_in (1 + c₀) c₀
   refine ⟨2 * (c₀ + C₁), ?_⟩
@@ -137,7 +137,7 @@ theorem m_P_eps_three_radius_le_standardBlock_complexity
       have := length_natBits_mono h1
       simpa using this
     have hBlin : B ≤ (1 + c₀) * M + c₀ := by
-      have hle : (Nat.bits M).length ≤ M := length_natBits_le_self M
+      have hle : (Nat.bits M).length ≤ M := length_natBits_le M
       rw [hB]
       unfold logSlack
       nlinarith
@@ -169,7 +169,7 @@ drops from `3 * E` to `0` in a single step of the complexity coordinate.
 moves log-cardinality into complexity, never back.  Profile boundaries that
 descend by at most one unit of log-cardinality per unit of complexity satisfy
 the reverse implication as well, and for those the exact-`epsilon` corner is
-available outright: the shifted diagonal defining `m_P_eps` is reached already
+available outright: the shifted diagonal defining `mPEps` is reached already
 at complexity `0`. -/
 
 /-- Unit-drop (slope) condition on a profile set: lowering the complexity
@@ -198,8 +198,8 @@ theorem mem_of_isUnitDropProfileSet
     rwa [heq] at hstep
 
 /-- **The exact-`epsilon` corner is free for unit-drop profile sets.**  If `P`
-has no boundary jumps and `epsilon ≤ k_P`, then the shifted diagonal defining
-`m_P_eps` already meets `P` at complexity `0`, so `m_P_eps P k_P epsilon c = 0`.
+has no boundary jumps and `epsilon ≤ kP`, then the shifted diagonal defining
+`mPEps` already meets `P` at complexity `0`, so `mPEps P kP epsilon c = 0`.
 
 This is the exact radius `epsilon`, not the widened radius `3 * epsilon`, and it
 needs no information about any string. -/
@@ -207,9 +207,9 @@ theorem m_P_eps_eq_zero_of_isUnitDropProfileSet
     (P : Set (Nat × Nat)) (kp epsilon c : Nat)
     (hUp : IsUpperSet P)
     (hdrop : IsUnitDropProfileSet P)
-    (hkP : k_P P = (kp : ENat))
+    (hkP : kP P = (kp : ENat))
     (heps : epsilon ≤ kp) :
-    m_P_eps P kp epsilon c = 0 := by
+    mPEps P kp epsilon c = 0 := by
   have hk : (kp, 0) ∈ P := k_P_mem_of_eq P kp hkP
   have hk' : (epsilon + (kp - epsilon), 0) ∈ P := by
     have hsum : epsilon + (kp - epsilon) = kp := by omega
@@ -220,43 +220,43 @@ theorem m_P_eps_eq_zero_of_isUnitDropProfileSet
       kp - 0 + c * (kp + 2 * epsilon).bits.length + epsilon) ∈ P := by
     refine hUp (a := (epsilon, 0 + (kp - epsilon))) ?_ hdown
     exact Prod.mk_le_mk.mpr ⟨by omega, by omega⟩
-  have hle : m_P_eps P kp epsilon c ≤ ((0 : Nat) : ENat) :=
+  have hle : mPEps P kp epsilon c ≤ ((0 : Nat) : ENat) :=
     m_P_eps_le_of_mem P kp epsilon c 0 hmem
   simpa using le_antisymm hle (by simp)
 
 /-- A second, orthogonal sufficient condition for the exact-`epsilon` corner:
-if the height endpoint `n_P` is already within the diagonal budget, then the
+if the height endpoint `nP` is already within the diagonal budget, then the
 shifted diagonal is met at complexity `0` by the height endpoint itself. -/
 theorem m_P_eps_eq_zero_of_n_P_le
     (P : Set (Nat × Nat)) (kp np epsilon c : Nat)
     (hUp : IsUpperSet P)
-    (hnP : n_P P = (np : ENat))
+    (hnP : nP P = (np : ENat))
     (hle : np ≤ kp + c * (kp + 2 * epsilon).bits.length + epsilon) :
-    m_P_eps P kp epsilon c = 0 := by
+    mPEps P kp epsilon c = 0 := by
   have hn : (0, np) ∈ P := n_P_mem_of_eq P np hnP
   have hmem : (0 + epsilon,
       kp - 0 + c * (kp + 2 * epsilon).bits.length + epsilon) ∈ P := by
     refine hUp (a := (0, np)) ?_ hn
     exact Prod.mk_le_mk.mpr ⟨by omega, by omega⟩
-  have hzero : m_P_eps P kp epsilon c ≤ ((0 : Nat) : ENat) :=
+  have hzero : mPEps P kp epsilon c ≤ ((0 : Nat) : ENat) :=
     m_P_eps_le_of_mem P kp epsilon c 0 hmem
   simpa using le_antisymm hzero (by simp)
 
-/-- **The height endpoint bounds `m_P_eps` with two `epsilon`'s of room.**
+/-- **The height endpoint bounds `mPEps` with two `epsilon`'s of room.**
 
 For an admissible profile set `P` the step rule moves the height endpoint
-`(0, n_P)` to `(epsilon, n_P - epsilon)`; closing upwards from there reaches the
+`(0, nP)` to `(epsilon, nP - epsilon)`; closing upwards from there reaches the
 `t = 0` point of the shifted diagonal as soon as
-`n_P ≤ k_P + 2 * epsilon + c * log(k_P + 2 * epsilon)`.
+`nP ≤ kP + 2 * epsilon + c * log(kP + 2 * epsilon)`.
 
 This strengthens `m_P_eps_eq_zero_of_n_P_le`, which needs the same bound with a
 single `epsilon`, by using admissibility instead of upward closure alone. -/
 theorem m_P_eps_eq_zero_of_n_P_le_add_two_mul
     (P : Set (Nat × Nat)) (kp np epsilon c : Nat)
     (hadm : IsAdmissibleProfileSet P)
-    (hnP : n_P P = (np : ENat))
+    (hnP : nP P = (np : ENat))
     (hle : np ≤ kp + 2 * epsilon + c * (kp + 2 * epsilon).bits.length) :
-    m_P_eps P kp epsilon c = 0 := by
+    mPEps P kp epsilon c = 0 := by
   have hn : (0, np) ∈ P := n_P_mem_of_eq P np hnP
   set d : Nat := min epsilon np with hd
   have hdle : d ≤ epsilon ∧ d ≤ np ∧ (d = epsilon ∨ d = np) := by
@@ -269,17 +269,17 @@ theorem m_P_eps_eq_zero_of_n_P_le_add_two_mul
       kp - 0 + c * (kp + 2 * epsilon).bits.length + epsilon) ∈ P := by
     refine hadm.isUpperSet (a := (0 + d, np - d)) ?_ hshift
     exact Prod.mk_le_mk.mpr ⟨by omega, by omega⟩
-  have hzero : m_P_eps P kp epsilon c ≤ ((0 : Nat) : ENat) :=
+  have hzero : mPEps P kp epsilon c ≤ ((0 : Nat) : ENat) :=
     m_P_eps_le_of_mem P kp epsilon c 0 hmem
   simpa using le_antisymm hzero (by simp)
 
-/-- The unconditional upper bound `m_P_eps P k_P epsilon c ≤ k_P - epsilon`:
+/-- The unconditional upper bound `mPEps P kP epsilon c ≤ kP - epsilon`:
 the shifted diagonal always meets `P` no later than the complexity endpoint. -/
 theorem m_P_eps_le_k_P_sub_of_isUpperSet
     (P : Set (Nat × Nat)) (kp epsilon c : Nat)
     (hUp : IsUpperSet P)
-    (hkP : k_P P = (kp : ENat)) :
-    m_P_eps P kp epsilon c ≤ ((kp - epsilon : Nat) : ENat) := by
+    (hkP : kP P = (kp : ENat)) :
+    mPEps P kp epsilon c ≤ ((kp - epsilon : Nat) : ENat) := by
   have hk : (kp, 0) ∈ P := k_P_mem_of_eq P kp hkP
   refine m_P_eps_le_of_mem P kp epsilon c (kp - epsilon) ?_
   refine hUp (a := (kp, 0)) ?_ hk
@@ -294,6 +294,7 @@ jump-free, and has both endpoints equal to `n`. -/
 /-- The diagonal half-plane profile set with endpoints `n`. -/
 def diagonalProfileSet (n : Nat) : Set (Nat × Nat) := {p | n ≤ p.1 + p.2}
 
+/-- The diagonal half-plane `{(a, b) | n ≤ a + b}` is an admissible profile set. -/
 theorem isAdmissibleProfileSet_diagonalProfileSet (n : Nat) :
     IsAdmissibleProfileSet (diagonalProfileSet n) := by
   refine ⟨⟨(n, 0), by simp [diagonalProfileSet]⟩, ?_, ?_⟩
@@ -305,32 +306,31 @@ theorem isAdmissibleProfileSet_diagonalProfileSet (n : Nat) :
     simp only [diagonalProfileSet, Set.mem_ofPred_eq] at h ⊢
     omega
 
+/-- The diagonal profile set drops by one unit at a time, so it has no jumps. -/
 theorem isUnitDropProfileSet_diagonalProfileSet (n : Nat) :
     IsUnitDropProfileSet (diagonalProfileSet n) := by
   intro a b h
   simp only [diagonalProfileSet, Set.mem_ofPred_eq] at h ⊢
   omega
 
+/-- The complexity endpoint of the diagonal profile set of `n` is `n`. -/
 theorem k_P_diagonalProfileSet (n : Nat) :
-    k_P (diagonalProfileSet n) = (n : ENat) := by
-  refine le_antisymm (sInf_le ⟨n, rfl, by simp [diagonalProfileSet]⟩) (le_sInf ?_)
-  rintro _ ⟨t, rfl, ht⟩
-  simp only [diagonalProfileSet, Set.mem_ofPred_eq] at ht
-  exact_mod_cast (by omega : n ≤ t)
+    kP (diagonalProfileSet n) = (n : ENat) :=
+  kP_eq_of_mem_of_forall_le (by simp [diagonalProfileSet])
+    (fun t ht => by simp only [diagonalProfileSet, Set.mem_ofPred_eq] at ht; omega)
 
+/-- The two-part endpoint of the diagonal profile set of `n` is `n`. -/
 theorem n_P_diagonalProfileSet (n : Nat) :
-    n_P (diagonalProfileSet n) = (n : ENat) := by
-  refine le_antisymm (sInf_le ⟨n, rfl, by simp [diagonalProfileSet]⟩) (le_sInf ?_)
-  rintro _ ⟨t, rfl, ht⟩
-  simp only [diagonalProfileSet, Set.mem_ofPred_eq] at ht
-  exact_mod_cast (by omega : n ≤ t)
+    nP (diagonalProfileSet n) = (n : ENat) :=
+  nP_eq_of_mem_of_forall_le (by simp [diagonalProfileSet])
+    (fun t ht => by simp only [diagonalProfileSet, Set.mem_ofPred_eq] at ht; omega)
 
 /-! ### The radius cannot be kept at `epsilon`
 
 The counterexample below is purely two-dimensional: it exhibits an admissible
 profile set together with a transferred neighborhood point that satisfies every
 numerical constraint the standard-block construction can supply, and for which
-the conclusion `m_P_eps P kp epsilon c ≤ i + logSlack c np` fails. -/
+the conclusion `mPEps P kp epsilon c ≤ i + logSlack c np` fails. -/
 
 /-- An exponential dominates a linear function of its exponent, in the explicit
 form needed to pick the scale of the counterexample. -/
@@ -351,15 +351,15 @@ theorem exists_two_pow_gt_linear (c : Nat) : ∃ K : Nat, c * (K + 5) < 2 ^ K :=
 /-- **The `epsilon`-radius corner of Lemma `omp` is false at the profile level.**
 
 For every constant `c` there are an admissible profile set `P` with finite
-endpoints `k_P = kp`, `n_P = np`, a radius `epsilon ≤ kp`, and a point `(i, j)`
+endpoints `kP = kp`, `nP = np`, a radius `epsilon ≤ kp`, and a point `(i, j)`
 whose `epsilon`-shift lies in `P` (this is exactly what neighborhood transfer
 supplies for a two-part description of a neighborhood member) with two-part
 budget `i + j ≤ kp + 2 * epsilon` (this is exactly what the endpoint estimate
 supplies for a standard block of a neighborhood member), such that
 
-`m_P_eps P kp epsilon c > i + logSlack c np`.
+`mPEps P kp epsilon c > i + logSlack c np`.
 
-Hence no argument based only on the profile geometry can bound `m_P_eps` at
+Hence no argument based only on the profile geometry can bound `mPEps` at
 radius `epsilon` by the standard-block complexity plus logarithmic slack; the
 radius has to be widened, as in
 `m_P_eps_three_radius_le_standardBlock_complexity`. -/
@@ -367,11 +367,11 @@ theorem not_m_P_eps_le_neighborhood_point_add_logSlack (c : Nat) :
     ∃ (P : Set (Nat × Nat)) (kp np epsilon i j : Nat),
       IsAdmissibleProfileSet P ∧
       epsilon ≤ kp ∧
-      k_P P = (kp : ENat) ∧
-      n_P P = (np : ENat) ∧
+      kP P = (kp : ENat) ∧
+      nP P = (np : ENat) ∧
       (i + epsilon, j + epsilon) ∈ P ∧
       i + j ≤ kp + 2 * epsilon ∧
-      ¬ m_P_eps P kp epsilon c ≤ (i : ENat) + (logSlack c np : ENat) := by
+      ¬ mPEps P kp epsilon c ≤ (i : ENat) + (logSlack c np : ENat) := by
   obtain ⟨K, hK⟩ := exists_two_pow_gt_linear c
   set E : Nat := 2 ^ K with hE
   have hE1 : 1 ≤ E := Nat.one_le_two_pow
@@ -398,7 +398,7 @@ theorem not_m_P_eps_le_neighborhood_point_add_logSlack (c : Nat) :
       rcases h with h | h
       · exact Or.inl (by simp only at h ⊢; omega)
       · exact Or.inr (by simp only at h ⊢; omega)
-  · -- k_P
+  · -- kP
     refine le_antisymm ?_ ?_
     · exact sInf_le ⟨2 * E, rfl, Or.inl le_rfl⟩
     · refine le_sInf ?_
@@ -406,7 +406,7 @@ theorem not_m_P_eps_le_neighborhood_point_add_logSlack (c : Nat) :
       have : 2 * E ≤ n := by
         rcases hn with h | h <;> simp only at h <;> omega
       exact_mod_cast this
-  · -- n_P
+  · -- nP
     refine le_antisymm ?_ ?_
     · exact sInf_le ⟨5 * E, rfl, Or.inr (by simp only; omega)⟩
     · refine le_sInf ?_
@@ -418,7 +418,7 @@ theorem not_m_P_eps_le_neighborhood_point_add_logSlack (c : Nat) :
     exact Or.inr (by simp only; omega)
   · -- the failure of the conclusion
     intro hle
-    have hlow : (E : ENat) ≤ m_P_eps P (2 * E) E c := by
+    have hlow : (E : ENat) ≤ mPEps P (2 * E) E c := by
       refine le_sInf ?_
       rintro _ ⟨n, rfl, hn⟩
       have hL : c * (Nat.bits (2 * E + 2 * E)).length ≤ c * (K + 3) :=

@@ -3,7 +3,7 @@ import Mathlib.Data.Nat.Choose.Basic
 import KolmogorovMathlib.CommonInformation.Counting
 import KolmogorovMathlib.AlgorithmicStatistics.CodedComputability
 import KolmogorovMathlib.AlgorithmicStatistics.Selector
-import KolmogorovMathlib.AlgorithmicStatistics.BoundedComplexityLists.OmegaCount
+import KolmogorovMathlib.AlgorithmicStatistics.BoundedLists.OmegaCount
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.ModelsToSets2
 
 /-!
@@ -147,7 +147,7 @@ theorem exists_mem_condK_gt_of_card_le
     intro s hs
     exact (mem_compressibleWords_iff D y s m).mpr (hcon s hs)
   have hle := Finset.card_le_card hsub
-  have hlt := cardCompressibleWordsLt D y m
+  have hlt := card_compressibleWordsLt D y m
   omega
 
 /-- Fixed-frequency incompressibility (conditional form): whenever the binomial
@@ -184,12 +184,14 @@ computable enumeration `allStrings`, which makes the decoder below computable. -
 def fixedWeightFiltered (n k : ℕ) : List BitString :=
   (allStrings n).filter (fun s => s.count true == k)
 
+/-- The listed strings are exactly the length-`n` strings with exactly `k` ones. -/
 theorem mem_fixedWeightFiltered (n k : ℕ) (s : BitString) :
     s ∈ fixedWeightFiltered n k ↔ s.length = n ∧ s.count true = k := by
   unfold fixedWeightFiltered
   rw [List.mem_filter, mem_allStrings]
   simp [beq_iff_eq]
 
+/-- The list of length-`n` strings of weight `k` has no repetitions. -/
 theorem fixedWeightFiltered_nodup (n k : ℕ) : (fixedWeightFiltered n k).Nodup :=
   (allStrings_nodup n).filter _
 
@@ -212,6 +214,8 @@ def fixedWeightDecoder : Map := fun pr =>
         (decodeNatCode (decodeSecond pr.2))).getD (decodeFixedWidthNatCode pr.1) [])
 
 open Kolmogorov.CodedFiniteDistribution in
+/-- The decoder that reads a string from its index in the fixed-weight class is a
+decompressor. -/
 theorem fixedWeightDecoder_isDecompressor : isDecompressor fixedWeightDecoder := by
   have hn : Primrec (fun pr : BitString × BitString =>
       decodeNatCode (decodeFirst pr.2)) :=
@@ -308,6 +312,7 @@ def fixedWeightPlainDecoder : Map := fun pr =>
       (decodeFixedWidthNatCode (decodeSecond (decodeSecond pr.1))) [])
 
 open Kolmogorov.CodedFiniteDistribution in
+/-- The unconditional fixed-weight decoder is a decompressor. -/
 theorem fixedWeightPlainDecoder_isDecompressor : isDecompressor fixedWeightPlainDecoder := by
   have hn : Primrec (fun pr : BitString × BitString =>
       bitsToNat (decodeFirst pr.1)) :=

@@ -1,6 +1,21 @@
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.StrongProfile
 import KolmogorovMathlib.Restricted.Examples.Cylinders
 
+/-!
+# Cylinders are strong models
+
+For an optimal total conditional machine every cylinder is a strong model of each of its
+members, with one constant: `cylinder_isStrongSetModel`.  The witness is
+`cylinderModelDecompressor`, a total machine that reads a prefix length as its program and
+returns, on a condition `x`, the code of the uniform distribution on the cylinder above the
+corresponding prefix of `x`; `cylinderModelInput`, `cylinderModelCode` and the
+`_primrec`/`_partrec`/`_total`/`_produces` lemmas are its construction and correctness.
+
+The plain-side counterpart is `plainCylinderDecompressor`, giving
+`plainSetComplexity_cylinder_le`, and `cylinderProfile_to_strongProfile` transfers a profile
+point realised by the cylinder family into the strong description profile.
+-/
+
 namespace Kolmogorov
 
 open CodedFiniteDistribution
@@ -11,16 +26,16 @@ def cylinderModelInput
   let r := decodeBits input.1
   pairCode (input.2.take r) (natCode (input.2.length - r))
 
+/-- The function assembling the input of the cylinder model decompressor is primitive recursive. -/
 theorem cylinderModelInput_primrec :
     Primrec cylinderModelInput := by
   unfold cylinderModelInput
   exact pairCode_primrec.comp
-    (Primrec.list_take.comp (primrecDecodeBits.comp Primrec.fst)
-      Primrec.snd)
-    (natCode_primrec.comp
+    (Primrec.list_take.comp (primrec_decodeBits.comp Primrec.fst) Primrec.snd)
+    (primrec_natCode.comp
       (Primrec.nat_sub.comp
         (Primrec.list_length.comp Primrec.snd)
-        (primrecDecodeBits.comp Primrec.fst)))
+        (primrec_decodeBits.comp Primrec.fst)))
 
 /-- Uniform cylinder-code constructor.  The program encodes only the desired
 prefix length; on a varying condition `y`, it returns the canonical code of the
@@ -29,6 +44,8 @@ noncomputable def cylinderModelCode
     (input : BitString × BitString) : BitString :=
   prefixCubeCode (cylinderModelInput input)
 
+/-- The map sending a length code and a string to the code of the uniform distribution on the
+corresponding cylinder is computable. -/
 theorem cylinderModelCode_computable :
     Computable cylinderModelCode :=
   prefixCubeCode_computable.comp cylinderModelInput_primrec.to_comp
@@ -37,15 +54,19 @@ theorem cylinderModelCode_computable :
 noncomputable def cylinderModelDecompressor : Map :=
   fun input => Part.some (cylinderModelCode input)
 
+/-- The cylinder model decompressor is a decompressor, i.e. a partial recursive conditional map. -/
 theorem cylinderModelDecompressor_partrec :
     isDecompressor cylinderModelDecompressor :=
   Computable.partrec cylinderModelCode_computable
 
+/-- Every program halts under the cylinder model decompressor, so it is a total machine. -/
 theorem cylinderModelDecompressor_total (p : BitString) :
     IsTotalProgram cylinderModelDecompressor p := by
   intro y
   trivial
 
+/-- On the length code of a prefix `u` and a string `x` in the cylinder above `u`, the cylinder
+model code is exactly the code of the uniform distribution on that cylinder. -/
 theorem cylinderModelCode_eq
     (n : Nat) (u x : BitString) (hu : u.length ≤ n)
     (hx : x ∈ cylinder n u) :
@@ -64,6 +85,8 @@ theorem cylinderModelCode_eq
   exact canonicalUniformCodeOfList_canonicalFinsetList
     (cylinder n u) ⟨x, hx⟩
 
+/-- Given the length of `u` as program and any `x` in the cylinder above `u` as condition, the
+cylinder model decompressor outputs the code of the uniform distribution on that cylinder. -/
 theorem cylinderModelDecompressor_produces
     (n : Nat) (u x : BitString) (hu : u.length ≤ n)
     (hx : x ∈ cylinder n u) :
@@ -73,6 +96,8 @@ theorem cylinderModelDecompressor_produces
   rw [cylinderModelCode_eq n u x hu hx]
   exact ⟨trivial, rfl⟩
 
+/-- For an optimal total conditional machine there is a constant `c` such that every cylinder is a
+strong set model of each of its elements with slack logarithmic in the cylinder length. -/
 theorem cylinder_isStrongSetModel
     (T : Map) (hT : IsOptimalTotalConditional T) :
     ∃ c, ∀ n u x (_hu : u.length ≤ n)
@@ -105,12 +130,15 @@ theorem cylinder_isStrongSetModel
           unfold logSlack
           nlinarith [Nat.zero_le ((Nat.bits n).length)])
 
+/-- The plain machine that reads a program carrying `u` and the length `n` and outputs the code of
+the uniform distribution on the cylinder of length `n` above `u`. -/
 noncomputable def plainCylinderDecompressor : Map :=
   fun input =>
     let u := decodePlainAdviceProgram input.1
     let n := decodeBits (decodePlainAdviceData input.1)
     Part.some (prefixCubeCode (pairCode u (natCode (n - u.length))))
 
+/-- The plain cylinder machine is a decompressor. -/
 theorem plainCylinderDecompressor_partrec :
     isDecompressor plainCylinderDecompressor := by
   have hu : Computable (fun input : BitString × BitString =>
@@ -118,7 +146,7 @@ theorem plainCylinderDecompressor_partrec :
     decodePlainAdviceProgram_computable.comp Computable.fst
   have hn : Computable (fun input : BitString × BitString =>
       decodeBits (decodePlainAdviceData input.1)) :=
-    primrecDecodeBits.to_comp.comp
+    primrec_decodeBits.to_comp.comp
       (decodePlainAdviceData_computable.comp Computable.fst)
   have hu_len : Computable (fun input : BitString × BitString =>
       (decodePlainAdviceProgram input.1).length) :=
@@ -130,9 +158,12 @@ theorem plainCylinderDecompressor_partrec :
       pairCode (decodePlainAdviceProgram input.1)
         (natCode (decodeBits (decodePlainAdviceData input.1) -
           (decodePlainAdviceProgram input.1).length))) :=
-    pairCode_primrec.to_comp.comp hu (natCode_primrec.to_comp.comp hn_sub_u)
+    pairCode_primrec.to_comp.comp hu
+      (primrec_natCode.to_comp.comp hn_sub_u)
   exact Computable.partrec (prefixCubeCode_computable.comp hp)
 
+/-- On the advice program encoding `u` and `n`, and with empty condition, the plain cylinder machine
+outputs the code of the uniform distribution on the cylinder of length `n` above `u`. -/
 theorem plainCylinderDecompressor_produces
     (n : Nat) (u x : BitString) (hu : u.length ≤ n)
     (hx : x ∈ cylinder n u) :
@@ -151,6 +182,8 @@ theorem plainCylinderDecompressor_produces
   rw [h_eq, cylinderModelCode_eq n u x hu hx]
   exact ⟨trivial, rfl⟩
 
+/-- The plain set complexity of a cylinder above `u` inside `{0,1}^n` exceeds `u.length` by at most
+a logarithmic term in `n`, uniformly in `u`, `n` and the element chosen. -/
 theorem plainSetComplexity_cylinder_le
     (V : Map) (hV : isOptimalConditional V) :
     ∃ c, ∀ n u x (_hu : u.length ≤ n)
@@ -179,7 +212,7 @@ theorem plainSetComplexity_cylinder_le
       have hsmall :
           (Nat.bits (Nat.bits n).length).length ≤
             (Nat.bits n).length :=
-        length_natBits_le_self (Nat.bits n).length
+        length_natBits_le (Nat.bits n).length
       unfold logSlack
       calc
         u.length + (Nat.bits n).length + 2 * (Nat.bits (Nat.bits n).length).length + 1 + cInv
@@ -190,6 +223,8 @@ theorem plainSetComplexity_cylinder_le
             exact Nat.mul_le_mul_right (Nat.bits n).length (by omega)
           omega
 
+/-- Any description profile point achieved by the cylinder family is also a strong description
+profile point, up to an additive constant in the model complexity and a logarithmic slack. -/
 theorem cylinderProfile_to_strongProfile
     (V U T : Map)
     (hV : isOptimalConditional V)
@@ -202,7 +237,7 @@ theorem cylinderProfile_to_strongProfile
   obtain ⟨cStrong, hStrong⟩ :=
     cylinder_isStrongSetModel T hT
   obtain ⟨cPlain, hPlain⟩ :=
-    plainK_le_KPPlain V U hV hU.isPrefixDecompressor
+    plain_le_prefix V U hV hU.isPrefixDecompressor
   refine ⟨cStrong + cPlain, ?_⟩
   intro x i j hprofile
   obtain ⟨S, hS, hFamily, hdesc⟩ := hprofile

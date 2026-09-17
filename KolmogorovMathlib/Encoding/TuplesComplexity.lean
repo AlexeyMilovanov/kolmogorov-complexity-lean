@@ -75,8 +75,8 @@ theorem KP_component_listCode_le (U : Map) (hU : IsOptimalPrefixConditional U) :
       (decodeListCode (decodeFirst w)).getD (decodeNatCode (decodeSecond w))
         ([] : BitString)) := by
     have h := (Primrec.list_getD ([] : BitString)).comp
-      (decodeListCode_primrec.comp decodeFirst_primrec')
-      (decodeNatCode_primrec.comp decodeSecond_primrec')
+      (decodeListCode_primrec.comp decodeFirst_primrec)
+      (decodeNatCode_primrec.comp decodeSecond_primrec)
     exact h
   obtain ⟨c, hc⟩ := KP_map_self_le U hU _ hprim.to_comp
   refine ⟨c, fun l i => ?_⟩

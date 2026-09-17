@@ -1,5 +1,6 @@
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.StepWiseTotal.Reduction
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.AddNoiseTruncation
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.StrongSufficientStatistic
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.StepWiseTotal
 
 /-!
 # Fibre stratification for the add-noise reverse direction
@@ -8,7 +9,7 @@ The ordinary first-coordinate truncation can be much larger than the target
 size when the fibres of a pair model are unbalanced.  This file isolates the
 finite-set part of the required repair: retain only first coordinates whose
 fibres have logarithmic cardinality at least a chosen threshold.  The generic
-heavy-output count from `StrongSufficientStatistic.lean` then gives the desired
+heavy-output count from `StepWiseTotal.lean` then gives the desired
 size reduction, with the one-bit loss caused by `finiteSetLogCard` rounding.
 -/
 
@@ -107,6 +108,8 @@ noncomputable def finiteSetFstHeavyTruncationCode
       ((canonicalPointListOfCode w).map decodeFirst)
       (bitsToNat lCode))
 
+/-- The code transformer for the heavy fibres of a finite set of pairs is computable in the code
+of the set and the truncation level. -/
 theorem finiteSetFstHeavyTruncationCode_computable :
     Computable₂ finiteSetFstHeavyTruncationCode := by
   have hpoints : Primrec (fun p : BitString × BitString =>
@@ -126,6 +129,8 @@ theorem finiteSetFstHeavyTruncationCode_computable :
     heavyOutputList_computable.comp houtputs.to_comp hthreshold
   exact (canonicalImageCodeOfList_computable.comp hheavy).to₂
 
+/-- On the code of the uniform distribution on `B`, the transformer returns the code of the
+uniform distribution on the set of first coordinates with at least `2 ^ l` fibre elements. -/
 theorem finiteSetFstHeavyTruncationCode_codedUniformOn
     (B : Finset BitString) (hB : B.Nonempty) (l : Nat)
     (hH : (finiteSetFstHeavyTruncation B l).Nonempty) :
@@ -149,6 +154,8 @@ noncomputable def finiteSetFstHeavyTruncationPlainDecompressor
   fun pr => (V (decodeSecond pr.1, [])).map (fun Bcode =>
     finiteSetFstHeavyTruncationCode Bcode (decodeFirst pr.1))
 
+/-- The decompressor obtained by post-composing `V` with the heavy-fibre truncation is again a
+decompressor. -/
 theorem finiteSetFstHeavyTruncationPlainDecompressor_partrec
     (V : Map) (hV : isDecompressor V) :
     isDecompressor (finiteSetFstHeavyTruncationPlainDecompressor V) := by
@@ -160,6 +167,8 @@ theorem finiteSetFstHeavyTruncationPlainDecompressor_partrec
   · exact finiteSetFstHeavyTruncationCode_computable.comp Computable.snd
       (decodeFirst_computable.comp (Computable.fst.comp Computable.fst))
 
+/-- If `p` describes the code of `B` under `V`, then `pairCode (Nat.bits l) p` describes the code
+of the `l`-heavy fibre truncation of `B` under the truncating decompressor. -/
 theorem finiteSetFstHeavyTruncationPlainDecompressor_produces
     (V : Map) (Bcode p : BitString) (l : Nat)
     (h : produces V p [] Bcode) :

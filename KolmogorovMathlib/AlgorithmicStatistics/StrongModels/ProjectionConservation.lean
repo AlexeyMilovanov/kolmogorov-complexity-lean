@@ -13,8 +13,11 @@ its exact supremum is established by rational floor convergence.
 
 namespace Kolmogorov
 
+open CodedFiniteDistribution
 open scoped ENNReal
 
+/-- A point outside the support collected from a list of coded distribution entries receives total
+mass zero. -/
 lemma foldr_zero_of_not_mem {l : List CodedDistributionEntry} {x : BitString}
     (hx : x ∉ l.foldr (fun e acc => insert e.point acc) Finset.empty) :
     l.foldr (fun e acc => (if e.point = x then e.mass.value else 0) + acc) 0 = 0 := by
@@ -29,6 +32,8 @@ lemma foldr_zero_of_not_mem {l : List CodedDistributionEntry} {x : BitString}
     rw [show (if e.point = x then e.mass.value else 0) = 0 from if_neg hneq]
     rw [ih hx.2, add_zero]
 
+/-- Summing `f` against the masses accumulated per support point equals summing `f` entrywise over
+the list of coded distribution entries. -/
 lemma expected_value_foldr_data (data : List CodedDistributionEntry) (f : BitString → ENNReal) :
   ∑ z ∈ data.foldr (fun e acc => insert e.point acc) Finset.empty,
     (data.foldr (fun e acc => (if e.point = z then e.mass.value else 0) + acc) 0) * f z =
@@ -140,6 +145,9 @@ theorem fstProjectionPullback_expectation_le_one
   rw [codedFstPushforward_expectation P (fun a => canonicalTest U (codedFstPushforward P) a)]
   exact canonicalTest_expectation_le_one U hU (codedFstPushforward P)
 
+/-- The test obtained by lifting the canonical test for the first-coordinate pushforward back to the
+pairs: the mass of `z` times the a priori probability of its first component divided by the
+pushforward mass of that component. -/
 noncomputable def fstProjectionTestSemimeasure
     (U : Map) (z : BitString) (ctx : BitString) : ENNReal :=
   let P : CodedFiniteDistribution := ⟨CodedFiniteDistribution.decodeDistributionData ctx⟩
@@ -147,6 +155,7 @@ noncomputable def fstProjectionTestSemimeasure
   let P_fst := codedFstPushforward P
   P.mass z * (aprioriMeasure U a P_fst.code / P_fst.mass a)
 
+/-- The lifted first-projection test is a conditional semimeasure. -/
 theorem fstProjectionTestSemimeasure_isConditionalSemimeasure
     (U : Map) (hU : IsOptimalPrefixConditional U) :
     IsConditionalSemimeasure (fstProjectionTestSemimeasure U) := by
@@ -172,7 +181,7 @@ theorem fstProjectionTestSemimeasure_isConditionalSemimeasure
     rw [div_eq_mul_inv, mul_comm (aprioriMeasure U a P_fst.code), ← mul_assoc]
     have : P_fst.mass a * (P_fst.mass a)⁻¹ ≤ 1 := ENNReal.mul_inv_le_one (P_fst.mass a)
     calc P_fst.mass a * (P_fst.mass a)⁻¹ * aprioriMeasure U a P_fst.code
-      _ ≤ 1 * aprioriMeasure U a P_fst.code := mul_le_mul this (le_refl _) (zero_le) (zero_le)
+      _ ≤ 1 * aprioriMeasure U a P_fst.code := mul_le_mul this (le_refl _) bot_le bot_le
       _ = aprioriMeasure U a P_fst.code := one_mul _
   apply le_trans (Finset.sum_le_sum h_le)
   apply le_trans (ENNReal.sum_le_tsum P_fst.support)
@@ -219,18 +228,24 @@ private def fstProjectionInputs (c : Nat.Partrec.Code)
   ((fstProjectionMassPair p).1, (fstProjectionMassPair p).2,
     fstProjectionAprioriNumerator c p)
 
+/-- The stage-`s` dyadic numerator approximating the lifted first-projection test, computed from the
+stage-`s` approximations of the masses and of the a priori probability. -/
 def fstProjectionApprox (c : Nat.Partrec.Code) (s : ℕ) (z : BitString) (ctx : BitString) : ℕ :=
   fstProjectionScale (fstProjectionInputs c (s, z, ctx))
 
+/-- The dyadic values of the stage approximations to the lifted first-projection test are
+nondecreasing in the stage. -/
 theorem fstProjectionApprox_mono (c : Nat.Partrec.Code) (s : ℕ) (z : BitString) (ctx : BitString) :
     dyadicValue (fstProjectionApprox c s z ctx) s ≤
       dyadicValue (fstProjectionApprox c (s + 1) z ctx) (s + 1) := by
-  unfold fstProjectionApprox fstProjectionInputs fstProjectionMassPair
-    fstProjectionAprioriNumerator fstProjectionAprioriArgs fstProjectionScale
-  dsimp only
+  classical
+  simp only [fstProjectionApprox, fstProjectionInputs, fstProjectionMassPair,
+    fstProjectionAprioriNumerator, fstProjectionAprioriArgs, fstProjectionScale]
   split_ifs with hzero
-  · simp [dyadicValue]
-  · let a := decodeFirst z
+  · simp only [hzero, if_pos, dyadicValue]
+    norm_num
+  · simp only [hzero]
+    let a := decodeFirst z
     let A := (fstProjectionSourceMass z ctx).num *
       (fstProjectionFiberMass z ctx).den
     let B := (fstProjectionSourceMass z ctx).den *
@@ -358,6 +373,8 @@ private lemma dyadicFloorScale_stage_upper
   field_simp
   exact_mod_cast Nat.div_mul_le_self (A * N s) B
 
+/-- Scaling a doubling sequence by the rational `A / B` before taking dyadic floors does not change
+the supremum: it is `A / B` times the supremum of the unscaled dyadic values. -/
 theorem iSup_dyadic_floor_scale
     (A B : Nat) (hB : 0 < B) (N : Nat → Nat)
     (hN : ∀ s, 2 * N s ≤ N (s + 1)) :
@@ -397,16 +414,19 @@ theorem iSup_dyadic_floor_scale
     exact (le_of_lt hrstage).trans
       (le_iSup (fun t => dyadicValue (A * N t / B) t) (s + k))
 
+/-- The supremum over stages of the dyadic approximations equals the lifted first-projection test.
+The supremum over stages of the dyadic approximations equals the lifted first-projection test. -/
 theorem fstProjectionApprox_iSup
     (U : Map) (c : Nat.Partrec.Code) (hc : IsCodeFor c U)
     (z : BitString) (ctx : BitString) :
     (⨆ s, dyadicValue (fstProjectionApprox c s z ctx) s) =
       fstProjectionTestSemimeasure U z ctx := by
-  unfold fstProjectionApprox fstProjectionInputs fstProjectionMassPair
-    fstProjectionAprioriNumerator fstProjectionAprioriArgs fstProjectionScale
-  dsimp only
+  classical
+  simp only [fstProjectionApprox, fstProjectionInputs, fstProjectionMassPair,
+    fstProjectionAprioriNumerator, fstProjectionAprioriArgs, fstProjectionScale]
   split_ifs with hzero
-  · rw [show (⨆ s, dyadicValue 0 s) = 0 by simp [dyadicValue]]
+  · simp only [hzero, if_pos]
+    rw [show (⨆ s, dyadicValue 0 s) = 0 by simp [dyadicValue]]
     let P : CodedFiniteDistribution :=
       ⟨CodedFiniteDistribution.decodeDistributionData ctx⟩
     let a := decodeFirst z
@@ -422,6 +442,7 @@ theorem fstProjectionApprox_iSup
     change 0 = P.mass z * (aprioriMeasure U a P_fst.code / P_fst.mass a)
     rw [hSource, zero_mul]
   · let a := decodeFirst z
+    simp only [hzero, if_false]
     let A := (fstProjectionSourceMass z ctx).num *
       (fstProjectionFiberMass z ctx).den
     let B := (fstProjectionSourceMass z ctx).den *
@@ -546,8 +567,9 @@ private theorem fstProjectionProjectedData_computable :
       (CodedFiniteDistribution.decodeFirst_primrec.comp
         CodedFiniteDistribution.entry_point_primrec).pair
         CodedFiniteDistribution.entry_mass_primrec
-    exact (Primrec.of_equiv_symm
-      (e := CodedFiniteDistribution.CodedDistributionEntry.equivProd)).comp hpair
+    exact ((Primrec.of_equiv_symm
+      (e := CodedFiniteDistribution.CodedDistributionEntry.equivProd)).comp hpair).of_eq
+      (fun _ => rfl)
   exact (Primrec.list_map CodedFiniteDistribution.decodeDistributionData_primrec
     (hentry.comp Primrec.snd).to₂).to_comp
 
@@ -610,12 +632,15 @@ private theorem fstProjectionInputs_computable (c : Nat.Partrec.Code) :
     (fstProjectionMassPair p).2, fstProjectionAprioriNumerator c p))
   exact hsource.pair (hfiber.pair (fstProjectionAprioriNumerator_computable c))
 
+/-- The stage approximations to the lifted first-projection test are computable jointly in the
+stage, the point and the context. -/
 theorem fstProjectionApprox_computable (c : Nat.Partrec.Code) :
     Computable (fun p : ℕ × BitString × BitString => fstProjectionApprox c p.1 p.2.1 p.2.2) := by
   change Computable (fun p : ℕ × BitString × BitString =>
     fstProjectionScale (fstProjectionInputs c p))
   exact fstProjectionScale_computable.comp (fstProjectionInputs_computable c)
 
+/-- The lifted first-projection test is lower semicomputable. -/
 theorem fstProjectionTestSemimeasure_isLSC
     (U : Map) (hU : IsOptimalPrefixConditional U) :
     IsLSC (fstProjectionTestSemimeasure U) := by
@@ -625,6 +650,8 @@ theorem fstProjectionTestSemimeasure_isLSC
   · intro out ctx; exact fstProjectionApprox_iSup U c hc out ctx
   · exact fstProjectionApprox_computable c
 
+/-- Randomness deficiency is conserved by taking first-coordinate pushforwards, up to an additive
+constant: a `beta`-typical pair projects to a `(beta + c)`-typical first component. -/
 theorem deficiency_fstPushforward_conserved
     (U : Map) (hU : IsOptimalPrefixConditional U) :
     ∃ c : Nat, ∀ P z beta,
@@ -725,9 +752,11 @@ theorem deficiency_fstPushforward_conserved
   have hap : aprioriMeasure U a P_fst.code ≤
       (2 : ENNReal) ^ (beta + c) * P_fst.mass a :=
     (ENNReal.div_le_iff hF0 hFtop).mp hapDiv
-  unfold DeficiencyLe CodedFiniteDistribution.DeficiencyLe
+  unfold CodedFiniteDistribution.DeficiencyLe
   exact (complexityWeight_KP_le_aprioriMeasure U a P_fst.code).trans hap
 
+/-- If a pair `(x, y)` is `(alpha, beta)`-stochastic then its first component is
+`(alpha + c, beta + c)`-stochastic for a constant `c` independent of the pair. -/
 theorem isStochastic_fst_of_pair
     (U : Map) (hU : IsOptimalPrefixConditional U) :
     ∃ c : Nat, ∀ x y alpha beta,

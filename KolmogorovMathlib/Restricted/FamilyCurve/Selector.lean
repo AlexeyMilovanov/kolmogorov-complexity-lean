@@ -42,6 +42,7 @@ private lemma coverArgmax_foldl_mem {C : Finset BitString}
         exact List.mem_cons.mpr (hi.elim Or.inl
           (fun hcover => Or.inr (List.mem_cons.mpr (Or.inr hcover))))
 
+/-- The cover element chosen by the argmax rule belongs to the cover, provided it is non-empty. -/
 lemma cover_argmax_mem {C : Finset BitString} {cover : List (Finset BitString)}
     (h_nonempty : cover ≠ []) :
     coverArgmax C cover ∈ cover := by
@@ -78,6 +79,7 @@ private lemma coverArgmax_foldl_max {C : Finset BitString}
             exact (Nat.le_of_not_gt h).trans (ih (seed := seed) (B := seed) (by simp))
           · exact ih (seed := seed) (B := B) (by simp [hBcover])
 
+/-- No element of the cover meets `C` in more points than the chosen argmax element. -/
 lemma cover_intersection_le_argmax {C B : Finset BitString}
     {cover : List (Finset BitString)} (hB : B ∈ cover) :
     (B ∩ C).card ≤ (coverArgmax C cover ∩ C).card := by
@@ -86,6 +88,8 @@ lemma cover_intersection_le_argmax {C B : Finset BitString}
   | cons seed cover =>
       exact coverArgmax_foldl_max hB
 
+/-- Pigeonhole for covers: if the cover covers `C`, its largest trace on `C` has at least
+`#C / (number of cover elements)` points. -/
 lemma cover_argmax_intersection_bound {C : Finset BitString}
     {cover : List (Finset BitString)}
     (h_cover : ∀ x ∈ C, ∃ B ∈ cover, x ∈ B) :
@@ -127,40 +131,52 @@ def restrictedCoverValidBool (𝒜 : DescriptionFamily)
     (Clist.all (fun x =>
       cover.any (fun w => decide (x ∈ decodeCoverCodeList w))))
 
-def restrictedCoverValidBool_f1 (a : BitString × BitString × ℕ × ℕ × ℕ) : Bool :=
+/-- The non-emptiness clause of the cover validity test. -/
+def restrictedCoverValidBoolF1 (a : BitString × BitString × ℕ × ℕ × ℕ) : Bool :=
   decide ((coverDecode a.2.2.2.2).2 ≠ [])
 
-def restrictedCoverValidBool_f2_arg (𝒜 : DescriptionFamily)
+/-- The argument of the clause requiring every cover code to occur in one enumeration stage. -/
+def restrictedCoverValidBoolF2Arg (𝒜 : DescriptionFamily)
     (a : BitString × BitString × ℕ × ℕ × ℕ) : List BitString × List BitString :=
   ((coverDecode a.2.2.2.2).2, 𝒜.enumeration.enum (coverDecode a.2.2.2.2).1)
 
-def restrictedCoverValidBool_f2_fun (p : List BitString × List BitString) : Bool :=
+/-- The clause requiring every code of the cover to occur in the given enumeration stage. -/
+def restrictedCoverValidBoolF2Fun (p : List BitString × List BitString) : Bool :=
   p.1.all (fun w => decide (w ∈ p.2))
 
-def restrictedCoverValidBool_f3_arg (a : BitString × BitString × ℕ × ℕ × ℕ) : ℕ × ℕ :=
+/-- The argument of the clause bounding the length of the cover by the overhead. -/
+def restrictedCoverValidBoolF3Arg (a : BitString × BitString × ℕ × ℕ × ℕ) : ℕ × ℕ :=
   ((coverDecode a.2.2.2.2).2.length * a.2.2.1, a.2.2.2.1 * (decodeCoverCodeList a.1).dedup.length)
 
-def restrictedCoverValidBool_f3_fun (p : ℕ × ℕ) : Bool :=
+/-- The clause comparing `(cover length) · c` with `q₀ · #A`. -/
+def restrictedCoverValidBoolF3Fun (p : ℕ × ℕ) : Bool :=
   decide (p.1 ≤ p.2)
 
-def restrictedCoverValidBool_f4_arg (a : BitString × BitString × ℕ × ℕ × ℕ) : List BitString × ℕ :=
+/-- The argument of the clause bounding the size of each cover element by `c`. -/
+def restrictedCoverValidBoolF4Arg (a : BitString × BitString × ℕ × ℕ × ℕ) : List BitString × ℕ :=
   ((coverDecode a.2.2.2.2).2, a.2.2.1)
 
-def restrictedCoverValidBool_f4_fun (p : List BitString × ℕ) : Bool :=
+/-- The clause requiring every decoded cover element to have at most `c` elements. -/
+def restrictedCoverValidBoolF4Fun (p : List BitString × ℕ) : Bool :=
   p.1.all (fun w => decide ((decodeCoverCodeList w).dedup.length ≤ p.2))
 
-def restrictedCoverValidBool_f5_arg
+/-- The pair `(decodeCoverCodeList a.2.1, (coverDecode a.2.2.2.2).2)`: the decoded list `C` of
+elements to be covered, together with the decoded list of cover elements. -/
+def restrictedCoverValidBoolF5Arg
     (a : BitString × BitString × ℕ × ℕ × ℕ) : List BitString × List BitString :=
   (decodeCoverCodeList a.2.1, (coverDecode a.2.2.2.2).2)
 
-def restrictedCoverValidBool_f5_fun (p : List BitString × List BitString) : Bool :=
+/-- The clause requiring every element of `C` to lie in some decoded cover element. -/
+def restrictedCoverValidBoolF5Fun (p : List BitString × List BitString) : Bool :=
   p.1.all (fun x => p.2.any (fun w => decide (x ∈ decodeCoverCodeList w)))
 
+/-- The cover validity test is computable in the codes, the size bound, the overhead and the
+candidate. -/
 theorem restrictedCoverValidBool_computable (𝒜 : DescriptionFamily) :
     Computable (fun a : BitString × BitString × ℕ × ℕ × ℕ =>
       restrictedCoverValidBool 𝒜 a.1 a.2.1 a.2.2.1
         a.2.2.2.1 a.2.2.2.2) := by
-  have h_nonempty : Computable restrictedCoverValidBool_f1 := by
+  have h_nonempty : Computable restrictedCoverValidBoolF1 := by
     have hpos : Primrec (fun a : BitString × BitString × ℕ × ℕ × ℕ =>
         decide (0 < (coverDecode a.2.2.2.2).2.length)) :=
       PrimrecPred.decide (Primrec.nat_lt.comp (Primrec.const 0)
@@ -169,11 +185,11 @@ theorem restrictedCoverValidBool_computable (𝒜 : DescriptionFamily) :
             (Primrec.snd.comp (Primrec.snd.comp
               (Primrec.snd.comp (Primrec.snd))))))))
     exact hpos.to_comp.of_eq (fun a => by
-      rw [restrictedCoverValidBool_f1]
+      rw [restrictedCoverValidBoolF1]
       cases (coverDecode a.2.2.2.2).2 <;> simp)
   have h_enum : Computable (fun a =>
-      restrictedCoverValidBool_f2_fun (restrictedCoverValidBool_f2_arg 𝒜 a)) := by
-    have hpairs : Computable (restrictedCoverValidBool_f2_arg 𝒜) := by
+      restrictedCoverValidBoolF2Fun (restrictedCoverValidBoolF2Arg 𝒜 a)) := by
+    have hpairs : Computable (restrictedCoverValidBoolF2Arg 𝒜) := by
       apply Computable.pair
       · exact Computable.snd.comp (coverDecode_primrec.to_comp.comp
           (Computable.snd.comp (Computable.snd.comp
@@ -182,14 +198,14 @@ theorem restrictedCoverValidBool_computable (𝒜 : DescriptionFamily) :
           (Computable.fst.comp (coverDecode_primrec.to_comp.comp
             (Computable.snd.comp (Computable.snd.comp
               (Computable.snd.comp Computable.snd)))))
-    have hall : Primrec restrictedCoverValidBool_f2_fun := by
+    have hall : Primrec restrictedCoverValidBoolF2Fun := by
       apply coverSearch_list_all_primrec Primrec.fst
       exact bitString_mem_primrec.comp Primrec.snd
         (Primrec.snd.comp Primrec.fst)
     exact hall.to_comp.comp hpairs
   have h_bound : Computable (fun a =>
-      restrictedCoverValidBool_f3_fun (restrictedCoverValidBool_f3_arg a)) := by
-    have hargs : Primrec restrictedCoverValidBool_f3_arg := by
+      restrictedCoverValidBoolF3Fun (restrictedCoverValidBoolF3Arg a)) := by
+    have hargs : Primrec restrictedCoverValidBoolF3Arg := by
       apply Primrec.pair
       · exact Primrec.nat_mul.comp
           (Primrec.list_length.comp (Primrec.snd.comp
@@ -202,18 +218,18 @@ theorem restrictedCoverValidBool_computable (𝒜 : DescriptionFamily) :
             (Primrec.snd.comp (Primrec.snd))))
           (Primrec.list_length.comp (dedup_primrec.comp
             (decodeCoverCodeList_primrec.comp Primrec.fst)))
-    have hfun : Primrec restrictedCoverValidBool_f3_fun :=
+    have hfun : Primrec restrictedCoverValidBoolF3Fun :=
       PrimrecPred.decide (Primrec.nat_le.comp Primrec.fst Primrec.snd)
     exact hfun.to_comp.comp hargs.to_comp
   have h_small : Computable (fun a =>
-      restrictedCoverValidBool_f4_fun (restrictedCoverValidBool_f4_arg a)) := by
-    have hargs : Primrec restrictedCoverValidBool_f4_arg := by
+      restrictedCoverValidBoolF4Fun (restrictedCoverValidBoolF4Arg a)) := by
+    have hargs : Primrec restrictedCoverValidBoolF4Arg := by
       apply Primrec.pair
       · exact Primrec.snd.comp (coverDecode_primrec.comp
           (Primrec.snd.comp (Primrec.snd.comp
             (Primrec.snd.comp (Primrec.snd)))))
       · exact Primrec.fst.comp (Primrec.snd.comp (Primrec.snd))
-    have hfun : Primrec restrictedCoverValidBool_f4_fun := by
+    have hfun : Primrec restrictedCoverValidBoolF4Fun := by
       apply coverSearch_list_all_primrec Primrec.fst
       apply PrimrecPred.decide
       exact Primrec.nat_le.comp
@@ -222,15 +238,15 @@ theorem restrictedCoverValidBool_computable (𝒜 : DescriptionFamily) :
         (Primrec.snd.comp Primrec.fst)
     exact hfun.to_comp.comp hargs.to_comp
   have h_cover : Computable (fun a =>
-      restrictedCoverValidBool_f5_fun (restrictedCoverValidBool_f5_arg a)) := by
-    have hargs : Primrec restrictedCoverValidBool_f5_arg := by
+      restrictedCoverValidBoolF5Fun (restrictedCoverValidBoolF5Arg a)) := by
+    have hargs : Primrec restrictedCoverValidBoolF5Arg := by
       apply Primrec.pair
       · exact decodeCoverCodeList_primrec.comp
           (Primrec.fst.comp Primrec.snd)
       · exact Primrec.snd.comp (coverDecode_primrec.comp
           (Primrec.snd.comp (Primrec.snd.comp
             (Primrec.snd.comp (Primrec.snd)))))
-    have hfun : Primrec restrictedCoverValidBool_f5_fun := by
+    have hfun : Primrec restrictedCoverValidBoolF5Fun := by
       apply coverSearch_list_all_primrec Primrec.fst
       apply list_any_primrec (Primrec.snd.comp Primrec.fst)
       exact bitString_mem_primrec.comp
@@ -246,10 +262,10 @@ theorem restrictedCoverValidBool_computable (𝒜 : DescriptionFamily) :
     (Computable.const false)
   refine Computable.of_eq H ?_
   intro a
-  rw [restrictedCoverValidBool_f1, restrictedCoverValidBool_f2_fun, restrictedCoverValidBool_f2_arg,
-      restrictedCoverValidBool_f3_fun, restrictedCoverValidBool_f3_arg,
-      restrictedCoverValidBool_f4_fun, restrictedCoverValidBool_f4_arg,
-      restrictedCoverValidBool_f5_fun, restrictedCoverValidBool_f5_arg]
+  rw [restrictedCoverValidBoolF1, restrictedCoverValidBoolF2Fun, restrictedCoverValidBoolF2Arg,
+      restrictedCoverValidBoolF3Fun, restrictedCoverValidBoolF3Arg,
+      restrictedCoverValidBoolF4Fun, restrictedCoverValidBoolF4Arg,
+      restrictedCoverValidBoolF5Fun, restrictedCoverValidBoolF5Arg]
   simp [restrictedCoverValidBool, Bool.and_assoc]
 
 /-- Cardinality of the intersection of two decoded code lists.  The explicit
@@ -259,6 +275,8 @@ def decodedCoverIntersectionCard (Ccode w : BitString) : ℕ :=
   ((decodeCoverCodeList w).filter
     (fun x => decide (x ∈ decodeCoverCodeList Ccode))).dedup.length
 
+/-- The deduplicated-list form of the intersection count agrees with the cardinality of the
+intersection of the two decoded finite sets. -/
 lemma decodedCoverIntersectionCard_eq (Ccode w : BitString) :
     decodedCoverIntersectionCard Ccode w =
       ((decodeCoverCodeList w).toFinset ∩
@@ -270,6 +288,7 @@ lemma decodedCoverIntersectionCard_eq (Ccode w : BitString) :
   ext x
   simp
 
+/-- The size of the intersection of two decoded code lists is primitive recursive. -/
 theorem decodedCoverIntersectionCard_primrec :
     Primrec (fun p : BitString × BitString =>
       decodedCoverIntersectionCard p.1 p.2) := by
@@ -310,6 +329,7 @@ private lemma coverCodeArgmax_foldl_mem {Ccode seed : BitString}
         exact List.mem_cons.mpr (hi.elim Or.inl
           (fun hcover => Or.inr (List.mem_cons.mpr (Or.inr hcover))))
 
+/-- The code chosen by the argmax rule belongs to the cover, provided the cover is non-empty. -/
 lemma coverCodeArgmax_mem {Ccode : BitString} {cover : List BitString}
     (hcover : cover ≠ []) : coverCodeArgmax Ccode cover ∈ cover := by
   cases cover with
@@ -347,6 +367,7 @@ private lemma coverCodeArgmax_foldl_max {Ccode seed w : BitString}
               (ih (seed := seed) (w := seed) (by simp))
           · exact ih (seed := seed) (w := w) (by simp [hwcover])
 
+/-- No code of the cover meets `C` in more points than the chosen code does. -/
 lemma decodedCoverIntersectionCard_le_argmax {Ccode w : BitString}
     {cover : List BitString} (hw : w ∈ cover) :
     decodedCoverIntersectionCard Ccode w ≤
@@ -355,6 +376,8 @@ lemma decodedCoverIntersectionCard_le_argmax {Ccode w : BitString}
   | nil => simp at hw
   | cons seed cover => exact coverCodeArgmax_foldl_max hw
 
+/-- Pigeonhole in coded form: the chosen cover code meets `C` in at least
+`#C / (number of cover codes)` points. -/
 lemma coverCodeArgmax_intersection_bound (Ccode : BitString)
     (C : Finset BitString)
     (hCcode : decodeCoverCodeList Ccode = canonicalFinsetList C)
@@ -395,6 +418,7 @@ lemma coverCodeArgmax_intersection_bound (Ccode : BitString)
         ((decodeCoverCodeList (coverCodeArgmax Ccode cover)).toFinset ∩ C).card :=
       Nat.mul_le_mul_right _ (List.toFinset_card_le cover)
 
+/-- Choosing the cover code with the largest trace on `C` is primitive recursive. -/
 theorem coverCodeArgmax_primrec :
     Primrec (fun p : BitString × List BitString =>
       coverCodeArgmax p.1 p.2) := by
@@ -441,14 +465,18 @@ def restrictedCoverSelectorInput
     (Acode Ccode : BitString) (c q0 : ℕ) : BitString :=
   listCode [Acode, Ccode, Nat.bits c, Nat.bits q0]
 
+/-- The `i`-th field of the selector input tuple. -/
 def restrictedSelectorField (input : BitString) (i : ℕ) : BitString :=
   (decodeListCode input).getD i []
 
+/-- Reading a field of the selector input is computable in the input and the index. -/
 theorem restrictedSelectorField_computable :
     Computable₂ restrictedSelectorField := by
   exact (Primrec.list_getD []).to_comp.comp
     (decodeListCode_computable.comp Computable.fst) Computable.snd
 
+/-- The search predicate of the selector: the candidate `p` decodes to a valid cover for the
+fields packed in the input. -/
 def restrictedSelectorCheck (𝒜 : DescriptionFamily)
     (input : BitString) (p : ℕ) : Bool :=
   restrictedCoverValidBool 𝒜
@@ -457,6 +485,8 @@ def restrictedSelectorCheck (𝒜 : DescriptionFamily)
     (bitsToNat (restrictedSelectorField input 2))
     (bitsToNat (restrictedSelectorField input 3)) p
 
+/-- The four fields of the selector input together with the candidate, as the argument of the
+cover validity test. -/
 def restrictedSelectorCheckArgs
     (a : BitString × ℕ) : BitString × BitString × ℕ × ℕ × ℕ :=
   (restrictedSelectorField a.1 0,
@@ -464,6 +494,7 @@ def restrictedSelectorCheckArgs
     bitsToNat (restrictedSelectorField a.1 2),
     bitsToNat (restrictedSelectorField a.1 3), a.2)
 
+/-- Unpacking the selector input into the arguments of the validity test is computable. -/
 theorem restrictedSelectorCheckArgs_computable :
     Computable restrictedSelectorCheckArgs := by
   have hfield (i : ℕ) : Computable (fun input : BitString =>
@@ -477,14 +508,18 @@ theorem restrictedSelectorCheckArgs_computable :
           (bitsToNat_computable.comp ((hfield 3).comp Computable.fst))
           Computable.snd)))
 
+/-- The search predicate of the selector is computable. -/
 theorem restrictedSelectorCheck_computable (𝒜 : DescriptionFamily) :
     Computable₂ (restrictedSelectorCheck 𝒜) := by
   exact ((restrictedCoverValidBool_computable 𝒜).comp
     restrictedSelectorCheckArgs_computable).of_eq (fun _ => rfl)
 
+/-- The output of the selector once a valid candidate is found: the cover code with the largest
+trace on `C`. -/
 def restrictedSelectorPost (input : BitString) (p : ℕ) : BitString :=
   coverCodeArgmax (restrictedSelectorField input 1) (coverDecode p).2
 
+/-- Extracting the output of the selector from a valid candidate is computable. -/
 theorem restrictedSelectorPost_computable :
     Computable₂ restrictedSelectorPost := by
   exact coverCodeArgmax_primrec.to_comp.comp
@@ -518,18 +553,21 @@ theorem restrictedMaxIntersectionCoverSelector_KPPlain_le
   exact KPPlain_partrec_map_le U hU _
     (restrictedMaxIntersectionCoverSelector_partrec 𝒜)
 
+/-- The zeroth field of the selector input is the code of `A`. -/
 @[simp] lemma restrictedSelectorField_input_zero
     (Acode Ccode : BitString) (c q0 : ℕ) :
     restrictedSelectorField (restrictedCoverSelectorInput Acode Ccode c q0) 0 = Acode := by
   simp only [restrictedSelectorField, restrictedCoverSelectorInput, decodeListCode_listCode,
     List.getD_cons_zero]
 
+/-- The first field of the selector input is the code of `C`. -/
 @[simp] lemma restrictedSelectorField_input_one
     (Acode Ccode : BitString) (c q0 : ℕ) :
     restrictedSelectorField (restrictedCoverSelectorInput Acode Ccode c q0) 1 = Ccode := by
   simp only [restrictedSelectorField, restrictedCoverSelectorInput, decodeListCode_listCode,
     List.getD_cons_succ, List.getD_cons_zero]
 
+/-- The second field of the selector input encodes the size bound `c`. -/
 @[simp] lemma restrictedSelectorField_input_two
     (Acode Ccode : BitString) (c q0 : ℕ) :
     bitsToNat (restrictedSelectorField
@@ -537,6 +575,7 @@ theorem restrictedMaxIntersectionCoverSelector_KPPlain_le
   simp only [restrictedSelectorField, restrictedCoverSelectorInput, decodeListCode_listCode,
     List.getD_cons_succ, List.getD_cons_zero, bitsToNat_bits]
 
+/-- The third field of the selector input encodes the overhead `q₀`. -/
 @[simp] lemma restrictedSelectorField_input_three
     (Acode Ccode : BitString) (c q0 : ℕ) :
     bitsToNat (restrictedSelectorField
@@ -544,6 +583,7 @@ theorem restrictedMaxIntersectionCoverSelector_KPPlain_le
   simp only [restrictedSelectorField, restrictedCoverSelectorInput, decodeListCode_listCode,
     List.getD_cons_succ, List.getD_cons_zero, bitsToNat_bits]
 
+/-- The stages of a family enumeration are nested: an earlier stage is a prefix of a later one. -/
 lemma familyEnumeration_prefix_of_le {mem : Finset BitString → Prop}
     (E : FamilyEnumeration mem) {s t : ℕ} (hst : s ≤ t) :
     E.enum s <+: E.enum t := by
@@ -554,6 +594,8 @@ lemma familyEnumeration_prefix_of_le {mem : Finset BitString → Prop}
       zero_le, forall_const]
   exact List.IsPrefix.trans ‹_› ( E.mono _ )
 
+/-- A member `A` of the family admits a non-empty cover by family members of size at most `c`
+that covers all length-`n` elements of `A` and has at most `overhead n · #A / c` pieces. -/
 lemma DescriptionFamily.exists_nonempty_cover {𝒜 : DescriptionFamily}
     {A : Finset BitString} (hA : 𝒜.mem A) (n c : ℕ)
     (hc_pos : 0 < c) (hc_le : c ≤ A.card) :
@@ -572,6 +614,8 @@ lemma DescriptionFamily.exists_nonempty_cover {𝒜 : DescriptionFamily}
     · nlinarith [ show 0 < 𝒜.overhead n from 𝒜.overhead_pos n ];
   · exact ⟨ cover, h, hcover₁, hcover₂, hcover₃ ⟩
 
+/-- For a subset `C` of a family member `A` there is a candidate the cover validity test accepts,
+so the selector's search terminates. -/
 lemma exists_restrictedCoverValidBool_witness (𝒜 : DescriptionFamily)
     (Acode Ccode : BitString) (n c q0 : ℕ)
     (A C : Finset BitString)
@@ -616,7 +660,8 @@ lemma exists_restrictedCoverValidBool_witness (𝒜 : DescriptionFamily)
   choose! f hf₁ hf₂ using hs
   use Encodable.encode (s, cover.map f)
   simp_all only [ne_eq, restrictedCoverValidBool, Encodable.encode_prod_val,
-    Encodable.encode_nat, Bool.and_eq_true, List.all_eq_true, decide_eq_true_eq,
+    Encodable.encode_nat, Bool.and_eq_true,
+    List.all_eq_true, decide_eq_true_eq,
     mem_canonicalFinsetList, List.any_eq_true]
   have h_cover_decode :
       (coverDecode (Nat.pair s (Encodable.encode (List.map f cover)))).2 =
@@ -631,10 +676,10 @@ lemma exists_restrictedCoverValidBool_witness (𝒜 : DescriptionFamily)
     List.length_map, exists_exists_and_eq_and]
   refine ⟨⟨?_, ?_⟩, ?_⟩
   all_goals generalize_proofs at *
-  · convert hcover_bound using 1
-    rw [← length_canonicalFinsetList A,
-      List.dedup_eq_self.mpr (canonicalFinsetList_nodup A)]
-    simp
+  · refine ⟨by simp, ?_⟩
+    rw [List.dedup_eq_self.mpr (canonicalFinsetList_nodup A),
+      length_canonicalFinsetList]
+    exact hcover_bound
   · intro B hB
     specialize hcover_mem B hB
     simp_all only [canonicalFinsetList]

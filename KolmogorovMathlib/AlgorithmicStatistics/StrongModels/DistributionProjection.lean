@@ -36,7 +36,7 @@ theorem codedFstPushforward_mass_ge
       · simpa [hx] using add_le_add (le_refl e.mass.value) ih
       · by_cases hfst : decodeFirst e.point = decodeFirst x
         · simp only [hx, ↓reduceIte, zero_add, hfst]
-          exact ih.trans le_add_self
+          exact ih.trans (le_add_of_nonneg_left (bot_le))
         · simpa [hx, hfst] using ih
 
 /-- Projection retains every raw rational mass, so the exact rational raw total
@@ -80,8 +80,9 @@ theorem codedFstPushforwardCode_computable :
       (CodedFiniteDistribution.decodeFirst_primrec.comp
         CodedFiniteDistribution.entry_point_primrec).pair
         CodedFiniteDistribution.entry_mass_primrec
-    exact (Primrec.of_equiv_symm
-      (e := CodedFiniteDistribution.CodedDistributionEntry.equivProd)).comp hpair
+    exact ((Primrec.of_equiv_symm
+      (e := CodedFiniteDistribution.CodedDistributionEntry.equivProd)).comp hpair).of_eq
+      (fun _ => rfl)
   exact (CodedFiniteDistribution.codedDistributionDataCode_primrec.comp
     (Primrec.list_map CodedFiniteDistribution.decodeDistributionData_primrec
       (hentry.comp Primrec.snd).to₂)).to_comp

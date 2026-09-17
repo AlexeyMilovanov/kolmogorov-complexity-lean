@@ -33,12 +33,15 @@ noncomputable def quadraticFieldCode (m : Nat) (a : ConcreteQuadraticField m) : 
   concreteFieldCode m ((concreteQuadraticBasis m).repr a 0) ++
   concreteFieldCode m ((concreteQuadraticBasis m).repr a 1)
 
+/-- An element of the quadratic extension is coded by `2 * (m + 1)` bits, one
+fixed-width block per basis coordinate. -/
 @[simp]
 lemma quadraticFieldCode_length (m : Nat) (a : ConcreteQuadraticField m) :
     (quadraticFieldCode m a).length = 2 * (m + 1) := by
   simp [quadraticFieldCode]
   omega
 
+/-- Distinct elements of the quadratic extension have distinct codes. -/
 lemma quadraticFieldCode_injective (m : Nat) :
     Function.Injective (quadraticFieldCode m) := by
   intro a b hab
@@ -56,12 +59,15 @@ lemma quadraticFieldCode_injective (m : Nat) :
 noncomputable def quadraticPointCode (m : Nat) (p : Point (ConcreteQuadraticField m)) : BitString :=
   quadraticFieldCode m p.1 ++ quadraticFieldCode m p.2
 
+/-- A point over the quadratic extension is coded by `4 * (m + 1)` bits, two
+coordinates of two blocks each. -/
 @[simp]
 lemma quadraticPointCode_length (m : Nat) (p : Point (ConcreteQuadraticField m)) :
     (quadraticPointCode m p).length = 4 * (m + 1) := by
   simp [quadraticPointCode]
   omega
 
+/-- Distinct points over the quadratic extension have distinct codes. -/
 lemma quadraticPointCode_injective (m : Nat) :
     Function.Injective (quadraticPointCode m) := by
   intro p q hpq
@@ -77,12 +83,15 @@ lemma quadraticPointCode_injective (m : Nat) :
 noncomputable def quadraticLineCode (m : Nat) (ell : Line (ConcreteQuadraticField m)) : BitString :=
   quadraticFieldCode m ell.1 ++ quadraticFieldCode m ell.2
 
+/-- A line over the quadratic extension is coded by `4 * (m + 1)` bits, its slope
+and its intercept. -/
 @[simp]
 lemma quadraticLineCode_length (m : Nat) (ell : Line (ConcreteQuadraticField m)) :
     (quadraticLineCode m ell).length = 4 * (m + 1) := by
   simp [quadraticLineCode]
   omega
 
+/-- Distinct lines over the quadratic extension have distinct codes. -/
 lemma quadraticLineCode_injective (m : Nat) :
     Function.Injective (quadraticLineCode m) := by
   intro ell ell' hell
@@ -100,58 +109,84 @@ lemma quadraticLineCode_injective (m : Nat) :
 def quadChunk (w i : Nat) (s : BitString) : Nat :=
   decodeFixedWidthNatCode ((s.drop (i * w)).take w)
 
+/-- Reading the `i`-th block of width `w` out of a string is primitive recursive in
+the width, the index and the string. -/
 lemma quadChunk_primrec :
     Primrec (fun q : (Nat × Nat) × BitString => quadChunk q.1.1 q.1.2 q.2) := by
   have hoffset : Primrec (fun q : (Nat × Nat) × BitString => q.1.2 * q.1.1) :=
     Primrec.nat_mul.comp (Primrec.snd.comp Primrec.fst) (Primrec.fst.comp Primrec.fst)
   have hdrop : Primrec (fun q : (Nat × Nat) × BitString => q.2.drop (q.1.2 * q.1.1)) :=
-    primrec_list_drop.comp Primrec.snd hoffset
+    Primrec.list_drop.comp hoffset Primrec.snd
   have htake : Primrec (fun q : (Nat × Nat) × BitString =>
       (q.2.drop (q.1.2 * q.1.1)).take q.1.1) :=
-    primrec_list_take.comp hdrop (Primrec.fst.comp Primrec.fst)
+    Primrec.list_take.comp (Primrec.fst.comp Primrec.fst) hdrop
   exact (decodeFixedWidthNatCode_primrec.comp htake).of_eq (fun _ => rfl)
 
+/-- **Reading one block out of a concatenation of equal-width blocks.** If the prefix
+`pre` occupies exactly the first `i` blocks of width `w` and `c` is the next block, then
+the `i`-th `w`-wide chunk of `pre ++ (c ++ rest)` decodes `c`, whatever follows. All the
+fixed-arity chunk lemmas below are instances of this one. -/
+lemma quadChunk_append_block (w i : Nat) (pre c rest : BitString)
+    (hpre : pre.length = i * w) (hc : c.length = w) :
+    quadChunk w i (pre ++ (c ++ rest)) = decodeFixedWidthNatCode c := by
+  simp only [quadChunk]
+  rw [List.drop_left' hpre, List.take_left' hc]
+
+/-- The zeroth block of the concatenation of two blocks of width `w` decodes the
+first one. -/
 lemma quadChunk_two_zero (w : Nat) (c0 c1 : BitString)
     (h0 : c0.length = w) :
     quadChunk w 0 (c0 ++ c1) = decodeFixedWidthNatCode c0 := by
-  simp [quadChunk, List.take_left' h0]
+  simpa using quadChunk_append_block w 0 [] c0 c1 (by simp) h0
 
+/-- A string of length `w` is its own prefix of length `w`. -/
 lemma quadChunk_take_self (w : Nat) (c : BitString) (h : c.length = w) :
     c.take w = c := by
   subst h; simp
 
+/-- The first block of the concatenation of two blocks of width `w` decodes the
+second one. -/
 lemma quadChunk_two_one (w : Nat) (c0 c1 : BitString)
     (h0 : c0.length = w) (h1 : c1.length = w) :
     quadChunk w 1 (c0 ++ c1) = decodeFixedWidthNatCode c1 := by
-  simp only [quadChunk, one_mul]
-  rw [List.drop_left' h0, quadChunk_take_self w c1 h1]
+  simpa using quadChunk_append_block w 1 c0 c1 [] (by simp [h0]) h1
 
+/-- The zeroth block of a concatenation of four blocks of width `w` decodes the
+first one. -/
 lemma quadChunk_four_zero (w : Nat) (c0 c1 c2 c3 : BitString)
     (h0 : c0.length = w) :
     quadChunk w 0 ((c0 ++ c1) ++ (c2 ++ c3)) = decodeFixedWidthNatCode c0 := by
-  simp [quadChunk, List.append_assoc, List.take_left' h0]
+  simpa [List.append_assoc] using
+    quadChunk_append_block w 0 [] c0 (c1 ++ (c2 ++ c3)) (by simp) h0
 
+/-- The first block of a concatenation of four blocks of width `w` decodes the
+second one. -/
 lemma quadChunk_four_one (w : Nat) (c0 c1 c2 c3 : BitString)
     (h0 : c0.length = w) (h1 : c1.length = w) :
     quadChunk w 1 ((c0 ++ c1) ++ (c2 ++ c3)) = decodeFixedWidthNatCode c1 := by
-  simp only [quadChunk, one_mul, List.append_assoc]
-  rw [List.drop_left' h0, List.take_left' h1]
+  simpa [List.append_assoc] using
+    quadChunk_append_block w 1 c0 c1 (c2 ++ c3) (by simp [h0]) h1
 
+/-- The second block of a concatenation of four blocks of width `w` decodes the
+third one. -/
 lemma quadChunk_four_two (w : Nat) (c0 c1 c2 c3 : BitString)
     (h0 : c0.length = w) (h1 : c1.length = w) (h2 : c2.length = w) :
     quadChunk w 2 ((c0 ++ c1) ++ (c2 ++ c3)) = decodeFixedWidthNatCode c2 := by
-  have h01 : (c0 ++ c1).length = 2 * w := by simp [h0, h1]; ring
-  simp only [quadChunk]
-  rw [List.drop_left' h01, List.take_left' h2]
+  have h01 : (c0 ++ c1).length = 2 * w := by rw [List.length_append, h0, h1]; ring
+  simpa [List.append_assoc] using quadChunk_append_block w 2 (c0 ++ c1) c2 c3 h01 h2
 
+/-- The third block of a concatenation of four blocks of width `w` decodes the last
+one. -/
 lemma quadChunk_four_three (w : Nat) (c0 c1 c2 c3 : BitString)
     (h0 : c0.length = w) (h1 : c1.length = w) (h2 : c2.length = w) (h3 : c3.length = w) :
     quadChunk w 3 ((c0 ++ c1) ++ (c2 ++ c3)) = decodeFixedWidthNatCode c3 := by
-  have h01 : (c0 ++ c1).length = 2 * w := by simp [h0, h1]; ring
-  simp only [quadChunk]
-  rw [show 3 * w = 2 * w + w by ring, ← List.drop_drop, List.drop_left' h01,
-    List.drop_left' h2, quadChunk_take_self w c3 h3]
+  have h012 : ((c0 ++ c1) ++ c2).length = 3 * w := by
+    rw [List.length_append, List.length_append, h0, h1, h2]; ring
+  simpa [List.append_assoc] using
+    quadChunk_append_block w 3 ((c0 ++ c1) ++ c2) c3 [] h012 h3
 
+/-- Decoding the fixed-width code of a prime-field element returns its
+representative. -/
 lemma decode_concreteFieldCode (m : Nat) (u : ConcreteField m) :
     decodeFixedWidthNatCode (concreteFieldCode m u) = u.val := by
   simp [concreteFieldCode]
@@ -196,12 +231,16 @@ lemma quadChunk_append_field (m : Nat) (a b : ConcreteQuadraticField m) :
           concreteFieldCode m ((concreteQuadraticBasis m).repr b 1)) from rfl,
       quadChunk_four_three _ _ _ _ _ h0 h1 h2 h3, decode_concreteFieldCode]
 
+/-- The zeroth block of the code of an extension element is the representative of
+its first basis coordinate. -/
 lemma quadChunk_fieldCode_zero (m : Nat) (a : ConcreteQuadraticField m) :
     quadChunk (m + 1) 0 (quadraticFieldCode m a) =
       ((concreteQuadraticBasis m).repr a 0).val := by
   rw [quadraticFieldCode,
     quadChunk_two_zero _ _ _ (concreteFieldCode_length m _), decode_concreteFieldCode]
 
+/-- The first block of the code of an extension element is the representative of its
+second basis coordinate. -/
 lemma quadChunk_fieldCode_one (m : Nat) (a : ConcreteQuadraticField m) :
     quadChunk (m + 1) 1 (quadraticFieldCode m a) =
       ((concreteQuadraticBasis m).repr a 1).val := by
@@ -211,10 +250,14 @@ lemma quadChunk_fieldCode_one (m : Nat) (a : ConcreteQuadraticField m) :
 
 /-! ### Coordinate arithmetic at the level of natural numbers -/
 
+/-- Casting the representative of a prime-field element back into the field returns
+that element. -/
 lemma concreteField_natCast_val (m : Nat) (u : ConcreteField m) :
     ((u.val : Nat) : ConcreteField m) = u := by
   simp [ZMod.natCast_val, ZMod.cast_id]
 
+/-- In the prime field, the cast of `p - k` for `k ≤ p` is the negative of the cast
+of `k`. -/
 lemma concreteField_cast_prime_sub (m k : Nat) (h : k ≤ concretePrime m) :
     ((concretePrime m - k : Nat) : ConcreteField m) = -((k : Nat) : ConcreteField m) := by
   rw [Nat.cast_sub h]
@@ -228,14 +271,20 @@ def quadMulNat0 (m a0 a1 t0 t1 : Nat) : Nat :=
 def quadMulNat1 (m a0 a1 t0 t1 : Nat) : Nat :=
   (a0 * t1 + a1 * t0 + (concretePrime m - quadCoeffA m) * (a1 * t1)) % concretePrime m
 
+/-- The first coordinate of a product, computed on representatives, is a residue
+below `concretePrime m`. -/
 lemma quadMulNat0_lt (m a0 a1 t0 t1 : Nat) :
     quadMulNat0 m a0 a1 t0 t1 < concretePrime m :=
   Nat.mod_lt _ (concretePrime_prime m).pos
 
+/-- The second coordinate of a product, computed on representatives, is a residue
+below `concretePrime m`. -/
 lemma quadMulNat1_lt (m a0 a1 t0 t1 : Nat) :
     quadMulNat1 m a0 a1 t0 t1 < concretePrime m :=
   Nat.mod_lt _ (concretePrime_prime m).pos
 
+/-- The representative arithmetic `quadMulNat0`, `quadMulNat1` computes the two
+basis coordinates of a product in the quadratic extension. -/
 lemma quadMul_repr (m : Nat) (a t : ConcreteQuadraticField m) :
     ((concreteQuadraticBasis m).repr (a * t) 0).val =
         quadMulNat0 m ((concreteQuadraticBasis m).repr a 0).val
@@ -277,6 +326,7 @@ lemma quadMul_repr (m : Nat) (a t : ConcreteQuadraticField m) :
   · rw [hexp, quadMk_repr_one, ← hcast1, ZMod.val_natCast]
     rfl
 
+/-- Basis coordinates of a sum are the sums of the coordinates modulo the prime. -/
 lemma quadAdd_repr (m : Nat) (u b : ConcreteQuadraticField m) (i : Fin 2) :
     ((concreteQuadraticBasis m).repr (u + b) i).val =
       (((concreteQuadraticBasis m).repr u i).val +
@@ -292,6 +342,8 @@ lemma quadAdd_repr (m : Nat) (u b : ConcreteQuadraticField m) (i : Fin 2) :
     rw [concreteField_natCast_val, concreteField_natCast_val]]
   rw [ZMod.val_natCast]
 
+/-- Basis coordinates of a difference are the differences of the coordinates modulo
+the prime, computed with a shift by the prime to stay in `ℕ`. -/
 lemma quadSub_repr (m : Nat) (y u : ConcreteQuadraticField m) (i : Fin 2) :
     ((concreteQuadraticBasis m).repr (y - u) i).val =
       (((concreteQuadraticBasis m).repr y i).val + concretePrime m -
@@ -383,6 +435,8 @@ def quadPointFromLineCode (lineCode program : BitString) : BitString :=
           concretePrime (lineCode.length / 4 - 1))
         (lineCode.length / 4))
 
+/-- The four blocks of the code of a line are the two coordinates of its slope
+followed by the two coordinates of its intercept. -/
 lemma quadChunk_lineCode (m : Nat) (ell : Line (ConcreteQuadraticField m)) :
     quadChunk (m + 1) 0 (quadraticLineCode m ell) =
         ((concreteQuadraticBasis m).repr ell.1 0).val ∧
@@ -394,6 +448,8 @@ lemma quadChunk_lineCode (m : Nat) (ell : Line (ConcreteQuadraticField m)) :
         ((concreteQuadraticBasis m).repr ell.2 1).val :=
   quadChunk_append_field m ell.1 ell.2
 
+/-- The four blocks of the code of a point are the two coordinates of its abscissa
+followed by the two coordinates of its ordinate. -/
 lemma quadChunk_pointCode (m : Nat) (p : Point (ConcreteQuadraticField m)) :
     quadChunk (m + 1) 0 (quadraticPointCode m p) =
         ((concreteQuadraticBasis m).repr p.1 0).val ∧
@@ -405,6 +461,8 @@ lemma quadChunk_pointCode (m : Nat) (p : Point (ConcreteQuadraticField m)) :
         ((concreteQuadraticBasis m).repr p.2 1).val :=
   quadChunk_append_field m p.1 p.2
 
+/-- For an incident pair, the line code together with the code of the point's
+abscissa returns the code of the point. -/
 lemma quadPointFromLineCode_incident {m : Nat} {p : Point (ConcreteQuadraticField m)}
     {ell : Line (ConcreteQuadraticField m)} (hinc : Incident p ell) :
     quadPointFromLineCode (quadraticLineCode m ell) (quadraticFieldCode m p.1) =
@@ -437,6 +495,7 @@ lemma quadPointFromLineCode_incident {m : Nat} {p : Point (ConcreteQuadraticFiel
     ht0, ht1, hval0, hval1]
   rfl
 
+/-- Recovering a point from a line code and an abscissa code is primitive recursive. -/
 lemma quadPointFromLineCode_primrec : Primrec₂ quadPointFromLineCode := by
   have hwidth : Primrec (fun q : BitString × BitString => q.1.length / 4) :=
     Primrec.nat_div.comp (Primrec.list_length.comp Primrec.fst) (Primrec.const 4)

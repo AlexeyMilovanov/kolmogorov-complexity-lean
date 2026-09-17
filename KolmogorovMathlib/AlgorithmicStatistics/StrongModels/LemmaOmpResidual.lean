@@ -1,3 +1,4 @@
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.ProfileOmpObstruction
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.LemmaOmpEndpointGap
 
 /-!
@@ -7,11 +8,11 @@ import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.LemmaOmpEndpointGap
 standard-block corner `ExactOmpStandardBlockCornerStatement` to the residual
 branch `ExactOmpHardBranchStatement`, whose five extra hypotheses are
 
-* `i < k_P`,
-* `k_P + C * log(k_P + 2 * epsilon) < i + r`,
-* `k_P + 2 * epsilon + C * log(k_P + 2 * epsilon) < n_P`,
-* `epsilon + logSlack C n_P < k_P`,
-* `epsilon + logSlack C n_P + C * log(k_P + 2 * epsilon) < r`.
+* `i < kP`,
+* `kP + C * log(kP + 2 * epsilon) < i + r`,
+* `kP + 2 * epsilon + C * log(kP + 2 * epsilon) < nP`,
+* `epsilon + logSlack C nP < kP`,
+* `epsilon + logSlack C nP + C * log(kP + 2 * epsilon) < r`.
 
 This module records that the reduction is sharp in the only sense available at
 the level of profile geometry: the kernel-checked obstruction of
@@ -41,11 +42,11 @@ theorem exists_ompObstruction_in_hard_branch (C : Nat) :
       IsAdmissibleProfileSet Q ∧
       ProfileSetsWithinNeighborhood Q P epsilon ∧
       (∀ p ∈ Q, m ≤ p.1 + p.2) ∧
-      k_P Q = (m : ENat) ∧
-      n_P Q = (m : ENat) ∧
+      kP Q = (m : ENat) ∧
+      nP Q = (m : ENat) ∧
       epsilon ≤ kp ∧
-      k_P P = (kp : ENat) ∧
-      n_P P = (np : ENat) ∧
+      kP P = (kp : ENat) ∧
+      nP P = (np : ENat) ∧
       (i, j) ∈ Q ∧
       i + j ≤ m + logSlack C m ∧
       m ≤ kp + 2 * epsilon ∧
@@ -56,7 +57,7 @@ theorem exists_ompObstruction_in_hard_branch (C : Nat) :
       kp + 2 * epsilon + C * (kp + 2 * epsilon).bits.length < np ∧
       epsilon + logSlack C np < kp ∧
       epsilon + logSlack C np + C * (kp + 2 * epsilon).bits.length < j ∧
-      ¬ m_P_eps P kp epsilon C ≤ (i : ENat) + (logSlack C np : ENat) := by
+      ¬ mPEps P kp epsilon C ≤ (i : ENat) + (logSlack C np : ENat) := by
   obtain ⟨K, hK⟩ := exists_two_pow_gt_linear C
   set E : Nat := 2 ^ K with hE
   have hE1 : 1 ≤ E := Nat.one_le_two_pow
@@ -90,7 +91,7 @@ theorem exists_ompObstruction_in_hard_branch (C : Nat) :
   · -- the failure of the exact-`epsilon` conclusion
     intro hle
     have hlow :
-        ((3 * E : Nat) : ENat) ≤ m_P_eps (ompObstructionProfile E) (4 * E) E C := by
+        ((3 * E : Nat) : ENat) ≤ mPEps (ompObstructionProfile E) (4 * E) E C := by
       refine le_sInf ?_
       rintro _ ⟨t, rfl, ht⟩
       have : 3 * E ≤ t := by
@@ -112,7 +113,7 @@ the profile set of the frozen statement to come from a boundary curve does not
 remove the obstruction. -/
 theorem exists_profileBoundary_ompObstructionProfile (V : Map) (E : Nat) :
     ∃ b : ProfileBoundary V,
-      b.k_P = 4 * E ∧ b.n_P = 7 * E ∧
+      b.kP = 4 * E ∧ b.nP = 7 * E ∧
         profileSet V b = ompObstructionProfile E :=
   exists_profileBoundary_of_admissible V (ompObstructionProfile E) (4 * E) (7 * E)
     (isAdmissibleProfileSet_ompObstructionProfile E)

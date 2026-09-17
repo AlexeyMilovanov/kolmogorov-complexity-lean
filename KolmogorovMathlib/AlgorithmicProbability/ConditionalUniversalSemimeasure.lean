@@ -1,10 +1,12 @@
 /-
-Copyright (c) 2026 Alexey Milovanov. All rights reserved.
+Copyright (c) 2024 Alexey Milovanov. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Alexey Milovanov
 -/
-import KolmogorovMathlib.AlgorithmicProbability.UniversalSemimeasure
+
 import KolmogorovMathlib.AlgorithmicProbability.OptimalCoding
+import KolmogorovMathlib.AlgorithmicProbability.KraftChaitin
+import KolmogorovMathlib.AlgorithmicProbability.UniversalSemimeasure
 
 /-!
 # Conditional Universal Lower-Semicomputable Semimeasures
@@ -53,7 +55,7 @@ theorem conditional_coding_equivalence (U : Map) (hU : IsOptimalPrefixConditiona
       _ ≤ m x z := hc_dom x z
   · -- complexityWeight dominates m
     obtain ⟨M, hM, c₀, hM_bound⟩ :=
-      kraftChaitin_realization_bound hm.2.1 0 (fun z => (hm.1 z : (∑' x : BitString, m x z) ≤ 1))
+      kraftChaitin_realization_bound hm.2.1 0 (fun z => by simpa using hm.1 z)
     obtain ⟨c, hc⟩ := complexityWeight_dominates_of_prefix_realization hU hM hM_bound
     exact ⟨c, hc⟩
 

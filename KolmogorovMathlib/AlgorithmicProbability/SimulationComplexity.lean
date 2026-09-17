@@ -1,4 +1,5 @@
 import KolmogorovMathlib.AlgorithmicProbability.Simulation
+import KolmogorovMathlib.Prefix.Optimal
 import KolmogorovMathlib.AlgorithmicProbability.OptimalCoding
 
 /-!

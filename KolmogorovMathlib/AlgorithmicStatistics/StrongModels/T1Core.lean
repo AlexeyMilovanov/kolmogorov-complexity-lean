@@ -1,14 +1,32 @@
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.T1RunComplexity
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.Separation
 
+/-!
+# Theorem T1
+
+`t1_profile_bounds_of_optimal`: for `c0 ≤ epsilon ≤ k` and `k + 4 ≤ n` there is a string of
+length `n` whose plain and strong description profiles are bounded as VS40 Figure 6 requires —
+the separation of the two profiles.  `exists_t1_avoiding_set_core` is the set-level core it
+comes from: a set of `2 ^ (k - epsilon)` strings avoiding all the marks of the construction.
+
+The run invariants are read off here: `T1RunModelInvariant.current_nonempty` and
+`.current_not_subset_cd` say the current set is nonempty and not swallowed by the marks under
+the quota `2 ^ (k - epsilon)`, and `T1RunCoreInvariant.exists_current_version` says the current
+set is one of the recorded versions.  `t1_not_dMarked_plainK_lower` supplies the lower
+plain-complexity endpoint of the figure.
+-/
+
 namespace Kolmogorov
 
+/-- The current set of a run satisfying the model invariant is nonempty. -/
 theorem T1RunModelInvariant.current_nonempty
     {cSparse n k epsilon quota : Nat} {s : T1RunState}
     (h : T1RunModelInvariant cSparse n k epsilon quota s) :
     s.current.toFinset.Nonempty :=
   t1RunVersion_nonempty h.2.1
 
+/-- Under the quota `2 ^ (k - epsilon)`, the current set of a run satisfying the model invariant
+is not covered by the sets marked `C` and `D`. -/
 theorem T1RunModelInvariant.current_not_subset_cd
     {cSparse n k epsilon quota : Nat} {s : T1RunState}
     (h : T1RunModelInvariant cSparse n k epsilon quota s)
@@ -27,6 +45,7 @@ theorem T1RunModelInvariant.current_not_subset_cd
   rw [hinter, hcard, h.2.1, hquota] at hlt
   exact (Nat.lt_irrefl _ hlt)
 
+/-- A run satisfying the core invariant has its current set recorded as one of its versions. -/
 theorem T1RunCoreInvariant.exists_current_version
     {cSparse n k epsilon quota : Nat} {events : List T1MarkEvent} {s : T1RunState}
     (h : T1RunCoreInvariant cSparse n k epsilon quota events s) :
@@ -47,6 +66,10 @@ theorem t1_not_dMarked_plainK_lower
   push Not at hnot
   exact hnot hxlen
 
+/-- Core of Theorem T1: for `epsilon` between `c0` and `k` and `k + 4 ≤ n` there is a set of
+`2 ^ (k - epsilon)` strings of length `n`, of plain set complexity at most
+`epsilon + logSlack cCore n`, containing a string marked by none of the three marking
+predicates `B`, `C`, `D`. -/
 theorem exists_t1_avoiding_set_core
     (V : Map) (hV : isOptimalConditional V) :
     ∀ cDesc : Nat, ∃ c0 cCore : Nat, ∀ n k epsilon : Nat,
@@ -116,7 +139,7 @@ theorem exists_t1_avoiding_set_core
     t1_exists_current_survivor hcore.1.2.2.2.1
       hnotSubset
   have hxlen : x.length = n :=
-    (memStringsOfLength n x).mp
+    (mem_stringsOfLength n x).mp
       (hcore.1.2.2.1 hx)
   have hhistory := hcore.2.1
   have hBEvent : ∀ code,
@@ -155,6 +178,11 @@ theorem exists_t1_avoiding_set_core
         hcore.1.2.1
   · simpa [d] using havoid.2.1
 
+/-- Theorem T1: for `epsilon` between `c0` and `k` and `k + 4 ≤ n` there is a string of length
+`n` of plain complexity `k` up to `logSlack cProfile n`, whose plain description profile
+follows the polygon `t1PlainPolygon n k epsilon` and whose strong profile is contained in
+`t1StrongPolygon n k`, both up to `logSlack cProfile n`, and whose strong profile contains
+the two corner points. -/
 theorem t1_profile_bounds_of_optimal
     (V T : Map) (hV : isOptimalConditional V)
     (hT : IsOptimalTotalConditional T) :

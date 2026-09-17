@@ -1,4 +1,6 @@
+import KolmogorovMathlib.AlgorithmicRandomness.NatLogPrimrec
 import KolmogorovMathlib.CommonInformation.IncidenceCapacityCode
+import KolmogorovMathlib.CommonInformation.QuadraticIncidenceDecoders
 
 /-!
 # Code-level shear translates of an incidence rectangle
@@ -13,6 +15,7 @@ subcover search is transported from the geometric side to the code side.
 namespace Kolmogorov
 
 open AffineIncidence
+open CodedFiniteDistribution
 
 /-! ### Transporting the exhaustive subcover search along encodings -/
 
@@ -71,22 +74,25 @@ theorem computableGreedyCover_map {α α' β β' : Type} [DecidableEq α] [Decid
 def codeFieldValue (n k : Nat) : BitString :=
   fixedWidthNatCode (k % concretePrime n) (n + 1)
 
+/-- The executable field-value code agrees with the code of the residue of `k` in
+the concrete prime field. -/
 lemma codeFieldValue_eq (n k : Nat) :
     codeFieldValue n k = concreteFieldCode n ((k : Nat) : ConcreteField n) := by
   rw [codeFieldValue, concreteFieldCode, ZMod.val_natCast]
 
+/-- The first `n + 1` bits of the concatenation of two field codes are the first
+code. -/
 lemma concreteFieldCode_take (n : Nat) (a b : ConcreteField n) :
     (concreteFieldCode n a ++ concreteFieldCode n b).take (n + 1) = concreteFieldCode n a := by
   rw [List.take_left' (concreteFieldCode_length n a)]
 
+/-- Dropping the first `n + 1` bits of the concatenation of two field codes leaves
+the second code. -/
 lemma concreteFieldCode_drop (n : Nat) (a b : ConcreteField n) :
     (concreteFieldCode n a ++ concreteFieldCode n b).drop (n + 1) = concreteFieldCode n b := by
   rw [List.drop_left' (concreteFieldCode_length n a)]
 
-lemma decode_concreteFieldCode (n : Nat) (a : ConcreteField n) :
-    decodeFixedWidthNatCode (concreteFieldCode n a) = a.val := by
-  rw [concreteFieldCode, decodeFixedWidthNatCode_encode]
-
+/-- The cast of `concretePrime n - 1` into the prime field is `-1`. -/
 lemma natCast_concretePrime_sub_one (n : Nat) :
     ((concretePrime n - 1 : Nat) : ConcreteField n) = -1 := by
   have h1 : 1 ≤ concretePrime n := (concretePrime_prime n).one_lt.le
@@ -106,6 +112,7 @@ def codeLineShear (n A s B : Nat) (w : BitString) : BitString :=
     codeFieldValue n (decodeFixedWidthNatCode (w.drop (n + 1)) + B +
       (concretePrime n - 1) * ((decodeFixedWidthNatCode (w.take (n + 1)) + s) * A))
 
+/-- The executable shear on point codes computes the code of the sheared point. -/
 lemma codePointShear_code (n A s B : Nat) (p : Point (ConcreteField n)) :
     codePointShear n A s B (concretePointCode n p) =
       concretePointCode n (pointShearEquiv ((A : Nat) : ConcreteField n)
@@ -116,6 +123,7 @@ lemma codePointShear_code (n A s B : Nat) (p : Point (ConcreteField n)) :
   congr 1 <;>
     simp [pointShearEquiv, ZMod.natCast_val, ZMod.cast_id]
 
+/-- The executable shear on line codes computes the code of the sheared line. -/
 lemma codeLineShear_code (n A s B : Nat) (ell : Line (ConcreteField n)) :
     codeLineShear n A s B (concreteLineCode n ell) =
       concreteLineCode n (lineShearEquiv ((A : Nat) : ConcreteField n)
@@ -148,12 +156,14 @@ def concreteIncidentEdgeList (n : Nat) :
             (m : ConcreteField n) * (x : ConcreteField n) + (b : ConcreteField n)),
           ((m : ConcreteField n), (b : ConcreteField n)))
 
+/-- The list of incident point–line pairs has `concretePrime n ^ 3` entries. -/
 @[simp]
 lemma concreteIncidentEdgeList_length (n : Nat) :
     (concreteIncidentEdgeList n).length = concretePrime n ^ 3 := by
   simp [concreteIncidentEdgeList, pow_succ]
   ring
 
+/-- A pair occurs in the list exactly when its point lies on its line. -/
 lemma mem_concreteIncidentEdgeList (n : Nat)
     (e : Point (ConcreteField n) × Line (ConcreteField n)) :
     e ∈ concreteIncidentEdgeList n ↔ Incident e.1 e.2 := by
@@ -178,11 +188,13 @@ lemma mem_concreteIncidentEdgeList (n : Nat)
       · simpa using he.symm
     · apply Prod.ext <;> simp
 
+/-- The entries of the list are exactly the edges of the incidence graph. -/
 lemma concreteIncidentEdgeList_toFinset (n : Nat) :
     (concreteIncidentEdgeList n).toFinset = incidentEdges (ConcreteField n) := by
   ext e
   rw [List.mem_toFinset, mem_concreteIncidentEdgeList, mem_incidentEdges_iff]
 
+/-- The list of incident pairs has no repetitions. -/
 lemma concreteIncidentEdgeList_nodup (n : Nat) :
     (concreteIncidentEdgeList n).Nodup := by
   have hcard : (concreteIncidentEdgeList n).toFinset.card =
@@ -200,12 +212,14 @@ def concreteShearParams (n : Nat) :
       (List.range q).map fun (B : Nat) =>
         ((A : ConcreteField n), (s : ConcreteField n), (B : ConcreteField n))
 
+/-- There are `concretePrime n ^ 3` shear parameter triples. -/
 @[simp]
 lemma concreteShearParams_length (n : Nat) :
     (concreteShearParams n).length = concretePrime n ^ 3 := by
   simp [concreteShearParams, pow_succ]
   ring
 
+/-- Every triple of field elements occurs in the list of shear parameters. -/
 lemma mem_concreteShearParams (n : Nat)
     (g : ConcreteField n × ConcreteField n × ConcreteField n) :
     g ∈ concreteShearParams n := by
@@ -219,6 +233,7 @@ lemma mem_concreteShearParams (n : Nat)
   refine ⟨B.val, List.mem_range.mpr (ZMod.val_lt B), ?_⟩
   ext <;> simp
 
+/-- The list of shear parameters exhausts all triples of field elements. -/
 lemma concreteShearParams_toFinset (n : Nat) :
     (concreteShearParams n).toFinset =
       (Finset.univ : Finset (ConcreteField n × ConcreteField n × ConcreteField n)) := by
@@ -226,6 +241,7 @@ lemma concreteShearParams_toFinset (n : Nat) :
   simp only [List.mem_toFinset, Finset.mem_univ, iff_true]
   exact mem_concreteShearParams n g
 
+/-- The list of shear parameters has no repetitions. -/
 lemma concreteShearParams_nodup (n : Nat) :
     (concreteShearParams n).Nodup := by
   have hcard : (concreteShearParams n).toFinset.card =
@@ -246,6 +262,8 @@ def codeShearRectangleCode (n A s B : Nat) (w : BitString) : BitString :=
     (listCode (canonicalFinsetList
       (((decodeListCode (decodeSecond w)).map (codeLineShear n A s B)).toFinset)))
 
+/-- The executable shear on rectangle codes computes the code of the sheared
+rectangle. -/
 lemma codeShearRectangleCode_code (n A s B : Nat)
     (R : CombinatorialRectangle (Point (ConcreteField n)) (Line (ConcreteField n))) :
     codeShearRectangleCode n A s B (concreteIncidenceRectangleCode n R) =
@@ -274,6 +292,8 @@ def codeShearRectangleCodes (n : Nat) (w : BitString) : List BitString :=
       (List.range (concretePrime n)).map fun B =>
         codeShearRectangleCode n A s B w
 
+/-- Applying all shears to a rectangle code yields the codes of the images of the
+rectangle under all shear parameters. -/
 lemma codeShearRectangleCodes_eq (n : Nat)
     (R : CombinatorialRectangle (Point (ConcreteField n)) (Line (ConcreteField n))) :
     codeShearRectangleCodes n (concreteIncidenceRectangleCode n R) =
@@ -298,6 +318,7 @@ def concreteEdgeCodePair (n : Nat)
     (ed : Point (ConcreteField n) × Line (ConcreteField n)) : BitString × BitString :=
   (concretePointCode n ed.1, concreteLineCode n ed.2)
 
+/-- Distinct incident pairs give distinct pairs of point and line codes. -/
 lemma concreteEdgeCodePair_injective (n : Nat) :
     Function.Injective (concreteEdgeCodePair n) := by
   intro e₁ e₂ h
@@ -305,6 +326,8 @@ lemma concreteEdgeCodePair_injective (n : Nat) :
   · exact concretePointCode_injective n (Prod.ext_iff.mp h).1
   · exact concreteLineCode_injective n (Prod.ext_iff.mp h).2
 
+/-- The list of coded incident pairs is the list of incident pairs with each entry
+coded. -/
 lemma concreteIncidentEdgeCodePairs_eq_map (n : Nat) :
     concreteIncidentEdgeCodePairs n =
       (concreteIncidentEdgeList n).map (concreteEdgeCodePair n) := by
@@ -331,6 +354,8 @@ def codeShearCoverList (n : Nat) (w : BitString) : List (BitString × BitString)
     decide (pr.1 ∈ decodeListCode (decodeFirst w)) &&
       decide (pr.2 ∈ decodeListCode (decodeSecond w))
 
+/-- The cover list of a rectangle code consists of the codes of the incident pairs
+that the rectangle contains. -/
 lemma codeShearCoverList_code (n : Nat)
     (R : CombinatorialRectangle (Point (ConcreteField n)) (Line (ConcreteField n))) :
     codeShearCoverList n (concreteIncidenceRectangleCode n R) =
@@ -356,84 +381,28 @@ lemma codeShearCoverList_code (n : Nat)
       obtain ⟨l, hl, he⟩ := h
       exact concreteLineCode_injective n he ▸ hl, fun h => ⟨ed.2, h, rfl⟩⟩
   rw [Function.comp_apply]
-  change (decide (concretePointCode n ed.1 ∈ _) && decide (concreteLineCode n ed.2 ∈ _)) = _
-  refine Eq.trans (Bool.decide_and _ _).symm ?_
-  rw [decide_eq_decide, h1, h2, mem_interedges_iff_of_decidable]
-  exact ⟨fun h => ⟨h.1, h.2, hinc⟩, fun h => ⟨h.1, h.2.1⟩⟩
+  change (decide (concretePointCode n ed.1 ∈ canonicalFinsetList _) &&
+    decide (concreteLineCode n ed.2 ∈ canonicalFinsetList _)) = _
+  have h_and : (decide (concretePointCode n ed.1 ∈ canonicalFinsetList _) &&
+    decide (concreteLineCode n ed.2 ∈ canonicalFinsetList _)) =
+    decide (concretePointCode n ed.1 ∈ canonicalFinsetList (R.1.image (concretePointCode n)) ∧
+    concreteLineCode n ed.2 ∈ canonicalFinsetList (R.2.image (concreteLineCode n))) :=
+    (Bool.decide_and _ _).symm
+  rw [h_and]
+  apply decide_eq_decide.mpr
+  have h_mem : ed.1 ∈ R.1 ∧ ed.2 ∈ R.2 ↔ ed ∈ Rel.interedges Incident R.1 R.2 := by
+    have h_mem_iff : ed ∈ Rel.interedges Incident R.1 R.2 ↔
+      ed.1 ∈ R.1 ∧ ed.2 ∈ R.2 ∧ Incident ed.1 ed.2 := Rel.mem_interedges_iff
+    exact Iff.trans (Iff.intro (fun h => ⟨h.1, h.2, hinc⟩) (fun h => ⟨h.1, h.2.1⟩)) h_mem_iff.symm
+  exact Iff.trans (and_congr h1 h2) h_mem
 
 
 /-! ### Primitive recursiveness of `Nat.log2` -/
 
-/-- One halving step of the iteration computing `Nat.log2`. -/
-def log2Step (p : Nat × Nat) : Nat × Nat :=
-  if p.1 < 2 then p else (p.1 / 2, p.2 + 1)
-
-/-- The halving iteration run for a fixed number of steps. -/
-def log2Iter (k : Nat) (p : Nat × Nat) : Nat × Nat :=
-  Nat.rec p (fun _ q => log2Step q) k
-
-lemma log2Iter_succ (k : Nat) (p : Nat × Nat) :
-    log2Iter (k + 1) p = log2Step (log2Iter k p) := rfl
-
-lemma log2Iter_succ' (k : Nat) (p : Nat × Nat) :
-    log2Iter (k + 1) p = log2Iter k (log2Step p) := by
-  induction k with
-  | zero => rfl
-  | succ k ih => rw [log2Iter_succ, ih, log2Iter_succ]
-
-lemma lt_two_of_log2_eq_zero (n : Nat) (h : Nat.log2 n = 0) : n < 2 := by
-  by_contra hc
-  rw [Nat.log2_eq_log_two, Nat.log_of_one_lt_of_le one_lt_two (Nat.not_lt.mp hc)] at h
-  omega
-
-lemma log2_eq_succ (n : Nat) (h : 2 ≤ n) : Nat.log2 n = Nat.log2 (n / 2) + 1 := by
-  rw [Nat.log2_eq_log_two, Nat.log2_eq_log_two, Nat.log_of_one_lt_of_le one_lt_two h]
-
-lemma log2Iter_spec : ∀ (k n acc : Nat), Nat.log2 n ≤ k →
-    (log2Iter k (n, acc)).1 < 2 ∧ (log2Iter k (n, acc)).2 = acc + Nat.log2 n := by
-  intro k
-  induction k with
-  | zero =>
-      intro n acc h
-      have h0 : Nat.log2 n = 0 := Nat.le_zero.mp h
-      exact ⟨lt_two_of_log2_eq_zero n h0, by simp [log2Iter, h0]⟩
-  | succ k ih =>
-      intro n acc h
-      by_cases hn : n < 2
-      · have h0 : Nat.log2 n = 0 := by
-          rw [Nat.log2_eq_log_two, Nat.log_of_lt hn]
-        have hstep : log2Step (n, acc) = (n, acc) := by
-          rw [log2Step]; exact if_pos hn
-        rw [log2Iter_succ', hstep]
-        exact ih n acc (by omega)
-      · have h2 : 2 ≤ n := Nat.not_lt.mp hn
-        have hs := log2_eq_succ n h2
-        have hstep : log2Step (n, acc) = (n / 2, acc + 1) := by
-          rw [log2Step]; exact if_neg hn
-        rw [log2Iter_succ', hstep]
-        have hIH := ih (n / 2) (acc + 1) (by omega)
-        exact ⟨hIH.1, by rw [hIH.2]; omega⟩
-
-lemma log2Iter_eq_log2 (n : Nat) : (log2Iter n (n, 0)).2 = Nat.log2 n := by
-  rw [(log2Iter_spec n n 0 (Nat.log2_le_self n)).2, Nat.zero_add]
-
-lemma log2Step_primrec : Primrec log2Step := by
-  refine Primrec.ite (Primrec.nat_lt.comp Primrec.fst (Primrec.const 2)) Primrec.id ?_
-  exact Primrec.pair (Primrec.nat_div.comp Primrec.fst (Primrec.const 2))
-    (Primrec.succ.comp Primrec.snd)
-
-lemma nat_log2_primrec : Primrec Nat.log2 := by
-  have hg : Primrec₂ (fun (_ : Nat) (q : Nat × (Nat × Nat)) => log2Step q.2) :=
-    (log2Step_primrec.comp (Primrec.snd.comp Primrec.snd)).to₂
-  have hf : Primrec (fun a : Nat => ((a, 0) : Nat × Nat)) :=
-    Primrec.pair Primrec.id (Primrec.const 0)
-  have hiter : Primrec (fun n : Nat => log2Iter n (n, 0)) :=
-    ((Primrec.nat_rec hf hg).comp Primrec.id Primrec.id).of_eq (fun _ => rfl)
-  exact (Primrec.snd.comp hiter).of_eq log2Iter_eq_log2
-
-
 /-! ### Primitive recursiveness of the exhaustive subcover search -/
 
+/-- The greedy cover is primitive recursive in a parameter when the ground list, the
+candidate list, the covering function and the bound are. -/
 theorem computableGreedyCover_primrec {γ α β : Type} [Primcodable γ] [Primcodable α]
     [Primcodable β] [DecidableEq α] [DecidableEq β]
     {T : γ → List α} {S : γ → List β} {cover : γ → β → List α} {m bound : γ → Nat}
@@ -473,6 +442,7 @@ theorem computableGreedyCover_primrec {γ α β : Type} [Primcodable γ] [Primco
 
 /-! ### Primitive recursiveness of the code-level shear search data -/
 
+/-- The field-value code is primitive recursive in the modulus and the value. -/
 lemma codeFieldValue_primrec {γ : Type} [Primcodable γ] {n k : γ → Nat}
     (hn : Primrec n) (hk : Primrec k) :
     Primrec (fun g => codeFieldValue (n g) (k g)) :=
@@ -480,6 +450,8 @@ lemma codeFieldValue_primrec {γ : Type} [Primcodable γ] {n k : γ → Nat}
     (Primrec.nat_mod.comp hk (boundedPrimeSearch_primrec.comp hn))
     (Primrec.succ.comp hn))
 
+/-- The shear on point codes is primitive recursive in the modulus, the three shear
+parameters and the code. -/
 lemma codePointShear_primrec {γ : Type} [Primcodable γ] {n A s B : γ → Nat}
     {w : γ → BitString} (hn : Primrec n) (hA : Primrec A) (hs : Primrec s)
     (hB : Primrec B) (hw : Primrec w) :
@@ -494,6 +466,8 @@ lemma codePointShear_primrec {γ : Type} [Primcodable γ] {n A s B : γ → Nat}
     (codeFieldValue_primrec hn (Primrec.nat_add.comp
       (Primrec.nat_add.comp hy (Primrec.nat_mul.comp hs hx)) hB))
 
+/-- The shear on line codes is primitive recursive in the modulus, the three shear
+parameters and the code. -/
 lemma codeLineShear_primrec {γ : Type} [Primcodable γ] {n A s B : γ → Nat}
     {w : γ → BitString} (hn : Primrec n) (hA : Primrec A) (hs : Primrec s)
     (hB : Primrec B) (hw : Primrec w) :
@@ -512,6 +486,8 @@ lemma codeLineShear_primrec {γ : Type} [Primcodable γ] {n A s B : γ → Nat}
     (codeFieldValue_primrec hn (Primrec.nat_add.comp (Primrec.nat_add.comp hd hB)
       (Primrec.nat_mul.comp hqm (Primrec.nat_mul.comp hslope hA))))
 
+/-- The shear on rectangle codes is primitive recursive in the modulus, the three
+shear parameters and the code. -/
 lemma codeShearRectangleCode_primrec {γ : Type} [Primcodable γ] {n A s B : γ → Nat}
     {w : γ → BitString} (hn : Primrec n) (hA : Primrec A) (hs : Primrec s)
     (hB : Primrec B) (hw : Primrec w) :
@@ -526,10 +502,11 @@ lemma codeShearRectangleCode_primrec {γ : Type} [Primcodable γ] {n A s B : γ 
       (hs.comp Primrec.fst) (hB.comp Primrec.fst) Primrec.snd).to₂
   exact pairCode_primrec.comp
     (listCode_primrec.comp (canonicalFinsetList_toFinset_primrec.comp
-      (Primrec.list_map (decodeListCode_primrec.comp (decodeFirst_primrec'.comp hw)) hpt)))
+      (Primrec.list_map (decodeListCode_primrec.comp (decodeFirst_primrec.comp hw)) hpt)))
     (listCode_primrec.comp (canonicalFinsetList_toFinset_primrec.comp
-      (Primrec.list_map (decodeListCode_primrec.comp (decodeSecond_primrec'.comp hw)) hln)))
+      (Primrec.list_map (decodeListCode_primrec.comp (decodeSecond_primrec.comp hw)) hln)))
 
+/-- Listing all shear images of a rectangle code is primitive recursive. -/
 lemma codeShearRectangleCodes_primrec {γ : Type} [Primcodable γ] {n : γ → Nat}
     {w : γ → BitString} (hn : Primrec n) (hw : Primrec w) :
     Primrec (fun g => codeShearRectangleCodes (n g) (w g)) := by
@@ -557,6 +534,8 @@ lemma codeShearRectangleCodes_primrec {γ : Type} [Primcodable γ] {n : γ → N
   exact Primrec.list_flatMap
     (Primrec.list_range.comp (boundedPrimeSearch_primrec.comp hn)) hmid.to₂
 
+/-- The cover list of a rectangle code is primitive recursive in the modulus and the
+code. -/
 lemma codeShearCoverList_primrec {γ : Type} [Primcodable γ] {n : γ → Nat}
     {w : γ → BitString} (hn : Primrec n) (hw : Primrec w) :
     Primrec (fun g => codeShearCoverList (n g) (w g)) := by
@@ -564,10 +543,10 @@ lemma codeShearCoverList_primrec {γ : Type} [Primcodable γ] {n : γ → Nat}
     concreteIncidentEdgeCodePairs_primrec.comp hn
   have hfirst : Primrec (fun r : γ × (BitString × BitString) =>
       decodeListCode (decodeFirst (w r.1))) :=
-    decodeListCode_primrec.comp (decodeFirst_primrec'.comp (hw.comp Primrec.fst))
+    decodeListCode_primrec.comp (decodeFirst_primrec.comp (hw.comp Primrec.fst))
   have hsecond : Primrec (fun r : γ × (BitString × BitString) =>
       decodeListCode (decodeSecond (w r.1))) :=
-    decodeListCode_primrec.comp (decodeSecond_primrec'.comp (hw.comp Primrec.fst))
+    decodeListCode_primrec.comp (decodeSecond_primrec.comp (hw.comp Primrec.fst))
   have hpred := (Primrec.and.comp
       (decide_mem_primrec.comp hfirst (Primrec.fst.comp Primrec.snd))
       (decide_mem_primrec.comp hsecond (Primrec.snd.comp Primrec.snd))).to₂
@@ -579,9 +558,12 @@ lemma codeShearCoverList_primrec {γ : Type} [Primcodable γ] {n : γ → Nat}
 
 /-! ### Singleton rectangles at the code level -/
 
+/-- The canonical listing of a singleton is the one-element list. -/
 lemma canonicalFinsetList_singleton (w : BitString) : canonicalFinsetList {w} = [w] :=
   Finset.sort_singleton _ _
 
+/-- The code of a one-by-one rectangle is the pair of the singleton lists of the
+point code and the line code. -/
 lemma concreteIncidenceRectangleCode_singleton (n : Nat)
     (p : Point (ConcreteField n)) (ell : Line (ConcreteField n)) :
     concreteIncidenceRectangleCode n ({p}, {ell}) =

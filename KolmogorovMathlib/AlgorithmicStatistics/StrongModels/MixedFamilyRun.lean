@@ -1,6 +1,8 @@
 import KolmogorovMathlib.Restricted.FamilyCurve.RunBounds
-import KolmogorovMathlib.Restricted.FamilyCurve.AnchoredChain
 import KolmogorovMathlib.Restricted.Examples.Cylinders
+import KolmogorovMathlib.Restricted.FamilyCurve.AnchoredChain.PrefixRuns
+import KolmogorovMathlib.Restricted.FamilyCurve.AnchoredChain.VersionExponent
+import KolmogorovMathlib.Restricted.FamilyCurve.AnchoredChain
 
 /-!
 # Mixed-family anchored runs
@@ -34,6 +36,7 @@ noncomputable def restrictedEffectiveAnchoredSampledRunAgainst
           ℬ.toPre N Δ stage)))
     time
 
+/-- At time zero the anchored sampled run is the anchored initial state. -/
 @[simp] lemma restrictedEffectiveAnchoredSampledRunAgainst_zero
     (𝒢 ℬ : DescriptionFamily) (c : Code)
     {n k N : ℕ} {target : ℕ → ℕ}
@@ -42,6 +45,8 @@ noncomputable def restrictedEffectiveAnchoredSampledRunAgainst
         ambientLength Δ grid 0 =
       restrictedEffectiveAnchoredInitialState 𝒢 ambientLength Δ grid := rfl
 
+/-- One step of the anchored sampled run applies the sampled run process to the state reached so
+far, against the bad batch of the current time. -/
 @[simp] lemma restrictedEffectiveAnchoredSampledRunAgainst_succ
     (𝒢 ℬ : DescriptionFamily) (c : Code)
     {n k N : ℕ} {target : ℕ → ℕ}
@@ -314,7 +319,7 @@ lemma restrictedAnchoredRun_terminal_nonempty_against
     rw [hroot, Finset.sdiff_nonempty]
     intro hsubset
     have hcard_le := Finset.card_le_card hsubset
-    rw [cardStringsOfLength] at hcard_le
+    rw [card_stringsOfLength] at hcard_le
     omega
   have hterminal : (state.live (N + 1)).Nonempty :=
     restricted_rebuild_suffix_preserves_terminal_nonempty

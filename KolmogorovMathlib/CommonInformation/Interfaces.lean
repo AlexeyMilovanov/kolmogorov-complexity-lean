@@ -6,22 +6,26 @@ import KolmogorovMathlib.CommonInformation.Intermediate
 
 namespace Kolmogorov
 
+/-- Closeness of natural numbers is symmetric. -/
 lemma NatCloseWithin.symm {a b d : Nat}
     (h : NatCloseWithin a b d) : NatCloseWithin b a d := by
   exact ⟨h.2, h.1⟩
 
+/-- Closeness is preserved when the slack is enlarged. -/
 lemma NatCloseWithin.mono {a b d d' : Nat}
     (h : NatCloseWithin a b d) (hd : d ≤ d') :
     NatCloseWithin a b d' := by
   exact ⟨h.1.trans (Nat.add_le_add_left hd _),
     h.2.trans (Nat.add_le_add_left hd _)⟩
 
+/-- Closeness composes with the sum of the slacks. -/
 lemma NatCloseWithin.trans {a b c d e : Nat}
     (h1 : NatCloseWithin a b d) (h2 : NatCloseWithin b c e) :
     NatCloseWithin a c (d + e) := by
   unfold NatCloseWithin at h1 h2 ⊢
   constructor <;> omega
 
+/-- The common-information slack is monotone in its constant. -/
 lemma commonInformationSlack_mono_left {c c' d n : Nat}
     (h : c ≤ c') :
     commonInformationSlack c d n ≤
@@ -30,11 +34,13 @@ lemma commonInformationSlack_mono_left {c c' d n : Nat}
   exact Nat.add_le_add (Nat.mul_le_mul_right d h)
     (logSlack_mono_left h n)
 
+/-- Plain equivalence within a slack is symmetric. -/
 lemma PlainEquivalentWithin.symm {V : Map} {x y : BitString} {d : Nat}
     (h : PlainEquivalentWithin V x y d) :
     PlainEquivalentWithin V y x d := by
   exact ⟨h.2, h.1⟩
 
+/-- Plain equivalence is preserved when the slack is enlarged. -/
 lemma PlainEquivalentWithin.mono
     {V : Map} {x y : BitString} {d d' : Nat}
     (h : PlainEquivalentWithin V x y d) (hd : d ≤ d') :
@@ -43,6 +49,7 @@ lemma PlainEquivalentWithin.mono
   have hd' : (d : ENat) ≤ (d' : ENat) := by exact_mod_cast hd
   exact ⟨h.1.trans hd', h.2.trans hd'⟩
 
+/-- Plain incompressibility is preserved when the slack is enlarged. -/
 lemma PlainIncompressibleWithin.mono
     {V : Map} {x : BitString} {d d' : Nat}
     (h : PlainIncompressibleWithin V x d) (hd : d ≤ d') :
@@ -50,6 +57,7 @@ lemma PlainIncompressibleWithin.mono
   unfold PlainIncompressibleWithin at h ⊢
   exact h.trans (by gcongr)
 
+/-- Plain equivalence composes, with the slacks adding up to a logarithmic term. -/
 theorem PlainEquivalentWithin.trans_log
     (V : Map) (hV : isOptimalConditional V) :
     ∃ c, ∀ x y z a b,
@@ -110,6 +118,7 @@ theorem PlainEquivalentWithin.trans_log
         have := logSlack_mono_right c harg₂
         omega))
 
+/-- Exact mutual information is the case of zero slack. -/
 lemma MutualInformationEq_iff_within_zero {V : Map} {x y : BitString} {m : Nat} :
     MutualInformationEq V x y m ↔ MutualInformationWithin V x y m 0 := by
   unfold MutualInformationEq MutualInformationWithin
@@ -120,6 +129,7 @@ lemma MutualInformationEq_iff_within_zero {V : Map} {x y : BitString} {m : Nat} 
   · intro h
     exact h.1.antisymm h.2
 
+/-- The mutual information statement is preserved when the slack is enlarged. -/
 lemma MutualInformationWithin.mono
     {V : Map} {x y : BitString} {m d d' : Nat}
     (h : MutualInformationWithin V x y m d) (hd : d ≤ d') :
@@ -130,6 +140,7 @@ lemma MutualInformationWithin.mono
   · exact h.1.trans (by gcongr)
   · exact h.2.trans (by gcongr)
 
+/-- Extractability is preserved when the slack is enlarged. -/
 lemma ExtractableCommonInformationWithin.mono
     {V : Map} {x y z : BitString} {m d d' : Nat}
     (h : ExtractableCommonInformationWithin V x y z m d)
@@ -141,6 +152,7 @@ lemma ExtractableCommonInformationWithin.mono
   · exact h.2.2.1.trans (by exact_mod_cast Nat.add_le_add_left hd m)
   · exact h.2.2.2.trans (by gcongr)
 
+/-- A raw shared description remains one when the slack is enlarged. -/
 lemma RawSharedDescriptionWithin.mono
     {V : Map} {x y z a p b : BitString}
     {kx ky kxy m d d' : Nat}
@@ -153,6 +165,7 @@ lemma RawSharedDescriptionWithin.mono
   exact ⟨hp, ha, hb, hpm.mono hd, hx.mono hd,
     hy.mono hd, hxy.mono hd⟩
 
+/-- An overlap representation remains one when the slack is enlarged. -/
 lemma OverlapRepresentationWithin.mono
     {V : Map} {x y u : BitString}
     {kx ky kxy d d' : Nat}
@@ -164,6 +177,7 @@ lemma OverlapRepresentationWithin.mono
   exact ⟨lx, ly, hu, hlx, hly, hxl.mono hd, hyl.mono hd,
     hx.mono hd, hy.mono hd, hxy.mono hd, huInc.mono hd⟩
 
+/-- Swapping the components of a pair changes its complexity by at most a constant. -/
 theorem pairPlainK_swap_le
     (V : Map) (hV : isOptimalConditional V) :
     ∃ c : Nat, ∀ x y,
@@ -175,11 +189,12 @@ theorem pairPlainK_swap_le
     pairCode_computable
   have hSwap : Computable swapPair :=
     hPairCode₂.comp decodeSecond_computable decodeFirst_computable
-  obtain ⟨c, hc⟩ := plainKMapLe V hV swapPair hSwap
+  obtain ⟨c, hc⟩ := plainK_map_le V hV swapPair hSwap
   refine ⟨c, fun x y => ?_⟩
   simpa [pairPlainK, swapPair, decodeFirst_pairCode,
     decodeSecond_pairCode] using hc (pairCode x y)
 
+/-- The common information region is upward closed in each of the three coordinates. -/
 theorem commonInformationRegion_upward_closed
     {V : Map} {x y : BitString} {s t : CommonInformationTriple} :
     s.1 ≤ t.1 → s.2.1 ≤ t.2.1 → s.2.2 ≤ t.2.2 →
@@ -269,6 +284,71 @@ theorem pairPlainK_twoStage_crude_values
         ring
   exact ⟨kpair, hkpair, by exact_mod_cast hBoundE⟩
 
+/-- Bounding `logSlack c (k + d + 1)` by `logSlack c (k + 1) + c * d + c`. -/
+private lemma logSlack_add_one_le (c k d : Nat) :
+    logSlack c (k + d + 1) ≤
+      logSlack c (k + 1) + c * d + c := by
+  calc
+    logSlack c (k + d + 1)
+        = logSlack c ((k + 1) + d) := by congr 1; omega
+    _ ≤ logSlack c (k + 1) + logSlack c d :=
+      logSlack_add_le c (k + 1) d
+    _ ≤ logSlack c (k + 1) + c * d + c := by
+      unfold logSlack
+      have := length_natBits_le d
+      nlinarith
+
+/-- Bounding folded `logSlack` using a linear bound on its argument. -/
+private lemma logSlack_fold_le {c cFold b p k d : Nat}
+    (hFold : ∀ n, logSlack c (3 * n + b) ≤ logSlack cFold n)
+    (hLinear : p + 1 ≤ 3 * (k + d + 1) + b) :
+    logSlack c (p + 1) ≤ logSlack cFold (k + d + 1) :=
+  (logSlack_mono_right c hLinear).trans (hFold (k + d + 1))
+
+/-- Reverse chain-rule bound in free variables: from `kxr ≤ d`, the length bound
+`kr ≤ k + d + cLen`, the two visible pair bounds and the swap bound `kPairXR ≤ kPairRX + cSwap`,
+the conditional complexity of `x` given `r` obeys
+`krx ≤ (2 + cUpper + cLower) * d + logSlack (cUpper + cLower) (k + 1) +
+(cLen + cSwap + cUpper + cLower)`: the two folded slacks merge into one at the summed constant,
+and the `d`-linear coefficient is `2 + cUpper + cLower`. -/
+private lemma nearLength_reverse_bound
+    (cLen cSwap cUpper cLower k d kr kxr krx kPairRX kPairXR : Nat)
+    (hkxr : kxr ≤ d)
+    (hkr : kr ≤ k + d + cLen)
+    (hUpper : kPairRX ≤ kr + kxr +
+      (logSlack cUpper (k + 1) + cUpper * d + cUpper))
+    (hLower : k + krx ≤ kPairXR +
+      (logSlack cLower (k + 1) + cLower * d + cLower))
+    (hSwap : kPairXR ≤ kPairRX + cSwap) :
+    krx ≤ (2 + cUpper + cLower) * d + logSlack (cUpper + cLower) (k + 1) +
+      (cLen + cSwap + cUpper + cLower) := by
+  generalize hL1 : logSlack cUpper (k + 1) = L1
+  generalize hL2 : logSlack cLower (k + 1) = L2
+  have h1 : k + krx ≤ (k + d + cLen) + d +
+      (L1 + cUpper * d + cUpper) + cSwap +
+      (L2 + cLower * d + cLower) := by omega
+  have hLog : L1 + L2 = logSlack (cUpper + cLower) (k + 1) := by
+    subst hL1 hL2
+    exact logSlack_add_const _ _ _
+  have hCoeff : (2 + cUpper + cLower) * d = 2 * d + cUpper * d + cLower * d := by ring
+  omega
+
+/-- Linear and logarithmic slack accumulation into `commonInformationSlack`. -/
+private lemma linear_log_slack_le (cLogs cConst cLinear k d : Nat) :
+    cLinear * d + logSlack cLogs (k + 1) + cConst ≤
+      commonInformationSlack (cLogs + cConst + cLinear) d (k + 1) := by
+  unfold commonInformationSlack
+  have hLog : logSlack cLogs (k + 1) + cConst ≤ logSlack (cLogs + cConst) (k + 1) :=
+    logSlack_add_nat_le cLogs cConst (k + 1)
+  have hLogMono : logSlack (cLogs + cConst) (k + 1) ≤
+      logSlack (cLogs + cConst + cLinear) (k + 1) :=
+    logSlack_mono_left (by omega) (k + 1)
+  have hLin : cLinear * d ≤ (cLogs + cConst + cLinear) * d :=
+    Nat.mul_le_mul_right d (by omega)
+  omega
+
+/-- A string of about the right length from which `x` is cheaply decodable is plain equivalent to
+`x` and itself incompressible. -/
 theorem nearLength_decodable_is_equivalent_incompressible
     (V : Map) (hV : isOptimalConditional V) :
     ∃ c, ∀ x r k d,
@@ -279,37 +359,27 @@ theorem nearLength_decodable_is_equivalent_incompressible
           (commonInformationSlack c d (k + 1)) ∧
       PlainIncompressibleWithin V r
           (commonInformationSlack c d (k + 1)) := by
-  obtain ⟨cCrude, hCrude⟩ :=
-    pairPlainK_twoStage_crude_values V hV
-  obtain ⟨cLen, hLen⟩ := plainKLeLength V hV
+  obtain ⟨cCrude, hCrude⟩ := pairPlainK_twoStage_crude_values V hV
+  obtain ⟨cLen, hLen⟩ := plainK_le_length V hV
   obtain ⟨cSwap, hSwap⟩ := pairPlainK_swap_le V hV
-  obtain ⟨cUpper, hUpper⟩ :=
-    pairPlainK_chain_upper_values V hV
-  obtain ⟨cLower, hLower⟩ :=
-    pairPlainK_chain_lower_values V hV
+  obtain ⟨cUpper, hUpper⟩ := pairPlainK_chain_upper_values V hV
+  obtain ⟨cLower, hLower⟩ := pairPlainK_chain_lower_values V hV
   obtain ⟨cRight, hRight⟩ := pairPlainK_right_le V hV
   let bUpper := 2 * cLen + cCrude
-  obtain ⟨cUpperFold, hUpperFold⟩ :=
-    logSlack_linear_bound cUpper 3 bUpper
+  obtain ⟨cUpperFold, hUpperFold⟩ := logSlack_linear_bound cUpper 3 bUpper
   let bLower := bUpper + cSwap
-  obtain ⟨cLowerFold, hLowerFold⟩ :=
-    logSlack_linear_bound cLower 3 bLower
+  obtain ⟨cLowerFold, hLowerFold⟩ := logSlack_linear_bound cLower 3 bLower
   let cLogs := cUpperFold + cLowerFold
-  let cConst :=
-    cLen + cSwap + cRight + cUpperFold + cLowerFold
+  let cConst := cLen + cSwap + cRight + cUpperFold + cLowerFold
   let cLinear := 2 + cUpperFold + cLowerFold
   let C := cLogs + cConst + cLinear
   refine ⟨C, fun x r k d hx hrx hDecode => ?_⟩
   unfold NatCloseWithin at hrx
   obtain ⟨kr, hkr⟩ := exists_plainComplexityValue V hV r
-  obtain ⟨kxr, hkxr⟩ :=
-    exists_plainConditionalComplexityValue V hV x r
-  obtain ⟨krx, hkrx⟩ :=
-    exists_plainConditionalComplexityValue V hV r x
-  obtain ⟨kPairRX, hkPairRX, hPairRXCrude⟩ :=
-    hCrude r x kr kxr hkr hkxr
-  obtain ⟨kPairXR, hkPairXR⟩ :=
-    exists_plainComplexityValue V hV (pairCode x r)
+  obtain ⟨kxr, hkxr⟩ := exists_plainConditionalComplexityValue V hV x r
+  obtain ⟨krx, hkrx⟩ := exists_plainConditionalComplexityValue V hV r x
+  obtain ⟨kPairRX, hkPairRX, hPairRXCrude⟩ := hCrude r x kr kxr hkr hkxr
+  obtain ⟨kPairXR, hkPairXR⟩ := exists_plainComplexityValue V hV (pairCode x r)
   have hkxrLe : kxr ≤ d := by
     have h := hDecode
     rw [hkxr] at h
@@ -318,93 +388,33 @@ theorem nearLength_decodable_is_equivalent_incompressible
     have h := hLen r
     rw [hkr] at h
     exact_mod_cast h
-  have hkrVisible : kr ≤ k + d + cLen := by
-    omega
-  have hPairRXLinear :
-      kPairRX + 1 ≤ 3 * (k + d + 1) + bUpper := by
-    calc
-      kPairRX + 1
-          ≤ (2 * kr + 1 + kxr + cCrude) + 1 :=
-        Nat.succ_le_succ hPairRXCrude
-      _ ≤ 3 * (k + d + 1) + bUpper := by
-        dsimp [bUpper]
-        omega
+  have hkrVisible : kr ≤ k + d + cLen := by omega
+  have hPairRXLinear : kPairRX + 1 ≤ 3 * (k + d + 1) + bUpper := by
+    dsimp [bUpper]; omega
   have hPairSwap : kPairXR ≤ kPairRX + cSwap := by
     have h := hSwap r x
-    change
-      plainK V (pairCode x r) ≤
-        plainK V (pairCode r x) + (cSwap : ENat) at h
+    change plainK V (pairCode x r) ≤ plainK V (pairCode r x) + (cSwap : ENat) at h
     rw [hkPairXR, hkPairRX] at h
     exact_mod_cast h
-  have hPairXRLinear :
-      kPairXR + 1 ≤ 3 * (k + d + 1) + bLower := by
-    calc
-      kPairXR + 1 ≤ (kPairRX + cSwap) + 1 :=
-        Nat.succ_le_succ hPairSwap
-      _ ≤ 3 * (k + d + 1) + bLower := by
-        dsimp [bLower]
-        omega
-  have hUpperLog :
-      logSlack cUpper (kPairRX + 1) ≤
-        logSlack cUpperFold (k + d + 1) := by
-    calc
-      logSlack cUpper (kPairRX + 1)
-          ≤ logSlack cUpper
-              (3 * (k + d + 1) + bUpper) :=
-        logSlack_mono_right cUpper hPairRXLinear
-      _ ≤ logSlack cUpperFold (k + d + 1) :=
-        hUpperFold (k + d + 1)
-  have hLowerLog :
-      logSlack cLower (kPairXR + 1) ≤
-        logSlack cLowerFold (k + d + 1) := by
-    calc
-      logSlack cLower (kPairXR + 1)
-          ≤ logSlack cLower
-              (3 * (k + d + 1) + bLower) :=
-        logSlack_mono_right cLower hPairXRLinear
-      _ ≤ logSlack cLowerFold (k + d + 1) :=
-        hLowerFold (k + d + 1)
+  have hPairXRLinear : kPairXR + 1 ≤ 3 * (k + d + 1) + bLower := by
+    dsimp [bLower]; omega
+  have hUpperLog : logSlack cUpper (kPairRX + 1) ≤ logSlack cUpperFold (k + d + 1) :=
+    logSlack_fold_le hUpperFold hPairRXLinear
+  have hLowerLog : logSlack cLower (kPairXR + 1) ≤ logSlack cLowerFold (k + d + 1) :=
+    logSlack_fold_le hLowerFold hPairXRLinear
   have hUpperVisible :
       logSlack cUpperFold (k + d + 1) ≤
-        logSlack cUpperFold (k + 1) +
-          cUpperFold * d + cUpperFold := by
-    calc
-      logSlack cUpperFold (k + d + 1)
-          = logSlack cUpperFold ((k + 1) + d) := by
-            congr 1
-            omega
-      _ ≤ logSlack cUpperFold (k + 1) +
-            logSlack cUpperFold d :=
-        logSlack_add_le cUpperFold (k + 1) d
-      _ ≤ logSlack cUpperFold (k + 1) +
-            cUpperFold * d + cUpperFold := by
-        unfold logSlack
-        have := length_natBits_le d
-        nlinarith
+        logSlack cUpperFold (k + 1) + cUpperFold * d + cUpperFold :=
+    logSlack_add_one_le cUpperFold k d
   have hLowerVisible :
       logSlack cLowerFold (k + d + 1) ≤
-        logSlack cLowerFold (k + 1) +
-          cLowerFold * d + cLowerFold := by
-    calc
-      logSlack cLowerFold (k + d + 1)
-          = logSlack cLowerFold ((k + 1) + d) := by
-            congr 1
-            omega
-      _ ≤ logSlack cLowerFold (k + 1) +
-            logSlack cLowerFold d :=
-        logSlack_add_le cLowerFold (k + 1) d
-      _ ≤ logSlack cLowerFold (k + 1) +
-            cLowerFold * d + cLowerFold := by
-        unfold logSlack
-        have := length_natBits_le d
-        nlinarith
+        logSlack cLowerFold (k + 1) + cLowerFold * d + cLowerFold :=
+    logSlack_add_one_le cLowerFold k d
   have hPairUpper :
-      kPairRX ≤
-        kr + kxr + logSlack cUpper (kPairRX + 1) :=
+      kPairRX ≤ kr + kxr + logSlack cUpper (kPairRX + 1) :=
     hUpper r x kr kxr kPairRX hkr hkxr hkPairRX
   have hPairLower :
-      k + krx ≤
-        kPairXR + logSlack cLower (kPairXR + 1) :=
+      k + krx ≤ kPairXR + logSlack cLower (kPairXR + 1) :=
     hLower x r k krx kPairXR hx hkrx hkPairXR
   have hProjection : k ≤ kPairRX + cRight := by
     have h := hRight r x
@@ -412,134 +422,46 @@ theorem nearLength_decodable_is_equivalent_incompressible
     exact_mod_cast h
   have hUpperBound :
       logSlack cUpper (kPairRX + 1) ≤
-        logSlack cUpperFold (k + 1) +
-          cUpperFold * d + cUpperFold :=
+        logSlack cUpperFold (k + 1) + cUpperFold * d + cUpperFold :=
     hUpperLog.trans hUpperVisible
   have hLowerBound :
       logSlack cLower (kPairXR + 1) ≤
-        logSlack cLowerFold (k + 1) +
-          cLowerFold * d + cLowerFold :=
+        logSlack cLowerFold (k + 1) + cLowerFold * d + cLowerFold :=
     hLowerLog.trans hLowerVisible
   have hPairUpperVisible :
       kPairRX ≤ kr + kxr +
-          (logSlack cUpperFold (k + 1) +
-            cUpperFold * d + cUpperFold) :=
+          (logSlack cUpperFold (k + 1) + cUpperFold * d + cUpperFold) :=
     hPairUpper.trans (Nat.add_le_add_left hUpperBound _)
   have hPairLowerVisible :
       k + krx ≤ kPairXR +
-          (logSlack cLowerFold (k + 1) +
-            cLowerFold * d + cLowerFold) :=
+          (logSlack cLowerFold (k + 1) + cLowerFold * d + cLowerFold) :=
     hPairLower.trans (Nat.add_le_add_left hLowerBound _)
   have hReverse :
-      krx ≤ cLinear * d +
-          logSlack cLogs (k + 1) + cConst := by
-    have hRaw :
-        krx ≤
-          (2 * d + cUpperFold * d + cLowerFold * d) +
-            (logSlack cUpperFold (k + 1) +
-              logSlack cLowerFold (k + 1)) +
-            (cLen + cSwap + cUpperFold + cLowerFold) := by
-      omega
-    have hCoefficient :
-        2 * d + cUpperFold * d + cLowerFold * d =
-          (2 + cUpperFold + cLowerFold) * d := by
-      ring
-    have hLog :
-        logSlack cUpperFold (k + 1) +
-            logSlack cLowerFold (k + 1) =
-          logSlack cLogs (k + 1) := by
-      dsimp [cLogs]
-      exact logSlack_add_const _ _ _
-    calc
-      krx ≤
-          (2 * d + cUpperFold * d + cLowerFold * d) +
-            (logSlack cUpperFold (k + 1) +
-              logSlack cLowerFold (k + 1)) +
-            (cLen + cSwap + cUpperFold + cLowerFold) :=
-        hRaw
-      _ ≤ cLinear * d +
-            logSlack cLogs (k + 1) + cConst := by
-        rw [hCoefficient, hLog]
-        dsimp [cLinear, cConst]
-        omega
+      krx ≤ cLinear * d + logSlack cLogs (k + 1) + cConst := by
+    have h := nearLength_reverse_bound cLen cSwap cUpperFold cLowerFold k d kr kxr krx
+      kPairRX kPairXR hkxrLe hkrVisible hPairUpperVisible hPairLowerVisible hPairSwap
+    simp only [cLinear, cLogs, cConst]
+    omega
   have hIncompressible :
-      r.length ≤ kr + (cLinear * d +
-          logSlack cLogs (k + 1) + cConst) := by
-    have hLogMono :
-        logSlack cUpperFold (k + 1) ≤
-          logSlack cLogs (k + 1) := by
-      apply logSlack_mono_left
-      dsimp [cLogs]
-      omega
-    have hRaw :
-        r.length ≤ kr +
-          ((2 * d + cUpperFold * d) +
-            logSlack cUpperFold (k + 1) +
-            (cRight + cUpperFold)) := by
-      omega
-    have hCoefficient :
-        2 * d + cUpperFold * d ≤ cLinear * d := by
-      have hEq :
-          2 * d + cUpperFold * d =
-            (2 + cUpperFold) * d := by ring
-      rw [hEq]
-      apply Nat.mul_le_mul_right
-      dsimp [cLinear]
-      omega
-    have hRest :
-        logSlack cUpperFold (k + 1) +
-            (cRight + cUpperFold) ≤
-          logSlack cLogs (k + 1) + cConst := by
-      exact Nat.add_le_add hLogMono (by
-        dsimp [cConst]
-        omega)
-    calc
-      r.length ≤ kr +
-          ((2 * d + cUpperFold * d) +
-            logSlack cUpperFold (k + 1) +
-            (cRight + cUpperFold)) :=
-        hRaw
-      _ ≤ kr + (cLinear * d +
-            logSlack cLogs (k + 1) + cConst) := by
-        apply Nat.add_le_add_left
-        simpa [Nat.add_assoc] using
-          Nat.add_le_add hCoefficient hRest
-  have hLogConst :
-      logSlack cLogs (k + 1) + cConst ≤
-        logSlack C (k + 1) := by
-    calc
-      logSlack cLogs (k + 1) + cConst
-          ≤ logSlack (cLogs + cConst) (k + 1) :=
-        logSlack_add_nat_le cLogs cConst (k + 1)
-      _ ≤ logSlack C (k + 1) := by
-        apply logSlack_mono_left
-        dsimp [C]
-        omega
-  have hLinear : cLinear * d ≤ C * d :=
-    Nat.mul_le_mul_right d (by
-      dsimp [C]
-      omega)
+      r.length ≤ kr + (cLinear * d + logSlack cLogs (k + 1) + cConst) := by
+    have hlen : r.length ≤ k + d := hrx.1
+    have hLogVisible : logSlack cUpperFold (k + 1) ≤ logSlack cLogs (k + 1) :=
+      logSlack_mono_left (by omega) _
+    have hLinear : 2 * d + cUpperFold * d ≤ cLinear * d := by
+      have hring : 2 * d + cUpperFold * d = (2 + cUpperFold) * d := by ring
+      rw [hring]
+      exact Nat.mul_le_mul_right d (by omega)
+    have hConst : cRight + cUpperFold ≤ cConst := by omega
+    omega
   have hFinalBudget :
       cLinear * d + logSlack cLogs (k + 1) + cConst ≤
-        commonInformationSlack C d (k + 1) := by
-    unfold commonInformationSlack
-    simpa [Nat.add_assoc] using
-      Nat.add_le_add hLinear hLogConst
-  have hdBudget :
-      d ≤ commonInformationSlack C d (k + 1) := by
-    have hOne : 1 ≤ cLinear := by
-      dsimp [cLinear]
-      omega
-    have hdLinear : d ≤ cLinear * d := by
-      calc
-        d = 1 * d := by simp
-        _ ≤ cLinear * d := Nat.mul_le_mul_right d hOne
-    calc
-      d ≤ cLinear * d := hdLinear
-      _ ≤ cLinear * d + logSlack cLogs (k + 1) + cConst :=
-        by omega
-      _ ≤ commonInformationSlack C d (k + 1) :=
-        hFinalBudget
+        commonInformationSlack C d (k + 1) :=
+    linear_log_slack_le cLogs cConst cLinear k d
+  have hdBudget : d ≤ commonInformationSlack C d (k + 1) := by
+    have h1 : d ≤ cLinear * d := by
+      calc d = 1 * d := by ring
+      _ ≤ cLinear * d := Nat.mul_le_mul_right d (by omega)
+    omega
   constructor
   · unfold PlainEquivalentWithin
     constructor
@@ -549,7 +471,6 @@ theorem nearLength_decodable_is_equivalent_incompressible
   · unfold PlainIncompressibleWithin
     rw [hkr]
     exact_mod_cast
-      hIncompressible.trans
-        (Nat.add_le_add_left hFinalBudget kr)
+      hIncompressible.trans (Nat.add_le_add_left hFinalBudget kr)
 
 end Kolmogorov

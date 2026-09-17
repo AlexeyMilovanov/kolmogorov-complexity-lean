@@ -63,7 +63,7 @@ theorem plainSetComplexity_of_t3VersionDecoder_eval
     plainK_partrec_map_le V hV
       (t3VersionDecoder c cDesc cSparse)
       (t3VersionDecoder_partrec c cDesc cSparse)
-  obtain ⟨cLiteral, hLiteral⟩ := plainKLeLength V hV
+  obtain ⟨cLiteral, hLiteral⟩ := plainK_le_length V hV
   refine ⟨cLiteral + cMap, ?_⟩
   intro p L hL hEval
   unfold plainSetComplexity
@@ -141,7 +141,12 @@ theorem plainSetComplexity_t3RunVersion_le_of_k_le_n
         unfold logSlack
         nlinarith [Nat.zero_le ((Nat.bits n).length)])
 
-/-- Compatibility form of the reachable-version bound in the interior range. -/
+/-- There is a constant `cComplexity` such that, for `epsilon ≤ k`, `delta ≤ k - epsilon` and
+`k + 4 ≤ n`, every version index below both the number of versions of
+`t1RunAt c cDesc cSparse n k epsilon (2 ^ (k - epsilon - delta)) t` and
+`2 ^ (epsilon + delta + logSlack cWidth n)` has a nonempty version set `L` whose plain set
+complexity satisfies `plainSetComplexity V L.toFinset hL ≤ epsilon + delta + logSlack
+cComplexity n`. -/
 theorem plainSetComplexity_t3RunVersion_le
     (V : Map) (hV : isOptimalConditional V)
     (c : Nat.Partrec.Code)
@@ -189,12 +194,15 @@ theorem plainSetComplexity_t3InitialCurrent_le
   let s := t1RunAt code 0 0 n k epsilon
     (2 ^ (k - epsilon - delta)) 0
   have hprefix : [t1InitialCurrent n k epsilon] <+: s.versions := by
-    simpa [s, t1InitialRunState, t1RunAt] using
-      (t1RunFromEvents_versions_prefix 0 n k epsilon
-        (2 ^ (k - epsilon - delta))
-        (t1InitialRunState n k epsilon)
-        (t1MarkingEventStage code n k epsilon
-          (epsilon + logSlack 0 n) 0))
+    have heq : s.versions = (t1RunFromEvents 0 n k epsilon (2 ^ (k - epsilon - delta))
+        { current := t1InitialCurrent n k epsilon, bMarked := [], cMarked := [], dMarked := [],
+          seenCPrime := [], seenCDouble := [], versions := [t1InitialCurrent n k epsilon],
+          external := 0, saturation := 0, totalC := 0, totalD := 0 }
+        (t1MarkingEventStage code n k epsilon (epsilon + logSlack 0 n) 0)).versions := by rfl
+    rw [heq]
+    exact (t1RunFromEvents_versions_prefix 0 n k epsilon (2 ^ (k - epsilon - delta))
+      (t1InitialRunState n k epsilon)
+      (t1MarkingEventStage code n k epsilon (epsilon + logSlack 0 n) 0))
   obtain ⟨tail, htail⟩ := hprefix
   have hseen : 0 < s.versions.length := by
     rw [← htail]
@@ -376,6 +384,8 @@ theorem t3RunAt_reachable_version_spec
   exact ⟨hLnodup, hLlength, hLsubset, hL,
     hcomplexityVersion⟩
 
+/-- In a run satisfying the core invariant at quota `2 ^ (k - epsilon - delta)`, all but at most
+`2 ^ (k - epsilon - delta)` elements of the current model escape the `C` and `D` marks. -/
 theorem t3_current_exceptional_of_core
     {cSparse n k epsilon delta : Nat} {events : List T1MarkEvent}
     {s : T1RunState}
@@ -393,6 +403,8 @@ theorem t3_current_exceptional_of_core
     simp only [Finset.mem_sdiff, bad, Finset.mem_inter, not_and] at hx
     exact hx.2 hx.1
 
+/-- Once the marking stage has stabilised at time `t`, the T3 run reaches a state whose current
+model avoids the marks, which is what the complexity estimate for T3 consumes. -/
 theorem t3_terminal_avoidance_of_core
     (V : Map) (_hV : isOptimalConditional V)
     (c : Nat.Partrec.Code) (hc : IsCodeFor c V)
@@ -458,7 +470,7 @@ theorem t3_terminal_avoidance_of_core
   · intro x hx
     have hx_A : x ∈ s.current.toFinset := (Finset.mem_sdiff.mp hx).1
     have hxlen : x.length = n :=
-      (memStringsOfLength n x).mp (hcore.1.2.2.1 hx_A)
+      (mem_stringsOfLength n x).mp (hcore.1.2.2.1 hx_A)
     have hhistory := hcore.2.1
     have hBEvent : ∀ code,
         T1MarkEvent.bSet code ∈ events →

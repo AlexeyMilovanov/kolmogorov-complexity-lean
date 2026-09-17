@@ -47,10 +47,12 @@ def wordFirst (w : List (Fin 4)) : BitString := w.map letterFirst
 /-- The second bit-string component of a four-letter word. -/
 def wordSecond (w : List (Fin 4)) : BitString := w.map letterSecond
 
+/-- Extracting the first component of a four-letter word preserves its length. -/
 @[simp]
 theorem length_wordFirst (w : List (Fin 4)) : (wordFirst w).length = w.length := by
   simp [wordFirst]
 
+/-- Extracting the second component of a four-letter word preserves its length. -/
 @[simp]
 theorem length_wordSecond (w : List (Fin 4)) : (wordSecond w).length = w.length := by
   simp [wordSecond]
@@ -100,6 +102,7 @@ components. -/
 def fourWordPairCode (w : List (Fin 4)) : BitString :=
   pairCode (wordFirst w) (wordSecond w)
 
+/-- The coding of four-letter words as pairs of bit strings is injective. -/
 theorem fourWordPairCode_injective : Function.Injective fourWordPairCode := by
   intro w w' h
   refine word_eq_of_components w w' ?_ ?_
