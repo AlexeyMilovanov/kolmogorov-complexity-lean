@@ -81,9 +81,9 @@ theorem condK_trans_visible_le
   obtain ⟨cD, hcD⟩ := hV.2 D hD
   refine ⟨cD + 1, fun x y z a b hxy hyz => ?_⟩
   obtain ⟨p, hpLength, hp⟩ :=
-    (condKLeIff V y x a).mp hxy
+    (condK_le_iff V y x a).mp hxy
   obtain ⟨q, hqLength, hq⟩ :=
-    (condKLeIff V z y b).mp hyz
+    (condK_le_iff V z y b).mp hyz
   change p.length ≤ a at hpLength
   change q.length ≤ b at hqLength
   have hDProd : produces D (pairCode p q) x z := by
@@ -108,17 +108,14 @@ theorem condK_trans_visible_le
     rw [← Nat.cast_add]
     exact_mod_cast hLength)
 
-/-- A three-block string can be described by a shortest plain program for its
-middle block, the two private blocks literally, and logarithmic split metadata.
-Unlike a bare subadditivity interface, the proof constructs the decoder that
-parses and runs the middle program. -/
-theorem plainK_threeBlock_le
+/-- Decompressor that reconstructs a three-block string from a middle program and private parts. -/
+private theorem plainK_threeBlock_decompressor_exists
     (V : Map) (hV : isOptimalConditional V) :
-    ∃ c : Nat, ∀ left middle right : BitString,
+    ∃ cD : Nat, ∀ left middle right p : BitString,
+      middle ∈ V (p, []) →
       plainK V (left ++ middle ++ right) ≤
-        plainK V middle +
-          ((left.length + right.length +
-            logSlack c ((left ++ middle ++ right).length + 1) : Nat) : ENat) := by
+        ((pairCode (Nat.bits left.length)
+          (pairCode (Nat.bits p.length) (left ++ p ++ right))).length : ENat) + (cD : ENat) := by
   let leftLength : BitString → Nat := fun q =>
     decodeBits (decodeFirst q)
   let middleLength : BitString → Nat := fun q =>
@@ -135,9 +132,9 @@ theorem plainK_threeBlock_le
     (V (middleProgram pr.1, [])).map fun decoded =>
       leftPart pr.1 ++ decoded ++ rightPart pr.1
   have hLeftLength : Computable leftLength :=
-    decodeBitsComputable.comp decodeFirst_computable
+    decodeBits_computable.comp decodeFirst_computable
   have hMiddleLength : Computable middleLength :=
-    decodeBitsComputable.comp
+    decodeBits_computable.comp
       (decodeFirst_computable.comp decodeSecond_computable)
   have hBody : Computable body :=
     decodeSecond_computable.comp decodeSecond_computable
@@ -170,13 +167,7 @@ theorem plainK_threeBlock_le
       (hRightPart.comp (Computable.fst.comp Computable.fst))
   have hD : isDecompressor D := Partrec.map hRun hOutput
   obtain ⟨cD, hcD⟩ := hV.2 D hD
-  obtain ⟨cLen, hLen⟩ := plainKLeLength V hV
-  let cMeta := cD + 6
-  obtain ⟨C, hFold⟩ := logSlack_linear_bound cMeta 1 cLen
-  refine ⟨C, fun left middle right => ?_⟩
-  obtain ⟨km, hkm⟩ :=
-    exists_plainComplexityValue V hV middle
-  obtain ⟨p, hp, hpLen⟩ := hkm.exists_program
+  refine ⟨cD, fun left middle right p hp => ?_⟩
   set prog : BitString :=
     pairCode (Nat.bits left.length)
       (pairCode (Nat.bits p.length) (left ++ p ++ right)) with hProg
@@ -205,23 +196,26 @@ theorem plainK_threeBlock_le
         leftPart prog ++ decoded ++ rightPart prog
     rw [hMiddleEval, hLeftEval, hRightEval]
     exact Part.mem_map (fun decoded => left ++ decoded ++ right) hp
-  have hDBound :
-      plainK V (left ++ middle ++ right) ≤
-        (prog.length : ENat) + (cD : ENat) := by
-    calc
-      plainK V (left ++ middle ++ right)
-          ≤ plainK D (left ++ middle ++ right) + (cD : ENat) :=
-        hcD (left ++ middle ++ right) []
-      _ ≤ (prog.length : ENat) + (cD : ENat) := by
-        gcongr
-        exact sInf_le ⟨prog, hDProd, rfl⟩
-  let N := (left ++ middle ++ right).length + 1
-  have hkmLength : km ≤ middle.length + cLen := by
-    have h := hLen middle
-    rw [hkm] at h
-    exact_mod_cast h
+  calc
+    plainK V (left ++ middle ++ right)
+        ≤ plainK D (left ++ middle ++ right) + (cD : ENat) :=
+      hcD (left ++ middle ++ right) []
+    _ ≤ (prog.length : ENat) + (cD : ENat) := by
+      gcongr
+      exact sInf_le ⟨prog, hDProd, rfl⟩
+
+/-- Length bound on the three-block program encoding in terms of `logSlack`. -/
+private theorem threeBlock_prog_length_le
+    (left middle right p : BitString) (cD cLen : Nat)
+    (hpLen : p.length ≤ middle.length + cLen) :
+    let prog := pairCode (Nat.bits left.length)
+      (pairCode (Nat.bits p.length) (left ++ p ++ right))
+    let N := (left ++ middle ++ right).length + 1
+    prog.length + cD ≤ p.length + left.length + right.length +
+      logSlack (cD + 6) (N + cLen) := by
+  intro prog N
+  set cMeta := cD + 6
   have hpVisible : p.length ≤ N + cLen := by
-    rw [hpLen]
     dsimp [N]
     simp only [List.length_append]
     omega
@@ -242,27 +236,51 @@ theorem plainK_threeBlock_le
         2 * (Nat.bits left.length).length +
         2 * (Nat.bits p.length).length +
         left.length + p.length + right.length + 2 := by
-    rw [hProg, length_pairCode, length_pairCode]
+    dsimp [prog]
+    rw [length_pairCode, length_pairCode]
     simp only [List.length_append]
     omega
-  have hMeta :
-      prog.length + cD ≤
-        p.length + left.length + right.length +
-          logSlack cMeta (N + cLen) := by
-    unfold logSlack
-    rw [hProgLength]
-    dsimp [cMeta]
-    nlinarith
-  have hFinal :
-      prog.length + cD ≤
-        p.length + left.length + right.length +
-          logSlack C N := by
-    have hFold' :
-        logSlack cMeta (N + cLen) ≤ logSlack C N := by
-      simpa using hFold N
-    exact hMeta.trans
-      (Nat.add_le_add_left hFold'
-        (p.length + left.length + right.length))
+  unfold logSlack
+  rw [hProgLength]
+  dsimp [cMeta]
+  nlinarith
+
+/-- A three-block string can be described by a shortest plain program for its
+middle block, the two private blocks literally, and logarithmic split metadata.
+Unlike a bare subadditivity interface, the proof constructs the decoder that
+parses and runs the middle program. -/
+theorem plainK_threeBlock_le
+    (V : Map) (hV : isOptimalConditional V) :
+    ∃ c : Nat, ∀ left middle right : BitString,
+      plainK V (left ++ middle ++ right) ≤
+        plainK V middle +
+          ((left.length + right.length +
+            logSlack c ((left ++ middle ++ right).length + 1) : Nat) : ENat) := by
+  obtain ⟨cD, hcD⟩ := plainK_threeBlock_decompressor_exists V hV
+  obtain ⟨cLen, hLen⟩ := plainK_le_length V hV
+  let cMeta := cD + 6
+  obtain ⟨C, hFold⟩ := logSlack_linear_bound cMeta 1 cLen
+  refine ⟨C, fun left middle right => ?_⟩
+  obtain ⟨km, hkm⟩ :=
+    exists_plainComplexityValue V hV middle
+  obtain ⟨p, hp, hpLen⟩ := hkm.exists_program
+  set prog : BitString :=
+    pairCode (Nat.bits left.length)
+      (pairCode (Nat.bits p.length) (left ++ p ++ right))
+  let N := (left ++ middle ++ right).length + 1
+  have hkmLength : km ≤ middle.length + cLen := by
+    have h := hLen middle
+    rw [hkm] at h
+    exact_mod_cast h
+  have hpLen' : p.length ≤ middle.length + cLen := by
+    rw [hpLen]
+    exact hkmLength
+  have hDBound : plainK V (left ++ middle ++ right) ≤ (prog.length : ENat) + (cD : ENat) :=
+    hcD left middle right p hp
+  have hMeta := threeBlock_prog_length_le left middle right p cD cLen hpLen'
+  have hFold' : logSlack cMeta (N + cLen) ≤ logSlack C N := by simpa using hFold N
+  have hFinal : prog.length + cD ≤ p.length + left.length + right.length + logSlack C N :=
+    hMeta.trans (Nat.add_le_add_left hFold' (p.length + left.length + right.length))
   calc
     plainK V (left ++ middle ++ right)
         ≤ (prog.length : ENat) + (cD : ENat) := hDBound
@@ -277,6 +295,132 @@ theorem plainK_threeBlock_le
       dsimp [N]
       push_cast
       ring
+
+/-- Arithmetic slack budget bounds for overlap extraction. -/
+private theorem commonInformationSlack_budgets
+    (cTrans cSlice cThree cLen cEmpty d kxy : Nat) :
+    let C := cTrans + cSlice + cThree + cLen + cEmpty + 10
+    let D := commonInformationSlack C d (kxy + 1)
+    (2 * d + logSlack cSlice (kxy + 1) + cTrans ≤ D) ∧
+    (3 * d + cLen ≤ D) ∧
+    (4 * d + logSlack cThree (kxy + 1) ≤ D) ∧
+    (cEmpty ≤ D) ∧
+    (cLen ≤ D) := by
+  intro C D
+  dsimp [D, C]
+  unfold commonInformationSlack logSlack
+  refine ⟨by nlinarith, by nlinarith, by nlinarith, by nlinarith, by nlinarith⟩
+
+/-- The two universal constants of the map `V`: the empty string is describable from any
+condition at cost `cEmpty`, and any string at cost its own length plus `cLen`. -/
+private def EmptyAndLengthBounds (V : Map) (cEmpty cLen : Nat) : Prop :=
+  (∀ w, condK V [] w ≤ (cEmpty : ENat)) ∧
+    ∀ w, plainK V w ≤ (w.length : ENat) + (cLen : ENat)
+
+/-- Extractable common information in the non-overlapping (gap) case. -/
+private theorem extractableCommonInformation_of_gap
+    (V : Map) (cTrans cSlice cThree cLen cEmpty d kxy m : Nat) (x y : BitString)
+    (hbounds : EmptyAndLengthBounds V cEmpty cLen)
+    (hmSmall : m ≤ 3 * d) :
+    ExtractableCommonInformationWithin V x y [] m
+      (commonInformationSlack (cTrans + cSlice + cThree + cLen + cEmpty + 10) d (kxy + 1)) := by
+  let C := cTrans + cSlice + cThree + cLen + cEmpty + 10
+  let D := commonInformationSlack C d (kxy + 1)
+  obtain ⟨hEmpty, hLen⟩ := hbounds
+  have hEmptyCondBudget : cEmpty ≤ D := by
+    dsimp [D, C]
+    unfold commonInformationSlack logSlack
+    nlinarith
+  have hEmptyPlainBudget : cLen ≤ D := by
+    dsimp [D, C]
+    unfold commonInformationSlack logSlack
+    nlinarith
+  refine ⟨?_, ?_, ?_, ?_⟩
+  · exact (hEmpty x).trans (by exact_mod_cast hEmptyCondBudget)
+  · exact (hEmpty y).trans (by exact_mod_cast hEmptyCondBudget)
+  · have h := hLen ([] : BitString)
+    simp only [List.length_nil, Nat.cast_zero, zero_add] at h
+    exact h.trans (by
+      exact_mod_cast
+        (cLen.le_add_left m).trans
+          (Nat.add_le_add_left hEmptyPlainBudget m))
+  · have hThreeDBudget : 3 * d ≤ D := by
+      dsimp [D, C]
+      unfold commonInformationSlack
+      nlinarith
+    have hmD : m ≤ D := hmSmall.trans hThreeDBudget
+    calc
+      (m : ENat) ≤ (D : ENat) := by exact_mod_cast hmD
+      _ ≤ plainK V [] + (D : ENat) := le_add_left le_rfl
+
+/-- Bounding the conditional complexity of the literal overlap from the prefix and suffix slices. -/
+private theorem literalOverlap_condK_slice_le
+    (V : Map) (cSlice : Nat)
+    (hSlice : ∀ (w : BitString) (i n : Nat),
+      i ≤ w.length → n ≤ w.length →
+      condK V (w.drop i |>.take n) w ≤ (logSlack cSlice (w.length + 1) : ENat))
+    {u : BitString} {lx ly kxy : Nat}
+    (hu : u.length = kxy) (hlx : lx ≤ kxy) (hly : ly ≤ kxy) (hov : kxy ≤ lx + ly) :
+    let z := literalOverlap u lx ly
+    condK V z (u.take lx) ≤ (logSlack cSlice (kxy + 1) : ENat) ∧
+    condK V z (u.drop (u.length - ly)) ≤ (logSlack cSlice (kxy + 1) : ENat) := by
+  intro z
+  let s := lx + ly - kxy
+  have hzLength : z.length = s := by
+    dsimp [z, s]
+    exact literalOverlap_length hu hlx hly hov
+  have hPrefixLength : (u.take lx).length = lx := by
+    rw [List.length_take, hu, Nat.min_eq_left hlx]
+  have hSuffixLength :
+      (u.drop (u.length - ly)).length = ly := by
+    rw [List.length_drop, hu]
+    omega
+  have hStartPrefix : kxy - ly ≤ (u.take lx).length := by
+    rw [hPrefixLength]
+    omega
+  have hsPrefix : s ≤ (u.take lx).length := by
+    rw [hPrefixLength]
+    dsimp [s]
+    omega
+  have hsSuffix : s ≤ (u.drop (u.length - ly)).length := by
+    rw [hSuffixLength]
+    dsimp [s]
+    omega
+  have hzPrefixSlice :
+      ((u.take lx).drop (kxy - ly)).take s = z := by
+    rw [← literalOverlap_eq_prefix_drop hu hlx hly hov]
+    exact (List.take_eq_self_iff z).mpr (by rw [hzLength])
+  have hzSuffixSlice :
+      ((u.drop (u.length - ly)).drop 0).take s = z := by
+    simp only [List.drop_zero]
+    dsimp [z, s]
+    simpa [hu] using
+      (literalOverlap_eq_suffix_take
+        (u := u) (lx := lx) (ly := ly) (kxy := kxy) hu).symm
+  have hSliceX :
+      condK V z (u.take lx) ≤
+        (logSlack cSlice (kxy + 1) : ENat) := by
+    have h :=
+      hSlice (u.take lx) (kxy - ly) s hStartPrefix hsPrefix
+    rw [hzPrefixSlice] at h
+    exact h.trans (by
+      exact_mod_cast
+        logSlack_mono_right cSlice (by
+          rw [hPrefixLength]
+          omega))
+  have hSliceY :
+      condK V z (u.drop (u.length - ly)) ≤
+        (logSlack cSlice (kxy + 1) : ENat) := by
+    have h :=
+      hSlice (u.drop (u.length - ly)) 0 s
+        (Nat.zero_le _) hsSuffix
+    rw [hzSuffixSlice] at h
+    exact h.trans (by
+      exact_mod_cast
+        logSlack_mono_right cSlice (by
+          rw [hSuffixLength]
+          omega))
+  exact ⟨hSliceX, hSliceY⟩
 
 /-- The reverse implication behind the overlap conjecture: a literal overlap
 representation supplies an extractable common string.  In the overlap case the
@@ -296,9 +440,9 @@ theorem overlapRepresentation_yields_extractableCommonInformation
   obtain ⟨cTrans, hTrans⟩ := condK_trans_visible_le V hV
   obtain ⟨cSlice, hSlice⟩ := condK_slice_le V hV
   obtain ⟨cThree, hThree⟩ := plainK_threeBlock_le V hV
-  obtain ⟨cLen, hLen⟩ := plainKLeLength V hV
+  obtain ⟨cLen, hLen⟩ := plainK_le_length V hV
   obtain ⟨cEmpty, hEmpty⟩ :=
-    condKComp V hV (fun _ : BitString => ([] : BitString))
+    condK_comp V hV (fun _ : BitString => ([] : BitString))
       (Computable.const [])
   let C := cTrans + cSlice + cThree + cLen + cEmpty + 10
   refine ⟨C, fun x y u kx ky kxy m d hx hy hxy hI hOverlap => ?_⟩
@@ -316,85 +460,16 @@ theorem overlapRepresentation_yields_extractableCommonInformation
     rw [pairPlainK, hxy, hx, hy] at h
     exact_mod_cast h
   let D := commonInformationSlack C d (kxy + 1)
-  have hCondBudget :
-      2 * d + logSlack cSlice (kxy + 1) + cTrans ≤ D := by
-    dsimp [D, C]
-    unfold commonInformationSlack logSlack
-    nlinarith
-  have hUpperBudget : 3 * d + cLen ≤ D := by
-    dsimp [D, C]
-    unfold commonInformationSlack logSlack
-    nlinarith
-  have hLowerBudget :
-      4 * d + logSlack cThree (kxy + 1) ≤ D := by
-    dsimp [D, C]
-    unfold commonInformationSlack logSlack
-    nlinarith
-  have hEmptyCondBudget : cEmpty ≤ D := by
-    dsimp [D, C]
-    unfold commonInformationSlack logSlack
-    nlinarith
-  have hEmptyPlainBudget : cLen ≤ D := by
-    dsimp [D, C]
-    unfold commonInformationSlack logSlack
-    nlinarith
+  obtain ⟨hCondBudget, hUpperBudget, hLowerBudget, _hEmptyCondBudget, _hEmptyPlainBudget⟩ :=
+    commonInformationSlack_budgets cTrans cSlice cThree cLen cEmpty d kxy
   by_cases hov : kxy ≤ lx + ly
   · let z := literalOverlap u lx ly
     let s := lx + ly - kxy
     have hzLength : z.length = s := by
       dsimp [z, s]
       exact literalOverlap_length hu hlx hly hov
-    have hPrefixLength : (u.take lx).length = lx := by
-      rw [List.length_take, hu, Nat.min_eq_left hlx]
-    have hSuffixLength :
-        (u.drop (u.length - ly)).length = ly := by
-      rw [List.length_drop, hu]
-      omega
-    have hStartPrefix : kxy - ly ≤ (u.take lx).length := by
-      rw [hPrefixLength]
-      omega
-    have hsPrefix : s ≤ (u.take lx).length := by
-      rw [hPrefixLength]
-      dsimp [s]
-      omega
-    have hsSuffix : s ≤ (u.drop (u.length - ly)).length := by
-      rw [hSuffixLength]
-      dsimp [s]
-      omega
-    have hzPrefixSlice :
-        ((u.take lx).drop (kxy - ly)).take s = z := by
-      rw [← literalOverlap_eq_prefix_drop hu hlx hly hov]
-      exact (List.take_eq_self_iff z).mpr (by rw [hzLength])
-    have hzSuffixSlice :
-        ((u.drop (u.length - ly)).drop 0).take s = z := by
-      simp only [List.drop_zero]
-      dsimp [z, s]
-      simpa [hu] using
-        (literalOverlap_eq_suffix_take
-          (u := u) (lx := lx) (ly := ly) (kxy := kxy) hu).symm
-    have hSliceX :
-        condK V z (u.take lx) ≤
-          (logSlack cSlice (kxy + 1) : ENat) := by
-      have h :=
-        hSlice (u.take lx) (kxy - ly) s hStartPrefix hsPrefix
-      rw [hzPrefixSlice] at h
-      exact h.trans (by
-        exact_mod_cast
-          logSlack_mono_right cSlice (by
-            rw [hPrefixLength]
-            omega))
-    have hSliceY :
-        condK V z (u.drop (u.length - ly)) ≤
-          (logSlack cSlice (kxy + 1) : ENat) := by
-      have h :=
-        hSlice (u.drop (u.length - ly)) 0 s
-          (Nat.zero_le _) hsSuffix
-      rw [hzSuffixSlice] at h
-      exact h.trans (by
-        exact_mod_cast
-          logSlack_mono_right cSlice (by
-            rw [hSuffixLength]
-            omega))
+    obtain ⟨hSliceX, hSliceY⟩ :=
+      literalOverlap_condK_slice_le V cSlice hSlice hu hlx hly hov
     have hzGivenX :
         condK V z x ≤
           ((2 * d + logSlack cSlice (kxy + 1) + cTrans : Nat) : ENat) :=
@@ -456,23 +531,8 @@ theorem overlapRepresentation_yields_extractableCommonInformation
   · have hmSmall : m ≤ 3 * d := by
       unfold NatCloseWithin at hlxClose hlyClose
       omega
-    refine ⟨[], ?_, ?_, ?_, ?_⟩
-    · exact (hEmpty x).trans (by exact_mod_cast hEmptyCondBudget)
-    · exact (hEmpty y).trans (by exact_mod_cast hEmptyCondBudget)
-    · have h := hLen ([] : BitString)
-      simp only [List.length_nil, Nat.cast_zero, zero_add] at h
-      exact h.trans (by
-        exact_mod_cast
-          (cLen.le_add_left m).trans
-            (Nat.add_le_add_left hEmptyPlainBudget m))
-    · have hThreeDBudget : 3 * d ≤ D := by
-        dsimp [D, C]
-        unfold commonInformationSlack
-        nlinarith
-      have hmD : m ≤ D := hmSmall.trans hThreeDBudget
-      calc
-        (m : ENat) ≤ (D : ENat) := by exact_mod_cast hmD
-        _ ≤ plainK V [] + (D : ENat) := le_add_left le_rfl
+    exact ⟨[], extractableCommonInformation_of_gap V cTrans cSlice cThree cLen cEmpty d kxy m x y
+      ⟨hEmpty, hLen⟩ hmSmall⟩
 
 /-- Source-facing logarithmic specialization of
 `overlapRepresentation_yields_extractableCommonInformation`, with a uniform

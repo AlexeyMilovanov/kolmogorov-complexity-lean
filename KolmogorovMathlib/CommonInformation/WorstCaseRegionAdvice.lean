@@ -5,21 +5,40 @@ import KolmogorovMathlib.CommonInformation.CompactAdvice
 import KolmogorovMathlib.CommonInformation.WorstCaseSelector
 import KolmogorovMathlib.CommonInformation.Counting
 
+/-!
+# The advice of the region selector
+
+The selector of the region construction is told how many objects the enumerations it scans
+will produce; that number is the advice, and it has to fit in few bits.
+`muchnikRegionAdviceCount` is the total and `muchnikRegionAdviceCount_lt` the bound:
+below `2 ^ (3n + 2)`, so `3n + 2` bits suffice.
+
+`muchnikRegionConditionalAdvice` counts the admissible conditional description pairs, bounded
+by `muchnikRegionConditionalAdvice_sum_lt` through `muchnikRegion_conditional_pow_lt`, and
+`muchnikRegion_advice_three_sum_lt` adds the three contributions.
+-/
+
 open ENat
 
 namespace Kolmogorov
 
+/-- The number of admissible conditional description pairs, which is the advice the region
+selector needs besides `n`. -/
 noncomputable def muchnikRegionConditionalAdvice
     (V : Map) (n : Nat) : Nat :=
   ((muchnikConditionalBounds n).map fun b =>
     (conditionalDescriptionPairsLe V b.1 b.2).card).sum
 
+/-- The total advice count fed to the region selector, combining the counts of the several
+enumerations it must exhaust. -/
 noncomputable def muchnikRegionAdviceCount
     (V : Map) (n : Nat) : Nat :=
   (compressibleWords V [] (2 * n - 1)).card +
   (compressibleWords V [] (3 * n - 1)).card +
   muchnikRegionConditionalAdvice V n
 
+/-- Below the margin, the number of admissible descriptions stays under `2^{3n}` even after the
+polynomial factor coming from the enumeration of thresholds. -/
 theorem muchnikRegion_conditional_pow_lt {n α δ : Nat}
     (h : α + δ + muchnikRegionMargin n < 3 * n) :
   (3 * n) ^ 2 * 2 ^ (α + δ + 2) < 2 ^ (3 * n) := by
@@ -50,6 +69,7 @@ theorem muchnikRegion_conditional_pow_lt {n α δ : Nat}
       apply Nat.pow_lt_pow_right (by norm_num)
       omega
 
+/-- The conditional advice count is below `2^{3n}`. -/
 theorem muchnikRegionConditionalAdvice_sum_lt
     (V : Map) {n : Nat} (hn : 0 < n) :
   muchnikRegionConditionalAdvice V n < 2 ^ (3 * n) := by
@@ -144,6 +164,7 @@ theorem muchnikRegionConditionalAdvice_sum_lt
         dsimp [r, s]
         omega
 
+/-- The three advice contributions add up to less than `2^{3n+2}`. -/
 theorem muchnikRegion_advice_three_sum_lt {n : Nat} (hn : 0 < n) :
   2 ^ (2 * n) + 2 ^ (3 * n) + 2 ^ (3 * n) < 2 ^ (3 * n + 2) := by
   have hPow : 2 ^ (2 * n) < 2 ^ (3 * n) :=
@@ -158,17 +179,18 @@ theorem muchnikRegion_advice_three_sum_lt {n : Nat} (hn : 0 < n) :
       norm_num
       ring
 
+/-- The total advice count is below `2^{3n+2}`, so it fits in `3n + 2` bits. -/
 theorem muchnikRegionAdviceCount_lt
     (V : Map) {n : Nat} (hn : 0 < n) :
   muchnikRegionAdviceCount V n < 2 ^ (3 * n + 2) := by
   have hMarginal :
       (compressibleWords V [] (2 * n - 1)).card < 2 ^ (2 * n) := by
-    have h := cardCompressibleWordsLt V [] (2 * n - 1)
+    have h := card_compressibleWordsLt V [] (2 * n - 1)
     have hExponent : 2 * n - 1 + 1 = 2 * n := by omega
     simpa only [hExponent] using h
   have hPair :
       (compressibleWords V [] (3 * n - 1)).card < 2 ^ (3 * n) := by
-    have h := cardCompressibleWordsLt V [] (3 * n - 1)
+    have h := card_compressibleWordsLt V [] (3 * n - 1)
     have hExponent : 3 * n - 1 + 1 = 3 * n := by omega
     simpa only [hExponent] using h
   have hConditional :

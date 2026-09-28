@@ -2,7 +2,7 @@ import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.StrongProfile
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.Properties
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.TotalMaps
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.MinimalModelBounds
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.StrongSufficientStatistic
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.StepWiseTotal
 -- `logSlack_add_logSlack_absorb` was relocated from `MinimalModelBounds` to
 -- `PropMinHereditary` in the accepted baseline; import it here so this restored
 -- descent file resolves that arithmetic lemma.
@@ -25,16 +25,23 @@ kernel-checked lemmas:
 * `lch_complexity_drop_of_gap`, `descent_mul_le_of_step`,
   `exists_lch_terminal_gap`, and `plainK_forward_gap_of_condK` — the descent
   and terminal-gap arithmetic;
+* `exists_lch_closing_index` — the abstract stopping index itself: the first round whose gap
+  is at most `s` is reached after at most `2 * f 0 / s` rounds, and the budget has not risen
+  there;
 * `lch_closing_condK` — the closing symmetry-of-information chain for
   `C(H | Ω_{C(H)})`.
 
-The dependent construction of the full `N = O(√n)` model sequence, application
-of the abstract stopping index to it, and the final uniform slack absorption remain.
+The dependent construction of the full `N = O(√n)` model sequence and the final uniform slack
+absorption remain; the stopping index that construction is stopped at is supplied here by
+`exists_lch_closing_index`.
 -/
 
 namespace Kolmogorov
 open Kolmogorov.CodedFiniteDistribution
 
+/-- For a normal string `x` in a model `A`, one round of the descent produces a strong model `H`
+containing `x` whose plain set complexity and log-cardinality both exceed those of `A` by at
+most `alpha`. -/
 theorem exists_strong_model_near_of_normal
     (V T : Map) (hV : isOptimalConditional V) :
     ∀ x A (hA : A.Nonempty) epsilon alpha,
@@ -48,7 +55,7 @@ theorem exists_strong_model_near_of_normal
         finiteSetLogCard H ≤ finiteSetLogCard A + alpha := by
   intro x A hA epsilon alpha hxA hnorm
   have H_not_top : plainSetComplexity V A hA ≠ ⊤ := by
-    obtain ⟨c, hc⟩ := plainKLeLength V hV
+    obtain ⟨c, hc⟩ := plainK_le_length V hV
     have hc' := hc (codedUniformOn A hA).code
     have h_ne : (programLength (codedUniformOn A hA).code : ENat) + c ≠ ⊤ := by
       rw [← Nat.cast_add]
@@ -140,6 +147,38 @@ theorem exists_lch_terminal_gap
     rw [Nat.mul_comm]
     exact Nat.lt_mul_div_succ (f 0) hd
   omega
+
+/-- **The first round with a small gap.**  Under the same descent hypothesis, the first index
+`N` whose gap `f N - g N` is at most `s` satisfies `N * s ≤ 2 * f 0` — each earlier round costs
+at least `s + 1 - alpha ≥ s / 2` of the initial budget — and `f` has not risen at `N`. -/
+theorem exists_lch_closing_index (f g : Nat → Nat) (s alpha : Nat)
+    (halpha : alpha * 2 < s) (hnext : ∀ i, f (i + 1) ≤ g i + alpha) :
+    ∃ N, f N - g N ≤ s ∧ N * s ≤ 2 * f 0 ∧ f N ≤ f 0 := by
+  obtain ⟨i0, _, hi0⟩ := exists_lch_terminal_gap f g s alpha halpha hnext
+  have hex : ∃ i, f i - g i ≤ s := ⟨i0, hi0⟩
+  have hstep_dec : ∀ m, m < Nat.find hex → f (m + 1) + (s + 1 - alpha) ≤ f m := by
+    intro m hm
+    have h1 := Nat.find_min hex hm
+    have h2 := hnext m
+    omega
+  have hNd : f (Nat.find hex) + Nat.find hex * (s + 1 - alpha) ≤ f 0 :=
+    descent_mul_le_of_step f (Nat.find hex) (s + 1 - alpha) hstep_dec
+  have hmono : ∀ j, j ≤ Nat.find hex → f j ≤ f 0 := by
+    intro j
+    induction j with
+    | zero => intro _; exact le_rfl
+    | succ j ih =>
+        intro hj
+        have h1 : f (j + 1) ≤ f j := by
+          have := hstep_dec j (by omega)
+          omega
+        exact h1.trans (ih (by omega))
+  refine ⟨Nat.find hex, Nat.find_spec hex, ?_, hmono _ le_rfl⟩
+  calc Nat.find hex * s ≤ Nat.find hex * (2 * (s + 1 - alpha)) := by
+        gcongr
+        omega
+    _ = 2 * (Nat.find hex * (s + 1 - alpha)) := by ring
+    _ ≤ 2 * f 0 := by omega
 
 /-- The easy direction of the plain-complexity gap used at the terminal LCH
 round.  A short program for `B` conditional on `A` bounds `C(B) - C(A)` with
@@ -234,19 +273,11 @@ theorem lch_closing_condK
       ring_nf
       omega
 
-/-- **One LCH descent round `Aᵢ → Bᵢ → Aᵢ₊₁`.**
-
-For a normal string `x` and any model `A ∋ x` of length `n`, standardization
-(`standardModel_package`) yields a standard block `B ∋ x` whose two-part
-parameters are no worse than those of `A`, which is simple given `A` and
-interchangeable with its own Omega code, and the normality step
-(`exists_strong_model_near_of_normal`) then yields a strong statistic `H ∋ x`
-with the profile coordinates shifted by at most `alpha`.  This is exactly one
-iteration of the source's descent loop, packaged for the eventual
-`N = O(√n)`-step induction of Lemma `lch`.
-
-The `q`-Omega interchange conclusion is retained so the eventual claim (3)
-`K(H | Ω_{K(H)}) = O(√n)` can be assembled with a consistent Omega code `q`. -/
+/-- One LCH descent round `A → B → H`: for a normal string `x` and any model `A ∋ x` of length
+`n` there are a standard block `B ∋ x` whose two-part parameters are no worse than those of `A`,
+which is simple given `A` and interchangeable with its own Omega code for the code `q`, and a
+strong statistic `H ∋ x` whose profile coordinates differ from those of `B` by at most `alpha`
+(SUV Lemma `lch`). -/
 theorem exists_descent_round
     (V T : Map) (hV : isOptimalConditional V)
     (q : Nat.Partrec.Code) (hq : IsCodeFor q V) :

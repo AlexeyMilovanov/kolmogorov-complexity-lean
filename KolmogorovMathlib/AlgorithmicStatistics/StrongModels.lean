@@ -2,7 +2,7 @@ import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.TotalComplexity
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.TotalMaps
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.ProgramList
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.TotalProgramGraph
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.TotalProgramGraphConservation
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.TotalGraphConservation
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.CanonicalImage
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.TotalReduction
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.PlainProfile
@@ -16,7 +16,7 @@ import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.JointRealization
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.MixedFamilyRun
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.MixedFamilyVersion
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.AnyCurve
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.ProfileOmpExactObstruction
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.ProfileOmpObstruction
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.LemmaOmpTight
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.Separation
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.SeparationCylinderTotal
@@ -30,7 +30,7 @@ import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.AddNoiseGain
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.Properties
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.DistributionProjection
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.ProjectionConservation
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.StochasticityTotalReduction
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.StochasticTotalReduction
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.UniformNoiseExtension
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.UniformNoiseProjection
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.AddNoise
@@ -48,9 +48,9 @@ import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.T1SparseSelector
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.T1MarkingStreams
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.T1MarkingRun
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.T1RunBounds
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.T1EffectiveRun
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.T1EffectiveRunSemantics
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.T1EffectiveRunCharging
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.T1Run
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.T1RunSemantics
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.T1RunCharging
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.T1VersionDecoder
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.T1RunComplexity
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.T1Core
@@ -60,8 +60,8 @@ import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.T3Boundary
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.T3RunComplexity
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.T3BoundaryReplay
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.T3Profile
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.StrongSufficientStatistic
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.StochasticWitnessPurification
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.StepWiseTotal
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.WitnessPurification
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.UpwardConditional
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.BudgetedStochasticity
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.AddNoiseStochasticity
@@ -77,17 +77,17 @@ import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.LemmaOmpBlockCountin
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.Lemma4Decoder
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.Lemma4Uniform
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.Lemma4
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.HereditaryAssembly
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.Hereditary
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.AddNoiseMultiplicity
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.BudgetedAddNoiseArith
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.ChargedHeavyNoiseCandidates
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.ChargedHeavyNoiseEnumeration
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.ChargedHeavyNoiseRank
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.ChargedHeavyNoiseComplexity
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.ChargedHeavyNoiseRawCharge
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.ChargedHeavyNoiseGain
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.BudgetedChargedHeavyNoiseGain
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.BudgetedChargedHeavyNoiseMultiplicity
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.ChargedHeavyCandidates
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.ChargedHeavyEnumeration
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.ChargedHeavyRank
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.ChargedHeavyComplexity
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.ChargedHeavyRawCharge
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.ChargedHeavyGain
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.BudgetedChargedHeavyGain
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.BudgetedChargedHeavyMany
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.AddNoiseProduct
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.RemAddNoise
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.PlainPairSymmetry
@@ -97,11 +97,11 @@ import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.BudgetedSectionThree
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.BudgetedTransportBetaLe
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.BudgetedCornerHardRegime
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.BudgetedCornerLengthScale
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.BudgetedCornerMinimalWitness
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.BudgetedCornerSharpProfile
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.BudgetedCornerMinimality
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.BudgetedCornerProfile
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.CubeStochasticity
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.RemAddNoiseHalfPlane
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.CondGainSplit
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.ConditionalGainSplit
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.PairStrongModels
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.NormalPair
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.BoundaryCurve
@@ -115,25 +115,68 @@ import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.ProfileCardinalityLo
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.SeparationWitness
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.ThmSeparation
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.BudgetedAddNoiseLowBranch
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.BudgetedAddNoiseIntrinsicSize
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.BudgetedAddNoiseLogCard
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.BudgetedAddNoisePolySize
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.BudgetedAddNoiseGainRegime
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.BudgetedPairProjectionTight
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.BudgetedAddNoiseSmallGain
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.BudgetedProjectionTight
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.PropUpwardFrontier
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.LemmaUpwardCruxReduction
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.LemmaUpwardCruxSlackRegime
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.LemmaUpwardCruxSlack
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.ParameterCharge
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.UpwardOrdinalNoiseTransport
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.UpwardOrdinalNoiseTransportPow
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.UpwardOrdinalNoiseRegimes
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.UpwardOrdinalTransport
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.UpwardOrdinalTransportPow
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.UpwardOrdinalRegimes
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.RadiusMonotone
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.CondRelativeInfo
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.RelativeInformation
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.PurityChargedArithmetic
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.UpwardOrdinalNoiseAlphaRegime
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.WidthChargedNoiseTransport
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.UpwardOrdinalNoiseWidthRegimes
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.UpwardOrdinalNoiseBetaRegime
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.UpwardOrdinalAlphaRegime
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.WidthChargedTransport
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.UpwardOrdinalWidthRegimes
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.UpwardOrdinalBetaRegime
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.FullCubeTransport
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.BudgetedPairProjectionMany
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.LemmaUpwardCruxRoundedRegime
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.BudgetedCornerSlackTradeoff
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.BudgetedProjectionMany
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.LemmaUpwardCruxRounding
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.BudgetedCornerTradeoff
+
+/-!
+# Strong models
+
+Models of a string that a *total* machine can produce, and the theory of VS40 §§4–7 built on
+them: strong description profiles, sufficient statistics, and the theorems that separate the
+strong picture from the plain one.  The group's parts:
+
+### Total machines and their models
+
+`TotalComplexity`, `TotalMaps`, `ProgramList`, `TotalProgramGraph`, `TotalGraphConservation`,
+`TotalReduction`, `CanonicalImage`, `StrongProfile`, `PlainProfile`, `FullCube`,
+`CylinderRealization`, `Partition`, `Properties`, `SufficientStatistic`.
+
+### Profiles and curves
+
+`CurveBridges`, `ProfileBridges`, `AnyCurve`, `BoundaryCurve`, `BoundaryRealization`,
+`AuxiliaryProfile`, `ProfileCardinality`, `ProfileEndpointBound`, `ProfileUppest`,
+`JointRealization`, `MixedFamilyRun`, `MixedFamilyVersion`, and the `LemmaOmp*` modules
+around the obstruction `ProfileOmpObstruction`.
+
+### Adding noise
+
+`AddNoise` and its parts (`AddNoiseTruncation`, `AddNoiseCandidates`, `AddNoiseEnumeration`,
+`AddNoiseRank`, `AddNoiseGain`, `AddNoiseFibres`, `AddNoiseProduct`,
+`AddNoiseMultiplicity`, `AddNoiseStochasticity`, `PropAddNoise`), the uniform-noise
+extensions `UniformNoiseExtension` and `UniformNoiseProjection`, the removal direction
+`RemAddNoise` and its neighbours, and the budgeted forms `Budgeted*`.
+
+### The charged-heavy argument
+
+`ChargedHeavyCandidates`, `ChargedHeavyEnumeration`, `ChargedHeavyRank`,
+`ChargedHeavyComplexity`, `ChargedHeavyRawCharge`, `ChargedHeavyGain`,
+`BudgetedChargedHeavyGain`, `BudgetedChargedHeavyMany`, `BudgetedProjectionMany`.
+
+### The theorems
+
+`Lemma4` with `Lemma4Decoder`, `Lemma4Support` and `Lemma4Uniform`; `Hereditary` and
+`PropMinHereditary`; `StepWisePlain` and `StepWiseTotal`; the `prop:upward` group
+(`UpwardOrdinal*`, `WidthChargedTransport`, `PropUpwardFrontier`, `LemmaUpwardCrux*`);
+`T1`, `T3` and their runs (`T1Run`, `T1MarkingRun`, `T3Boundary`, `T3BoundaryReplay`, …);
+and `ThmSeparation` with `SeparationWitness`, `ThmCardLog` and `ThmCardNormal`.
+-/

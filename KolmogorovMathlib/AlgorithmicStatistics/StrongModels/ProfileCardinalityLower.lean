@@ -21,6 +21,8 @@ theorem enat_sub_coe (kp mp : ℕ) :
     (kp : ENat) - (mp : ENat) = ((kp - mp : ℕ) : ENat) := by
   exact (ENat.coe_sub kp mp).symm
 
+/-- The cardinality theorem holds for optimal plain, prefix and total conditional machines: the
+statement `ThmCardStatement V T`. -/
 theorem thm_card
     (V U T : Map)
     (hV : isOptimalConditional V)

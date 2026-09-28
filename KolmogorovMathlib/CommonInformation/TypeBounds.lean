@@ -1,6 +1,6 @@
 import Mathlib.Data.Nat.Choose.Multinomial
-import Mathlib.Data.Finset.Sort
 import KolmogorovMathlib.CommonInformation.FixedHistogram
+import Mathlib.Data.Finset.Sort
 
 /-!
 # Method-of-types arithmetic core (SUV Chapter 11, §11.4)

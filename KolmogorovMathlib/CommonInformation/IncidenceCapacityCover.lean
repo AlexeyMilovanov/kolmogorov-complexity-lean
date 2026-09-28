@@ -5,6 +5,22 @@ import KolmogorovMathlib.CommonInformation.AffineIncidence
 import KolmogorovMathlib.Encoding.Tuples
 import KolmogorovMathlib.Restricted.EffectiveSelection
 
+/-!
+# A canonical rectangle cover of the incidence relation
+
+For the incidence example one needs not only that a cheap rectangle cover exists but that a
+particular one can be named effectively.  `incidenceCapacityRectangle` is that choice: the
+capacity-maximizing rectangle within given side budgets, selected as the first entry of
+`maximizingIncidenceRectangleCodes` (nonempty by
+`maximizingIncidenceRectangleCodes_nonempty`), with `incidenceCapacityRectangle_spec` and
+`incidenceCapacityRectangleCode_primrec` its specification and effectiveness.
+
+`concreteIncidenceRectangleFamilyCode` and `…Decode` code a finite family of rectangles, and
+`shearRectangleEdgeList`, `incidenceCapacityShearParams` and `incidenceCapacityShearCover`
+build the greedy shear cover out of translates of the chosen rectangle, again primitive
+recursively.
+-/
+
 namespace Kolmogorov
 
 open AffineIncidence
@@ -15,6 +31,7 @@ def maximizingIncidenceRectangleCodes (n b c : Nat) : Finset BitString :=
       (Rel.interedges Incident R.1 R.2).card = concreteIncidenceCapacity n b c).image
     (concreteIncidenceRectangleCode n)
 
+/-- Among the bounded incidence rectangles there is at least one of maximal edge count. -/
 lemma maximizingIncidenceRectangleCodes_nonempty (n b c : Nat) :
     (maximizingIncidenceRectangleCodes n b c).Nonempty := by
   obtain ⟨R, hb, hc, hcount⟩ := exists_capacity_rectangle n b c
@@ -34,6 +51,8 @@ def incidenceCapacityRectangle (n b c : Nat) :
     CombinatorialRectangle (Point (ConcreteField n)) (Line (ConcreteField n)) :=
   concreteIncidenceRectangleDecode n (incidenceCapacityRectangleCode n b c)
 
+/-- The chosen capacity rectangle satisfies the size bounds and attains the maximal number of
+incident edges among the bounded rectangles. -/
 lemma incidenceCapacityRectangle_spec (n b c : Nat) :
     let R := incidenceCapacityRectangle n b c
     R.1.card ≤ b ∧ R.2.card ≤ c ∧
@@ -45,6 +64,7 @@ lemma incidenceCapacityRectangle_spec (n b c : Nat) :
   rw [hrect]
   exact ⟨hb, hc, hcount⟩
 
+/-- The code of the capacity rectangle is primitive recursive in the parameters. -/
 lemma incidenceCapacityRectangleCode_primrec :
     Primrec (fun p : Nat × Nat × Nat =>
       incidenceCapacityRectangleCode p.1 p.2.1 p.2.2) :=
@@ -61,6 +81,7 @@ def concreteIncidenceRectangleFamilyDecode (n : Nat) (codes : List BitString) :
     Finset (CombinatorialRectangle (Point (ConcreteField n)) (Line (ConcreteField n))) :=
   (codes.map (concreteIncidenceRectangleDecode n)).toFinset
 
+/-- Decoding the code of a rectangle family returns that family. -/
 @[simp]
 lemma concreteIncidenceRectangleFamilyDecode_code (n : Nat)
     (𝓡 : Finset (CombinatorialRectangle (Point (ConcreteField n)) (Line (ConcreteField n)))) :
@@ -89,6 +110,8 @@ def incidenceCapacityShearParams (n b c : Nat) :
   computableGreedyCover T (concreteShearParams n)
     (shearRectangleEdgeList n R) K bound
 
+/-- The shear parameters of the cover are those produced by the greedy covering algorithm run on
+the sheared copies of the capacity rectangle. -/
 lemma incidenceCapacityShearParams_eq (n b c : Nat) :
     incidenceCapacityShearParams n b c =
       computableGreedyCover (concreteIncidentEdgeList n) (concreteShearParams n)
@@ -124,6 +147,8 @@ def incidenceCapacityShearCover (n b c : Nat) :
     Finset (CombinatorialRectangle (Point (ConcreteField n)) (Line (ConcreteField n))) :=
   concreteIncidenceRectangleFamilyDecode n (incidenceCapacityShearCoverCode n b c)
 
+/-- Every incident edge is covered by at least `capacity` many sheared copies of the capacity
+rectangle, which is what makes the greedy cover succeed. -/
 lemma shearMultiplicityList (n b c : Nat) :
     ∀ x ∈ (concreteIncidentEdgeList n).toFinset,
       concreteIncidenceCapacity n b c ≤
@@ -229,6 +254,7 @@ lemma exists_mem_computableGreedyCover {α β : Type} [DecidableEq α] [Decidabl
   rw [List.mem_filter, decide_eq_true_eq] at hg
   exact ⟨g, hg.1, hg.2⟩
 
+/-- The sheared copies selected by the greedy algorithm cover all incident edges. -/
 lemma incidenceCapacityShearCover_covers (n b c : Nat) :
     RectangleFamilyCovers Incident (incidenceCapacityShearCover n b c)
       (incidentEdges (ConcreteField n)) := by
@@ -319,6 +345,7 @@ lemma incidenceCapacityShearCover_member_spec (n b c : Nat)
             (incidenceCapacityRectangle n b c).1 (incidenceCapacityRectangle n b c).2
       _ = concreteIncidenceCapacity n b c := hbaseEdges
 
+/-- The greedy cover uses at most `|E| log |E| / capacity` rectangles. -/
 lemma incidenceCapacityShearCover_card_mul_le (n b c : Nat) :
     (incidenceCapacityShearCover n b c).card * concreteIncidenceCapacity n b c ≤
       (incidentEdges (ConcreteField n)).card *
@@ -407,7 +434,7 @@ private lemma singletonCoverCodes_primrec :
       (concreteIncidentEdgeCodePairs p.1).map fun pr =>
         pairCode (listCode [pr.1]) (listCode [pr.2])) :=
   Primrec.list_map incidenceEdgeCodePairs_primrec
-    (pairCode_primrec.comp
+    (CodedFiniteDistribution.pairCode_primrec.comp
       (listCode_primrec.comp (Primrec.list_cons.comp
         (Primrec.fst.comp Primrec.snd) (Primrec.const [])))
       (listCode_primrec.comp (Primrec.list_cons.comp
@@ -435,7 +462,7 @@ private lemma capacityShearBound_primrec :
         codeIncidenceCapacity p.1 p.2.1 p.2.2) :=
   Primrec.nat_div.comp
     (Primrec.nat_mul.comp concretePrime_cube_primrec
-      (Primrec.succ.comp (nat_log2_primrec.comp concretePrime_cube_primrec)))
+      (Primrec.succ.comp (NatLog.nat_log2_primrec.comp concretePrime_cube_primrec)))
     codeIncidenceCapacity_primrec
 
 private lemma capacityShearGreedy_primrec :
@@ -448,6 +475,7 @@ private lemma capacityShearGreedy_primrec :
   computableGreedyCover_primrec incidenceEdgeCodePairs_primrec capacityShearCodes_primrec
     capacityShearCover_primrec capacityShearBound_primrec
 
+/-- The code of the greedy shear cover is primitive recursive in the parameters. -/
 lemma incidenceCapacityShearCover_primrec :
     Primrec (fun p : Nat × Nat × Nat =>
       incidenceCapacityShearCoverCode p.1 p.2.1 p.2.2) := by

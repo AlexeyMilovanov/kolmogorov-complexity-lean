@@ -1,7 +1,7 @@
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.Basic
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.DescriptionShift
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.ImprovingDescriptions
-import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.DescriptionSnapshot
+import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.Snapshots
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.OptimalityDeficiency
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.ModelsToSets2
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.GapCounting
@@ -9,6 +9,7 @@ import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.SlackArith
 
 namespace Kolmogorov
 
+open CodedFiniteDistribution
 open scoped ENNReal
 
 /-!
@@ -21,7 +22,7 @@ API.  These gates are isolated interfaces; they can be discharged once the requi
 Levin-Gacs and improving-descriptions infrastructure has been connected.
 -/
 
-/-- Gate for Theorem 3 (`thm:improving-descriptions`): stochasticity via an
+/- Gate for Theorem 3 (`thm:improving-descriptions`): stochasticity via an
 arbitrary probability model can be converted to optimal stochasticity via a
 finite set with parameter-logarithmic slack.  It explicitly takes the corrected
 log-slack improving-descriptions propositions as inputs; the old constant-slack
@@ -29,6 +30,8 @@ statements are not part of this interface. -/
 -- The interface keeps both improving-description halves explicit.  Mathematically,
 -- description shifting can derive the size half `A → B` from the complexity half
 -- `A → C`; retaining both premises here keeps that packaging choice separate.
+/-- The hypothesis that, given both improving-description principles, stochasticity can be upgraded
+to optimal-set stochasticity at the cost of a logarithmic slack in the parameters. -/
 def StochasticToOptimalSetGate (U : Map) : Prop :=
   ImprovingDescriptionsSizeLogSlack U →
   ImprovingDescriptionsComplexityLogSlack U →
@@ -38,8 +41,11 @@ def StochasticToOptimalSetGate (U : Map) : Prop :=
       IsOptimalSetStochastic U x (alpha + logSlack c (n + alpha + beta))
           (beta + logSlack c (n + alpha + beta))
 
-/-- Theorem 3 exported under its intended name, gated by the real statement that
-later work must prove. -/
+/-- Under the two improving-description principles for `U` and the hypothesis
+`StochasticToOptimalSetGate U`, there is a constant `c` such that every `x` of length `n` that is
+`(alpha, beta)`-stochastic for `U` is optimal-set stochastic for `U` at the parameters
+`(alpha + logSlack c (n + alpha + beta), beta + logSlack c (n + alpha + beta))`.  The gate is
+taken as a hypothesis; it is not proved here. -/
 theorem optimal_set_of_stochastic (U : Map)
     (h_size : ImprovingDescriptionsSizeLogSlack U)
     (h_comp : ImprovingDescriptionsComplexityLogSlack U)
@@ -84,6 +90,8 @@ theorem exists_card_dyadic_bracket (A : Finset BitString) (hA : A.Nonempty) :
     mul_div_assoc, ENNReal.div_self (by norm_num) (by norm_num), mul_one]
   exact_mod_cast hle
 
+/-- A set containing `x`, of complexity at most `s` and size at most `2 ^ t` with
+`s + t ≤ KPPlain U x + beta`, witnesses set-optimality deficiency at most `beta`. -/
 theorem setOptimalityDeficiencyLe_of_profile {U : Map} {B : Finset BitString} {hB : B.Nonempty}
     {x : BitString} {s t beta : ℕ}
     (hx : x ∈ B)
@@ -109,6 +117,8 @@ theorem setOptimalityDeficiencyLe_of_profile {U : Map} {B : Finset BitString} {h
     · exact ENNReal.mul_ne_top (by norm_num) (by norm_num)
   · gcongr; norm_cast
 
+/-- There can be at most `i + 1` many `(i, j)`-descriptions counted by the multiplicity parameter.
+There can be at most `i + 1` many `(i, j)`-descriptions counted by the multiplicity parameter. -/
 theorem ManyIJDescriptions_k_le_i_add_one {U : Map} {x : BitString} {i j k : ℕ}
     (h : ManyIJDescriptions U x i j k) : k ≤ i + 1 := by
   unfold ManyIJDescriptions at h
@@ -163,11 +173,11 @@ def TightGapCountingBridge (U : Map) : Prop :=
 increase in the slack value. -/
 theorem logSlack_add_one (c : ℕ) (n : ℕ) :
     logSlack c (n + 1) ≤ logSlack c n + c * 2 := by
-  unfold logSlack
-  have : (Nat.bits (n + 1)).length ≤ (Nat.bits n).length + 2 := by
-    simpa using length_natBits_add_le n 1
-  nlinarith
+  have h := logSlack_add_le c n 1
+  have h1 : logSlack c 1 = c * 2 := by simp [logSlack]; ring
+  omega
 
+/-- From `2 ^ j / 2 ≤ 2 ^ k` one gets `j - 1 ≤ k`. -/
 theorem dyadic_bracket_lower_bound {j k : ℕ} (h : (2 : ℝ≥0∞) ^ j / 2 ≤ (2 : ℝ≥0∞) ^ k) : j - 1 ≤ k
     := by
   cases j
@@ -188,7 +198,9 @@ theorem dyadic_bracket_lower_bound {j k : ℕ} (h : (2 : ℝ≥0∞) ^ j / 2 ≤
     have h5 : 2 ^ j ≤ 2 ^ k := by exact_mod_cast h4
     exact (Nat.pow_le_pow_iff_right (by decide)).mp h5
 
-theorem setOptimalityCardBound {U : Map} {A : Finset BitString} {hA : A.Nonempty}
+/-- A set of complexity `i` with small set-optimality deficiency has a size exponent `j` with
+`j + i ≤ KPPlain U x + delta`. -/
+theorem setOptimality_card_bound {U : Map} {A : Finset BitString} {hA : A.Nonempty}
     {x : BitString} {delta i : ℕ} (hx : x ∈ A)
     (h_comp : setComplexity U A hA = (i : ENat))
     (h_opt : SetOptimalityDeficiencyLe U A hA x delta) :
@@ -313,7 +325,7 @@ theorem deficiencies_theorem (U : Map) (hU : IsOptimalPrefixConditional U)
   -- Re-bracket the size parameter to the tight dyadic value `j0` coming from the
   -- optimality-deficiency cardinality bound; this keeps the internal budget
   -- `n + i + j0` linearly controlled by the visible budget `n + delta + d`.
-  obtain ⟨j0, hj0_card, hj0_bound⟩ := setOptimalityCardBound hxA h_compA h_opt
+  obtain ⟨j0, hj0_card, hj0_bound⟩ := setOptimality_card_bound hxA h_compA h_opt
   rcases hc1 A hA x n delta d i j0 c_soi hn hxA h_compA hj0_card h_opt h_def hd with
     ⟨slack1, hslack1, h_many⟩
   set k := min (delta - d - slack1) i with hk_def
@@ -395,6 +407,9 @@ theorem setOptimalityDeficiencyLe_of_realizedSetOptimalityGap {U : Map}
   refine key.trans ?_
   gcongr
 
+/-- Given the improving-description and gap-counting hypotheses, a set realizing an optimality gap
+can be replaced by one whose complexity absorbs the gap and whose optimality deficiency drops to
+the randomness deficiency, up to a logarithmic slack. -/
 theorem deficiencies_theorem_tight (U : Map) (hU : IsOptimalPrefixConditional U)
     (_h_size : ImprovingDescriptionsSizeLogSlack U)
     (h_comp : ImprovingDescriptionsComplexityLogSlack U)
@@ -427,7 +442,7 @@ theorem deficiencies_theorem_tight (U : Map) (hU : IsOptimalPrefixConditional U)
   -- Re-bracket the size parameter to the tight dyadic value `j0` coming from the
   -- optimality-deficiency cardinality bound; this keeps the internal budget
   -- `n + i + j0` linearly controlled by the visible budget `n + delta + d`.
-  obtain ⟨j0, hj0_card, hj0_bound⟩ := setOptimalityCardBound hxA h_compA h_opt
+  obtain ⟨j0, hj0_card, hj0_bound⟩ := setOptimality_card_bound hxA h_compA h_opt
   rcases hc1 A hA x n delta d i j kx c_soi hn h_realized h_def hd with
     ⟨slack1, hslack1, h_many⟩
   set k := min (delta - d - slack1) i with hk_def
@@ -483,6 +498,8 @@ theorem deficiencies_theorem_tight_of_optimal (U : Map) (hU : IsOptimalPrefixCon
   have h_comp := exists_description_smaller_complexity_of_many_logSlack U hU
   have h_gap : TightGapCountingBridge U := manyIJDescriptions_of_realizedSetOptimalityGap U hU
   exact deficiencies_theorem_tight U hU h_size h_comp h_gap
+/-- An optimal-set-stochastic string has the point `(alpha + slack, j + slack)` in its description
+profile whenever `KPPlain U x + beta ≤ j + slack`. -/
 theorem isOptimalSetStochastic_imp_profile_of_large_sizeBudget (U : Map) (x : BitString)
     (alpha beta j slack : ℕ)
     (h_opt : IsOptimalSetStochastic U x alpha beta)

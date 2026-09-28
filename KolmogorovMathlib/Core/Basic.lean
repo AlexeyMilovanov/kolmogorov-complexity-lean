@@ -13,6 +13,19 @@ which is the prerequisite for the Invariance Theorem.
 
 namespace Kolmogorov
 
+/-! ### Finiteness of an `ℕ∞`-valued complexity -/
+
+/-- An `ℕ∞`-valued quantity bounded by a natural number is finite.  Every "the complexity
+with respect to an optimal machine is not `⊤`" lemma of the library is this lemma applied to
+that measure's `length + O(1)` bound. -/
+theorem ne_top_of_le_natCast {a : ℕ∞} {n : ℕ} (h : a ≤ (n : ℕ∞)) : a ≠ ⊤ :=
+  ne_top_of_le_ne_top (ENat.coe_ne_top n) h
+
+/-- The same finiteness bound with the additive constant written out, which is the shape the
+`length + c` bounds of the complexity measures have. -/
+theorem ne_top_of_le_natCast_add {a : ℕ∞} {n c : ℕ} (h : a ≤ (n : ℕ∞) + (c : ℕ∞)) : a ≠ ⊤ :=
+  ne_top_of_le_natCast (n := n + c) (by simpa using h)
+
 /-! ### Basic Types -/
 
 /-- A bit string is simply a list of booleans. -/

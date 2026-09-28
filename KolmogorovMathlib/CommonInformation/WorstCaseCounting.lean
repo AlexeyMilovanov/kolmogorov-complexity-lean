@@ -4,15 +4,33 @@ import KolmogorovMathlib.CommonInformation.Definitions
 import KolmogorovMathlib.CommonInformation.Counting
 import KolmogorovMathlib.CommonInformation.ConditionalCounting
 
+/-!
+# Counting for Muchnik's theorem
+
+`exists_muchnikSurvivor`: for every positive `n` there is a pair of strings that is
+incompressible in each coordinate and in the pair, and that no cheap common witness serves —
+an `IsMuchnikSurvivor`.  It follows from `muchnik_bad_card_sum_lt`, which shows the four bad
+families together number fewer than `2 ^ (4n + 4)` (the number of candidates), and
+`exists_mem_avoiding_four`.
+
+`muchnikThreshold n = ⌈11n/10⌉` is the threshold separating the achievable common-information
+triples from the excluded ones, with `muchnik_lt_threshold_iff` its arithmetic form.
+-/
+
 namespace Kolmogorov
 
+/-- The threshold `⌈11n/10⌉` separating the achievable from the excluded common information
+triples in Muchnik's example. -/
 def muchnikThreshold (n : Nat) : Nat := (11 * n + 9) / 10
 
+/-- Being below the Muchnik threshold is the inequality `10k < 11n`. -/
 theorem muchnik_lt_threshold_iff (k n : Nat) :
   k < muchnikThreshold n ↔ 10 * k < 11 * n := by
   unfold muchnikThreshold
   omega
 
+/-- A pair of strings of the right length that is incompressible in each coordinate and in the
+pair, and admits no common witness below the Muchnik thresholds. -/
 def IsMuchnikSurvivor
     (V : Map) (n : Nat) (x y : BitString) : Prop :=
   x.length = 2 * n + 2 ∧
@@ -23,6 +41,8 @@ def IsMuchnikSurvivor
   (muchnikThreshold n, muchnikThreshold n, muchnikThreshold n) ∉
     CommonInformationRegion V x y
 
+/-- Strict inequality below a positive natural number, in `ℕ∞`, is inequality below its
+predecessor. -/
 theorem enat_lt_coe_iff_le_pred
     {q : ENat} {t : Nat} (ht : 0 < t) :
   q < (t : ENat) ↔ q ≤ ((t - 1 : Nat) : ENat) := by
@@ -30,6 +50,7 @@ theorem enat_lt_coe_iff_le_pred
   rw [Nat.succ_sub_one, Nat.cast_succ]
   exact ENat.lt_add_one_iff (ENat.coe_ne_top s)
 
+/-- A set larger than the union of four given sets contains a point outside all of them. -/
 theorem exists_mem_avoiding_four
     {α : Type*}
     {U B₁ B₂ B₃ B₄ : Finset α}
@@ -56,6 +77,7 @@ theorem exists_mem_avoiding_four
   refine ⟨x, hxU, ?_⟩
   simpa [B] using hxB
 
+/-- The bad families of Muchnik's counting argument together number less than `2^{4n+4}`. -/
 theorem muchnik_bad_card_sum_lt
     {n : Nat} (hn : 0 < n) :
   2^(4*n+2) + 2^(4*n+2) + 2^(3*n) +
@@ -87,6 +109,7 @@ theorem muchnik_bad_card_sum_lt
         norm_num
         ring
 
+/-- For every positive `n` a Muchnik survivor pair exists. -/
 theorem exists_muchnikSurvivor
     (V : Map) {n : Nat} (hn : 0 < n) :
   ∃ x y, IsMuchnikSurvivor V n x y := by
@@ -132,7 +155,7 @@ theorem exists_muchnikSurvivor
   have hU : U.card = 2 ^ (4 * n + 4) := by
     dsimp [U, L]
     rw [Finset.card_product]
-    simp only [cardStringsOfLength]
+    simp only [card_stringsOfLength]
     rw [← pow_add]
     congr 1
     omega
@@ -148,7 +171,7 @@ theorem exists_muchnikSurvivor
     dsimp [U, L] at hpU
     change (x, y) ∈
       stringsOfLength (2 * n + 2) ×ˢ stringsOfLength (2 * n + 2) at hpU
-    rw [Finset.mem_product, memStringsOfLength, memStringsOfLength] at hpU
+    rw [Finset.mem_product, mem_stringsOfLength, mem_stringsOfLength] at hpU
     exact hpU
   have hxNotLow : ¬plainK V x ≤ ((2 * n - 1 : Nat) : ENat) := by
     intro hx

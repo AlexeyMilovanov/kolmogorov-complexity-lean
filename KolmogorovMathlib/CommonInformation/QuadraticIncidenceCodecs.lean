@@ -1,10 +1,10 @@
 import Mathlib.FieldTheory.Finite.GaloisField
 import KolmogorovMathlib.CommonInformation.IncidenceCodecs
 import KolmogorovMathlib.CommonInformation.IncidenceProfile
-import KolmogorovMathlib.CommonInformation.QuadraticIncidenceClasses
 import KolmogorovMathlib.CommonInformation.QuadraticClassDecoders
 import KolmogorovMathlib.CommonInformation.QuadraticEdgeDecoders
 import KolmogorovMathlib.CommonInformation.RegionEnvelopes
+import KolmogorovMathlib.CommonInformation.QuadraticIncidenceClasses
 import KolmogorovMathlib.CommonInformation.WorstCase
 
 /-!
@@ -42,6 +42,8 @@ noncomputable def quadraticIncidentPairCodes (m : Nat) : Finset BitString :=
   (incidentEdges (ConcreteQuadraticField m)).image fun e =>
     pairCode (quadraticPointCode m e.1) (quadraticLineCode m e.2)
 
+/-- The codes of incident pairs are exactly the pair codes of a point code and a line code of an
+incident edge of the quadratic incidence structure. -/
 lemma mem_quadraticIncidentPairCodes_iff (m : Nat) (w : BitString) :
     w ∈ quadraticIncidentPairCodes m ↔
       ∃ e : ↑(incidentEdges (ConcreteQuadraticField m)),
@@ -53,6 +55,7 @@ lemma mem_quadraticIncidentPairCodes_iff (m : Nat) (w : BitString) :
   · rintro ⟨⟨e, he⟩, rfl⟩
     exact ⟨e, he, rfl⟩
 
+/-- The quadratic incidence structure over the field of order `p` has `p^6` incident pairs. -/
 lemma quadraticIncidentPairCodes_card (m : Nat) :
     (quadraticIncidentPairCodes m).card = concretePrime m ^ 6 := by
   rw [quadraticIncidentPairCodes,
@@ -79,7 +82,7 @@ lemma exists_quadraticIncidentPairCode_not_compressible
     exact h w hw
   have hcard := Finset.card_le_card hsub
   rw [quadraticIncidentPairCodes_card] at hcard
-  have hcompress := cardCompressibleWordsLt V [] (6 * m - 1)
+  have hcompress := card_compressibleWordsLt V [] (6 * m - 1)
   have hexponent : 6 * m - 1 + 1 = 6 * m := by omega
   rw [hexponent] at hcompress
   have hprime : 2 ^ (6 * m) < concretePrime m ^ 6 := by
@@ -148,7 +151,7 @@ theorem quadraticIncidenceClass_region_witness
       let n := 2 * m
       commonInformationTripleInflate (logSlack c n) (3 * n / 2, n, n) ∈
         CommonInformationRegion V (quadraticPointCode m p) (quadraticLineCode m ell) := by
-  obtain ⟨cLength, hLength⟩ := plainKLeLength V hV
+  obtain ⟨cLength, hLength⟩ := plainK_le_length V hV
   obtain ⟨cPoint, hPoint⟩ := condK_quadraticPoint_given_classKey_le V hV
   obtain ⟨cLine, hLine⟩ := condK_quadraticLine_given_classKey_le V hV
   refine ⟨cLength + cPoint + cLine + 4, ?_⟩
@@ -177,6 +180,72 @@ theorem quadraticIncidenceClass_region_witness
         2 * m + logSlack (cLength + cPoint + cLine + 4) (2 * m) := by omega
     exact_mod_cast hnat
 
+/-- Two log-slacks at the same budget and an additive constant combine into a single log-slack
+whose constant is the sum. -/
+private lemma logSlack_add_three_le (d cFold K n : Nat) :
+    logSlack d n + logSlack cFold n + K ≤ logSlack (d + cFold + K) n := by
+  calc
+    logSlack d n + logSlack cFold n + K
+        = logSlack (d + cFold) n + K := by
+          rw [logSlack_add_const]
+    _ ≤ logSlack (d + cFold + K) n :=
+      logSlack_add_nat_le (d + cFold) K n
+
+/-- Upward closure for inflated common information triples under constant slack inequality. -/
+private lemma commonInformationRegion_inflate_of_le {V : Map} {x y : BitString}
+    {c1 c2 n : Nat} (hc : c1 ≤ c2)
+    (hBase : commonInformationTripleInflate (logSlack c1 n) (3 * n / 2, n, n) ∈
+      CommonInformationRegion V x y) :
+    commonInformationTripleInflate (logSlack c2 n) (3 * n / 2, n, n) ∈
+      CommonInformationRegion V x y := by
+  have hSlackMono : logSlack c1 n ≤ logSlack c2 n := logSlack_mono_left hc n
+  have hInflateMono := commonInformationTripleInflate_mono hSlackMono (3 * n / 2, n, n)
+  exact commonInformationRegion_upward_closed hInflateMono.1 hInflateMono.2.1
+    hInflateMono.2.2 hBase
+
+/-- The five codec upper bounds of the quadratic incidence setting: the two individual
+complexities are within `4 + cLength` of `2 * n`, the pair complexity within `6 + cCodec` of
+`3 * n`, and the two conditional complexities within `2 + cCodec` of `n`. -/
+private def QuadraticIncidenceUpperBounds
+    (n kx ky kxy kyxCond kxyCond cCodec cLength : Nat) : Prop :=
+  kx ≤ 2 * n + 4 + cLength ∧ ky ≤ 2 * n + 4 + cLength ∧
+    kxy ≤ 3 * n + 6 + cCodec ∧ kyxCond ≤ n + 2 + cCodec ∧ kxyCond ≤ n + 2 + cCodec
+
+/-- The two chain-rule bounds of the quadratic incidence setting, one for each order of the
+pair, with the chain slack `logSlack cChain`. -/
+private def QuadraticIncidenceChainBounds
+    (kx ky kxy kyxCond kxyCond kSwap cChain : Nat) : Prop :=
+  kxy ≤ kx + kyxCond + logSlack cChain (kxy + 1) ∧
+    kSwap ≤ ky + kxyCond + logSlack cChain (kSwap + 1)
+
+/-- Upper and lower closeness bounds for individual and pair complexities in the quadratic
+incidence setting. -/
+private lemma quadratic_incidence_complexity_bounds
+    (n kx ky kxy kyxCond kxyCond kSwap cCodec cLength cChain cSwap cFold d K : Nat)
+    (hK : cLength + cCodec + cSwap + 10 ≤ K)
+    (hFold : ∀ n, logSlack cChain (3 * n + (cCodec + cSwap + 7)) ≤ logSlack cFold n)
+    (hUpper : QuadraticIncidenceUpperBounds n kx ky kxy kyxCond kxyCond cCodec cLength)
+    (hSwapClose : NatCloseWithin kxy kSwap cSwap)
+    (hChain : QuadraticIncidenceChainBounds kx ky kxy kyxCond kxyCond kSwap cChain)
+    (hHighN : 3 * n ≤ kxy + logSlack d n) :
+    NatCloseWithin kx (2 * n) (logSlack (d + cFold + K) n) ∧
+    NatCloseWithin ky (2 * n) (logSlack (d + cFold + K) n) ∧
+    NatCloseWithin kxy (3 * n) (logSlack (d + cFold + K) n) := by
+  obtain ⟨hkxUpper, hkyUpper, hkxyUpper, hyxCondUpper, hxyCondUpper⟩ := hUpper
+  obtain ⟨hChainXY, hChainYX⟩ := hChain
+  have hkxySwap : kxy ≤ kSwap + cSwap := hSwapClose.1
+  have hSwapKxy : kSwap ≤ kxy + cSwap := hSwapClose.2
+  have hkxyArg : kxy + 1 ≤ 3 * n + (cCodec + cSwap + 7) := by omega
+  have hkSwapArg : kSwap + 1 ≤ 3 * n + (cCodec + cSwap + 7) := by omega
+  have hLogXY : logSlack cChain (kxy + 1) ≤ logSlack cFold n :=
+    (logSlack_mono_right cChain hkxyArg).trans (hFold n)
+  have hLogYX : logSlack cChain (kSwap + 1) ≤ logSlack cFold n :=
+    (logSlack_mono_right cChain hkSwapArg).trans (hFold n)
+  have hBudget : logSlack d n + logSlack cFold n + K ≤ logSlack (d + cFold + K) n :=
+    logSlack_add_three_le d cFold K n
+  unfold NatCloseWithin
+  exact ⟨⟨by omega, by omega⟩, ⟨by omega, by omega⟩, ⟨by omega, by omega⟩⟩
+
 /--
 Exercise 311:
 By considering the incidence graph over the quadratic extension `GF(q^2)`,
@@ -186,7 +255,7 @@ common-information region contains the point `(1.5n, n, n)` to logarithmic
 precision.
 Here, `n = 2m` where `m` is the parameter of the base field `GF(q)`.
 -/
-theorem exercise_311_region_witness
+theorem quadratic_incidence_region_witness
     (V : Map) (hV : isOptimalConditional V) :
     ∀ d, ∃ C, ∀ m (p : Point (ConcreteQuadraticField m))
       (ell : Line (ConcreteQuadraticField m)) kxy,
@@ -211,7 +280,7 @@ theorem exercise_311_region_witness
   by
     obtain ⟨cCodec, hCodec⟩ := quadraticIncident_coding_bounds V hV
     obtain ⟨cRegion, hRegion⟩ := quadraticIncidenceClass_region_witness V hV
-    obtain ⟨cLength, hLength⟩ := plainKLeLength V hV
+    obtain ⟨cLength, hLength⟩ := plainK_le_length V hV
     obtain ⟨cChain, hChain⟩ := pairPlainK_chain_upper_values V hV
     obtain ⟨cSwap, hSwap⟩ := pairPlainK_swap_values_close V hV
     obtain ⟨cFold, hFold⟩ :=
@@ -283,69 +352,31 @@ theorem exercise_311_region_witness
       omega
     have hSwapClose : NatCloseWithin kxy kSwap cSwap :=
       hSwap x y kxy kSwap hxy hkSwap
-    have hkxySwap : kxy ≤ kSwap + cSwap := hSwapClose.1
-    have hSwapKxy : kSwap ≤ kxy + cSwap := hSwapClose.2
-    have hChainXY :
-        kxy ≤ kx + kyxCond + logSlack cChain (kxy + 1) :=
+    have hChainXY : kxy ≤ kx + kyxCond + logSlack cChain (kxy + 1) :=
       hChain x y kx kyxCond kxy hx hyxCond hxy
-    have hChainYX :
-        kSwap ≤ ky + kxyCond + logSlack cChain (kSwap + 1) :=
+    have hChainYX : kSwap ≤ ky + kxyCond + logSlack cChain (kSwap + 1) :=
       hChain y x ky kxyCond kSwap hy hxyCond hkSwap
-    have hkxyArg : kxy + 1 ≤ 3 * n + (cCodec + cSwap + 7) := by
-      omega
-    have hkSwapArg : kSwap + 1 ≤ 3 * n + (cCodec + cSwap + 7) := by
-      omega
-    have hLogXY : logSlack cChain (kxy + 1) ≤ logSlack cFold n :=
-      (logSlack_mono_right cChain hkxyArg).trans (hFold n)
-    have hLogYX : logSlack cChain (kSwap + 1) ≤ logSlack cFold n :=
-      (logSlack_mono_right cChain hkSwapArg).trans (hFold n)
-    have hBudget :
-        logSlack d n + logSlack cFold n + K ≤ logSlack D n := by
-      calc
-        logSlack d n + logSlack cFold n + K
-            = logSlack (d + cFold) n + K := by
-              rw [logSlack_add_const]
-        _ ≤ logSlack (d + cFold + K) n :=
-          logSlack_add_nat_le (d + cFold) K n
-        _ = logSlack D n := by rfl
-    have hxCloseD : NatCloseWithin kx (2 * n) (logSlack D n) := by
-      unfold NatCloseWithin
-      constructor <;> omega
-    have hyCloseD : NatCloseWithin ky (2 * n) (logSlack D n) := by
-      unfold NatCloseWithin
-      constructor <;> omega
-    have hxyCloseD : NatCloseWithin kxy (3 * n) (logSlack D n) := by
-      unfold NatCloseWithin
-      constructor <;> omega
+    have ⟨hxCloseD, hyCloseD, hxyCloseD⟩ :=
+      quadratic_incidence_complexity_bounds n kx ky kxy kyxCond kxyCond kSwap cCodec cLength
+        cChain cSwap cFold d K (by omega) hFold
+        ⟨hkxUpper, hkyUpper, hkxyUpper, hyxCondUpper, hxyCondUpper⟩ hSwapClose
+        ⟨hChainXY, hChainYX⟩ hHighN
     have hMID : MutualInformationWithin V x y n (3 * logSlack D n) :=
       mutualInformationWithin_of_close_plain_values V hx hy hxy
         hxCloseD hyCloseD hxyCloseD (by omega)
-    have hDC : D ≤ C := by
-      dsimp only [C]
-      omega
-    have hSlackMono : logSlack D n ≤ logSlack C n :=
-      logSlack_mono_left hDC n
+    have hSlackMono : logSlack D n ≤ logSlack C n := logSlack_mono_left (by omega) n
     have hMI : MutualInformationWithin V x y n (logSlack C n) := by
-      have hEq : 3 * logSlack D n = logSlack C n := by
-        dsimp only [C]
-        exact logSlack_nsmul 3 D n
+      have hEq : 3 * logSlack D n = logSlack C n := logSlack_nsmul 3 D n
       rw [← hEq]
       exact hMID
-    have hcRegionC : cRegion ≤ C := by
-      dsimp only [C, D, K]
-      omega
-    have hRegionSlack : logSlack cRegion n ≤ logSlack C n :=
-      logSlack_mono_left hcRegionC n
     have hRegionBase :
         commonInformationTripleInflate (logSlack cRegion n) (3 * n / 2, n, n) ∈
           CommonInformationRegion V x y := by
       simpa only [n, x, y] using hRegion m p ell hinc
-    have hInflateMono := commonInformationTripleInflate_mono hRegionSlack (3 * n / 2, n, n)
     have hRegionFinal :
         commonInformationTripleInflate (logSlack C n) (3 * n / 2, n, n) ∈
           CommonInformationRegion V x y :=
-      commonInformationRegion_upward_closed hInflateMono.1 hInflateMono.2.1
-        hInflateMono.2.2 hRegionBase
+      commonInformationRegion_inflate_of_le (by omega) hRegionBase
     refine ⟨kx, ky, quadraticPointCode_length m p, quadraticLineCode_length m ell,
       hxy, hx, hy, hxyCloseD.mono hSlackMono, hxCloseD.mono hSlackMono,
       hyCloseD.mono hSlackMono, hMI, ?_⟩

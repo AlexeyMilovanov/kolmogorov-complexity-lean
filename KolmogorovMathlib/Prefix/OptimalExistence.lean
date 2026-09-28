@@ -269,12 +269,6 @@ private theorem primrec_decide_eq {α} [Primcodable α] [DecidableEq α] :
   obtain ⟨inst, h⟩ := (Primrec.eq : PrimrecRel (@Eq α))
   exact h.of_eq (fun p => by congr 1)
 
-/-- Strict order on `ℕ` is a primitive recursive predicate (as a `Bool`). -/
-private theorem primrec_decide_lt :
-    Primrec (fun p : ℕ × ℕ => decide (p.1 < p.2)) := by
-  obtain ⟨inst, h⟩ := (Primrec.nat_lt : PrimrecRel (· < ·))
-  exact h.of_eq (fun p => by congr 1)
-
 /-- `a` is a prefix of `b` iff appending the dropped tail of `b` reconstructs `b`. -/
 theorem prefix_iff_append_drop (a b : BitString) :
     a <+: b ↔ a ++ b.drop a.length = b := by
@@ -282,12 +276,15 @@ theorem prefix_iff_append_drop (a b : BitString) :
   · rintro ⟨t, rfl⟩; simp
   · intro h; exact ⟨b.drop a.length, h⟩
 
-/-- `List.drop` on bitstrings is primitive recursive in both arguments. -/
-private theorem primrec_bitString_drop :
+/-- Dropping a prefix of given length from a bit string is primitive recursive. -/
+theorem list_drop_primrec :
     Primrec₂ (fun (l : BitString) (n : ℕ) => l.drop n) := by
   have h : (fun (l : BitString) (n : ℕ) => l.drop n)
       = fun l n => Nat.rec l (fun _ ih => ih.tail) n := by
-    funext l n; induction n with | zero => rfl | succ n ih => rw [← List.tail_drop, ih]
+    funext l n
+    induction n with
+    | zero => rfl
+    | succ n ih => rw [← List.tail_drop, ih]
   rw [h]
   exact Primrec.nat_rec' Primrec.snd Primrec.fst
     (Primrec.list_tail.comp (Primrec.snd.comp Primrec.snd)).to₂
@@ -298,7 +295,7 @@ theorem decide_prefix_primrec :
   have happ : Primrec (fun ab : BitString × BitString =>
       ((ab.1 ++ ab.2.drop ab.1.length, ab.2) : BitString × BitString)) :=
     (Primrec.list_append.comp Primrec.fst
-      (primrec_bitString_drop.comp Primrec.snd (Primrec.list_length.comp Primrec.fst))).pair
+      (list_drop_primrec.comp Primrec.snd (Primrec.list_length.comp Primrec.fst))).pair
       Primrec.snd
   exact (primrec_decide_eq.comp happ).of_eq
     (fun ab => decide_eq_decide.mpr (prefix_iff_append_drop ab.1 ab.2).symm)
@@ -306,7 +303,7 @@ theorem decide_prefix_primrec :
 /-- Decoding a natural number to a bitstring (defaulting to `[]`). -/
 def decodeGetD (r : ℕ) : BitString := (Encodable.decode r : Option BitString).getD []
 
-theorem decodeGetD_computable : Computable decodeGetD := by
+private theorem decodeGetD_computable : Computable decodeGetD := by
   have h : decodeGetD =
       fun r => Option.casesOn (Encodable.decode r : Option BitString) ([] : BitString) id := by
     funext r; unfold decodeGetD; cases (Encodable.decode r : Option BitString) <;> rfl
@@ -317,12 +314,12 @@ theorem decodeGetD_computable : Computable decodeGetD := by
 def goodBool (q p : BitString) : Bool :=
   !((!decide (q = p)) && (decide (q <+: p) || decide (p <+: q)))
 
-theorem goodBool_eq (q p : BitString) :
+private theorem goodBool_eq (q p : BitString) :
     goodBool q p = decide ¬ (q ≠ p ∧ (q <+: p ∨ p <+: q)) := by
   unfold goodBool
   by_cases h1 : q = p <;> by_cases h2 : q <+: p <;> by_cases h3 : p <+: q <;> simp_all
 
-theorem goodBool_primrec : Primrec₂ goodBool := by
+private theorem goodBool_primrec : Primrec₂ goodBool := by
   unfold goodBool
   have hdeq : Primrec (fun s : BitString × BitString => decide (s.1 = s.2)) := primrec_decide_eq
   have hdqp : Primrec (fun s : BitString × BitString => decide (s.1 <+: s.2)) :=
@@ -476,7 +473,7 @@ def enumeratedPrefixMachine (i : ℕ) : Map :=
   | some c => prefixFiltered c
   | none => fun _ => Part.none
 
-theorem enumeratedPrefixMachine_isPrefixDecompressor (i : ℕ) :
+private theorem enumeratedPrefixMachine_isPrefixDecompressor (i : ℕ) :
     IsPrefixDecompressor (enumeratedPrefixMachine i) := by
   unfold enumeratedPrefixMachine
   cases (Encodable.decode i : Option Code) with
@@ -487,9 +484,9 @@ theorem enumeratedPrefixMachine_isPrefixDecompressor (i : ℕ) :
   | some c =>
     exact prefixFiltered_isPrefixDecompressor c
 
-theorem exists_enumeratedPrefixMachine_eq {M : Map} (hM : IsPrefixDecompressor M) :
+private theorem exists_enumeratedPrefixMachine_eq {M : Map} (hM : IsPrefixDecompressor M) :
     ∃ i, enumeratedPrefixMachine i = M := by
-  obtain ⟨c, hc⟩ := existsCodeOfIsDecompressor M hM.isDecompressor
+  obtain ⟨c, hc⟩ := exists_code_of_isDecompressor M hM.isDecompressor
   use Encodable.encode c
   unfold enumeratedPrefixMachine
   rw [Encodable.encodek]
@@ -522,6 +519,11 @@ theorem enumeratedPrefixMachine_uniform_partrec :
 
 /-! ### The universal prefix machine -/
 
+/-- Strict comparison of naturals is primitive recursive. -/
+lemma primrec_decide_nat_lt : Primrec (fun q : ℕ × ℕ => decide (q.1 < q.2)) := by
+  obtain ⟨_, h⟩ := Primrec.nat_lt
+  exact h.of_eq (fun q => by congr)
+
 /-- A tagged union of a uniformly partial-recursive family is partial recursive. -/
 theorem taggedUnion_isDecompressor_of_uniform {M : ℕ → Map}
     (hM : Partrec (fun t : ℕ × BitString × BitString => M t.1 t.2)) :
@@ -531,10 +533,10 @@ theorem taggedUnion_isDecompressor_of_uniform {M : ℕ → Map}
       (fun pr => (takeWhile_id_length_eq_findIdx pr.1).symm)
   have hdropP : Primrec (fun pr : BitString × BitString =>
       pr.1.drop ((pr.1.takeWhile id).length + 1)) :=
-    primrec_bitString_drop.comp Primrec.fst (Primrec.succ.comp hidxP)
+    list_drop_primrec.comp Primrec.fst (Primrec.succ.comp hidxP)
   have hguard : Computable (fun pr : BitString × BitString =>
       decide ((pr.1.takeWhile id).length < pr.1.length)) :=
-    (Primrec.to_comp primrec_decide_lt).comp
+    (Primrec.to_comp primrec_decide_nat_lt).comp
       ((Primrec.to_comp hidxP).pair (Primrec.to_comp (Primrec.list_length.comp Primrec.fst)))
   have hcall : Partrec (fun pr : BitString × BitString =>
       M ((pr.1.takeWhile id).length) (pr.1.drop ((pr.1.takeWhile id).length + 1), pr.2)) := by
@@ -556,7 +558,7 @@ theorem universalPrefixMachine_isDecompressor :
     isDecompressor universalPrefixMachine :=
   taggedUnion_isDecompressor_of_uniform enumeratedPrefixMachine_uniform_partrec
 
-theorem universalPrefixMachine_isPrefixDecompressor :
+private theorem universalPrefixMachine_isPrefixDecompressor :
     IsPrefixDecompressor universalPrefixMachine := by
   exact ⟨universalPrefixMachine_isDecompressor,
     taggedUnion_isPrefixMachine
@@ -564,7 +566,7 @@ theorem universalPrefixMachine_isPrefixDecompressor :
 
 /-! ### Universal machine simulation -/
 
-theorem universalPrefixMachine_isSimulationUniversal :
+private theorem universalPrefixMachine_isSimulationUniversal :
     IsSimulationUniversal universalPrefixMachine := by
   refine ⟨universalPrefixMachine_isPrefixDecompressor, fun M hM => ?_⟩
   obtain ⟨i, hi⟩ := exists_enumeratedPrefixMachine_eq hM
@@ -575,9 +577,12 @@ theorem universalPrefixMachine_isSimulationUniversal :
 
 /-! ### Final existence theorems -/
 
-theorem exists_isSimulationUniversal : Exists fun U : Map => IsSimulationUniversal U :=
+private theorem exists_isSimulationUniversal : Exists fun U : Map => IsSimulationUniversal U :=
   ⟨universalPrefixMachine, universalPrefixMachine_isSimulationUniversal⟩
 
+/-- **Existence of an optimal conditional prefix machine.** There is a prefix
+decompressor `U` that, up to an additive constant, is at least as good as every
+other prefix decompressor on every input in every context. -/
 theorem exists_isOptimalPrefixConditional : Exists fun U : Map => IsOptimalPrefixConditional U := by
   obtain ⟨U, hU⟩ := exists_isSimulationUniversal
   exact ⟨U, hU.isOptimalPrefixConditional⟩

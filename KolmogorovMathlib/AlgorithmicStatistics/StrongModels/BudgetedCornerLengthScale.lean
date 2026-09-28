@@ -61,9 +61,9 @@ theorem inPlainDescriptionProfile_fullCube (V : Map) (hV : isOptimalConditional 
       InPlainDescriptionProfile V x (logSlack c x.length) x.length := by
   obtain ⟨c, hc⟩ := plainSetComplexity_fullCube_le_logSlack V hV
   refine ⟨c, fun x => ?_⟩
-  refine ⟨stringsOfLength x.length, ⟨x, (memStringsOfLength _ _).mpr rfl⟩,
-    (memStringsOfLength _ _).mpr rfl, hc x.length, ?_⟩
-  rw [cardStringsOfLength]
+  refine ⟨stringsOfLength x.length, ⟨x, (mem_stringsOfLength _ _).mpr rfl⟩,
+    (mem_stringsOfLength _ _).mpr rfl, hc x.length, ?_⟩
+  rw [card_stringsOfLength]
 
 /-- **A sharp complexity gate for the full cube.**  The ordinary plain set
 complexity of the length-`n` cube is bounded by the prefix complexity of `n`
@@ -85,7 +85,7 @@ theorem plainSetComplexity_fullCube_le_KPPlain_natCode
           using 1
         convert canonicalFinsetList_toFinset_primrec.comp
           (allStrings_primrec.comp decodeNatCode_primrec) |>.to_comp using 1)
-  obtain ⟨cBridge, hcBridge⟩ := plainK_le_KPPlain V U hV hU.isPrefixDecompressor
+  obtain ⟨cBridge, hcBridge⟩ := plain_le_prefix V U hV hU.isPrefixDecompressor
   refine ⟨c₁ + cBridge, fun n => ?_⟩
   have hcode : canonicalUniformCodeOfList (canonicalFinsetList (stringsOfLength n))
       = (codedUniformOn (stringsOfLength n) (codedStringsOfLength_nonempty n)).code :=
@@ -185,8 +185,8 @@ theorem budgeted_plain_corner_of_simple_length
     · rw [hi, min_eq_left h]; exact hb1
     · rw [hi, min_eq_right h]; exact hb2
   have hprof : InPlainDescriptionProfile V x i x.length :=
-    ⟨stringsOfLength x.length, ⟨x, (memStringsOfLength _ _).mpr rfl⟩,
-      (memStringsOfLength _ _).mpr rfl, hbi, by rw [cardStringsOfLength]⟩
+    ⟨stringsOfLength x.length, ⟨x, (mem_stringsOfLength _ _).mpr rfl⟩,
+      (mem_stringsOfLength _ _).mpr rfl, hbi, by rw [card_stringsOfLength]⟩
   -- Slack bookkeeping.
   have hbits : 2 * (Nat.bits kx).length ≤ logSlack 2 baseBudget := by
     have h1 : 2 * (Nat.bits kx).length ≤ logSlack 2 kx := by unfold logSlack; omega

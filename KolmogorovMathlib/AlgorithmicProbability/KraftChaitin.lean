@@ -1,8 +1,9 @@
 import KolmogorovMathlib.AlgorithmicProbability.OptimalCoding
 import KolmogorovMathlib.AlgorithmicProbability.Bounds
-import KolmogorovMathlib.AlgorithmicProbability.KraftChaitinCore
 import KolmogorovMathlib.Prefix.CountableKraft
 import KolmogorovMathlib.Foundation.RecursivelyEnumerable
+import KolmogorovMathlib.AlgorithmicProbability.KraftChaitinCore.GeometricBound
+import KolmogorovMathlib.AlgorithmicProbability.KraftChaitinCore
 
 /-!
 # The Kraft–Chaitin Coding Theorem (hard direction)
@@ -206,16 +207,6 @@ lemma aprioriApprox_iSup {M : Map} (c : Nat.Partrec.Code)
     refine Finset.sum_le_sum_of_subset ?_;
     intro p hp; specialize hk p; simp_all +decide [ Kolmogorov.mem_aprioriAcc ] ;
 
-/-- `n ↦ 2 ^ n` is primitive recursive. -/
-lemma primrec_two_pow : Primrec (fun n : ℕ => 2 ^ n) := by
-  have h : (fun n : ℕ => 2 ^ n) = (fun n => Nat.rec 1 (fun _ ih => 2 * ih) n) := by
-    funext n; induction n with
-    | zero => rfl
-    | succ n ih => rw [pow_succ, ih]; ring
-  rw [h]
-  exact Primrec.nat_rec' Primrec.id (Primrec.const 1)
-    (Primrec.nat_mul.comp (Primrec.const 2) (Primrec.snd.comp Primrec.snd)).to₂
-
 /-
 The numerator function is computable in `(s, x, y)`.
 -/
@@ -265,7 +256,7 @@ lemma aprioriApprox_computable (c : Nat.Partrec.Code) :
                   (ℕ × BitString × BitString) × BitString => Encodable.encode p.1.2.1) from ?_)
                   using 1
               exact Primrec.encode.comp (Primrec.fst.comp (Primrec.snd.comp Primrec.fst))
-        · exact Primrec.comp primrec_two_pow
+        · exact Primrec.comp primrec_two_pow_aux
             (Primrec.nat_sub.comp (Primrec.fst.comp Primrec.fst)
               (Primrec.list_length.comp Primrec.snd))
         · exact Primrec.const 0;

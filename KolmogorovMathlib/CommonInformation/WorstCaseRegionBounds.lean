@@ -5,10 +5,28 @@ import KolmogorovMathlib.CommonInformation.ConditionalCounting
 import KolmogorovMathlib.CommonInformation.CompactAdvice
 import KolmogorovMathlib.CommonInformation.WorstCaseCounting
 
+/-!
+# The excluded region and its parameters
+
+The region construction must exclude every threshold triple satisfying the three inequalities
+of SUV Theorem 224 with the logarithmic margin `muchnikRegionMargin`.
+`muchnikAdmissibleTriples` lists those triples and `muchnikConditionalBounds` their
+projections; both are duplicate-free, closed under projection
+(`muchnikAdmissibleTriple_projections`) and polynomially many —
+`length_muchnikAdmissibleTriples_le` gives `(3n)³` and
+`length_muchnikConditionalBounds_le` gives `(3n)²`, which is what keeps the advice short.
+
+`IsMuchnikRegionSurvivor` is the property the construction achieves: a pair of length
+`2n + 2`, incompressible in each coordinate and in the pair, that no admissible triple serves.
+-/
+
 namespace Kolmogorov
 
+/-- The logarithmic margin by which the excluded region is separated from the achievable one. -/
 def muchnikRegionMargin (n : Nat) : Nat := logSlack 32 n
 
+/-- The threshold triples that must be excluded: those satisfying the three region inequalities
+with the margin to spare. -/
 def muchnikAdmissibleTriples (n : Nat) : List CommonInformationTriple :=
   (((List.range (3 * n)).product (List.range (3 * n))).product (List.range (3 * n))).filterMap
     fun ⟨⟨a, b⟩, c⟩ =>
@@ -17,12 +35,15 @@ def muchnikAdmissibleTriples (n : Nat) : List CommonInformationTriple :=
          a + b + c + muchnikRegionMargin n < 4 * n
       then some (a, b, c) else none
 
+/-- The pairs of thresholds occurring as projections of the admissible triples. -/
 def muchnikConditionalBounds (n : Nat) : List (Nat × Nat) :=
   ((List.range (3 * n)).product (List.range (3 * n))).filterMap
     fun ⟨a, d⟩ =>
       if a + d + muchnikRegionMargin n < 3 * n
       then some (a, d) else none
 
+/-- A pair of strings of length `2n + 2` that is incompressible in each coordinate and in the
+pair, and realises no admissible threshold triple. -/
 def IsMuchnikRegionSurvivor (V : Map) (n : Nat) (x y : BitString) : Prop :=
   x.length = 2 * n + 2 ∧
   y.length = 2 * n + 2 ∧
@@ -34,6 +55,8 @@ def IsMuchnikRegionSurvivor (V : Map) (n : Nat) (x y : BitString) : Prop :=
     (3 * n : ENat) ≤ plainK V z + condK V y z + muchnikRegionMargin n ∨
     (4 * n : ENat) ≤ plainK V z + condK V x z + condK V y z + muchnikRegionMargin n
 
+/-- Membership in the list of admissible triples is exactly the three region inequalities with
+the margin. -/
 theorem mem_muchnikAdmissibleTriples_iff (n : Nat) (t : CommonInformationTriple) :
   t ∈ muchnikAdmissibleTriples n ↔
     t.1 + t.2.1 + muchnikRegionMargin n < 3 * n ∧
@@ -43,6 +66,7 @@ theorem mem_muchnikAdmissibleTriples_iff (n : Nat) (t : CommonInformationTriple)
   simp [muchnikAdmissibleTriples]
   omega
 
+/-- Membership in the list of conditional bounds is the single inequality with the margin. -/
 theorem mem_muchnikConditionalBounds_iff (n : Nat) (b : Nat × Nat) :
   b ∈ muchnikConditionalBounds n ↔
     b.1 + b.2 + muchnikRegionMargin n < 3 * n := by
@@ -50,6 +74,7 @@ theorem mem_muchnikConditionalBounds_iff (n : Nat) (b : Nat × Nat) :
   simp [muchnikConditionalBounds]
   omega
 
+/-- Both projections of an admissible triple are conditional bounds. -/
 theorem muchnikAdmissibleTriple_projections {n : Nat} {t : CommonInformationTriple}
     (ht : t ∈ muchnikAdmissibleTriples n) :
   (t.1, t.2.1) ∈ muchnikConditionalBounds n ∧
@@ -59,6 +84,7 @@ theorem muchnikAdmissibleTriple_projections {n : Nat} {t : CommonInformationTrip
   · exact ht.1
   · exact ht.2.1
 
+/-- The list of admissible triples has no repetitions. -/
 theorem muchnikAdmissibleTriples_nodup (n : Nat) :
   (muchnikAdmissibleTriples n).Nodup := by
   unfold muchnikAdmissibleTriples
@@ -89,6 +115,7 @@ theorem muchnikAdmissibleTriples_nodup (n : Nat) :
     · simp [h] at ht
   · exact ((List.nodup_range.product List.nodup_range).product List.nodup_range)
 
+/-- The list of conditional bounds has no repetitions. -/
 theorem muchnikConditionalBounds_nodup (n : Nat) :
   (muchnikConditionalBounds n).Nodup := by
   unfold muchnikConditionalBounds
@@ -111,6 +138,7 @@ theorem muchnikConditionalBounds_nodup (n : Nat) :
     · simp [h] at hb
   · exact List.nodup_range.product List.nodup_range
 
+/-- There are at most `(3n)³` admissible triples. -/
 theorem length_muchnikAdmissibleTriples_le (n : Nat) :
   (muchnikAdmissibleTriples n).length ≤ (3 * n) ^ 3 := by
   unfold muchnikAdmissibleTriples
@@ -119,6 +147,7 @@ theorem length_muchnikAdmissibleTriples_le (n : Nat) :
         (List.range (3 * n))).length) := List.length_filterMap_le _ _
     _ = (3 * n) ^ 3 := by simp [List.product, pow_succ]
 
+/-- There are at most `(3n)²` conditional bounds. -/
 theorem length_muchnikConditionalBounds_le (n : Nat) :
   (muchnikConditionalBounds n).length ≤ (3 * n) ^ 2 := by
   unfold muchnikConditionalBounds
@@ -149,14 +178,16 @@ theorem two_mul_muchnikRegion_cubic_lt (n : Nat) :
       simp only [muchnikRegionMargin, logSlack, b]
       omega
 
+/-- The margin is primitive recursive in `n`. -/
 theorem muchnikRegionMargin_primrec :
     Primrec muchnikRegionMargin := by
   unfold muchnikRegionMargin logSlack
   exact Primrec.nat_add.comp
     (Primrec.nat_mul.comp (Primrec.const 32)
-      (Primrec.list_length.comp primrecNatBits))
+      (Primrec.list_length.comp primrec_natBits))
     (Primrec.const 32)
 
+/-- The list of admissible triples is primitive recursive in `n`. -/
 theorem muchnikAdmissibleTriples_primrec :
   Primrec muchnikAdmissibleTriples := by
   have hThreeN : Primrec (fun n : Nat => 3 * n) :=
@@ -224,6 +255,7 @@ theorem muchnikAdmissibleTriples_primrec :
   unfold muchnikAdmissibleTriples
   exact Primrec.listFilterMap hTriples hOut.to₂
 
+/-- The list of conditional bounds is primitive recursive in `n`. -/
 theorem muchnikConditionalBounds_primrec :
   Primrec muchnikConditionalBounds := by
   have hThreeN : Primrec (fun n : Nat => 3 * n) :=

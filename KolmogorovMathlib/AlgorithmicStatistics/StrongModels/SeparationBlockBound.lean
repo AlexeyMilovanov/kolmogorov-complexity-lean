@@ -1,7 +1,7 @@
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.Lemma4
 
 /-!
-# S7 support: the complexity bound `m` of a standard block is `O(C(B) + j)`
+# The complexity bound `m` of a standard block is `O(C(B) + j)`
 
 The frozen four-way statement of the separation theorem quantifies over an
 *unbounded* complexity bound `m`, so the `O(log (max |y| m))` error term supplied
@@ -71,7 +71,7 @@ theorem enumerationBound_le_standardBlock_complexity
   intro q hq m j x hx
   set B := standardBlock q m j x with hBdef
   have hB : B.Nonempty := ⟨x, hx⟩
-  obtain ⟨cLen, hLen⟩ := plainKLeLength V hV
+  obtain ⟨cLen, hLen⟩ := plainK_le_length V hV
   have hQfin : plainK V (standardEnumeratorCode q) ≠ ⊤ :=
     ne_top_of_le_ne_top
       (by exact_mod_cast (ENat.coe_ne_top ((standardEnumeratorCode q).length + cLen)))

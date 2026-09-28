@@ -1,0 +1,13 @@
+# Files whose `set_option maxHeartbeats` / `maxRecDepth` are sanctioned.
+#
+# The list is empty, and is meant to stay empty: the tree contains no resource
+# override at all.  Only resource overrides could ever be excused here, and
+# only here; `axiom`, `admit`, `unsafe`, `implemented_by` and `native_decide`
+# stay forbidden everywhere.  Adding a file to this list is a deliberate act:
+# say why, and prefer restructuring the proof.  The recipes that removed the
+# last twenty overrides were: build the computability obligation bottom-up at
+# the `Primrec` level and transport it with `.of_eq (fun _ => rfl)`; never
+# elaborate a `Computable`/`Partrec` composition against a goal whose type
+# mentions an unfolded definition body; name the `Primcodable` instance of a
+# wide product type instead of widening `synthInstance.maxSize`; and split a
+# proof that times out into named lemmas.

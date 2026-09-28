@@ -4,7 +4,7 @@ import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.Lemma4Support
 /-!
 # Plain-complexity endpoint bound on a profile neighborhood
 
-For a shift-closed profile `P` with finite endpoints `k_P = kp` and `n_P = np`,
+For a shift-closed profile `P` with finite endpoints `kP = kp` and `nP = np`,
 every string whose plain description profile is `epsilon`-close to `P` has plain
 complexity at most `kp + 2 * epsilon` up to logarithmic slack in `np`.
 
@@ -27,15 +27,15 @@ theorem length_natBits_two_mul_le (n : Nat) :
   calc 2 * n < 2 * 2 ^ Nat.size n := by omega
     _ = 2 ^ (Nat.size n + 1) := by rw [pow_succ]; ring
 
-/-- Plain complexity is bounded by the profile endpoint `k_P` plus twice the
-neighborhood radius, up to logarithmic slack in the height endpoint `n_P`. -/
+/-- Plain complexity is bounded by the profile endpoint `kP` plus twice the
+neighborhood radius, up to logarithmic slack in the height endpoint `nP`. -/
 theorem plainK_upper_of_profileNeighborhood_endpoint
     (V : Map) (hV : isOptimalConditional V) :
     ∃ c : Nat, ∀ (P : Set (Nat × Nat)) (kp np epsilon : Nat) (x : BitString),
       (∀ a b d, (a, b + d) ∈ P → (a + b, d) ∈ P) →
       epsilon ≤ kp →
-      k_P P = (kp : ENat) →
-      n_P P = (np : ENat) →
+      kP P = (kp : ENat) →
+      nP P = (np : ENat) →
       x ∈ profileNeighborhood V P epsilon →
       plainK V x ≤
         ((kp + 2 * epsilon + logSlack c np : Nat) : ENat) := by
@@ -64,12 +64,12 @@ theorem plainK_upper_of_profileNeighborhood_endpoint
   omega
 
 /-- Sharpened endpoint bound: the logarithmic slack is measured on the visible
-scale `k_P + 2 * epsilon` itself, so neither the height endpoint `n_P` nor
+scale `kP + 2 * epsilon` itself, so neither the height endpoint `nP` nor
 shift-closedness of `P` is needed. -/
 theorem plainK_upper_of_profileNeighborhood_endpoint_sharp
     (V : Map) (hV : isOptimalConditional V) :
     ∃ c : Nat, ∀ (P : Set (Nat × Nat)) (kp epsilon : Nat) (x : BitString),
-      k_P P = (kp : ENat) →
+      kP P = (kp : ENat) →
       x ∈ profileNeighborhood V P epsilon →
       plainK V x ≤
         ((kp + 2 * epsilon + logSlack c (kp + 2 * epsilon) : Nat) : ENat) := by
@@ -94,12 +94,12 @@ theorem plainK_upper_of_profileNeighborhood_endpoint_sharp
 
 /-- Unconditional counting bound on a profile neighborhood: any finite family of
 strings whose plain description profiles are `epsilon`-close to `P` has
-log-cardinality at most `k_P + 2 * epsilon` up to logarithmic slack on the same
-visible scale.  This is the `m_P_eps`-free part of Theorem `uppest`. -/
+log-cardinality at most `kP + 2 * epsilon` up to logarithmic slack on the same
+visible scale.  This is the `mPEps`-free part of Theorem `uppest`. -/
 theorem finiteSetLogCard_le_of_subset_profileNeighborhood
     (V : Map) (hV : isOptimalConditional V) :
     ∃ c : Nat, ∀ (P : Set (Nat × Nat)) (kp epsilon : Nat) (S : Finset BitString),
-      k_P P = (kp : ENat) →
+      kP P = (kp : ENat) →
       (S : Set BitString) ⊆ profileNeighborhood V P epsilon →
       finiteSetLogCard S ≤ kp + 2 * epsilon + logSlack c (kp + 2 * epsilon) := by
   obtain ⟨c₀, hc₀⟩ := plainK_upper_of_profileNeighborhood_endpoint_sharp V hV
@@ -120,20 +120,20 @@ theorem finiteSetLogCard_le_of_subset_profileNeighborhood
     omega
   omega
 
-/-- A standard block containing `x` places `m_P_eps` below the block's own plain
+/-- A standard block containing `x` places `mPEps` below the block's own plain
 complexity, provided the two-part budget `i + j` of the block stays within the
-visible scale `k_P` plus logarithmic slack.  Here `i` bounds the complexity of
+visible scale `kP` plus logarithmic slack.  Here `i` bounds the complexity of
 the block's canonical uniform code and `2 ^ j` is its cardinality. -/
 theorem m_P_eps_le_standardBlock_plainComplexity_of_budget
     (V : Map) (P : Set (Nat × Nat)) (qc : Nat.Partrec.Code)
     (kp epsilon c kx i j : Nat) (x : BitString)
     (hx : x ∈ standardBlock qc kx j x)
     (hUp : IsUpperSet P)
-    (hkP : k_P P = (kp : ENat))
+    (hkP : kP P = (kp : ENat))
     (hxP : x ∈ profileNeighborhood V P epsilon)
     (hi : plainK V (codedUniformOn (standardBlock qc kx j x) ⟨x, hx⟩).code ≤ (i : ENat))
     (hbudget : i + j ≤ kp + c * (kp + 2 * epsilon).bits.length) :
-    m_P_eps P kp epsilon c ≤ (i : ENat) := by
+    mPEps P kp epsilon c ≤ (i : ENat) := by
   have hcard : (standardBlock qc kx j x).card ≤ 2 ^ j :=
     le_of_eq (card_standardBlock_of_mem qc kx j x hx)
   have hij : (i, j) ∈ plainDescriptionProfileSet V x :=
@@ -252,7 +252,7 @@ theorem logSlack_add_le_logSlack_of_le_three_mul_add_slack (c_in cc : Nat) :
   obtain ⟨CC, hCC⟩ := logSlack_linear_bound cc (4 + c_in) c_in
   refine ⟨CC, ?_⟩
   intro m np hm
-  have hb : (Nat.bits np).length ≤ np := length_natBits_le_self np
+  have hb : (Nat.bits np).length ≤ np := length_natBits_le np
   have hle : m + np ≤ (4 + c_in) * np + c_in := by
     unfold logSlack at hm
     nlinarith

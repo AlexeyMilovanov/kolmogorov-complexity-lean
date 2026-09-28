@@ -1,6 +1,8 @@
 import KolmogorovMathlib.Prefix.CondTwoStage
-import KolmogorovMathlib.Prefix.Properties
 import KolmogorovMathlib.Prefix.Symmetry
+import KolmogorovMathlib.AlgorithmicProbability.ConditionalCoding
+import KolmogorovMathlib.Prefix.Properties.Part01
+import KolmogorovMathlib.Prefix.Properties
 
 /-!
 # Conditional Prefix Complexity of Pairs

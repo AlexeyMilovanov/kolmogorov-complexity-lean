@@ -35,6 +35,7 @@ that it is manifestly primitive recursive. -/
 def bitPrefix (n : ℕ) (s : BitString) : BitString :=
   (s.reverse.drop (s.length - n)).reverse
 
+/-- The prefix of length `|a|` of `a ++ b` is `a`. -/
 @[simp] theorem bitPrefix_append (a b : BitString) :
     bitPrefix a.length (a ++ b) = a := by
   unfold bitPrefix
@@ -42,18 +43,7 @@ def bitPrefix (n : ℕ) (s : BitString) : BitString :=
   rw [show a.length + b.length - a.length = b.reverse.length by simp]
   rw [List.drop_left, List.reverse_reverse]
 
-theorem list_drop_primrec :
-    Primrec₂ (fun (l : BitString) (n : ℕ) => l.drop n) := by
-  have h : (fun (l : BitString) (n : ℕ) => l.drop n)
-      = fun l n => Nat.rec l (fun _ ih => ih.tail) n := by
-    funext l n
-    induction n with
-    | zero => rfl
-    | succ n ih => rw [← List.tail_drop, ih]
-  rw [h]
-  exact Primrec.nat_rec' Primrec.snd Primrec.fst
-    (Primrec.list_tail.comp (Primrec.snd.comp Primrec.snd)).to₂
-
+/-- Taking a prefix of given length of a bit string is primitive recursive. -/
 theorem bitPrefix_primrec : Primrec₂ bitPrefix := by
   have hrev : Primrec (fun q : ℕ × BitString => q.2.reverse) :=
     Primrec.list_reverse.comp Primrec.snd
@@ -90,26 +80,31 @@ def noiseGainR (p : BitString) : ℕ :=
 /-- The suffix program packed into a gain program. -/
 def noiseGainQ (p : BitString) : BitString := (decodeSecond p).drop (noiseGainM p)
 
+/-- The noise length is read back from an assembled gain program. -/
 @[simp] theorem noiseGainL_program (l i j m r : ℕ) (q : BitString) :
     noiseGainL (noiseGainProgram l i j m r q) = l := by
   simp [noiseGainL, noiseGainParams, noiseGainProgram, decodeFirst_pairCode,
     bitsToNat_bits]
 
+/-- The complexity parameter is read back from an assembled gain program. -/
 @[simp] theorem noiseGainI_program (l i j m r : ℕ) (q : BitString) :
     noiseGainI (noiseGainProgram l i j m r q) = i := by
   simp [noiseGainI, noiseGainParams, noiseGainProgram, decodeFirst_pairCode,
     decodeSecond_pairCode, bitsToNat_bits]
 
+/-- The size parameter is read back from an assembled gain program. -/
 @[simp] theorem noiseGainJ_program (l i j m r : ℕ) (q : BitString) :
     noiseGainJ (noiseGainProgram l i j m r q) = j := by
   simp [noiseGainJ, noiseGainParams, noiseGainProgram, decodeFirst_pairCode,
     decodeSecond_pairCode, bitsToNat_bits]
 
+/-- The rank width is read back from an assembled gain program. -/
 @[simp] theorem noiseGainM_program (l i j m r : ℕ) (q : BitString) :
     noiseGainM (noiseGainProgram l i j m r q) = m := by
   simp [noiseGainM, noiseGainParams, noiseGainProgram, decodeFirst_pairCode,
     decodeSecond_pairCode, bitsToNat_bits]
 
+/-- When the rank fits in its width, it is read back from an assembled gain program. -/
 theorem noiseGainR_program (l i j m r : ℕ) (q : BitString) (hr : r < 2 ^ m) :
     noiseGainR (noiseGainProgram l i j m r q) = r := by
   have hlen : (chunkAddress r m).length = m := chunkAddress_length r m hr
@@ -119,6 +114,8 @@ theorem noiseGainR_program (l i j m r : ℕ) (q : BitString) (hr : r < 2 ^ m) :
   rw [noiseGainR, noiseGainM_program, noiseGainProgram, decodeSecond_pairCode,
     hpre, bitsToNat_chunkAddress]
 
+/-- When the rank fits in its width, the suffix program is read back from an
+assembled gain program. -/
 theorem noiseGainQ_program (l i j m r : ℕ) (q : BitString) (hr : r < 2 ^ m) :
     noiseGainQ (noiseGainProgram l i j m r q) = q := by
   have hlen : (chunkAddress r m).length = m := chunkAddress_length r m hr
@@ -127,6 +124,8 @@ theorem noiseGainQ_program (l i j m r : ℕ) (q : BitString) (hr : r < 2 ^ m) :
     rwa [hlen] at hd
   rw [noiseGainQ, noiseGainM_program, noiseGainProgram, decodeSecond_pairCode, hdrop]
 
+/-- The exact length of an assembled gain program in terms of its parameters and the
+suffix program. -/
 theorem length_noiseGainProgram (l i j m r : ℕ) (q : BitString) (hr : r < 2 ^ m) :
     (noiseGainProgram l i j m r q).length =
       2 * (2 * (Nat.bits l).length + 1 + (2 * (Nat.bits i).length + 1 +
@@ -135,20 +134,26 @@ theorem length_noiseGainProgram (l i j m r : ℕ) (q : BitString) (hr : r < 2 ^ 
     length_pairCode, List.length_append, chunkAddress_length r m hr]
   ring
 
+/-- Reading the noise length off a gain program is primitive recursive. -/
 theorem noiseGainL_primrec : Primrec noiseGainL :=
   bitsToNat_primrec.comp (decodeFirst_primrec.comp decodeFirst_primrec)
+/-- Reading the complexity parameter off a gain program is primitive recursive. -/
 theorem noiseGainI_primrec : Primrec noiseGainI :=
   bitsToNat_primrec.comp
     (decodeFirst_primrec.comp (decodeSecond_primrec.comp decodeFirst_primrec))
+/-- Reading the size parameter off a gain program is primitive recursive. -/
 theorem noiseGainJ_primrec : Primrec noiseGainJ :=
   bitsToNat_primrec.comp (decodeFirst_primrec.comp
     (decodeSecond_primrec.comp (decodeSecond_primrec.comp decodeFirst_primrec)))
+/-- Reading the rank width off a gain program is primitive recursive. -/
 theorem noiseGainM_primrec : Primrec noiseGainM :=
   bitsToNat_primrec.comp (decodeSecond_primrec.comp
     (decodeSecond_primrec.comp (decodeSecond_primrec.comp decodeFirst_primrec)))
+/-- Reading the rank off a gain program is primitive recursive. -/
 theorem noiseGainR_primrec : Primrec noiseGainR :=
   bitsToNat_primrec.comp
     (bitPrefix_primrec.comp noiseGainM_primrec decodeSecond_primrec)
+/-- Reading the suffix program off a gain program is primitive recursive. -/
 theorem noiseGainQ_primrec : Primrec noiseGainQ :=
   list_drop_primrec.comp decodeSecond_primrec noiseGainM_primrec
 
@@ -170,6 +175,7 @@ section GainPartrec
 attribute [local irreducible] noiseCandidateTruncationAppearanceCodes
   noiseGainL noiseGainI noiseGainJ noiseGainM noiseGainR noiseGainQ
 
+/-- The gain decoder is partial recursive in the base string and the program. -/
 theorem noiseGainDecoder_partrec (cU : Code) (V : Map) (hV : isDecompressor V) :
     Partrec (fun w : BitString × BitString => noiseGainDecoder cU V w.1 w.2) := by
   have hcodes : Computable (fun st : (BitString × BitString) × ℕ =>
@@ -202,13 +208,17 @@ theorem noiseGainDecoder_partrec (cU : Code) (V : Map) (hV : isDecompressor V) :
           (noiseGainI st.1.2) (noiseGainJ st.1.2) st.2).getD (noiseGainR st.1.2) []))) :=
     hV.comp (((noiseGainQ_primrec.to_comp).comp
       (Computable.snd.comp Computable.fst)).pair
-      ((pairCode_primrec.to_comp).comp (Computable.fst.comp Computable.fst) hentry))
+      ((pairCode_primrec.to_comp).comp (Computable.fst.comp Computable.fst)
+        hentry))
   refine (Partrec.bind (Partrec.rfind hcheck.to₂.partrec₂) hbody.to₂).of_eq
     (fun w => ?_)
   unfold noiseGainDecoder
   refine congr_arg₂ Part.bind (congr_arg Nat.rfind ?_) rfl
   funext t; exact PFun.coe_val _ t
 
+/-- If the rank fits in its width and addresses a candidate already enumerated at
+stage `t`, every output of the suffix program on that candidate is an output of
+the gain decoder on the assembled program. -/
 theorem mem_noiseGainDecoder
     (cU : Code) (V : Map) (x : BitString) (l i j m r t : ℕ) (q : BitString)
     (hrm : r < 2 ^ m)
@@ -262,12 +272,6 @@ private theorem noiseGainProgram_length_slack (C : ℕ) (x y : BitString) (i j k
     rw [← hW]
     nlinarith [Nat.zero_le W, Nat.zero_le (C * W)]
   rw [length_noiseGainProgram y.length i j m r q hrm]
-  omega
-
-/-- The pure arithmetic of the compression contradiction. -/
-private theorem gain_arith (yl k epsilon m qlen S T : ℕ)
-    (hm : m = k - epsilon - S) (hdeg : epsilon + S < k) (hq : qlen ≤ yl - k)
-    (hkle : k ≤ yl) (hnat : yl ≤ m + qlen + T + epsilon) (hST : T + 1 ≤ S) : False := by
   omega
 
 /-- **Leaf packet 3.**  An information gain of `k` bits from the canonical
@@ -338,7 +342,7 @@ theorem noiseCandidateTruncations_card_lower_of_information_gain
     have : n + k ≤ y.length := by exact_mod_cast hgain
     exact_mod_cast Nat.le_sub_of_add_le this
   obtain ⟨q, hqlen, hq⟩ :=
-    (condKLeIff V y (pairCode x (codedUniformOn A hAne).code) (y.length - k)).mp hkle
+    (condK_le_iff V y (pairCode x (codedUniformOn A hAne).code) (y.length - k)).mp hkle
   have hqlen' : q.length ≤ y.length - k := hqlen
   -- run the gain decoder
   have hmem : y ∈ noiseGainDecoder cU V x (noiseGainProgram y.length i j m r q) := by
@@ -365,7 +369,6 @@ theorem noiseCandidateTruncations_card_lower_of_information_gain
   have hSbig : logSlack (20 + C) M + 1 ≤ S := by
     rw [hS, show (21 : ℕ) + C = (20 + C) + 1 by ring]
     exact logSlack_add_const_le (20 + C) 1 M
-  exact gain_arith y.length k epsilon m q.length S (logSlack (20 + C) M)
-    hm hdeg hqlen' hklen hnat hSbig
+  omega
 
 end Kolmogorov

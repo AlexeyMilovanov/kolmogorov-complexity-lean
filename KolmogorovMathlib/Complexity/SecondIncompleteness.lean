@@ -69,7 +69,7 @@ variable {U : Map} (KRF : KRFormalSystem U)
 /-- The core induction of the Kritchman-Raz proof.
     If the system can prove its own consistency, it can logically deduce
     `m >= i` for any arbitrarily large `i`, leading to a contradiction. -/
-lemma krInduction (L : ℕ) (hCon : KRF.provable KRF.exprCon) (i : ℕ) :
+lemma kr_induction (L : ℕ) (hCon : KRF.provable KRF.exprCon) (i : ℕ) :
     KRF.provable (KRF.exprMGt L (i + 1)) := by
   induction i with
   | zero =>
@@ -90,13 +90,13 @@ lemma krInduction (L : ℕ) (hCon : KRF.provable KRF.exprCon) (i : ℕ) :
 /-- Gödel's Second Incompleteness Theorem (via Kritchman & Raz).
     No sound formal system satisfying the basic properties of Kolmogorov complexity
     can prove its own consistency. -/
-theorem secondIncompleteness : ¬ KRF.provable KRF.exprCon := by
+theorem second_incompleteness : ¬ KRF.provable KRF.exprCon := by
   intro hCon
   -- Pick an arbitrary L (e.g., L = 0)
   let L := 0
   -- Run the induction up to i = 2^{L+1} + 1
   let maxI := 2 ^ (L + 1) + 1
-  have hAbsurd := KRF.krInduction L hCon maxI
+  have hAbsurd := KRF.kr_induction L hCon maxI
   -- This gives us `provable (exprMGt L (maxI + 1))`,
   -- which evaluates to `provable (exprMGt L (2 ^ (L + 1) + 2))`
   -- This contradicts the soundness bound.

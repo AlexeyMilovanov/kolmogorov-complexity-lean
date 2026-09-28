@@ -1,4 +1,4 @@
-import KolmogorovMathlib.AlgorithmicStatistics.BoundedComplexityLists.BusyBeaver
+import KolmogorovMathlib.AlgorithmicStatistics.BoundedLists.BusyBeaver
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.T1MarkingCount
 
 /-!
@@ -30,6 +30,7 @@ noncomputable def t1ModelCodeValid (bound : Nat) (w : BitString) : Bool :=
   isCanonicalUniformCodeBool w &&
     decide ((canonicalPointListOfCode w).length ≤ bound)
 
+/-- The canonical-uniform-code test with a cardinality bound is primitive recursive. -/
 theorem t1ModelCodeValid_primrec :
     Primrec (fun p : Nat × BitString => t1ModelCodeValid p.1 p.2) := by
   have hcanon : Primrec (fun p : Nat × BitString =>
@@ -44,10 +45,13 @@ theorem t1ModelCodeValid_primrec :
     PrimrecPred.decide (Primrec.nat_le.comp hlen Primrec.fst)
   exact Primrec.and.comp hcanon hle
 
+/-- The canonical-uniform-code test with a cardinality bound is computable. -/
 theorem t1ModelCodeValid_computable :
     Computable (fun p : Nat × BitString => t1ModelCodeValid p.1 p.2) :=
   t1ModelCodeValid_primrec.to_comp
 
+/-- The test succeeds exactly on the canonical uniform codes of nonempty finite sets
+of cardinality at most the bound. -/
 theorem t1ModelCodeValid_eq_true (bound : Nat) (w : BitString) :
     t1ModelCodeValid bound w = true ↔
       ∃ (M : Finset BitString) (hM : M.Nonempty),
@@ -75,15 +79,19 @@ theorem t1ModelCodeValid_eq_true (bound : Nat) (w : BitString) :
 def t1CanonicalModelStage (c : Code) (m t : Nat) : List BitString :=
   (boundedOutputStage c m t).filter isCanonicalUniformCodeBool
 
+/-- The stage enumeration of canonical model codes is primitive recursive in the
+complexity bound and the stage. -/
 theorem t1CanonicalModelStage_primrec (c : Code) :
     Primrec (fun p : Nat × Nat => t1CanonicalModelStage c p.1 p.2) := by
   exact list_filter_primrec (boundedOutputStage_primrec c)
     (isCanonicalUniformCodeBool_primrec.comp Primrec.snd)
 
+/-- The stage enumeration of canonical model codes is computable. -/
 theorem t1CanonicalModelStage_computable (c : Code) :
     Computable (fun p : Nat × Nat => t1CanonicalModelStage c p.1 p.2) :=
   (t1CanonicalModelStage_primrec c).to_comp
 
+/-- The stage enumerations of canonical model codes grow by appending. -/
 theorem t1CanonicalModelStage_prefix (c : Code) (m t : Nat) :
     t1CanonicalModelStage c m t <+: t1CanonicalModelStage c m (t + 1) := by
   obtain ⟨rest, hrest⟩ := boundedOutputStage_prefix c m t
@@ -91,6 +99,8 @@ theorem t1CanonicalModelStage_prefix (c : Code) (m t : Nat) :
   rw [← hrest, List.filter_append]
   exact List.prefix_append _ _
 
+/-- Every string enumerated is the canonical uniform code of a nonempty finite set
+of plain set complexity at most `m`. -/
 theorem t1CanonicalModelStage_sound
     {V : Map} {c : Code} (hc : IsCodeFor c V)
     {m t : Nat} {w : BitString}
@@ -113,6 +123,8 @@ theorem t1CanonicalModelStage_sound
   rw [← hcode']
   exact hcomp
 
+/-- Every nonempty finite set of plain set complexity at most `m` has its canonical
+code enumerated at some stage. -/
 theorem t1CanonicalModelStage_complete
     {V : Map} {c : Code} (hc : IsCodeFor c V)
     {m : Nat} (M : Finset BitString) (hM : M.Nonempty)
@@ -126,11 +138,13 @@ theorem t1CanonicalModelStage_complete
   rw [boundedOutputStage_eq_completed_at_completion]
   exact (mem_completedBoundedOutput_iff_plainK_le hc m _).2 hcomp
 
+/-- Fewer than `2 ^ (m + 1)` model codes are enumerated at any stage. -/
 theorem t1CanonicalModelStage_length_lt (c : Code) (m t : Nat) :
     (t1CanonicalModelStage c m t).length < 2 ^ (m + 1) :=
   (List.length_filter_le _ _).trans_lt
     (boundedOutputStage_length_lt c m t)
 
+/-- The enumeration of canonical model codes is eventually constant in the stage. -/
 theorem t1CanonicalModelStage_stabilizes (c : Code) (m : Nat) :
     ∃ T, ∀ t, T ≤ t →
       t1CanonicalModelStage c m t = t1CanonicalModelStage c m T := by
@@ -144,6 +158,8 @@ noncomputable def t1BStage (c : Code) (n epsilon t : Nat) : List BitString :=
   (boundedOutputStage c epsilon t).filter
     (t1ModelCodeValid (2 ^ (n - epsilon - 4)))
 
+/-- The stage enumeration of the family `B` is primitive recursive in its
+parameters. -/
 theorem t1BStage_primrec (c : Code) :
     Primrec (fun p : (Nat × Nat) × Nat =>
       t1BStage c p.1.1 p.1.2 p.2) := by
@@ -153,7 +169,7 @@ theorem t1BStage_primrec (c : Code) :
       (Primrec.pair (Primrec.snd.comp Primrec.fst) Primrec.snd)
   have hbound : Primrec (fun p : ((Nat × Nat) × Nat) × BitString =>
       2 ^ (p.1.1.1 - p.1.1.2 - 4)) :=
-    twoPow_primrec.comp
+    primrec_two_pow_aux.comp
       (Primrec.nat_sub.comp
         (Primrec.nat_sub.comp
           (Primrec.fst.comp (Primrec.fst.comp (Primrec.fst)))
@@ -165,11 +181,13 @@ theorem t1BStage_primrec (c : Code) :
       (Primrec.pair hbound Primrec.snd)).to₂
   exact list_filter_primrec hbase hvalid
 
+/-- The stage enumeration of the family `B` is computable. -/
 theorem t1BStage_computable (c : Code) :
     Computable (fun p : (Nat × Nat) × Nat =>
       t1BStage c p.1.1 p.1.2 p.2) :=
   (t1BStage_primrec c).to_comp
 
+/-- The stage enumerations of the family `B` grow by appending. -/
 theorem t1BStage_prefix (c : Code) (n epsilon t : Nat) :
     t1BStage c n epsilon t <+: t1BStage c n epsilon (t + 1) := by
   obtain ⟨rest, hrest⟩ := boundedOutputStage_prefix c epsilon t
@@ -177,6 +195,8 @@ theorem t1BStage_prefix (c : Code) (n epsilon t : Nat) :
   rw [← hrest, List.filter_append]
   exact List.prefix_append _ _
 
+/-- Every string enumerated in `B` codes a nonempty finite set of plain set
+complexity at most `epsilon` and cardinality at most `2 ^ (n - epsilon - 4)`. -/
 theorem t1BStage_sound
     {V : Map} {c : Code} (hc : IsCodeFor c V)
     {n epsilon t : Nat} {w : BitString}
@@ -198,6 +218,7 @@ theorem t1BStage_sound
   rw [← hcode]
   exact hcomp
 
+/-- Every set meeting the two bounds of `B` is enumerated at some stage. -/
 theorem t1BStage_complete
     {V : Map} {c : Code} (hc : IsCodeFor c V)
     {n epsilon : Nat} (S : Finset BitString) (hS : S.Nonempty)
@@ -210,11 +231,13 @@ theorem t1BStage_complete
   exact ⟨(mem_completedBoundedOutput_iff_plainK_le hc epsilon _).2 hcomp,
     (t1ModelCodeValid_eq_true _ _).2 ⟨S, hS, rfl, hcard⟩⟩
 
+/-- Fewer than `2 ^ (epsilon + 1)` codes are enumerated in `B` at any stage. -/
 theorem t1BStage_length_lt (c : Code) (n epsilon t : Nat) :
     (t1BStage c n epsilon t).length < 2 ^ (epsilon + 1) :=
   (List.length_filter_le _ _).trans_lt
     (boundedOutputStage_length_lt c epsilon t)
 
+/-- The enumeration of `B` is eventually constant in the stage. -/
 theorem t1BStage_stabilizes (c : Code) (n epsilon : Nat) :
     ∃ T, ∀ t, T ≤ t → t1BStage c n epsilon t = t1BStage c n epsilon T := by
   refine ⟨boundedOutputCompletionTime c epsilon, fun t ht => ?_⟩
@@ -226,14 +249,18 @@ theorem t1BStage_stabilizes (c : Code) (n epsilon : Nat) :
 def t1CPrimeStage (c : Code) (k t : Nat) : List BitString :=
   t1CanonicalModelStage c k t
 
+/-- The stage enumeration of the family `C'` is computable. -/
 theorem t1CPrimeStage_computable (c : Code) :
     Computable (fun p : Nat × Nat => t1CPrimeStage c p.1 p.2) :=
   t1CanonicalModelStage_computable c
 
+/-- The stage enumerations of the family `C'` grow by appending. -/
 theorem t1CPrimeStage_prefix (c : Code) (k t : Nat) :
     t1CPrimeStage c k t <+: t1CPrimeStage c k (t + 1) :=
   t1CanonicalModelStage_prefix c k t
 
+/-- Every string enumerated in `C'` codes a nonempty finite set of plain set
+complexity at most `k`. -/
 theorem t1CPrimeStage_sound
     {V : Map} {c : Code} (hc : IsCodeFor c V)
     {k t : Nat} {w : BitString} (hw : w ∈ t1CPrimeStage c k t) :
@@ -242,6 +269,8 @@ theorem t1CPrimeStage_sound
       plainSetComplexity V M hM ≤ (k : ENat) :=
   t1CanonicalModelStage_sound hc hw
 
+/-- Every nonempty finite set of plain set complexity at most `k` is enumerated in
+`C'` at some stage. -/
 theorem t1CPrimeStage_complete
     {V : Map} {c : Code} (hc : IsCodeFor c V)
     {k : Nat} (M : Finset BitString) (hM : M.Nonempty)
@@ -249,10 +278,12 @@ theorem t1CPrimeStage_complete
     ∃ t, (codedUniformOn M hM).code ∈ t1CPrimeStage c k t :=
   t1CanonicalModelStage_complete hc M hM hcomp
 
+/-- Fewer than `2 ^ (k + 1)` codes are enumerated in `C'` at any stage. -/
 theorem t1CPrimeStage_length_lt (c : Code) (k t : Nat) :
     (t1CPrimeStage c k t).length < 2 ^ (k + 1) :=
   t1CanonicalModelStage_length_lt c k t
 
+/-- The enumeration of `C'` is eventually constant in the stage. -/
 theorem t1CPrimeStage_stabilizes (c : Code) (k : Nat) :
     ∃ T, ∀ t, T ≤ t →
       t1CPrimeStage c k t = t1CPrimeStage c k T :=
@@ -265,6 +296,8 @@ noncomputable def t1DescriptionStage
   (boundedOutputStage c d t).filter
     (t1ModelCodeValid (2 ^ n))
 
+/-- The stage enumeration of short descriptions of sets of model codes is primitive
+recursive in its parameters. -/
 theorem t1DescriptionStage_primrec (c : Code) :
     Primrec (fun p : (Nat × Nat) × Nat =>
       t1DescriptionStage c p.1.1 p.1.2 p.2) := by
@@ -274,7 +307,7 @@ theorem t1DescriptionStage_primrec (c : Code) :
       (Primrec.pair (Primrec.snd.comp Primrec.fst) Primrec.snd)
   have hbound : Primrec (fun p : ((Nat × Nat) × Nat) × BitString =>
       2 ^ p.1.1.1) :=
-    twoPow_primrec.comp
+    primrec_two_pow_aux.comp
       (Primrec.fst.comp (Primrec.fst.comp Primrec.fst))
   have hvalid : Primrec₂
       (fun (p : (Nat × Nat) × Nat) (w : BitString) =>
@@ -283,11 +316,13 @@ theorem t1DescriptionStage_primrec (c : Code) :
       (Primrec.pair hbound Primrec.snd)).to₂
   exact list_filter_primrec hbase hvalid
 
+/-- The stage enumeration of short descriptions is computable. -/
 theorem t1DescriptionStage_computable (c : Code) :
     Computable (fun p : (Nat × Nat) × Nat =>
       t1DescriptionStage c p.1.1 p.1.2 p.2) :=
   (t1DescriptionStage_primrec c).to_comp
 
+/-- The stage enumerations of short descriptions grow by appending. -/
 theorem t1DescriptionStage_prefix (c : Code) (n d t : Nat) :
     t1DescriptionStage c n d t <+:
       t1DescriptionStage c n d (t + 1) := by
@@ -296,6 +331,8 @@ theorem t1DescriptionStage_prefix (c : Code) (n d t : Nat) :
   rw [← hrest, List.filter_append]
   exact List.prefix_append _ _
 
+/-- Every string enumerated codes a nonempty finite set of plain set complexity at
+most `d` and cardinality at most `2 ^ n`. -/
 theorem t1DescriptionStage_sound
     {V : Map} {c : Code} (hc : IsCodeFor c V)
     {n d t : Nat} {w : BitString}
@@ -317,6 +354,7 @@ theorem t1DescriptionStage_sound
   rw [← hcode]
   exact hcomp
 
+/-- Every set meeting those two bounds is enumerated at some stage. -/
 theorem t1DescriptionStage_complete
     {V : Map} {c : Code} (hc : IsCodeFor c V)
     {n d : Nat} (D : Finset BitString) (hD : D.Nonempty)
@@ -329,11 +367,13 @@ theorem t1DescriptionStage_complete
   exact ⟨(mem_completedBoundedOutput_iff_plainK_le hc d _).2 hcomp,
     (t1ModelCodeValid_eq_true _ _).2 ⟨D, hD, rfl, hcard⟩⟩
 
+/-- Fewer than `2 ^ (d + 1)` descriptions are enumerated at any stage. -/
 theorem t1DescriptionStage_length_lt (c : Code) (n d t : Nat) :
     (t1DescriptionStage c n d t).length < 2 ^ (d + 1) :=
   (List.length_filter_le _ _).trans_lt
     (boundedOutputStage_length_lt c d t)
 
+/-- The enumeration of short descriptions is eventually constant in the stage. -/
 theorem t1DescriptionStage_stabilizes (c : Code) (n d : Nat) :
     ∃ T, ∀ t, T ≤ t →
       t1DescriptionStage c n d t = t1DescriptionStage c n d T := by
@@ -349,6 +389,8 @@ noncomputable def t1CDoublePrimeBatch (n k : Nat) (descriptionCode : BitString) 
   (canonicalPointListOfCode descriptionCode).filter
     (t1ModelCodeValid (2 ^ (n - k - 4)))
 
+/-- Forming one portion of the family `C''` from a description is primitive
+recursive. -/
 theorem t1CDoublePrimeBatch_primrec :
     Primrec (fun p : (Nat × Nat) × BitString =>
       t1CDoublePrimeBatch p.1.1 p.1.2 p.2) := by
@@ -357,7 +399,7 @@ theorem t1CDoublePrimeBatch_primrec :
     canonicalPointListOfCode_primrec.comp Primrec.snd
   have hbound : Primrec (fun p : ((Nat × Nat) × BitString) × BitString =>
       2 ^ (p.1.1.1 - p.1.1.2 - 4)) :=
-    twoPow_primrec.comp
+    primrec_two_pow_aux.comp
       (Primrec.nat_sub.comp
         (Primrec.nat_sub.comp
           (Primrec.fst.comp (Primrec.fst.comp (Primrec.fst)))
@@ -376,6 +418,8 @@ noncomputable def t1CDoublePrimeBatches
     (c : Code) (n k d t : Nat) : List (List BitString) :=
   (t1DescriptionStage c n d t).map (t1CDoublePrimeBatch n k)
 
+/-- The stage enumeration of the portions of `C''` is primitive recursive in its
+parameters. -/
 theorem t1CDoublePrimeBatches_primrec (c : Code) :
     Primrec (fun p : ((Nat × Nat) × Nat) × Nat =>
       t1CDoublePrimeBatches c p.1.1.1 p.1.1.2 p.1.2 p.2) := by
@@ -400,11 +444,13 @@ theorem t1CDoublePrimeBatches_primrec (c : Code) :
         Primrec.snd)).to₂
   exact Primrec.list_map hdescs hbatch
 
+/-- The stage enumeration of the portions of `C''` is computable. -/
 theorem t1CDoublePrimeBatches_computable (c : Code) :
     Computable (fun p : ((Nat × Nat) × Nat) × Nat =>
       t1CDoublePrimeBatches c p.1.1.1 p.1.1.2 p.1.2 p.2) :=
   (t1CDoublePrimeBatches_primrec c).to_comp
 
+/-- The stage enumerations of the portions of `C''` grow by appending. -/
 theorem t1CDoublePrimeBatches_prefix
     (c : Code) (n k d t : Nat) :
     t1CDoublePrimeBatches c n k d t <+:
@@ -425,6 +471,9 @@ theorem t1CDoublePrimeBatches_mono
   | succ u htu ih =>
       exact ih.trans (t1CDoublePrimeBatches_prefix c n k d u)
 
+/-- Every enumerated portion comes from a description set of plain set complexity at
+most `d` and cardinality at most `2 ^ n`, and its entries are codes of small
+finite models belonging to that set. -/
 theorem t1CDoublePrimeBatches_sound
     {V : Map} {c : Code} (hc : IsCodeFor c V)
     {n k d t : Nat} {batch : List BitString}
@@ -451,6 +500,8 @@ theorem t1CDoublePrimeBatches_sound
   rw [hpoints, mem_canonicalFinsetList] at hw
   exact hw.1
 
+/-- A small finite model whose code lies in the plain description profile at
+`(d, n)` appears in some enumerated portion. -/
 theorem t1CDoublePrimeBatches_complete
     {V : Map} {c : Code} (hc : IsCodeFor c V)
     {n k d : Nat} (M : Finset BitString) (hM : M.Nonempty)
@@ -473,6 +524,7 @@ theorem t1CDoublePrimeBatches_complete
       mem_canonicalFinsetList]
     exact hmem
 
+/-- Fewer than `2 ^ (d + 1)` portions are enumerated at any stage. -/
 theorem t1CDoublePrimeBatches_length_lt
     (c : Code) (n k d t : Nat) :
     (t1CDoublePrimeBatches c n k d t).length < 2 ^ (d + 1) := by
@@ -480,6 +532,7 @@ theorem t1CDoublePrimeBatches_length_lt
   rw [List.length_map]
   exact t1DescriptionStage_length_lt c n d t
 
+/-- Each enumerated portion holds at most `2 ^ n` codes. -/
 theorem t1CDoublePrimeBatch_length_le
     {c : Code} {n k d t : Nat} {batch : List BitString}
     (hbatch : batch ∈ t1CDoublePrimeBatches c n k d t) :
@@ -531,6 +584,7 @@ private theorem t1_flatten_length_le_mul
           Nat.add_le_add hl hih
         _ = (L.length + 1) * bound := by ring
 
+/-- All portions together hold at most `2 ^ (n + d + 1)` distinct codes. -/
 theorem t1CDoublePrime_join_card_le
     (c : Code) (n k d t : Nat) :
     ((t1CDoublePrimeBatches c n k d t).flatten.toFinset).card ≤
@@ -596,6 +650,7 @@ theorem t1_seen_cdouble_model_card_le
   obtain ⟨batch, hbatch, hw_batch⟩ := hw_flat
   exact t1CDoublePrimeBatch_model_card_le hbatch hw_batch
 
+/-- The enumeration of the portions of `C''` is eventually constant in the stage. -/
 theorem t1CDoublePrimeBatches_stabilizes
     (c : Code) (n k d : Nat) :
     ∃ T, ∀ t, T ≤ t →
@@ -615,6 +670,8 @@ def t1DStage (c : Code) (n k t : Nat) : List BitString :=
       (boundedOutputStage c k t).filter
         (fun w => decide (w.length = n))
 
+/-- The stage enumeration of the family `D` is primitive recursive in its
+parameters. -/
 theorem t1DStage_primrec (c : Code) :
     Primrec (fun p : (Nat × Nat) × Nat =>
       t1DStage c p.1.1 p.1.2 p.2) := by
@@ -650,14 +707,17 @@ theorem t1DStage_primrec (c : Code) :
   unfold t1DStage
   cases p.1.2 <;> rfl
 
+/-- The stage enumeration of the family `D` is computable. -/
 theorem t1DStage_computable (c : Code) :
     Computable (fun p : (Nat × Nat) × Nat =>
       t1DStage c p.1.1 p.1.2 p.2) :=
   (t1DStage_primrec c).to_comp
 
+/-- With complexity bound zero the family `D` is empty. -/
 theorem t1DStage_zero (c : Code) (n t : Nat) :
     t1DStage c n 0 t = [] := rfl
 
+/-- The stage enumerations of the family `D` grow by appending. -/
 theorem t1DStage_prefix (c : Code) (n k t : Nat) :
     t1DStage c n k t <+: t1DStage c n k (t + 1) := by
   cases k with
@@ -672,6 +732,7 @@ theorem t1DStage_prefix (c : Code) (n k t : Nat) :
       rw [← hrest, List.filter_append]
       exact List.prefix_append _ _
 
+/-- Every string enumerated in `D` has length `n` and plain complexity below `k`. -/
 theorem t1DStage_sound
     {V : Map} {c : Code} (hc : IsCodeFor c V)
     {n k t : Nat} {w : BitString} (hw : w ∈ t1DStage c n k t) :
@@ -688,6 +749,8 @@ theorem t1DStage_sound
         (mem_completedBoundedOutput_iff_plainK_le hc k w).1 hcompleted
       exact hle.trans_lt (by exact_mod_cast Nat.lt_succ_self k)
 
+/-- Every length-`n` string of plain complexity below `k` is enumerated in `D` at
+some stage. -/
 theorem t1DStage_complete
     {V : Map} {c : Code} (hc : IsCodeFor c V)
     {n k : Nat} {w : BitString}
@@ -707,6 +770,7 @@ theorem t1DStage_complete
       exact ⟨(mem_completedBoundedOutput_iff_plainK_le hc k w).2 hle,
         hlen⟩
 
+/-- Fewer than `2 ^ k` strings are enumerated in `D` at any stage. -/
 theorem t1DStage_length_lt (c : Code) (n k t : Nat) :
     (t1DStage c n k t).length < 2 ^ k := by
   cases k with
@@ -715,6 +779,7 @@ theorem t1DStage_length_lt (c : Code) (n k t : Nat) :
       refine (List.length_filter_le _ _).trans_lt ?_
       exact boundedOutputStage_length_lt c k t
 
+/-- The enumeration of `D` is eventually constant in the stage. -/
 theorem t1DStage_stabilizes (c : Code) (n k : Nat) :
     ∃ T, ∀ t, T ≤ t → t1DStage c n k t = t1DStage c n k T := by
   cases k with

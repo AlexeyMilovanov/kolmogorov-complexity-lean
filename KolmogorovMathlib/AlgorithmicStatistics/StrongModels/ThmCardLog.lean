@@ -5,8 +5,8 @@ import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.NoiseAssembly
 # The logarithmic half of VS40 Theorem `card`
 
 Realizing the auxiliary boundary with logarithmic precision and appending a
-conditionally random tail produces `2 ^ (k_P - m_P)`-many strings whose plain
-description profiles are all `O(KP + log n_P)`-close to the target profile.
+conditionally random tail produces `2 ^ (kP - mP)`-many strings whose plain
+description profiles are all `O(KP + log nP)`-close to the target profile.
 -/
 
 namespace Kolmogorov
@@ -21,6 +21,8 @@ section RadiusArith
 
 variable {KP np : ℕ}
 
+/-- Two radius bounds of the form `a * KP + logSlack b np` add, with the coefficients and the
+slack constants adding. -/
 theorem profileRadius_add {X Y a b a' b' : ℕ}
     (hX : X ≤ a * KP + logSlack b np) (hY : Y ≤ a' * KP + logSlack b' np) :
     X + Y ≤ (a + a') * KP + logSlack (b + b') np := by
@@ -29,6 +31,8 @@ theorem profileRadius_add {X Y a b a' b' : ℕ}
     (logSlack_add_const b b' np).symm
   omega
 
+/-- A radius bound of the form `a * KP + logSlack b np` may be multiplied by `m`, multiplying
+both the coefficient and the slack constant by `m`. -/
 theorem profileRadius_smul {X a b : ℕ} (m : ℕ)
     (h : X ≤ a * KP + logSlack b np) :
     m * X ≤ m * a * KP + logSlack (m * b) np := by
@@ -52,17 +56,17 @@ theorem finiteSetLogCard_image_pairCode (y : BitString) (R : Finset BitString) :
   simpa [decodeSecond_pairCode] using this
 
 /-- **Logarithmic half of Theorem `card`.**  For every admissible profile with a
-boundary `b` there are `2 ^ (k_P - m_P)`-many strings whose plain description
-profiles are `O(b.KP + log n_P)`-close to the profile. -/
+boundary `b` there are `2 ^ (kP - mP)`-many strings whose plain description
+profiles are `O(b.KP + log nP)`-close to the profile. -/
 theorem thm_card_log_branch
     (V U : Map) (hV : isOptimalConditional V)
     (hU : IsOptimalPrefixConditional U) :
     ∃ c : ℕ, ∀ (P : Set (Nat × Nat)) (kp mp np : ℕ) (b : ProfileBoundary V),
       IsAdmissibleProfileSet P →
       profileSet V b = P →
-      k_P P = (kp : ENat) →
-      m_P P kp = (mp : ENat) →
-      n_P P = (np : ENat) →
+      kP P = (kp : ENat) →
+      mP P kp = (mp : ENat) →
+      nP P = (np : ENat) →
       ∃ S : Finset BitString,
         S.Nonempty ∧
         (S : Set BitString) ⊆ profileNeighborhood V P (c * b.KP + logSlack c np) ∧
@@ -93,13 +97,13 @@ theorem thm_card_log_branch
   have hdnp : d ≤ np := by omega
   -- The auxiliary boundary and its realization.
   obtain ⟨bt, hbtk, hbtn, hbtP, hbtKP⟩ := hAux P kp mp np b hadm hbP hkP hmP hnP
-  have hbtn_le : bt.n_P ≤ np := by rw [hbtn]; omega
+  have hbtn_le : bt.nP ≤ np := by rw [hbtn]; omega
   obtain ⟨y, hylen, hynb⟩ := hReal bt
   have hyFinite : plainK V y ≠ ⊤ := condK_ne_top_of_optimal V hV y []
   set ky := (plainK V y).toNat with hky
   have hkyval : plainK V y = (ky : ENat) := (ENat.coe_toNat hyFinite).symm
-  set e := C2 * bt.KP + logSlack C2 bt.n_P with he
-  set eta := C3 * (e + 1) + logSlack C3 bt.n_P + 2 * e + C3 with heta
+  set e := C2 * bt.KP + logSlack C2 bt.nP with he
+  set eta := C3 * (e + 1) + logSlack C3 bt.nP + 2 * e + C3 with heta
   obtain ⟨hkyUp, hkyLow⟩ := hClose bt y e ky hynb hkyval
   rw [hbtk] at hkyUp hkyLow
   have hkyup : ky ≤ mp + eta := by omega
@@ -113,7 +117,7 @@ theorem thm_card_log_branch
     have h1 : C2 * bt.KP ≤ aE * b.KP + logSlack (C2 * C1) np := by
       have := profileRadius_smul (KP := b.KP) (np := np) C2 hbtKP
       rw [haE]; exact this
-    have h2 : logSlack C2 bt.n_P ≤ logSlack C2 np := logSlack_mono_right C2 hbtn_le
+    have h2 : logSlack C2 bt.nP ≤ logSlack C2 np := logSlack_mono_right C2 hbtn_le
     have h3 : logSlack (C2 * C1) np + logSlack C2 np = logSlack bE np := by
       rw [hbE]; exact logSlack_add_const _ _ _
     rw [he]; omega
@@ -121,7 +125,7 @@ theorem thm_card_log_branch
     have h1 : (C3 + 2) * e ≤ aEta * b.KP + logSlack ((C3 + 2) * bE) np := by
       have := profileRadius_smul (KP := b.KP) (np := np) (C3 + 2) hEbound
       rw [haEta]; exact this
-    have h2 : logSlack C3 bt.n_P ≤ logSlack C3 np := logSlack_mono_right C3 hbtn_le
+    have h2 : logSlack C3 bt.nP ≤ logSlack C3 np := logSlack_mono_right C3 hbtn_le
     have h3 : logSlack ((C3 + 2) * bE) np + logSlack C3 np + logSlack (2 * C3) np =
         logSlack bEta np := by
       rw [hbEta, logSlack_add_const, logSlack_add_const]
@@ -129,7 +133,7 @@ theorem thm_card_log_branch
       unfold logSlack
       have : 0 ≤ 2 * C3 * (Nat.bits np).length := Nat.zero_le _
       omega
-    have h5 : eta = (C3 + 2) * e + logSlack C3 bt.n_P + 2 * C3 := by
+    have h5 : eta = (C3 + 2) * e + logSlack C3 bt.nP + 2 * C3 := by
       rw [heta]; ring
     omega
   have hSum : e + eta ≤ (aE + aEta) * b.KP + logSlack (bE + bEta) np :=

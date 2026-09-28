@@ -46,6 +46,8 @@ def NoFourCycle (r : α → β → Prop) : Prop :=
       a₁ = a₂ ∨ b₁ = b₂
 
 open Classical in
+/-- The number of edges of a rectangle is the sum over its left side of the sizes of the
+neighbourhoods in its right side. -/
 lemma card_interedges_eq_sum_card_neighbors (r : α → β → Prop) (A : Finset α) (B : Finset β) :
   (Rel.interedges r A B).card =
     ∑ a ∈ A, (B.filter (r a)).card := by
@@ -63,6 +65,7 @@ lemma card_interedges_eq_sum_card_neighbors (r : α → β → Prop) (A : Finset
     exact haa' (congrArg Prod.fst hbb').symm
 
 open Classical in
+/-- In a four-cycle-free relation two distinct left points share at most one neighbour. -/
 lemma noFourCycle_neighbor_inter_card_le_one
     (r : α → β → Prop) {B : Finset β} {a₁ a₂ : α} :
   NoFourCycle r →
@@ -75,6 +78,8 @@ lemma noFourCycle_neighbor_inter_card_le_one
   exact (hfour hb₁.1.2 hb₂.1.2 hb₁.2.2 hb₂.2.2).resolve_left hne
 
 open Classical in
+/-- A set meeting each member of a family in at most one point meets their union in at most as
+many points as the family has members. -/
 lemma card_inter_biUnion_le {A : Finset α} {N : α → Finset β} {a₀ : α} :
   (∀ a ∈ A, ((N a₀) ∩ (N a)).card ≤ 1) →
   ((N a₀) ∩ A.biUnion N).card ≤ A.card := by
@@ -87,6 +92,8 @@ lemma card_inter_biUnion_le {A : Finset α} {N : α → Finset β} {a₀ : α} :
     _ = A.card := by simp
 
 open Classical in
+/-- For an almost disjoint family the sum of the sizes exceeds the size of the union by at most
+the number of pairs. -/
 lemma sum_card_le_card_biUnion_add_choose_two {A : Finset α} {N : α → Finset β} :
   (∀ a ∈ A, ∀ a' ∈ A, a ≠ a' →
     ((N a) ∩ (N a')).card ≤ 1) →
@@ -112,6 +119,8 @@ lemma sum_card_le_card_biUnion_add_choose_two {A : Finset α} {N : α → Finset
       omega
 
 open Classical in
+/-- The edges covered by a rectangle family number at most the sum of the edge counts of its
+members. -/
 lemma card_rectangleFamilyEdges_le_sum
     (r : α → β → Prop) (𝓡 : Finset (CombinatorialRectangle α β)) :
   (rectangleFamilyEdges r 𝓡).card ≤
@@ -119,6 +128,7 @@ lemma card_rectangleFamilyEdges_le_sum
   exact Finset.card_biUnion_le
 
 open Classical in
+/-- A covered edge set is no larger than the sum of the edge counts of the covering rectangles. -/
 lemma card_of_rectangleFamilyCovers_le_sum
     (r : α → β → Prop) {𝓡 : Finset (CombinatorialRectangle α β)}
     {E : Finset (α × β)} :
@@ -128,6 +138,8 @@ lemma card_of_rectangleFamilyCovers_le_sum
   exact (Finset.card_le_card hcover).trans (card_rectangleFamilyEdges_le_sum r 𝓡)
 
 open Classical in
+/-- Every finite weighted set has a subset of any prescribed size carrying at least the
+proportional share of the total weight. -/
 lemma exists_card_subset_retaining_weight
     (A : Finset α) (w : α → Nat) {s : Nat} (hs : s ≤ A.card) :
   ∃ S : Finset α,
@@ -190,6 +202,7 @@ lemma exists_card_subset_retaining_weight
   exact aux _ A hs rfl
 
 open Classical in
+/-- In a four-cycle-free relation a rectangle has at most `|B| + C(|A|, 2)` edges. -/
 lemma card_interedges_le_card_right_add_choose_two_left
     (r : α → β → Prop) (A : Finset α) (B : Finset β) :
   NoFourCycle r →
@@ -203,6 +216,8 @@ lemma card_interedges_le_card_right_add_choose_two_left
     exact Finset.biUnion_subset.mpr fun a ha => Finset.filter_subset _ _
 
 open Classical in
+/-- Sampling `s` of the left points gives the four-cycle-free edge bound
+`s · |E(A, B)| ≤ |A| (|B| + C(s, 2))`. -/
 lemma noFourCycle_sampled_interedges_bound
     (r : α → β → Prop) (A : Finset α) (B : Finset β) {s : Nat} :
   NoFourCycle r →

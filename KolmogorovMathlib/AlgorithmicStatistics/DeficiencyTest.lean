@@ -1,6 +1,7 @@
-import KolmogorovMathlib.AlgorithmicStatistics.Stochasticity
 import KolmogorovMathlib.AlgorithmicProbability.OptimalCoding
 import KolmogorovMathlib.AlgorithmicProbability.KraftChaitinCore
+import KolmogorovMathlib.AlgorithmicStatistics.Deficiency
+import KolmogorovMathlib.AlgorithmicStatistics.Stochasticity
 
 /-!
 # Deficiency Tests for Coded Finite Distributions
@@ -12,6 +13,7 @@ distribution data.
 
 namespace Kolmogorov
 
+open CodedFiniteDistribution
 open scoped ENNReal
 
 /-- A randomness test for a coded probability model `P`. -/
@@ -19,6 +21,7 @@ structure RandomnessTest (P : CodedFiniteDistribution) where
   val : BitString -> ENNReal
   expectation_le_one : ∑ x ∈ P.support, P.mass x * val x <= 1
 
+/-- The defining bound of a randomness test: its values have `P`-average at most one. -/
 theorem RandomnessTest.val_bound (P : CodedFiniteDistribution) (t : RandomnessTest P) :
     ∑ x ∈ P.support, P.mass x * t.val x <= 1 :=
   t.expectation_le_one
@@ -80,7 +83,7 @@ theorem canonicalTest_le_iff_deficiencyLe_of_mass_ne_zero_ne_top
     (U : Map) (P : CodedFiniteDistribution) (x : BitString) (beta : Nat)
     (h0 : P.mass x ≠ 0) (htop : P.mass x ≠ ⊤) :
     canonicalTest U P x <= (2 : ENNReal) ^ beta ↔ DeficiencyLe U P x beta := by
-  unfold canonicalTest DeficiencyLe CodedFiniteDistribution.DeficiencyLe
+  unfold canonicalTest CodedFiniteDistribution.DeficiencyLe
   exact ENNReal.mul_inv_le_iff h0 htop
 
 /-- If `x` has zero mass but finite conditional complexity, the canonical test is top. -/

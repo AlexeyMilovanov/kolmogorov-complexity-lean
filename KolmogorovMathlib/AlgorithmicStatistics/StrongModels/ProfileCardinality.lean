@@ -1,8 +1,8 @@
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.StrongProfile
-import KolmogorovMathlib.AlgorithmicStatistics.BoundedComplexityLists.OmegaCount
+import KolmogorovMathlib.AlgorithmicStatistics.BoundedLists.OmegaCount
 import KolmogorovMathlib.AlgorithmicStatistics.Stochasticity
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.Properties
-import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.ProfileRealization
+import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.Realization
 
 /-!
 # Profile Cardinality Bounds
@@ -16,36 +16,70 @@ namespace Kolmogorov
 
 open Kolmogorov.CodedFiniteDistribution
 
+/-- A set of complexity/randomness-deficiency pairs is admissible when it is nonempty, upward
+closed, and closed under moving budget from the second coordinate to the first. -/
 def IsAdmissibleProfileSet (P : Set (Nat × Nat)) : Prop :=
   P.Nonempty ∧ IsUpperSet P ∧ ∀ a b c, (a, b + c) ∈ P → (a + b, c) ∈ P
 
+/-- The staircase boundary of an admissible profile set: an antitone height function that vanishes
+exactly from index `kP` on, starts at `nP`, drops strictly while positive, together with its
+curve encoding `code` and the plain complexity `KP` of that encoding relative to `V`. -/
 structure ProfileBoundary (V : Map) where
   height : Nat → Nat
-  k_P : Nat
-  n_P : Nat
-  height_zero_of_ge : ∀ i, k_P ≤ i → height i = 0
-  height_pos_of_lt : ∀ i, i < k_P → 0 < height i
-  height_zero : height 0 = n_P
+  kP : Nat
+  nP : Nat
+  height_zero_of_ge : ∀ i, kP ≤ i → height i = 0
+  height_pos_of_lt : ∀ i, i < kP → 0 < height i
+  height_zero : height 0 = nP
   antitone : Antitone height
   slope : ∀ i, height i = 0 ∨ height (i + 1) < height i
   code : BitString
-  h_code : code = curveEncode height k_P
+  h_code : code = curveEncode height kP
   KP : Nat
   h_KP : KP = (plainK V code).toNat
 
+/-- The profile set cut out by a boundary: all pairs lying weakly above its height curve. -/
 def profileSet (V : Map) (b : ProfileBoundary V) : Set (Nat × Nat) :=
   {q | b.height q.1 ≤ q.2}
 
-noncomputable def n_P (P : Set (Nat × Nat)) : ENat :=
+/-- The vertical intercept of a profile set: the least `t` with `(0, t) ∈ P`. -/
+noncomputable def nP (P : Set (Nat × Nat)) : ENat :=
   sInf {t : ENat | ∃ t_nat : Nat, t = (t_nat : ENat) ∧ (0, t_nat) ∈ P}
 
-noncomputable def k_P (P : Set (Nat × Nat)) : ENat :=
+/-- The horizontal intercept of a profile set: the least `t` with `(t, 0) ∈ P`. -/
+noncomputable def kP (P : Set (Nat × Nat)) : ENat :=
   sInf {t : ENat | ∃ t_nat : Nat, t = (t_nat : ENat) ∧ (t_nat, 0) ∈ P}
 
-noncomputable def m_P (P : Set (Nat × Nat)) (k : Nat) : ENat :=
+/-- The infimum of the `ENat` casts of the witnesses of a predicate on `Nat` is the least
+witness. This is the shape shared by the profile endpoints `nP`, `kP` and `mP`, and it is the
+general statement behind `nP_eq_of_mem_of_forall_le` and `kP_eq_of_mem_of_forall_le`. -/
+theorem sInf_natCast_eq_of_least {p : Nat → Prop} {m : Nat} (hm : p m)
+    (hle : ∀ t, p t → m ≤ t) :
+    sInf {t : ENat | ∃ t_nat : Nat, t = (t_nat : ENat) ∧ p t_nat} = (m : ENat) := by
+  refine le_antisymm (sInf_le ⟨m, rfl, hm⟩) (le_sInf ?_)
+  rintro _ ⟨t, rfl, ht⟩
+  exact_mod_cast hle t ht
+
+/-- The vertical intercept is `m` as soon as `(0, m) ∈ P` and no point of `P` on the vertical
+axis lies below height `m`. -/
+theorem nP_eq_of_mem_of_forall_le {P : Set (Nat × Nat)} {m : Nat} (hm : (0, m) ∈ P)
+    (hle : ∀ t, (0, t) ∈ P → m ≤ t) : nP P = (m : ENat) :=
+  sInf_natCast_eq_of_least hm hle
+
+/-- The horizontal intercept is `m` as soon as `(m, 0) ∈ P` and no point of `P` on the
+horizontal axis lies left of `m`. -/
+theorem kP_eq_of_mem_of_forall_le {P : Set (Nat × Nat)} {m : Nat} (hm : (m, 0) ∈ P)
+    (hle : ∀ t, (t, 0) ∈ P → m ≤ t) : kP P = (m : ENat) :=
+  sInf_natCast_eq_of_least hm hle
+
+/-- The least first coordinate `t` at which the anti-diagonal of total budget `k` meets the profile
+set, i.e. with `(t, k - t) ∈ P`. -/
+noncomputable def mP (P : Set (Nat × Nat)) (k : Nat) : ENat :=
   sInf {t : ENat | ∃ t_nat : Nat, t = (t_nat : ENat) ∧ (t_nat, k - t_nat) ∈ P}
 
-noncomputable def m_P_eps (P : Set (Nat × Nat)) (k epsilon c : Nat) : ENat :=
+/-- The `epsilon`-slackened version of `mP`: the least `t` for which the point obtained from
+`(t, k - t)` by adding the `epsilon` and logarithmic-overhead allowances lies in `P`. -/
+noncomputable def mPEps (P : Set (Nat × Nat)) (k epsilon c : Nat) : ENat :=
   sInf {t : ENat | ∃ t_nat : Nat, t = (t_nat : ENat) ∧
     (t_nat + epsilon, k - t_nat + c * (k + 2 * epsilon).bits.length + epsilon) ∈ P}
 
@@ -53,14 +87,19 @@ noncomputable def m_P_eps (P : Set (Nat × Nat)) (k epsilon c : Nat) : ENat :=
 def profileNeighborhood (V : Map) (P : Set (Nat × Nat)) (epsilon : Nat) : Set BitString :=
   {x | ProfileSetsWithinNeighborhood (plainDescriptionProfileSet V x) P epsilon}
 
-/-- Source-faithful interface for VS40 Theorem `card`. -/
+/-- Theorem `card` as a proposition about `V` and `T`: there is a constant `c` such that every
+admissible profile set `P` cut out by a boundary `b`, with intercepts `kP P = kp`, `mP P kp = mp`
+and `nP P = np`, admits (i) a nonempty finite set inside the
+`(c * b.KP + logSlack c np)`-neighbourhood of `P` and (ii) a nonempty finite set of normal
+strings whose profiles are `(c * b.KP + sqrtSlack c np)`-close to `P`, each of log-cardinality at
+least `kp - mp - c`. -/
 def ThmCardStatement (V T : Map) : Prop :=
   ∃ c : Nat, ∀ (P : Set (Nat × Nat)) (kp mp np : Nat) (b : ProfileBoundary V),
     IsAdmissibleProfileSet P →
     profileSet V b = P →
-    k_P P = (kp : ENat) →
-    m_P P kp = (mp : ENat) →
-    n_P P = (np : ENat) →
+    kP P = (kp : ENat) →
+    mP P kp = (mp : ENat) →
+    nP P = (np : ENat) →
     (∃ S : Finset BitString,
       S.Nonempty ∧
       (S : Set BitString) ⊆ profileNeighborhood V P (c * b.KP + logSlack c np) ∧
@@ -72,18 +111,24 @@ def ThmCardStatement (V T : Map) : Prop :=
           (c * b.KP + sqrtSlack c np)} ∧
       (kp - mp : ENat) ≤ (finiteSetLogCard S : ENat) + (c : ENat))
 
-/-- Source-faithful interface for VS40 Theorem `uppest`. -/
+/-- Theorem `uppest` as a proposition about `V`: there is a constant `c` such that for every
+admissible profile set `P` with `epsilon ≤ kP P = kp`, `nP P = np` and
+`mPEps P kp (3 * epsilon) c = mp_eps`, every finite set contained in the `epsilon`-neighbourhood
+of `P` has log-cardinality at most `kp - mp_eps + 2 * epsilon + logSlack c np`. -/
 def ThmUppestStatement (V : Map) : Prop :=
   ∃ c : Nat, ∀ (P : Set (Nat × Nat)) (epsilon kp np mp_eps : Nat) (S : Finset BitString),
     IsAdmissibleProfileSet P →
     epsilon ≤ kp →
-    k_P P = (kp : ENat) →
-    n_P P = (np : ENat) →
-    m_P_eps P kp (3 * epsilon) c = (mp_eps : ENat) →
+    kP P = (kp : ENat) →
+    nP P = (np : ENat) →
+    mPEps P kp (3 * epsilon) c = (mp_eps : ENat) →
     (S : Set BitString) ⊆ profileNeighborhood V P epsilon →
     (finiteSetLogCard S : ENat) ≤ (kp - mp_eps + 2 * epsilon + logSlack c np : ENat)
 
-/-- Source-faithful interface for VS40 Lemma `omp`. -/
+/-- Lemma `omp` at the exact radius `epsilon`, as a proposition about `V`: there is a constant
+`c` such that for every admissible profile set `P` with `epsilon ≤ kP P = kp`, `nP P = np` and
+`mPEps P kp epsilon c = mp_eps`, and every `x` in the `epsilon`-neighbourhood of `P`, the code
+`omegaFixedCode q mp_eps` has conditional complexity at most `logSlack c np` given `x`. -/
 def LemmaOmpExactRadiusStatement (V : Map) : Prop :=
   ∃ c : Nat,
     ∀ (P : Set (Nat × Nat)) (epsilon kp np mp_eps : Nat)
@@ -91,13 +136,15 @@ def LemmaOmpExactRadiusStatement (V : Map) : Prop :=
     IsAdmissibleProfileSet P →
     IsCodeFor q V →
     epsilon ≤ kp →
-    k_P P = (kp : ENat) →
-    n_P P = (np : ENat) →
-    m_P_eps P kp epsilon c = (mp_eps : ENat) →
+    kP P = (kp : ENat) →
+    nP P = (np : ENat) →
+    mPEps P kp epsilon c = (mp_eps : ENat) →
     x ∈ profileNeighborhood V P epsilon →
     condK V (omegaFixedCode q mp_eps) x ≤ (logSlack c np : ENat)
 
-/-- Repaired public interface for VS40 Lemma omp. -/
+/-- Lemma `omp` at the radius `3 * epsilon`, as a proposition about `V`: as
+`LemmaOmpExactRadiusStatement`, but the Ω-index is `mPEps P kp (3 * epsilon) c` rather than
+`mPEps P kp epsilon c`. -/
 def LemmaOmpStatement (V : Map) : Prop :=
   ∃ c : Nat,
     ∀ (P : Set (Nat × Nat)) (epsilon kp np mp_eps : Nat)
@@ -105,9 +152,9 @@ def LemmaOmpStatement (V : Map) : Prop :=
     IsAdmissibleProfileSet P →
     IsCodeFor q V →
     epsilon ≤ kp →
-    k_P P = (kp : ENat) →
-    n_P P = (np : ENat) →
-    m_P_eps P kp (3 * epsilon) c = (mp_eps : ENat) →
+    kP P = (kp : ENat) →
+    nP P = (np : ENat) →
+    mPEps P kp (3 * epsilon) c = (mp_eps : ENat) →
     x ∈ profileNeighborhood V P epsilon →
     condK V (omegaFixedCode q mp_eps) x ≤ (logSlack c np : ENat)
 
@@ -129,11 +176,11 @@ statistic D for x with log#D >= log#A + log#B - log#(A \cap B) - c(epsilon + log
 and KT(D | A), KT(D | B) <= c(epsilon + log n)?
 -/
 
-/-- The defining diagonal for `m_P` contains its endpoint candidate `k`. -/
+/-- The defining diagonal for `mP` contains its endpoint candidate `k`. -/
 theorem m_P_le_of_mem
     (P : Set (Nat × Nat)) (k : Nat)
     (hk : (k, 0) ∈ P) :
-    m_P P k ≤ (k : ENat) := by
+    mP P k ≤ (k : ENat) := by
   apply sInf_le
   simp only [Set.mem_setOf_eq]
   use k
@@ -144,7 +191,7 @@ theorem k_P_le_of_transfer
     (P : Set (Nat × Nat)) (n : Nat)
     (hn : (0, n) ∈ P)
     (hshift : ∀ a b c, (a, b + c) ∈ P → (a + b, c) ∈ P) :
-    k_P P ≤ (n : ENat) := by
+    kP P ≤ (n : ENat) := by
   apply sInf_le
   simp only [Set.mem_setOf_eq]
   use n
@@ -152,34 +199,34 @@ theorem k_P_le_of_transfer
   have h := hshift 0 n 0 (by simpa using hn)
   simpa using h
 
-/-- The source inequality `k_P ≤ n_P`, derived directly at the two infima.
-No choice of a minimizing witness for `n_P` is needed. -/
+/-- The source inequality `kP ≤ nP`, derived directly at the two infima.
+No choice of a minimizing witness for `nP` is needed. -/
 theorem k_P_le_n_P
     (P : Set (Nat × Nat))
     (hshift : ∀ a b c, (a, b + c) ∈ P → (a + b, c) ∈ P) :
-    k_P P ≤ n_P P := by
-  unfold k_P n_P
+    kP P ≤ nP P := by
+  unfold kP nP
   apply sInf_le_sInf
   rintro _ ⟨n, rfl, hn⟩
   refine ⟨n, rfl, ?_⟩
   have h := hshift 0 n 0 (by simpa using hn)
   simpa using h
 
-/-- A height endpoint of `P` is an upper bound for `n_P`. -/
+/-- A height endpoint of `P` is an upper bound for `nP`. -/
 theorem n_P_le_of_mem
     (P : Set (Nat × Nat)) (n : Nat)
     (hn : (0, n) ∈ P) :
-    n_P P ≤ (n : ENat) := by
+    nP P ≤ (n : ENat) := by
   apply sInf_le
   simp only [Set.mem_setOf_eq]
   exact ⟨n, rfl, hn⟩
 
-/-- An explicitly attained complexity endpoint witnesses `m_P ≤ k_P`. -/
+/-- An explicitly attained complexity endpoint witnesses `mP ≤ kP`. -/
 theorem m_P_le_k_P_of_attained
     (P : Set (Nat × Nat)) (k : Nat)
-    (hkP : k_P P = (k : ENat))
+    (hkP : kP P = (k : ENat))
     (hk : (k, 0) ∈ P) :
-    m_P P k ≤ k_P P := by
+    mP P k ≤ kP P := by
   rw [hkP]
   apply sInf_le
   simp only [Set.mem_setOf_eq]
@@ -187,12 +234,12 @@ theorem m_P_le_k_P_of_attained
   refine ⟨rfl, ?_⟩
   simpa using hk
 
-/-- A point on the shifted diagonal is an upper bound for `m_P_eps`. -/
+/-- A point on the shifted diagonal is an upper bound for `mPEps`. -/
 theorem m_P_eps_le_of_mem
     (P : Set (Nat × Nat)) (k epsilon c t : Nat)
     (h : (t + epsilon,
       k - t + c * (k + 2 * epsilon).bits.length + epsilon) ∈ P) :
-    m_P_eps P k epsilon c ≤ (t : ENat) := by
+    mPEps P k epsilon c ≤ (t : ENat) := by
   apply sInf_le
   simp only [Set.mem_setOf_eq]
   exact ⟨t, rfl, h⟩
@@ -221,67 +268,67 @@ theorem enat_sInf_coe_mem_of_eq
   have : k + 1 ≤ k := by exact_mod_cast hlower
   omega
 
-/-- A finite value of `k_P` is attained by an actual endpoint of `P`. -/
+/-- A finite value of `kP` is attained by an actual endpoint of `P`. -/
 theorem k_P_mem_of_eq
     (P : Set (Nat × Nat)) (k : Nat)
-    (hkP : k_P P = (k : ENat)) :
+    (hkP : kP P = (k : ENat)) :
     (k, 0) ∈ P := by
-  unfold k_P at hkP
+  unfold kP at hkP
   exact enat_sInf_coe_mem_of_eq (fun t => (t, 0) ∈ P) k hkP
 
-/-- A finite value of `n_P` is attained by an actual endpoint of `P`. -/
+/-- A finite value of `nP` is attained by an actual endpoint of `P`. -/
 theorem n_P_mem_of_eq
     (P : Set (Nat × Nat)) (n : Nat)
-    (hnP : n_P P = (n : ENat)) :
+    (hnP : nP P = (n : ENat)) :
     (0, n) ∈ P := by
-  unfold n_P at hnP
+  unfold nP at hnP
   exact enat_sInf_coe_mem_of_eq (fun t => (0, t) ∈ P) n hnP
 
-/-- A finite value of `m_P` is attained on its defining diagonal. -/
+/-- A finite value of `mP` is attained on its defining diagonal. -/
 theorem m_P_mem_of_eq
     (P : Set (Nat × Nat)) (k m : Nat)
-    (hmP : m_P P k = (m : ENat)) :
+    (hmP : mP P k = (m : ENat)) :
     (m, k - m) ∈ P := by
-  unfold m_P at hmP
+  unfold mP at hmP
   exact enat_sInf_coe_mem_of_eq (fun t => (t, k - t) ∈ P) m hmP
 
-/-- A finite value of `m_P_eps` is attained on its defining shifted diagonal. -/
+/-- A finite value of `mPEps` is attained on its defining shifted diagonal. -/
 theorem m_P_eps_mem_of_eq
     (P : Set (Nat × Nat)) (k epsilon c m : Nat)
-    (hmP : m_P_eps P k epsilon c = (m : ENat)) :
+    (hmP : mPEps P k epsilon c = (m : ENat)) :
     (m + epsilon,
       k - m + c * (k + 2 * epsilon).bits.length + epsilon) ∈ P := by
-  unfold m_P_eps at hmP
+  unfold mPEps at hmP
   exact enat_sInf_coe_mem_of_eq
     (fun t => (t + epsilon,
       k - t + c * (k + 2 * epsilon).bits.length + epsilon) ∈ P) m hmP
 
-/-- The source inequality `m_P ≤ k_P` when the finite value of `k_P` is exposed. -/
+/-- The source inequality `mP ≤ kP` when the finite value of `kP` is exposed. -/
 theorem m_P_le_k_P_of_eq
     (P : Set (Nat × Nat)) (k : Nat)
-    (hkP : k_P P = (k : ENat)) :
-    m_P P k ≤ k_P P :=
+    (hkP : kP P = (k : ENat)) :
+    mP P k ≤ kP P :=
   m_P_le_k_P_of_attained P k hkP (k_P_mem_of_eq P k hkP)
 
-/-- The complexity endpoint `k_P` is always an admissible value for the shifted
-diagonal defining `m_P_eps`, so `m_P_eps ≤ k_P`. -/
+/-- The complexity endpoint `kP` is always an admissible value for the shifted
+diagonal defining `mPEps`, so `mPEps ≤ kP`. -/
 theorem m_P_eps_le_k_P_of_eq
     (P : Set (Nat × Nat)) (kp epsilon c : Nat)
     (hUp : IsUpperSet P)
-    (hkP : k_P P = (kp : ENat)) :
-    m_P_eps P kp epsilon c ≤ (kp : ENat) := by
+    (hkP : kP P = (kp : ENat)) :
+    mPEps P kp epsilon c ≤ (kp : ENat) := by
   refine m_P_eps_le_of_mem P kp epsilon c kp ?_
   refine hUp (a := (kp, 0)) ?_ (k_P_mem_of_eq P kp hkP)
   exact Prod.mk_le_mk.mpr ⟨by omega, by omega⟩
 
-/-- Enlarging the logarithmic coefficient can only lower `m_P_eps`, provided
+/-- Enlarging the logarithmic coefficient can only lower `mPEps`, provided
 the profile set is upper closed.  The upper-closure hypothesis is essential:
 for an arbitrary set, raising the second coordinate can leave the set. -/
 theorem m_P_eps_antitone_of_isUpperSet
     (P : Set (Nat × Nat)) (kp epsilon c₁ c₂ : Nat)
     (hUp : IsUpperSet P) (hc : c₁ ≤ c₂) :
-    m_P_eps P kp epsilon c₂ ≤ m_P_eps P kp epsilon c₁ := by
-  unfold m_P_eps
+    mPEps P kp epsilon c₂ ≤ mPEps P kp epsilon c₁ := by
+  unfold mPEps
   apply sInf_le_sInf
   rintro _ ⟨t, rfl, ht⟩
   refine ⟨t, rfl, hUp ?_ ht⟩
@@ -291,15 +338,15 @@ theorem m_P_eps_antitone_of_isUpperSet
       Nat.mul_le_mul_right _ hc
     omega⟩
 
-/-- Once `k_P` is finite, upper closure makes the shifted diagonal defining
-`m_P_eps` nonempty, so its infimum is a coerced natural rather than `⊤`. -/
+/-- Once `kP` is finite, upper closure makes the shifted diagonal defining
+`mPEps` nonempty, so its infimum is a coerced natural rather than `⊤`. -/
 theorem exists_m_P_eps_eq_coe_of_k_P_eq
     (P : Set (Nat × Nat)) (kp epsilon c : Nat)
-    (hUp : IsUpperSet P) (hkP : k_P P = (kp : ENat)) :
-    ∃ m : Nat, m_P_eps P kp epsilon c = (m : ENat) := by
-  have hle : m_P_eps P kp epsilon c ≤ (kp : ENat) :=
+    (hUp : IsUpperSet P) (hkP : kP P = (kp : ENat)) :
+    ∃ m : Nat, mPEps P kp epsilon c = (m : ENat) := by
+  have hle : mPEps P kp epsilon c ≤ (kp : ENat) :=
     m_P_eps_le_k_P_of_eq P kp epsilon c hUp hkP
-  have hne : m_P_eps P kp epsilon c ≠ ⊤ :=
+  have hne : mPEps P kp epsilon c ≠ ⊤ :=
     ne_top_of_le_ne_top (ENat.coe_ne_top kp) hle
   obtain ⟨m, hm⟩ := ENat.ne_top_iff_exists.mp hne
   exact ⟨m, hm.symm⟩
@@ -307,39 +354,45 @@ theorem exists_m_P_eps_eq_coe_of_k_P_eq
 /-! ### Admissibility corollaries
 
 The three fields of `IsAdmissibleProfileSet` are exposed as named projections,
-and the source endpoint inequalities `k_P ≤ n_P` and `m_P ≤ k_P ≤ n_P` are
+and the source endpoint inequalities `kP ≤ nP` and `mP ≤ kP ≤ nP` are
 re-derived directly from admissibility (the step condition already fed to
 `k_P_le_n_P`).  These let downstream proofs quote admissibility once and obtain
-the ordering `m_P ≤ k_P ≤ n_P` used throughout Section 7. -/
+the ordering `mP ≤ kP ≤ nP` used throughout Section 7. -/
 
+/-- An admissible profile set is nonempty. -/
 theorem IsAdmissibleProfileSet.nonempty {P : Set (Nat × Nat)}
     (h : IsAdmissibleProfileSet P) : P.Nonempty := h.1
 
+/-- An admissible profile set is upward closed. -/
 theorem IsAdmissibleProfileSet.isUpperSet {P : Set (Nat × Nat)}
     (h : IsAdmissibleProfileSet P) : IsUpperSet P := h.2.1
 
+/-- In an admissible profile set, budget may be shifted from the second coordinate to the first:
+`(a, b + c) ∈ P` implies `(a + b, c) ∈ P`. -/
 theorem IsAdmissibleProfileSet.step {P : Set (Nat × Nat)}
     (h : IsAdmissibleProfileSet P) :
     ∀ a b c, (a, b + c) ∈ P → (a + b, c) ∈ P := h.2.2
 
-/-- The source inequality `k_P ≤ n_P`, extracted from admissibility. -/
+/-- The source inequality `kP ≤ nP`, extracted from admissibility. -/
 theorem k_P_le_n_P_of_admissible {P : Set (Nat × Nat)}
-    (h : IsAdmissibleProfileSet P) : k_P P ≤ n_P P :=
+    (h : IsAdmissibleProfileSet P) : kP P ≤ nP P :=
   k_P_le_n_P P h.step
 
-/-- The full source ordering `m_P ≤ k_P ≤ n_P` for an admissible `P` whose
-complexity endpoint `k_P` is finite. -/
+/-- The full source ordering `mP ≤ kP ≤ nP` for an admissible `P` whose
+complexity endpoint `kP` is finite. -/
 theorem m_P_le_k_P_le_n_P_of_admissible {P : Set (Nat × Nat)} {k : Nat}
-    (h : IsAdmissibleProfileSet P) (hkP : k_P P = (k : ENat)) :
-    m_P P k ≤ k_P P ∧ k_P P ≤ n_P P :=
+    (h : IsAdmissibleProfileSet P) (hkP : kP P = (k : ENat)) :
+    mP P k ≤ kP P ∧ kP P ≤ nP P :=
   ⟨m_P_le_k_P_of_eq P k hkP, k_P_le_n_P_of_admissible h⟩
 
 /-- The decoded profile set is exactly the epigraph of the boundary curve. -/
 theorem mem_profileSet_iff (V : Map) (b : ProfileBoundary V) (q : Nat × Nat) :
     q ∈ profileSet V b ↔ b.height q.1 ≤ q.2 := Iff.rfl
 
+/-- The height of a profile boundary vanishes at `i` exactly when `i` is at least its horizontal
+intercept `kP`. -/
 theorem ProfileBoundary.height_eq_zero_iff {V : Map} (b : ProfileBoundary V) (i : Nat) :
-    b.height i = 0 ↔ b.k_P ≤ i := by
+    b.height i = 0 ↔ b.kP ≤ i := by
   constructor
   · intro hzero
     by_contra hnot
@@ -348,52 +401,36 @@ theorem ProfileBoundary.height_eq_zero_iff {V : Map} (b : ProfileBoundary V) (i 
   · exact b.height_zero_of_ge i
 
 /-- The canonical boundary code decodes to the represented height at every
-coordinate, including the zero tail beyond `k_P`. -/
+coordinate, including the zero tail beyond `kP`. -/
 theorem ProfileBoundary.decodeCurve_code {V : Map} (b : ProfileBoundary V) (i : Nat) :
     decodeCurve b.code i = b.height i := by
   rw [b.h_code]
-  by_cases hi : i ≤ b.k_P
-  · exact decodeCurve_curveEncode b.height b.k_P hi
-  · have hlt : b.k_P < i := Nat.lt_of_not_ge hi
-    rw [decodeCurve_curveEncode_out_of_bounds b.height b.k_P hlt,
+  by_cases hi : i ≤ b.kP
+  · exact decodeCurve_curveEncode b.height b.kP hi
+  · have hlt : b.kP < i := Nat.lt_of_not_ge hi
+    rw [decodeCurve_curveEncode_out_of_bounds b.height b.kP hlt,
       b.height_zero_of_ge i hlt.le]
 
 /-- The stored left endpoint is exactly the height endpoint of the decoded
 profile, rather than merely an upper bound. -/
 theorem ProfileBoundary.n_P_profileSet {V : Map} (b : ProfileBoundary V) :
-    Kolmogorov.n_P (profileSet V b) = (b.n_P : ENat) := by
-  apply le_antisymm
-  · apply n_P_le_of_mem
-    change b.height 0 ≤ b.n_P
-    rw [b.height_zero]
-  · unfold n_P
-    apply le_sInf
-    rintro _ ⟨t, rfl, ht⟩
-    change b.height 0 ≤ t at ht
-    rw [b.height_zero] at ht
-    exact_mod_cast ht
+    Kolmogorov.nP (profileSet V b) = (b.nP : ENat) :=
+  nP_eq_of_mem_of_forall_le (by change b.height 0 ≤ b.nP; rw [b.height_zero])
+    (fun _ ht => by rw [← b.height_zero]; exact ht)
 
 /-- The stored bottom endpoint is exactly the first zero of the decoded
 profile boundary. -/
 theorem ProfileBoundary.k_P_profileSet {V : Map} (b : ProfileBoundary V) :
-    Kolmogorov.k_P (profileSet V b) = (b.k_P : ENat) := by
-  apply le_antisymm
-  · apply sInf_le
-    exact ⟨b.k_P, rfl, by
-      change b.height b.k_P ≤ 0
-      rw [b.height_zero_of_ge b.k_P le_rfl]⟩
-  · unfold k_P
-    apply le_sInf
-    rintro _ ⟨t, rfl, ht⟩
-    change b.height t ≤ 0 at ht
-    have hzero : b.height t = 0 := Nat.le_zero.mp ht
-    exact_mod_cast (b.height_eq_zero_iff t).mp hzero
+    Kolmogorov.kP (profileSet V b) = (b.kP : ENat) :=
+  kP_eq_of_mem_of_forall_le
+    (by change b.height b.kP ≤ 0; rw [b.height_zero_of_ge b.kP le_rfl])
+    (fun t ht => (b.height_eq_zero_iff t).mp (Nat.le_zero.mp ht))
 
 /-! ### Representation of admissible profile sets by boundaries
 
 The structure-function boundary `profileHeight P i = min {j | (i,j) ∈ P}` turns
 any admissible `P` (nonempty, upward closed, step condition) with finite
-endpoints `k_P`, `n_P` into a `ProfileBoundary` whose decoded epigraph is exactly
+endpoints `kP`, `nP` into a `ProfileBoundary` whose decoded epigraph is exactly
 `P`.  This certifies that the `ProfileBoundary` hypothesis of `ThmCardStatement`
 is non-vacuous: it is available for every admissible `P`.  The key point is that
 the strict-slope field of `ProfileBoundary` follows from the step condition
@@ -404,21 +441,23 @@ each complexity budget (with `sInf ∅ = 0` when the fibre is empty). -/
 noncomputable def profileHeight (P : Set (Nat × Nat)) (i : Nat) : Nat :=
   sInf {j | (i, j) ∈ P}
 
+/-- If the fibre of `P` over `i` is nonempty then the point at the fibre's height belongs to `P`. -/
 theorem profileHeight_mem_of_fibre_nonempty {P : Set (Nat × Nat)} {i : Nat}
     (h : ∃ j, (i, j) ∈ P) : (i, profileHeight P i) ∈ P :=
   Nat.sInf_mem h
 
+/-- The height of `P` over `i` is a lower bound for every `j` with `(i, j) ∈ P`. -/
 theorem profileHeight_le {P : Set (Nat × Nat)} {i j : Nat}
     (h : (i, j) ∈ P) : profileHeight P i ≤ j :=
   Nat.sInf_le h
 
 /-- Every complexity fibre of an admissible profile with finite endpoints is
-nonempty: below `n_P` the step condition slides the top point `(0, n_P)` right,
-and above `k_P` upward closure supplies the bottom point `(·, 0)`. -/
+nonempty: below `nP` the step condition slides the top point `(0, nP)` right,
+and above `kP` upward closure supplies the bottom point `(·, 0)`. -/
 theorem admissible_fibre_nonempty
     {P : Set (Nat × Nat)} {kp np : Nat}
     (h : IsAdmissibleProfileSet P)
-    (hkP : k_P P = (kp : ENat)) (hnP : n_P P = (np : ENat)) :
+    (hkP : kP P = (kp : ENat)) (hnP : nP P = (np : ENat)) :
     ∀ i, ∃ j, (i, j) ∈ P := by
   have hkp_mem : (kp, 0) ∈ P := k_P_mem_of_eq P kp hkP
   have hnp_mem : (0, np) ∈ P := n_P_mem_of_eq P np hnP
@@ -435,14 +474,14 @@ theorem admissible_fibre_nonempty
     simpa using h.step 0 i (np - i) h0
 
 /-- **Representation lemma.** Every admissible profile set `P` with finite
-endpoints `k_P = kp`, `n_P = np` is the decoded epigraph `profileSet V b` of a
-`ProfileBoundary V` object `b` with `b.k_P = kp` and `b.n_P = np`.  Hence the
+endpoints `kP = kp`, `nP = np` is the decoded epigraph `profileSet V b` of a
+`ProfileBoundary V` object `b` with `b.kP = kp` and `b.nP = np`.  Hence the
 `ProfileBoundary` premise of `ThmCardStatement` can always be met. -/
 theorem exists_profileBoundary_of_admissible
     (V : Map) (P : Set (Nat × Nat)) (kp np : Nat)
     (h : IsAdmissibleProfileSet P)
-    (hkP : k_P P = (kp : ENat)) (hnP : n_P P = (np : ENat)) :
-    ∃ b : ProfileBoundary V, b.k_P = kp ∧ b.n_P = np ∧ profileSet V b = P := by
+    (hkP : kP P = (kp : ENat)) (hnP : nP P = (np : ENat)) :
+    ∃ b : ProfileBoundary V, b.kP = kp ∧ b.nP = np ∧ profileSet V b = P := by
   have hkp_mem : (kp, 0) ∈ P := k_P_mem_of_eq P kp hkP
   have hnp_mem : (0, np) ∈ P := n_P_mem_of_eq P np hnP
   have hupper := h.isUpperSet
@@ -451,8 +490,8 @@ theorem exists_profileBoundary_of_admissible
     profileHeight_mem_of_fibre_nonempty (hne i)
   refine ⟨{
     height := profileHeight P
-    k_P := kp
-    n_P := np
+    kP := kp
+    nP := np
     height_zero_of_ge := ?_
     height_pos_of_lt := ?_
     height_zero := ?_
@@ -473,8 +512,8 @@ theorem exists_profileBoundary_of_admissible
     have hzero : profileHeight P i = 0 := Nat.eq_zero_of_not_pos hnot
     have hmem : (i, 0) ∈ P := by
       simpa [hzero] using h_attained i
-    have hle : k_P P ≤ (i : ENat) := by
-      unfold k_P
+    have hle : kP P ≤ (i : ENat) := by
+      unfold kP
       apply sInf_le
       exact ⟨i, rfl, hmem⟩
     rw [hkP] at hle
@@ -510,12 +549,12 @@ theorem exists_profileBoundary_of_admissible
     · intro hq
       exact profileHeight_le hq
 
-/-- If `P_x` is `epsilon`-close to `P`, the attained endpoint `(k_P, 0)`
-yields the enlarged profile point `(k_P + epsilon, epsilon)` used in Lemma `omp`. -/
+/-- If `P_x` is `epsilon`-close to `P`, the attained endpoint `(kP, 0)`
+yields the enlarged profile point `(kP + epsilon, epsilon)` used in Lemma `omp`. -/
 theorem plainProfile_endpoint_of_profileNeighborhood
     (V : Map) (P : Set (Nat × Nat)) (epsilon k : Nat)
     (x : BitString)
-    (hkP : k_P P = (k : ENat))
+    (hkP : kP P = (k : ENat))
     (hx : x ∈ profileNeighborhood V P epsilon) :
     (k + epsilon, epsilon) ∈ plainDescriptionProfileSet V x := by
   have hnear : ProfileSetsWithinNeighborhood
@@ -535,17 +574,17 @@ theorem plainProfile_endpoint_of_profileNeighborhood
     omega
 
 /-- Transfer of a two-part description of a neighborhood member into the shifted
-diagonal defining `m_P_eps`: if `x` is `epsilon`-close to `P`, then every
+diagonal defining `mPEps`: if `x` is `epsilon`-close to `P`, then every
 `(i, j)`-description of `x` whose total budget `i + j` stays within the visible
-scale `k_P` plus logarithmic slack certifies `m_P_eps ≤ i`. -/
+scale `kP` plus logarithmic slack certifies `mPEps ≤ i`. -/
 theorem m_P_eps_le_of_profileNeighborhood_point
     (V : Map) (P : Set (Nat × Nat)) (kp epsilon c i j : Nat) (x : BitString)
     (hUp : IsUpperSet P)
-    (hkP : k_P P = (kp : ENat))
+    (hkP : kP P = (kp : ENat))
     (hx : x ∈ profileNeighborhood V P epsilon)
     (hij : (i, j) ∈ plainDescriptionProfileSet V x)
     (hbudget : i + j ≤ kp + c * (kp + 2 * epsilon).bits.length) :
-    m_P_eps P kp epsilon c ≤ (i : ENat) := by
+    mPEps P kp epsilon c ≤ (i : ENat) := by
   rcases Nat.lt_or_ge i kp with hik | hik
   · have hnear : ProfileSetsWithinNeighborhood
         (plainDescriptionProfileSet V x) P epsilon := hx
@@ -571,7 +610,7 @@ theorem card_condK_le_boundedPrograms_length
   classical
   have h_exists : ∀ x ∈ S, ∃ p, p.length ≤ n ∧ produces V p y x := by
     intro x hx
-    exact (condKLeIff V x y n).mp (h x hx)
+    exact (condK_le_iff V x y n).mp (h x hx)
   let pOf : BitString → BitString := fun x ↦
     if hx : x ∈ S then Classical.choose (h_exists x hx) else []
   have hpOf_mem :

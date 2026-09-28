@@ -1,15 +1,33 @@
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.Partition
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.PlainSymmetry
-import KolmogorovMathlib.AlgorithmicStatistics.BoundedComplexityLists.StandardDescriptions
+import KolmogorovMathlib.AlgorithmicStatistics.BoundedLists.StandardBlock
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.PlainProfile
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.SufficientStatistic
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.FullCube
+
+/-!
+# What a minimal model looks like
+
+Estimates on a `(delta, kappa)`-minimal model of a string of length `n`.
+
+`minimalModel_plainSetComplexity_le` bounds its plain set complexity, using
+`minimalModel_competitor_complexity_gap`: a competitor meeting the two-part budget cannot be
+much cheaper.  `setComplexity_le_plainSetComplexity_of_logSlack_budget` passes between the
+prefix and plain set complexities within the budget, and `isIJDescription_of_plain_model`
+turns a plain model into an `(i, j)`-description.
+
+`standardModel_package` is the comparison with the standard blocks of `BoundedLists`: every
+model of `x` with parameters `(i, j)` is matched by a standard block with the same parameters
+up to slack.
+-/
 
 namespace Kolmogorov
 
 open Kolmogorov.CodedFiniteDistribution
 open Nat.Partrec (Code)
 
+/-- For a set whose plain set complexity is at most `N`, the prefix set complexity exceeds the
+plain one by at most `logSlack C N`. -/
 theorem setComplexity_le_plainSetComplexity_of_logSlack_budget
     (V U : Map) (hV : isOptimalConditional V) (hU : IsOptimalPrefixConditional U) :
     ∃ C : Nat, ∀ S (hS : S.Nonempty) (N : Nat),
@@ -34,6 +52,8 @@ theorem setComplexity_le_plainSetComplexity_of_logSlack_budget
     _ = plainSetComplexity V S hS + (logSlack C N : ENat) := by
         rw [hk]; push_cast; ring
 
+/-- A plain model `A` of `x` with complexity at most `i ≤ N` and log-cardinality at most `j` is
+an `(i + logSlack C N, j)`-description of `x` in the prefix sense. -/
 theorem isIJDescription_of_plain_model
     (V U : Map) (hV : isOptimalConditional V) (hU : IsOptimalPrefixConditional U) :
     ∃ C : Nat, ∀ x (A : Finset BitString) (hA : A.Nonempty) (i j N : Nat),
@@ -56,6 +76,8 @@ theorem isIJDescription_of_plain_model
     have hj : finiteSetLogCard A ≤ j := by exact_mod_cast hcard
     exact (finiteSetLogCard_le_iff A j).mp hj
 
+/-- A competitor `B` of a `(delta, kappa)`-minimal model `A` that meets the two-part budget of
+`A` up to `kappa` has plain set complexity at least that of `A` minus `delta`. -/
 theorem minimalModel_competitor_complexity_gap
     {V : Map} {x : BitString} {A : Finset BitString} {hA : A.Nonempty} {delta kappa : Nat}
     (hmin : IsMinimalModel V x A hA delta kappa)
@@ -71,6 +93,8 @@ theorem minimalModel_competitor_complexity_gap
   -- `delta`; in the linear order `ENat` the negation is exactly the desired bound.
   le_of_lt (not_le.mp (hmin.2 B hB hxB htwo))
 
+/-- A `(delta, logSlack cKappa n)`-minimal model of a string of length `n` has plain set
+complexity at most `n + delta + logSlack c n`. -/
 theorem minimalModel_plainSetComplexity_le
     (V : Map) (hV : isOptimalConditional V) :
     ∃ cKappa c : Nat, ∀ x n A (hA : A.Nonempty) delta,
@@ -86,12 +110,12 @@ theorem minimalModel_plainSetComplexity_le
   obtain ⟨cCube, hCube⟩ := plainSetComplexity_fullCube_le_logSlack V hV
   refine ⟨0, cCube, fun x n A hA delta hxlen hmin => ?_⟩
   have hB : (stringsOfLength n).Nonempty := codedStringsOfLength_nonempty n
-  have hxB : x ∈ stringsOfLength n := (memStringsOfLength n x).mpr hxlen
+  have hxB : x ∈ stringsOfLength n := (mem_stringsOfLength n x).mpr hxlen
   have hCB : plainSetComplexity V (stringsOfLength n) hB ≤ (logSlack cCube n : ENat) :=
     hCube n
   have hlogB : (finiteSetLogCard (stringsOfLength n) : ENat) ≤ (n : ENat) := by
     have : finiteSetLogCard (stringsOfLength n) ≤ n :=
-      (finiteSetLogCard_le_iff _ n).mpr (le_of_eq (cardStringsOfLength n))
+      (finiteSetLogCard_le_iff _ n).mpr (le_of_eq (card_stringsOfLength n))
     exact_mod_cast this
   by_cases hprem :
       plainSetComplexity V (stringsOfLength n) hB + (finiteSetLogCard (stringsOfLength n) : ENat) ≤
@@ -118,6 +142,9 @@ theorem minimalModel_plainSetComplexity_le
           have h : logSlack cCube n + n ≤ n + delta + logSlack cCube n := by omega
           exact_mod_cast h
 
+/-- Every model `A` of `x` with parameters `(i, j)` is matched by a standard block
+`standardBlock q m r x` containing `x` with the same parameters up to the additive constant
+`C`. -/
 theorem standardModel_package
     (V U : Map) (hV : isOptimalConditional V) (hU : IsOptimalPrefixConditional U)
     (q : Code) (hq : IsCodeFor q V) :
@@ -164,7 +191,7 @@ theorem standardModel_package
   -- Folding lemma: `a ≤ n + logSlack C_bs n ⇒ logSlack C_bs a ≤ logSlack Cf n`.
   have hfold : ∀ a : ℕ, a ≤ n + logSlack C_bs n → logSlack C_bs a ≤ logSlack Cf n := by
     intro a ha
-    have hlen := length_natBits_le_self n
+    have hlen := length_natBits_le n
     have hmul : C_bs * (Nat.bits n).length ≤ C_bs * n := Nat.mul_le_mul_left _ hlen
     have ha2 : a ≤ (C_bs + 1) * n + C_bs := by
       calc a ≤ n + logSlack C_bs n := ha

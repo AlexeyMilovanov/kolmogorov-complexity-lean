@@ -1,8 +1,10 @@
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.OrdinalPlainRandomness
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.StochasticityTotalReduction
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.StochasticTotalReduction
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.AddNoise
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.StrongSufficientStatistic
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.ProfileBridges
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.StepWiseTotal.Part01
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.StepWiseTotal
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.UpwardStagedCondition
 
 /-!
 # Conditional input for upward closure
@@ -18,8 +20,9 @@ purified model or the desired pair-condition inequality as a premise.
 
 namespace Kolmogorov
 
-/-- The exact budgeted random-noise transport needed by the remaining S4
-assembly.  Proving this proposition requires the direct information-splitting
+open CodedFiniteDistribution
+/-- The exact budgeted random-noise transport used in the upward assembly.  Proving this proposition
+requires the direct information-splitting
 argument; merely extending an arbitrary stochasticity witness is not sound
 because its code may contain information about `y`. -/
 def BudgetedRandomNoiseTransportStatement (V U : Map) : Prop :=
@@ -45,61 +48,14 @@ theorem purified_witness_pair_condition_bound
       KP U x P.code + (y.length : ENat) ≤
         KP U (pairCode x y) (pairCode P.code (natCode y.length)) +
         (epsilon + P_cond_x + logSlack c baseBudget + logSlack c y.length : ENat) := by
-  obtain ⟨cPlain, hPlain⟩ :=
-    condK_le_KP V U hV hU.isPrefixDecompressor
-  obtain ⟨cProject, hProject⟩ :=
-    KP_map_le U hU decodeSecond decodeSecond_computable
-  obtain ⟨cUpper, hUpper⟩ := KPCondPair_chain_upper U hU
-  obtain ⟨cLower, hLower⟩ := KPCondPair_chain_lower U hU
   obtain ⟨cRemove, hRemove⟩ := KP_cond_remove_short_info U hU
-  obtain ⟨cPair, hPair⟩ := KPPair_le_KPPlain_add_KPPlain U hU
+  obtain ⟨cLower, hLower⟩ := KPCondPair_chain_lower U hU
   obtain ⟨cNat, hNat⟩ := KPPlain_natCode_le_log U hU
-  obtain ⟨cLiteral, hLiteral⟩ := KPPlain_le_two_mul_length U hU
-  obtain ⟨cCondition, hCondition⟩ := KP_le_KPPlain U hU
-  obtain ⟨cPlainBridge, hPlainBridge⟩ :=
-    KPPlain_le_plainK_add_KPPlain_plainK U V hU hV
-  let coreCondition : BitString → BitString := fun w =>
-    pairCode (decodeFirst w) (decodeFirst (decodeSecond w))
-  have hCoreCondition : Computable coreCondition := by
-    have hPair : Computable₂ (fun (a b : BitString) => pairCode a b) :=
-      pairCode_computable
-    have hSecond : Computable (fun w : BitString => decodeFirst (decodeSecond w)) :=
-      decodeFirst_computable.comp decodeSecond_computable
-    exact hPair.comp decodeFirst_computable hSecond
-  obtain ⟨cCore, hCore⟩ :=
-    KP_cond_map_le U hU coreCondition hCoreCondition
-  let enrichedCondition : BitString → BitString := fun w =>
-    pairCode
-      (pairCode (decodeSecond (decodeFirst w))
-        (decodeFirst (decodeSecond w)))
-      (pairCode (decodeFirst (decodeFirst w))
-        (decodeSecond (decodeSecond w)))
-  have hEnrichedCondition : Computable enrichedCondition := by
-    have hPair : Computable₂ (fun (a b : BitString) => pairCode a b) :=
-      pairCode_computable
-    have hP : Computable (fun w : BitString => decodeSecond (decodeFirst w)) :=
-      decodeSecond_computable.comp decodeFirst_computable
-    have hN : Computable (fun w : BitString => decodeFirst (decodeSecond w)) :=
-      decodeFirst_computable.comp decodeSecond_computable
-    have hX : Computable (fun w : BitString => decodeFirst (decodeFirst w)) :=
-      decodeFirst_computable.comp decodeFirst_computable
-    have hK : Computable (fun w : BitString => decodeSecond (decodeSecond w)) :=
-      decodeSecond_computable.comp decodeSecond_computable
-    have hLeft : Computable (fun w : BitString =>
-        pairCode (decodeSecond (decodeFirst w)) (decodeFirst (decodeSecond w))) :=
-      hPair.comp hP hN
-    have hRight : Computable (fun w : BitString =>
-        pairCode (decodeFirst (decodeFirst w)) (decodeSecond (decodeSecond w))) :=
-      hPair.comp hX hK
-    exact hPair.comp hLeft hRight
-  obtain ⟨cEnriched, hEnriched⟩ :=
-    KP_cond_map_le U hU enrichedCondition hEnrichedCondition
-  let b := cLiteral + cPlainBridge + cCondition
-  obtain ⟨cBase, hBase⟩ := logSlack_linear_bound 2 3 b
-  let preLowerCost :=
-    3 * cNat + cPair + 2 * cRemove + cPlain + cProject +
-      cUpper + cCore + cEnriched
-  let fixedCost := preLowerCost + cLower
+  obtain ⟨cAdvice, hAdvice⟩ := KPPlain_advicePair_le U hU
+  obtain ⟨cRandom, hRandom⟩ := random_given_stagedCondition V U hV hU
+  obtain ⟨bLin, hLin⟩ := exists_condPrefixComplexityValue_linear_in_budget V U hV hU
+  obtain ⟨cBase, hBase⟩ := logSlack_linear_bound 2 3 bLin
+  let fixedCost := cRemove + cRandom + cLower + cNat + cAdvice
   let cLength := 4 + fixedCost
   let C := max cBase cLength
   refine ⟨C, ?_⟩
@@ -109,153 +65,15 @@ theorem purified_witness_pair_condition_bound
   have hPFinite : KP U P.code x ≠ ⊤ :=
     ne_top_of_le_ne_top (ENat.coe_ne_top P_cond_x) hPCond
   obtain ⟨kP, hkP⟩ := ENat.ne_top_iff_exists.mp hPFinite
-  have hPlainFinite : plainK V x ≠ ⊤ :=
-    condK_ne_top_of_optimal V hV x []
-  obtain ⟨kC, hkC⟩ := ENat.ne_top_iff_exists.mp hPlainFinite
-  have hkCBound : kC ≤ baseBudget := by
-    have : (kC : ENat) ≤ (baseBudget : ENat) := by
-      rw [hkC]
-      exact hxBudget
-    exact_mod_cast this
-  have hXFinite : KP U x z ≠ ⊤ := by
-    have hbound :
-        KP U x z ≤
-          ((kC + 2 * (Nat.bits kC).length + cLiteral +
-            cPlainBridge + cCondition : Nat) : ENat) := by
-      calc
-        KP U x z ≤ KPPlain U x + (cCondition : ENat) := hCondition x z
-        _ ≤ ((kC : ENat) + KPPlain U (Nat.bits kC) +
-              (cPlainBridge : ENat)) + (cCondition : ENat) := by
-              gcongr
-              exact hPlainBridge x kC hkC.symm
-        _ ≤ ((kC : ENat) +
-              (2 * (Nat.bits kC).length + cLiteral : Nat) +
-              (cPlainBridge : ENat)) + (cCondition : ENat) := by
-              gcongr
-              exact hLiteral (Nat.bits kC)
-        _ = ((kC + 2 * (Nat.bits kC).length + cLiteral +
-              cPlainBridge + cCondition : Nat) : ENat) := by
-              push_cast
-              ring
-    exact ne_top_of_le_ne_top (ENat.coe_ne_top _) hbound
-  obtain ⟨kx, hkx⟩ := ENat.ne_top_iff_exists.mp hXFinite
-  have hkxBudget :
-      kx ≤ baseBudget + 2 * (Nat.bits baseBudget).length + b := by
-    have hbound :
-        (kx : ENat) ≤
-          ((baseBudget + 2 * (Nat.bits baseBudget).length + b : Nat) : ENat) := by
-      calc
-        (kx : ENat) = KP U x z := hkx
-        _ ≤ KPPlain U x + (cCondition : ENat) := hCondition x z
-        _ ≤ ((kC : ENat) + KPPlain U (Nat.bits kC) +
-              (cPlainBridge : ENat)) + (cCondition : ENat) := by
-              gcongr
-              exact hPlainBridge x kC hkC.symm
-        _ ≤ ((kC : ENat) +
-              (2 * (Nat.bits kC).length + cLiteral : Nat) +
-              (cPlainBridge : ENat)) + (cCondition : ENat) := by
-              gcongr
-              exact hLiteral (Nat.bits kC)
-        _ ≤ ((baseBudget + 2 * (Nat.bits baseBudget).length + b : Nat) : ENat) := by
-              exact_mod_cast (show
-                kC + (2 * (Nat.bits kC).length + cLiteral) +
-                    cPlainBridge + cCondition ≤
-                  baseBudget + 2 * (Nat.bits baseBudget).length + b by
-                have hbits := length_natBits_mono hkCBound
-                dsimp [b]
-                omega)
-    exact_mod_cast hbound
-  have hkxLinear : kx ≤ 3 * baseBudget + b := by
-    have hbits := length_natBits_le_self baseBudget
-    omega
-  let advice := pairCode (natCode n) (natCode kx)
-  let baseCondition := pairCode x P.code
-  let stagedPCondition := prefixCondComplexityContext x P.code kP
-  let stagedXCondition := prefixCondComplexityContext z x kx
-  have hCoreEval : coreCondition stagedPCondition = baseCondition := by
-    simp [coreCondition, stagedPCondition, baseCondition,
-      prefixCondComplexityContext, decodeFirst_pairCode, decodeSecond_pairCode]
-  have hEnrichedEval :
-      enrichedCondition (pairCode baseCondition advice) = stagedXCondition := by
-    simp [enrichedCondition, baseCondition, advice, stagedXCondition,
-      prefixCondComplexityContext, z, decodeFirst_pairCode, decodeSecond_pairCode]
-  have hConditionChange :
-      KP U y stagedPCondition ≤
-        KP U y stagedXCondition + KPPlain U advice +
-          (cCore + cRemove + cEnriched : Nat) := by
-    calc
-      KP U y stagedPCondition
-          ≤ KP U y (coreCondition stagedPCondition) + (cCore : ENat) :=
-            hCore y stagedPCondition
-      _ = KP U y baseCondition + (cCore : ENat) := by rw [hCoreEval]
-      _ ≤ (KP U y (pairCode baseCondition advice) + KPPlain U advice +
-            (cRemove : ENat)) + (cCore : ENat) := by
-              gcongr
-              exact hRemove y baseCondition advice
-      _ ≤ ((KP U y (enrichedCondition (pairCode baseCondition advice)) +
-              (cEnriched : ENat)) + KPPlain U advice +
-            (cRemove : ENat)) + (cCore : ENat) := by
-              gcongr
-              exact hEnriched y (pairCode baseCondition advice)
-      _ = KP U y stagedXCondition + KPPlain U advice +
-            (cCore + cRemove + cEnriched : Nat) := by
-              rw [hEnrichedEval, Nat.cast_add, Nat.cast_add]
-              abel
-  have hRandomPrefix :
-      (n : ENat) ≤ KP U y stagedXCondition +
-        (epsilon + P_cond_x : Nat) + KPPlain U advice +
-        (cPlain + cProject + cUpper + cCore + cRemove + cEnriched : Nat) := by
-    have hPairUpper := hUpper P.code y x kP hkP
-    have hProjection :
-        KP U y x ≤ KPCondPair U P.code y x + (cProject : ENat) := by
-      simpa [KPCondPair, decodeSecond_pairCode] using
-        hProject (pairCode P.code y) x
-    calc
-      (n : ENat) = (y.length : ENat) := rfl
-      _ ≤ condK V y x + (epsilon : ENat) := hyRandom
-      _ ≤ (KP U y x + (cPlain : ENat)) + (epsilon : ENat) := by
-            gcongr
-            exact hPlain y x
-      _ ≤ ((KPCondPair U P.code y x + (cProject : ENat)) +
-            (cPlain : ENat)) + (epsilon : ENat) := by
-              gcongr
-      _ ≤ (((KP U P.code x + KP U y stagedPCondition +
-              (cUpper : ENat)) + (cProject : ENat)) +
-            (cPlain : ENat)) + (epsilon : ENat) := by
-              gcongr
-      _ ≤ ((((P_cond_x : ENat) +
-              (KP U y stagedXCondition + KPPlain U advice +
-                (cCore + cRemove + cEnriched : Nat)) +
-              (cUpper : ENat)) + (cProject : ENat)) +
-            (cPlain : ENat)) + (epsilon : ENat) := by
-              gcongr
-      _ = KP U y stagedXCondition +
-            (epsilon + P_cond_x : Nat) + KPPlain U advice +
-            (cPlain + cProject + cUpper + cCore + cRemove + cEnriched : Nat) := by
-              simp only [Nat.cast_add]
-              simp [add_comm, add_left_comm, add_assoc]
-  have hNatComplexity :
-      KPPlain U (natCode n) ≤ ((2 * (Nat.bits n).length + cNat : Nat) : ENat) :=
-    hNat n
-  have hAdviceComplexity :
-      KPPlain U advice ≤
-        ((2 * (Nat.bits n).length + 2 * (Nat.bits kx).length +
-          2 * cNat + cPair : Nat) : ENat) := by
-    calc
-      KPPlain U advice = KPPair U (natCode n) (natCode kx) := rfl
-      _ ≤ KPPlain U (natCode n) + KPPlain U (natCode kx) +
-            (cPair : ENat) := hPair (natCode n) (natCode kx)
-      _ ≤ ((2 * (Nat.bits n).length + cNat : Nat) : ENat) +
-            ((2 * (Nat.bits kx).length + cNat : Nat) : ENat) +
-            (cPair : ENat) := by
-              exact add_le_add (add_le_add (hNat n) (hNat kx)) le_rfl
-      _ = ((2 * (Nat.bits n).length + 2 * (Nat.bits kx).length +
-            2 * cNat + cPair : Nat) : ENat) := by
-              simp only [Nat.cast_add, Nat.cast_mul, Nat.cast_ofNat]
-              ring
+  obtain ⟨kx, hkx, hkxLinear⟩ := hLin x z baseBudget hxBudget
+  have hSplit : KP U x P.code ≤ KP U x z + KPPlain U (natCode n) + (cRemove : ENat) := by
+    simpa [z] using hRemove x P.code (natCode n)
+  have hStaged :=
+    hRandom x y P.code n kx kP epsilon P_cond_x hkP hPCond hyRandom
+  have hChain := hLower x y z kx hkx
   have hBaseLog : logSlack 2 kx ≤ logSlack cBase baseBudget := by
     calc
-      logSlack 2 kx ≤ logSlack 2 (3 * baseBudget + b) :=
+      logSlack 2 kx ≤ logSlack 2 (3 * baseBudget + bLin) :=
         logSlack_mono_right 2 hkxLinear
       _ ≤ logSlack cBase baseBudget := hBase baseBudget
   have hFixedLog :
@@ -264,10 +82,10 @@ theorem purified_witness_pair_condition_bound
     unfold logSlack
     nlinarith [Nat.zero_le ((Nat.bits n).length)]
   have hCost :
-      4 * (Nat.bits n).length + 2 * (Nat.bits kx).length + fixedCost ≤
+      cRemove + cRandom + cLower + (2 * (Nat.bits n).length + cNat) +
+          (2 * (Nat.bits n).length + 2 * (Nat.bits kx).length + cAdvice) ≤
         logSlack C baseBudget + logSlack C n := by
-    have hKxLog :
-        2 * (Nat.bits kx).length ≤ logSlack cBase baseBudget := by
+    have hKxLog : 2 * (Nat.bits kx).length ≤ logSlack cBase baseBudget := by
       calc
         2 * (Nat.bits kx).length ≤ logSlack 2 kx := by
           unfold logSlack
@@ -277,105 +95,23 @@ theorem purified_witness_pair_condition_bound
       logSlack_mono_left (le_max_left _ _) baseBudget
     have hLengthMono : logSlack cLength n ≤ logSlack C n :=
       logSlack_mono_left (le_max_right _ _) n
+    dsimp [fixedCost] at hFixedLog
     omega
-  have hLowerPair := hLower x y z kx hkx
-  have hPreLowerCostNat :
-      (2 * (Nat.bits n).length + cNat) +
-          (2 * (Nat.bits n).length + 2 * (Nat.bits kx).length +
-            2 * cNat + cPair) +
-        (cRemove + cPlain + cProject + cUpper + cCore + cRemove +
-          cEnriched) =
-        4 * (Nat.bits n).length + 2 * (Nat.bits kx).length +
-          preLowerCost := by
-    dsimp [preLowerCost]
-    omega
-  have castAddEq {a b c : Nat} (h : a + b = c) :
-      (a : ENat) + (b : ENat) = (c : ENat) := by
-    simpa only [Nat.cast_add] using congrArg (fun m : Nat => (m : ENat)) h
-  have hPreLowerCostCast := castAddEq hPreLowerCostNat
-  have hFixedCostNat :
-      cLower +
-        (4 * (Nat.bits n).length + 2 * (Nat.bits kx).length +
-          preLowerCost) =
-        4 * (Nat.bits n).length + 2 * (Nat.bits kx).length +
-          fixedCost := by
-    dsimp [fixedCost]
-    omega
-  have hFixedCostCast := castAddEq hFixedCostNat
-  calc
-    KP U x P.code + (y.length : ENat)
-        ≤ (KP U x z + KPPlain U (natCode n) + (cRemove : ENat)) +
-            (KP U y stagedXCondition + (epsilon + P_cond_x : Nat) +
-              KPPlain U advice +
-              (cPlain + cProject + cUpper + cCore + cRemove + cEnriched : Nat)) := by
-          exact add_le_add (by simpa [z] using hRemove x P.code (natCode n))
-            (by simpa [n] using hRandomPrefix)
-    _ = (KP U x z + KP U y stagedXCondition) +
-          (epsilon + P_cond_x : Nat) +
-          (KPPlain U (natCode n) + KPPlain U advice) +
-          (cRemove + cPlain + cProject + cUpper + cCore + cRemove +
-            cEnriched : Nat) := by
-          simp only [Nat.cast_add]
-          simp [add_comm, add_left_comm, add_assoc]
-    _ ≤ (KP U x z + KP U y stagedXCondition) +
-          (epsilon + P_cond_x : Nat) +
-          (((2 * (Nat.bits n).length + cNat) +
-            (2 * (Nat.bits n).length + 2 * (Nat.bits kx).length +
-              2 * cNat + cPair) : Nat) : ENat) +
-          (cRemove + cPlain + cProject + cUpper + cCore + cRemove +
-            cEnriched : Nat) := by
-          gcongr
-          exact add_le_add hNatComplexity hAdviceComplexity
-    _ = (KP U x z + KP U y stagedXCondition) +
-          (epsilon + P_cond_x : Nat) +
-          ((4 * (Nat.bits n).length + 2 * (Nat.bits kx).length +
-            preLowerCost : Nat) : ENat) := by
-          calc
-            (KP U x z + KP U y stagedXCondition) +
-                  (epsilon + P_cond_x : Nat) +
-                  (((2 * (Nat.bits n).length + cNat) +
-                    (2 * (Nat.bits n).length + 2 * (Nat.bits kx).length +
-                      2 * cNat + cPair) : Nat) : ENat) +
-                  (cRemove + cPlain + cProject + cUpper + cCore + cRemove +
-                    cEnriched : Nat) =
-                (KP U x z + KP U y stagedXCondition) +
-                  (epsilon + P_cond_x : Nat) +
-                  ((((2 * (Nat.bits n).length + cNat) +
-                    (2 * (Nat.bits n).length + 2 * (Nat.bits kx).length +
-                      2 * cNat + cPair) : Nat) : ENat) +
-                    (cRemove + cPlain + cProject + cUpper + cCore + cRemove +
-                      cEnriched : Nat)) := by rw [add_assoc]
-            _ = _ := by rw [hPreLowerCostCast]
-    _ ≤ (KPCondPair U x y z + (cLower : ENat)) +
-          (epsilon + P_cond_x : Nat) +
-          ((4 * (Nat.bits n).length + 2 * (Nat.bits kx).length +
-            preLowerCost : Nat) : ENat) := by
-          gcongr
-    _ = KPCondPair U x y z + (epsilon + P_cond_x : Nat) +
-          ((4 * (Nat.bits n).length + 2 * (Nat.bits kx).length +
-            fixedCost : Nat) : ENat) := by
-          calc
-            (KPCondPair U x y z + (cLower : ENat)) +
-                  (epsilon + P_cond_x : Nat) +
-                  ((4 * (Nat.bits n).length + 2 * (Nat.bits kx).length +
-                    preLowerCost : Nat) : ENat) =
-                KPCondPair U x y z + (epsilon + P_cond_x : Nat) +
-                  ((cLower : ENat) +
-                    ((4 * (Nat.bits n).length + 2 * (Nat.bits kx).length +
-                      preLowerCost : Nat) : ENat)) := by abel
-            _ = _ := by rw [hFixedCostCast]
-    _ ≤ KPCondPair U x y z + (epsilon + P_cond_x : Nat) +
-          ((logSlack C baseBudget + logSlack C n : Nat) : ENat) := by
-          gcongr
-    _ = KP U (pairCode x y) (pairCode P.code (natCode y.length)) +
-          (epsilon + P_cond_x + logSlack C baseBudget +
-            logSlack C y.length : Nat) := by
-          change KP U (pairCode x y) z + (epsilon + P_cond_x : Nat) +
-              ((logSlack C baseBudget + logSlack C n : Nat) : ENat) = _
-          rw [show z = pairCode P.code (natCode y.length) from rfl]
-          simp only [Nat.cast_add]
-          simp [add_comm, add_left_comm, add_assoc]
-          rfl
+  have hFinal :=
+    enat_pair_condition_assembly (KP U x P.code) (KP U x z)
+      (KP U y (prefixCondComplexityContext z x kx)) (KPCondPair U x y z)
+      (KPPlain U (natCode n)) (KPPlain U (pairCode (natCode n) (natCode kx)))
+      n (epsilon + P_cond_x) cRemove cRandom cLower
+      (2 * (Nat.bits n).length + cNat)
+      (2 * (Nat.bits n).length + 2 * (Nat.bits kx).length + cAdvice)
+      (logSlack C baseBudget + logSlack C n)
+      hSplit hStaged hChain (hNat n) (hAdvice n kx) hCost
+  have hPairEq :
+      KPCondPair U x y z = KP U (pairCode x y) (pairCode P.code (natCode y.length)) := rfl
+  rw [hPairEq] at hFinal
+  refine hFinal.trans_eq ?_
+  push_cast
+  ring
 
 /-- Absorption of prospective purification costs into the uniform
 `c * epsilon + log ...` radius. -/
@@ -419,7 +155,7 @@ theorem plainK_strongModelCode_le
       IsStrongSetModel T x A hA epsilon →
       plainK V (codedUniformOn A hA).code ≤
         (n + epsilon + logSlack c n : ENat) := by
-  obtain ⟨cLength, hLength⟩ := plainKLeLength V hV
+  obtain ⟨cLength, hLength⟩ := plainK_le_length V hV
   obtain ⟨cSim, hSim⟩ := hV.2 T hT
   obtain ⟨cTwo, hTwo⟩ := plainK_two_stage V hV
   let c := cLength + cSim + cTwo + 2 * (Nat.bits cLength).length + 4
@@ -479,7 +215,7 @@ theorem propAddNoise_of_budgetedRandomNoiseTransport
     (hNoise : BudgetedRandomNoiseTransportStatement V U) :
     PropAddNoiseStatement V U := by
   obtain ⟨cNoise, hNoise⟩ := hNoise
-  obtain ⟨cLength, hLength⟩ := plainKLeLength V hV
+  obtain ⟨cLength, hLength⟩ := plainK_le_length V hV
   obtain ⟨cProj, hProj⟩ := isStochastic_fst_of_pair U hU
   let c := cNoise + cProj + logSlack cNoise cLength + 1
   refine ⟨c, ?_⟩
@@ -581,11 +317,11 @@ theorem upward_noise_equivalence_radius_absorb
   have hModelEpsilon :
       logSlack CModel epsilon ≤ CModel * epsilon + CModel := by
     unfold logSlack
-    nlinarith [length_natBits_le_self epsilon]
+    nlinarith [length_natBits_le epsilon]
   have hWidthEpsilon :
       logSlack CWidth epsilon ≤ CWidth * epsilon + CWidth := by
     unfold logSlack
-    nlinarith [length_natBits_le_self epsilon]
+    nlinarith [length_natBits_le epsilon]
   have hBaseFinal :
       logSlack cNoise (n + epsilon + logSlack cModel n) ≤
         logSlack CModel n + CModel * epsilon + CModel :=
@@ -649,9 +385,8 @@ theorem upward_noise_equivalence_radius_absorb
     _ ≤ C * epsilon + logSlack C n := Nat.add_le_add hCoeff hLog
 
 
-/-- The conditional assembly of the upward proposition.
-From the frozen budgeted transport, total-equivalence transport, and ordinal randomness,
-conclude the profile-neighborhood stability. -/
+/-- The budgeted random-noise transport statement implies the upward proposition: the
+description profile is stable under enlarging the model budget. -/
 theorem propUpward_of_budgetedRandomNoiseTransport
     (V U T : Map) (hV : isOptimalConditional V)
     (hU : IsOptimalPrefixConditional U)
@@ -747,7 +482,7 @@ theorem isStochastic_of_inDescriptionProfile (U : Map) (_hU : IsOptimalPrefixCon
   refine isStochastic_of_model U z (codedUniformOn S hS) i j
     (codedUniformOn_isProbability S hS) ?_ ?_
   · simpa [setComplexity, CodedFiniteDistribution.complexity] using hcomplexity
-  · unfold DeficiencyLe CodedFiniteDistribution.DeficiencyLe
+  · unfold CodedFiniteDistribution.DeficiencyLe
     rw [codedUniformOn_mass_of_mem S hS z hz]
     have hcard' : (S.card : ENNReal) ≤ (2 : ENNReal) ^ j := by
       exact_mod_cast hcard
@@ -795,7 +530,10 @@ theorem plainK_replace_by_baseBudget (c baseBudget _x_len kx : Nat) (hkx : kx �
     logSlack c kx ≤ logSlack c baseBudget :=
   logSlack_mono_right c hkx
 
-/-- Final radius absorption for budgeted noise transport. -/
+/-- An additive constant is absorbed by enlarging the slack constant:
+`c1 * epsilon + logSlack c1 baseBudget + logSlack c1 y_len + c2 ≤
+(c1 + c2) * epsilon + logSlack (c1 + c2) baseBudget + logSlack (c1 + c2) y_len`.
+No hypothesis is needed; the extra `c2` is paid for by the growth of both slack terms. -/
 theorem budgeted_noise_radius_final_absorb (c1 c2 epsilon baseBudget y_len : Nat) :
     c1 * epsilon + logSlack c1 baseBudget + logSlack c1 y_len + c2 ≤
       (c1 + c2) * epsilon + logSlack (c1 + c2) baseBudget + logSlack (c1 + c2) y_len := by

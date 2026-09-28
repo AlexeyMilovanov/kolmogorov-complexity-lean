@@ -12,13 +12,14 @@ made visible in the condition and is then removed at logarithmic cost.
 
 namespace Kolmogorov
 
+open CodedFiniteDistribution
 /-- Conditional plain complexity is finite for an optimal conditional
 decompressor. -/
 theorem condK_ne_top_of_optimal
     (V : Map) (hV : isOptimalConditional V) (x y : BitString) :
     condK V x y ≠ ⊤ := by
-  obtain ⟨cCond, hCond⟩ := condKLePlainK V hV
-  obtain ⟨cLen, hLen⟩ := plainKLeLength V hV
+  obtain ⟨cCond, hCond⟩ := condK_le_plainK V hV
+  obtain ⟨cLen, hLen⟩ := plainK_le_length V hV
   have hbound :
       condK V x y ≤ ((x.length + cLen + cCond : Nat) : ENat) := by
     calc
@@ -30,7 +31,7 @@ theorem condK_ne_top_of_optimal
       _ = ((x.length + cLen + cCond : Nat) : ENat) := by
             push_cast
             rfl
-  exact ne_top_of_le_ne_top (ENat.coe_ne_top _) hbound
+  exact ne_top_of_le_natCast hbound
 
 /-- Prefix conditional complexity is at most ordinary conditional complexity
 plus logarithmic overhead in the visible output length.  The constant is
@@ -44,8 +45,8 @@ theorem KP_le_condK_logSlack
     KP_le_condK_given_plain_program_length V U hV hU
   obtain ⟨cRemove, hRemove⟩ := KP_cond_remove_short_info U hU
   obtain ⟨cBits, hBits⟩ := KPPlain_le_two_mul_length U hU
-  obtain ⟨cCond, hCond⟩ := condKLePlainK V hV
-  obtain ⟨cLen, hLen⟩ := plainKLeLength V hV
+  obtain ⟨cCond, hCond⟩ := condK_le_plainK V hV
+  obtain ⟨cLen, hLen⟩ := plainK_le_length V hV
   let cLocal := 2 + cExact + cBits + cRemove
   obtain ⟨C, hC⟩ :=
     logSlack_linear_bound cLocal 1 (cLen + cCond)
@@ -132,7 +133,7 @@ theorem ordinal_randomness_slack_absorb_visible
   have hEpsilon :
       logSlack cFold epsilon ≤ cFold * epsilon + cFold := by
     unfold logSlack
-    have hbits := length_natBits_le_self epsilon
+    have hbits := length_natBits_le epsilon
     nlinarith
   have hLogMFinal :
       logSlack cBridge m ≤

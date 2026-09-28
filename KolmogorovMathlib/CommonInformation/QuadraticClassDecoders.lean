@@ -1,3 +1,4 @@
+import KolmogorovMathlib.CommonInformation.QuadraticIncidenceDecoders
 import KolmogorovMathlib.CommonInformation.QuadraticEdgeDecoders
 
 /-!
@@ -36,6 +37,8 @@ def quadClassV1Nat (m r t s g : Nat) : Nat :=
 def quadClassS0Nat (m t s f : Nat) : Nat :=
   (s + concretePrime m * concretePrime m - f * t) % concretePrime m
 
+/-- On the representatives of field elements, `quadClassV1Nat` computes the
+representative of `s + r * g - A * (r * t)`. -/
 lemma quadClassV1Nat_val (m : Nat) (r t s g : ConcreteField m) :
     quadClassV1Nat m r.val t.val s.val g.val =
       (s + r * g - quadFieldA m * (r * t)).val := by
@@ -50,6 +53,8 @@ lemma quadClassV1Nat_val (m : Nat) (r t s g : ConcreteField m) :
   rw [← hcast, ZMod.val_natCast]
   rfl
 
+/-- On the representatives of field elements, `quadClassS0Nat` computes the
+representative of `s - f * t`, the second coordinate of the line's intercept. -/
 lemma quadClassS0Nat_val (m : Nat) (t s f : ConcreteField m) :
     quadClassS0Nat m t.val s.val f.val = (s - f * t).val := by
   have hlt : f.val * t.val ≤ concretePrime m * concretePrime m :=
@@ -67,11 +72,14 @@ lemma quadClassS0Nat_val (m : Nat) (t s f : ConcreteField m) :
 
 /-! ### Element-level coordinates of sums and products -/
 
+/-- Coordinates with respect to the quadratic basis are additive. -/
 lemma quadRepr_add (m : Nat) (u v : ConcreteQuadraticField m) (i : Fin 2) :
     (concreteQuadraticBasis m).repr (u + v) i =
       (concreteQuadraticBasis m).repr u i + (concreteQuadraticBasis m).repr v i := by
   simp
 
+/-- The second basis coordinate of a product in the quadratic extension:
+`a₀u₁ + a₁u₀ - A * (a₁u₁)`. -/
 lemma quadRepr_mul_one (m : Nat) (a u : ConcreteQuadraticField m) :
     (concreteQuadraticBasis m).repr (a * u) 1 =
       (concreteQuadraticBasis m).repr a 0 * (concreteQuadraticBasis m).repr u 1 +
@@ -87,6 +95,8 @@ lemma quadRepr_mul_one (m : Nat) (a u : ConcreteQuadraticField m) :
 noncomputable def quadClassKeyCode (m : Nat) (r t s : ConcreteField m) : BitString :=
   concreteFieldCode m r ++ (concreteFieldCode m t ++ concreteFieldCode m s)
 
+/-- The class key of an incident pair occupies `3 * (m + 1)` bits, one base-field
+element per component. -/
 @[simp]
 lemma quadClassKeyCode_length (m : Nat) (r t s : ConcreteField m) :
     (quadClassKeyCode m r t s).length = 3 * (m + 1) := by
@@ -101,6 +111,8 @@ noncomputable def quadClassKeyOf (m : Nat) (p : Point (ConcreteQuadraticField m)
     ((concreteQuadraticBasis m).repr ell.2 1 +
       (concreteQuadraticBasis m).repr ell.1 0 * (concreteQuadraticBasis m).repr p.1 1)
 
+/-- The class key attached to an incident point–line pair occupies `3 * (m + 1)`
+bits. -/
 @[simp]
 lemma quadClassKeyOf_length (m : Nat) (p : Point (ConcreteQuadraticField m))
     (ell : Line (ConcreteQuadraticField m)) :
@@ -113,6 +125,7 @@ noncomputable def quadClassPointProgram (m : Nat)
   concreteFieldCode m ((concreteQuadraticBasis m).repr p.1 0) ++
     concreteFieldCode m ((concreteQuadraticBasis m).repr p.2 0)
 
+/-- The program recovering a point from its class key is `2 * (m + 1)` bits long. -/
 @[simp]
 lemma quadClassPointProgram_length (m : Nat) (p : Point (ConcreteQuadraticField m)) :
     (quadClassPointProgram m p).length = 2 * (m + 1) := by
@@ -125,6 +138,7 @@ noncomputable def quadClassLineProgram (m : Nat)
   concreteFieldCode m ((concreteQuadraticBasis m).repr ell.1 0) ++
     concreteFieldCode m ((concreteQuadraticBasis m).repr ell.2 0)
 
+/-- The program recovering a line from its class key is `2 * (m + 1)` bits long. -/
 @[simp]
 lemma quadClassLineProgram_length (m : Nat) (ell : Line (ConcreteQuadraticField m)) :
     (quadClassLineProgram m ell).length = 2 * (m + 1) := by
@@ -133,23 +147,29 @@ lemma quadClassLineProgram_length (m : Nat) (ell : Line (ConcreteQuadraticField 
 
 /-! ### Reading the three chunks of a class key -/
 
+/-- The zeroth block of width `w` of a concatenation of three blocks decodes the
+first block. -/
 lemma quadChunk_three_zero (w : Nat) (c0 c1 c2 : BitString) (h0 : c0.length = w) :
     quadChunk w 0 (c0 ++ (c1 ++ c2)) = decodeFixedWidthNatCode c0 := by
-  simp [quadChunk, List.take_left' h0]
+  simpa using quadChunk_append_block w 0 [] c0 (c1 ++ c2) (by simp) h0
 
+/-- The first block of width `w` of a concatenation of three blocks decodes the
+middle block. -/
 lemma quadChunk_three_one (w : Nat) (c0 c1 c2 : BitString)
     (h0 : c0.length = w) (h1 : c1.length = w) :
     quadChunk w 1 (c0 ++ (c1 ++ c2)) = decodeFixedWidthNatCode c1 := by
-  simp only [quadChunk, one_mul]
-  rw [List.drop_left' h0, List.take_left' h1]
+  simpa using quadChunk_append_block w 1 c0 c1 c2 (by simp [h0]) h1
 
+/-- The second block of width `w` of a concatenation of three blocks decodes the
+last block. -/
 lemma quadChunk_three_two (w : Nat) (c0 c1 c2 : BitString)
     (h0 : c0.length = w) (h1 : c1.length = w) (h2 : c2.length = w) :
     quadChunk w 2 (c0 ++ (c1 ++ c2)) = decodeFixedWidthNatCode c2 := by
-  simp only [quadChunk]
-  rw [show 2 * w = w + w by ring, ← List.drop_drop, List.drop_left' h0,
-    List.drop_left' h1, quadChunk_take_self w c2 h2]
+  have h01 : (c0 ++ c1).length = 2 * w := by rw [List.length_append, h0, h1]; ring
+  simpa [List.append_assoc] using quadChunk_append_block w 2 (c0 ++ c1) c2 [] h01 h2
 
+/-- The three blocks of a class-key code are the representatives of `r`, `t` and
+`s`. -/
 lemma quadChunk_classKey (m : Nat) (r t s : ConcreteField m) :
     quadChunk (m + 1) 0 (quadClassKeyCode m r t s) = r.val ∧
       quadChunk (m + 1) 1 (quadClassKeyCode m r t s) = t.val ∧
@@ -163,6 +183,8 @@ lemma quadChunk_classKey (m : Nat) (r t s : ConcreteField m) :
       (concreteFieldCode_length m t) (concreteFieldCode_length m s),
       decode_concreteFieldCode]
 
+/-- The two blocks of the concatenation of two base-field codes are the
+representatives of the two elements. -/
 lemma quadChunk_fieldPair (m : Nat) (a b : ConcreteField m) :
     quadChunk (m + 1) 0 (concreteFieldCode m a ++ concreteFieldCode m b) = a.val ∧
       quadChunk (m + 1) 1 (concreteFieldCode m a ++ concreteFieldCode m b) = b.val := by
@@ -194,6 +216,8 @@ def quadClassLineFromKey (key program : BitString) : BitString :=
           (quadChunk (key.length / 3) 2 key) (quadChunk (key.length / 3) 0 program))
         (key.length / 3))
 
+/-- For an incident pair, the class key together with the point program returns the
+code of the point. -/
 lemma quadClassPointFromKey_incident {m : Nat} {p : Point (ConcreteQuadraticField m)}
     {ell : Line (ConcreteQuadraticField m)} (hinc : Incident p ell) :
     quadClassPointFromKey (quadClassKeyOf m p ell) (quadClassPointProgram m p) =
@@ -226,6 +250,7 @@ lemma quadClassPointFromKey_incident {m : Nat} {p : Point (ConcreteQuadraticFiel
     Nat.add_sub_cancel, hk0, hk1, hk2, hp0, hp1, quadClassV1Nat_val, ← hv1]
   rfl
 
+/-- The class key together with the line program returns the code of the line. -/
 lemma quadClassLineFromKey_incident {m : Nat} {p : Point (ConcreteQuadraticField m)}
     {ell : Line (ConcreteQuadraticField m)} :
     quadClassLineFromKey (quadClassKeyOf m p ell) (quadClassLineProgram m ell) =
@@ -256,6 +281,8 @@ lemma quadClassLineFromKey_incident {m : Nat} {p : Point (ConcreteQuadraticField
 
 /-! ### Primitive recursiveness -/
 
+/-- The coordinate `s + r * g - A * (r * t)` is primitive recursive in its five
+arguments. -/
 lemma quadClassV1Nat_primrec :
     Primrec (fun v : ((Nat × Nat) × Nat × Nat) × Nat =>
       quadClassV1Nat v.1.1.1 v.1.1.2 v.1.2.1 v.1.2.2 v.2) := by
@@ -277,6 +304,7 @@ lemma quadClassV1Nat_primrec :
         (Primrec.nat_sub.comp hp (quadCoeffA_primrec.comp hm))
         (Primrec.nat_mul.comp hr ht))) hp).of_eq (fun _ => rfl)
 
+/-- The coordinate `s - f * t` is primitive recursive in its four arguments. -/
 lemma quadClassS0Nat_primrec :
     Primrec (fun v : (Nat × Nat) × Nat × Nat =>
       quadClassS0Nat v.1.1 v.1.2 v.2.1 v.2.2) := by
@@ -295,6 +323,7 @@ lemma quadClassS0Nat_primrec :
       (Primrec.nat_add.comp hs (Primrec.nat_mul.comp hp hp))
       (Primrec.nat_mul.comp hf ht)) hp).of_eq (fun _ => rfl)
 
+/-- Recovering a point from a class key and a point program is primitive recursive. -/
 lemma quadClassPointFromKey_primrec : Primrec₂ quadClassPointFromKey := by
   have hwidth : Primrec (fun q : BitString × BitString => q.1.length / 3) :=
     Primrec.nat_div.comp (Primrec.list_length.comp Primrec.fst) (Primrec.const 3)
@@ -323,6 +352,7 @@ lemma quadClassPointFromKey_primrec : Primrec₂ quadClassPointFromKey := by
   exact ((Primrec.list_append.comp (Primrec.list_append.comp hcode0 hcode1)
     (Primrec.list_append.comp hcode2 hcode3)).of_eq (fun _ => rfl)).to₂
 
+/-- Recovering a line from a class key and a line program is primitive recursive. -/
 lemma quadClassLineFromKey_primrec : Primrec₂ quadClassLineFromKey := by
   have hwidth : Primrec (fun q : BitString × BitString => q.1.length / 3) :=
     Primrec.nat_div.comp (Primrec.list_length.comp Primrec.fst) (Primrec.const 3)
@@ -353,6 +383,8 @@ lemma quadClassLineFromKey_primrec : Primrec₂ quadClassLineFromKey := by
 
 /-! ### The resulting conditional complexity bounds -/
 
+/-- Given the class key of an incident pair, its point costs at most `2 * (m + 1)`
+further bits up to an additive constant. SUV Exercise 311. -/
 theorem condK_quadraticPoint_given_classKey_le (V : Map) (hV : isOptimalConditional V) :
     ∃ c, ∀ (m : Nat) (p : Point (ConcreteQuadraticField m))
       (ell : Line (ConcreteQuadraticField m)), Incident p ell →
@@ -378,6 +410,8 @@ theorem condK_quadraticPoint_given_classKey_le (V : Map) (hV : isOptimalConditio
         push_cast
         ring
 
+/-- Given the class key of a pair, its line costs at most `2 * (m + 1)` further bits
+up to an additive constant. SUV Exercise 311. -/
 theorem condK_quadraticLine_given_classKey_le (V : Map) (hV : isOptimalConditional V) :
     ∃ c, ∀ (m : Nat) (p : Point (ConcreteQuadraticField m))
       (ell : Line (ConcreteQuadraticField m)),

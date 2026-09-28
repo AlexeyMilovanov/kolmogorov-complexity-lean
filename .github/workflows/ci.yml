@@ -1,0 +1,171 @@
+# Continuous integration for the Kolmogorov complexity formalisation.
+#
+# Every step below is one named step of `scripts/ci_local.sh`, and that script
+# was run end to end on a Linux machine (8 cores, network access) against this
+# repository, Lean v4.28.0 — `bash scripts/ci_local.sh`, which finished
+# "CI REHEARSAL OK".  Verified there:
+#
+#   * `lake exe cache get` succeeds for the Mathlib revision pinned in
+#     `lake-manifest.json` (Azure cache, oleans decompress);
+#   * `lake build` is green (4,402 jobs) and `scripts/audit.sh` ends in
+#     "AUDIT OK" — but it has to be invoked as `bash scripts/audit.sh`: the
+#     script is tracked mode 100644, so on a fresh checkout calling it
+#     directly fails with "Permission denied" (the previous version of this
+#     workflow did call it directly and would have failed here);
+#   * the three test scripts pass (33 header cases, 30 cut-quality cases,
+#     calibration 10/10);
+#   * the declaration-header freeze is green in the invocation used here, the
+#     one documented in CONTRIBUTING.md.  With only `--renames`, as this
+#     workflow used to invoke it, it reports 86 problems — every deliberate
+#     phase-24 deletion and restatement — so it needs `--definition-merges`
+#     and `--recut` as well;
+#   * the documentation really builds: about 9,900 jobs, roughly 40 minutes
+#     from a warm olean cache, ~800 MB of HTML in `docbuild/.lake/build/doc`
+#     (`:docs` covers the transitive imports, so Mathlib's documentation is
+#     generated too).  `doc-gen4` is pinned to the tag `v4.28.0` in
+#     `docbuild/lakefile.toml`; its `main` branch carries a newer
+#     lean-toolchain and `lake update doc-gen4` would switch the side package
+#     to it and then fail.  The update step also ends by running Mathlib's
+#     post-update hook, which can fail while the resolution itself succeeded,
+#     so `ci_local.sh` runs it only when `docbuild/lake-manifest.json` is
+#     missing and then checks for that file.
+#
+# What still cannot be verified from outside GitHub: the elan installation
+# step, `actions/cache` save and restore and its keys, `actions/upload-artifact`
+# (the documentation artifact is ~800 MB), and whether a standard runner
+# (2 cores, ~14 GB of free disk) is large enough: a cold build takes hours on
+# 8 cores here and the documentation build needs both the Mathlib oleans and
+# that HTML on disk, so either job may need a bigger runner or a warm cache to
+# finish inside its timeout.
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: build and audit
+    runs-on: ubuntu-latest
+    timeout-minutes: 600
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+        with:
+          # The declaration-header freeze compares against the base commit.
+          fetch-depth: 0
+
+      - name: Install elan
+        run: |
+          set -euo pipefail
+          curl -sSfL https://github.com/leanprover/elan/releases/latest/download/elan-x86_64-unknown-linux-gnu.tar.gz \
+            | tar xz
+          ./elan-init -y --default-toolchain none
+          echo "$HOME/.elan/bin" >>"$GITHUB_PATH"
+
+      - name: Report toolchain
+        run: bash scripts/ci_local.sh toolchain
+
+      - name: Cache the build output
+        uses: actions/cache@v4
+        with:
+          key: lake-${{ runner.os }}-${{ hashFiles('lake-manifest.json', 'lean-toolchain') }}-${{ github.sha }}
+          restore-keys: |
+            lake-${{ runner.os }}-${{ hashFiles('lake-manifest.json', 'lean-toolchain') }}-
+          path: |
+            .lake/build
+            .lake/packages
+
+      - name: Fetch the Mathlib cache
+        run: bash scripts/ci_local.sh cache
+
+      - name: Build
+        run: bash scripts/ci_local.sh build
+
+      - name: Audit
+        # forbidden constructs, `sorry` scan, generated tables, file size, the
+        # mechanical-cut gate and its calibration, docstring coverage, the
+        # build of every maximal root, the warning-count gate, the co-import
+        # smoke test, the axiom sweep and the tactic smoke tests.
+        run: bash scripts/ci_local.sh audit
+
+      # The three test scripts run as steps of their own: `scripts/audit.sh`
+      # calls only the calibration, and a red calibration must fail CI even if
+      # someone removes that call from `audit.sh`.
+      - name: Header-check self-test
+        run: bash scripts/ci_local.sh headers-selftest
+
+      - name: Mechanical-cut gate self-test
+        run: bash scripts/ci_local.sh cut-quality-selftest
+
+      - name: Mechanical-cut gate calibration
+        run: bash scripts/ci_local.sh cut-quality-calibration
+
+      - name: Declaration-header freeze check
+        # Only meaningful on a pull request, where there is a base commit to
+        # compare against.  The invocation is the one in CONTRIBUTING.md: the
+        # definition-merge and re-cut tables are not optional extras, without
+        # them every recorded deletion and restatement is reported as a
+        # problem.
+        if: github.event_name == 'pull_request'
+        env:
+          BASE_REV: origin/${{ github.base_ref }}
+        run: |
+          git fetch --no-tags --depth=1 origin "${{ github.base_ref }}"
+          bash scripts/ci_local.sh header-freeze
+
+  docs:
+    name: documentation
+    runs-on: ubuntu-latest
+    timeout-minutes: 600
+    steps:
+      - name: Check out
+        uses: actions/checkout@v4
+
+      # Same three steps as the build job, in the same order: without elan
+      # there is no `lake` on the runner and `lake exe cache get` cannot run.
+      - name: Install elan
+        run: |
+          set -euo pipefail
+          curl -sSfL https://github.com/leanprover/elan/releases/latest/download/elan-x86_64-unknown-linux-gnu.tar.gz \
+            | tar xz
+          ./elan-init -y --default-toolchain none
+          echo "$HOME/.elan/bin" >>"$GITHUB_PATH"
+
+      - name: Report toolchain
+        run: bash scripts/ci_local.sh toolchain
+
+      - name: Cache the build output
+        uses: actions/cache@v4
+        with:
+          # A key of its own: this job additionally holds `doc-gen4` and its
+          # dependencies, and the documentation build itself.
+          key: lake-docs-${{ runner.os }}-${{ hashFiles('lake-manifest.json', 'lean-toolchain', 'docbuild/lakefile.toml') }}-${{ github.sha }}
+          restore-keys: |
+            lake-docs-${{ runner.os }}-${{ hashFiles('lake-manifest.json', 'lean-toolchain', 'docbuild/lakefile.toml') }}-
+            lake-${{ runner.os }}-${{ hashFiles('lake-manifest.json', 'lean-toolchain') }}-
+          path: |
+            .lake/build
+            .lake/packages
+            docbuild/.lake
+
+      - name: Fetch the Mathlib cache
+        run: bash scripts/ci_local.sh cache
+
+      - name: Build the documentation
+        # `doc-gen4` is required from the side package `docbuild/`, so that the
+        # main build never depends on it.  `:docs` covers the imports too, so
+        # this builds Mathlib's documentation as well: it is the long job.
+        run: bash scripts/ci_local.sh docs
+
+      - name: Upload the documentation
+        uses: actions/upload-artifact@v4
+        with:
+          name: docs
+          path: docbuild/.lake/build/doc

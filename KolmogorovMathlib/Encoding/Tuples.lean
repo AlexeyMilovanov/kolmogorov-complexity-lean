@@ -29,21 +29,18 @@ Conventions:
 
 namespace Kolmogorov
 
-open CodedFiniteDistribution in
-/-- Re-exported: the pair decoders are primitive recursive. -/
-theorem decodeFirst_primrec' : Primrec decodeFirst := decodeFirst_primrec
-
-open CodedFiniteDistribution in
-theorem decodeSecond_primrec' : Primrec decodeSecond := decodeSecond_primrec
-
 /-- Self-delimiting code of a list of bitstrings: right fold of `pairCode`. -/
 def listCode (l : List BitString) : BitString := l.foldr pairCode []
 
+/-- The empty list of bitstrings is coded by the empty bitstring. -/
 @[simp] theorem listCode_nil : listCode [] = [] := rfl
 
+/-- The code of `x :: l` is the pair code of `x` with the code of `l`. -/
 @[simp] theorem listCode_cons (x : BitString) (l : List BitString) :
     listCode (x :: l) = pairCode x (listCode l) := rfl
 
+/-- The self-delimiting code of `x :: l` is `2 |x| + 1` bits longer than the code
+of `l`. -/
 theorem length_listCode_cons (x : BitString) (l : List BitString) :
     (listCode (x :: l)).length = 2 * x.length + 1 + (listCode l).length := by
   simp [listCode_cons, length_pairCode]
@@ -58,6 +55,8 @@ def listStep (s : BitString × List BitString) : BitString × List BitString :=
   | [] => s
   | _ :: _ => (decodeSecond s.1, s.2 ++ [decodeFirst s.1])
 
+/-- The empty input is a fixed point of the parsing step: nothing is consumed and the
+accumulator is unchanged. -/
 @[simp] theorem listStep_nil (acc : List BitString) :
     listStep (([] : BitString), acc) = ([], acc) := rfl
 
@@ -116,33 +115,16 @@ theorem listCode_injective : Function.Injective listCode :=
 
 /-! ### Computability -/
 
-/-- The unary code `natCode` is primitive recursive (exported form of the
-computation inside `natCode_computable`). -/
-theorem natCode_primrec : Primrec natCode :=
-  Primrec.list_append.comp
-    (Primrec.list_replicate.comp Primrec.id (Primrec.const true))
-    (Primrec.const [false])
-
-/-- The pair code is primitive recursive in both components. -/
-theorem pairCode_primrec : Primrec₂ pairCode := by
-  have h : Primrec (fun p : BitString × BitString =>
-      natCode p.1.length ++ p.1 ++ p.2) :=
-    Primrec.list_append.comp
-      (Primrec.list_append.comp
-        (natCode_primrec.comp (Primrec.list_length.comp Primrec.fst))
-        Primrec.fst)
-      Primrec.snd
-  exact h.of_eq (fun p => rfl)
-
 /-- The list code is primitive recursive. -/
 theorem listCode_primrec : Primrec listCode := by
   have h : Primrec (fun l : List BitString =>
       l.foldr (fun x r => pairCode x r) ([] : BitString)) :=
     Primrec.list_foldr Primrec.id (Primrec.const [])
-      ((pairCode_primrec.comp (Primrec.fst.comp Primrec.snd)
+      ((CodedFiniteDistribution.pairCode_primrec.comp (Primrec.fst.comp Primrec.snd)
         (Primrec.snd.comp Primrec.snd)).to₂)
   exact h.of_eq (fun l => rfl)
 
+/-- The self-delimiting code of a list of bitstrings is computable. -/
 theorem listCode_computable : Computable listCode :=
   listCode_primrec.to_comp
 
@@ -150,9 +132,9 @@ theorem listCode_computable : Computable listCode :=
 theorem listStep_primrec : Primrec listStep := by
   have hcons : Primrec (fun s : BitString × List BitString =>
       ((decodeSecond s.1, s.2 ++ [decodeFirst s.1]) : BitString × List BitString)) :=
-    (decodeSecond_primrec'.comp Primrec.fst).pair
+    (CodedFiniteDistribution.decodeSecond_primrec.comp Primrec.fst).pair
       (Primrec.list_append.comp Primrec.snd
-        (Primrec.list_cons.comp (decodeFirst_primrec'.comp Primrec.fst)
+        (Primrec.list_cons.comp (CodedFiniteDistribution.decodeFirst_primrec.comp Primrec.fst)
           (Primrec.const [])))
   have h : Primrec (fun s : BitString × List BitString =>
       (List.casesOn s.1 s
@@ -170,6 +152,7 @@ theorem decodeListCode_primrec : Primrec decodeListCode :=
     ((Primrec.nat_iterate' listStep_primrec).comp
       (Primrec.id.pair (Primrec.const [])) Primrec.list_length)
 
+/-- Decoding a self-delimiting list code is computable. -/
 theorem decodeListCode_computable : Computable decodeListCode :=
   decodeListCode_primrec.to_comp
 

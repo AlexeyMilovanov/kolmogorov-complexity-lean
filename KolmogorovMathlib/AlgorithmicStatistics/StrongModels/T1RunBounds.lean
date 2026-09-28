@@ -1,3 +1,6 @@
+import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.DescriptionShift
+import KolmogorovMathlib.Encoding.Tuples
+import Mathlib.Analysis.Normed.Ring.Lemmas
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.T1MarkingRun
 
 namespace Kolmogorov

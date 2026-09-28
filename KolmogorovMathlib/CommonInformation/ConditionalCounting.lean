@@ -1,4 +1,4 @@
-import KolmogorovMathlib.AlgorithmicStatistics.BoundedComplexityLists.Basic
+import KolmogorovMathlib.AlgorithmicStatistics.BoundedLists.Basic
 import KolmogorovMathlib.CommonInformation.Counting
 
 /-!
@@ -59,11 +59,13 @@ def commonWitnessPairsStage
       (commonWitnessPairsStage c α β γ t ++
         commonWitnessPairsSnapshot c α β γ (t + 1)).eraseDups
 
+/-- The stage-`t` list of coded common witness pairs has no repetitions. -/
 theorem commonWitnessPairsStage_nodup
     (c : Code) (α β γ t : Nat) :
     (commonWitnessPairsStage c α β γ t).Nodup := by
   cases t <;> exact nodup_eraseDups_bitString _
 
+/-- The stage lists of coded common witness pairs grow by extension. -/
 theorem commonWitnessPairsStage_prefix
     (c : Code) (α β γ t : Nat) :
     commonWitnessPairsStage c α β γ t <+:
@@ -72,6 +74,8 @@ theorem commonWitnessPairsStage_prefix
   exact prefix_eraseDups_append_of_nodup _ _
     (commonWitnessPairsStage_nodup c α β γ t)
 
+/-- A halting bounded run of the machine witnesses that the program produces the output from the
+condition. -/
 theorem conditionalRunOut_sound
     {c : Code} {V : Map} (hc : IsCodeFor c V)
     {t : Nat} {p y out : BitString}
@@ -84,6 +88,7 @@ theorem conditionalRunOut_sound
   unfold IsCodeFor at hc
   aesop
 
+/-- Every production of the machine is witnessed by a bounded run at some stage. -/
 theorem conditionalRunOut_complete
     {c : Code} {V : Map} (hc : IsCodeFor c V)
     {p y out : BitString} (h : produces V p y out) :
@@ -99,6 +104,7 @@ theorem conditionalRunOut_complete
   simp [conditionalRunOut]
   simp_all +decide [Encodable.encodek]
 
+/-- A bounded run that has halted keeps its output at all later stages. -/
 theorem conditionalRunOut_mono
     (c : Code) {t t' : Nat} (htt' : t ≤ t')
     {p y out : BitString}
@@ -109,6 +115,7 @@ theorem conditionalRunOut_mono
   obtain ⟨a, ha₁, ha₂⟩ := h
   exact ⟨a, Nat.Partrec.Code.evaln_mono htt' ha₁, ha₂⟩
 
+/-- The output of a halting run with a short enough program appears in the snapshot of outputs. -/
 theorem mem_conditionalOutputSnapshot_of_run
     {c : Code} {p y out : BitString} {k t : Nat}
     (hp : p.length ≤ k)
@@ -118,6 +125,7 @@ theorem mem_conditionalOutputSnapshot_of_run
   rw [List.mem_filterMap]
   exact ⟨p, mem_boundedPrograms_iff p k |>.2 hp, hout⟩
 
+/-- Every entry of a snapshot codes a pair admitting a common witness within the thresholds. -/
 theorem mem_commonWitnessPairsSnapshot_sound
     {V : Map} {c : Code} (hc : IsCodeFor c V)
     {α β γ t : Nat} {w : BitString}
@@ -136,16 +144,18 @@ theorem mem_commonWitnessPairsSnapshot_sound
   obtain ⟨px, hpx, hpxRun⟩ := hx
   obtain ⟨py, hpy, hpyRun⟩ := hy
   refine ⟨x, y, z, rfl, ?_, ?_, ?_⟩
-  · apply (condKLeIff V z [] α).2
+  · apply (condK_le_iff V z [] α).2
     exact ⟨pz, (mem_boundedPrograms_iff pz α).1 hpz,
       conditionalRunOut_sound hc hpzRun⟩
-  · apply (condKLeIff V x z β).2
+  · apply (condK_le_iff V x z β).2
     exact ⟨px, (mem_boundedPrograms_iff px β).1 hpx,
       conditionalRunOut_sound hc hpxRun⟩
-  · apply (condKLeIff V y z γ).2
+  · apply (condK_le_iff V y z γ).2
     exact ⟨py, (mem_boundedPrograms_iff py γ).1 hpy,
       conditionalRunOut_sound hc hpyRun⟩
 
+/-- Every entry of the stage list codes a pair admitting a common witness within the
+thresholds. -/
 theorem mem_commonWitnessPairsStage_sound
     {V : Map} {c : Code} (hc : IsCodeFor c V)
     {α β γ t : Nat} {w : BitString}
@@ -167,6 +177,7 @@ theorem mem_commonWitnessPairsStage_sound
           mem_eraseDups_bitString] using hw
       exact hw'.elim ih (mem_commonWitnessPairsSnapshot_sound hc)
 
+/-- The snapshot at a stage is contained in the stage list. -/
 theorem commonWitnessPairsSnapshot_mem_stage
     (c : Code) (α β γ t : Nat) {w : BitString}
     (hw : w ∈ commonWitnessPairsSnapshot c α β γ t) :
@@ -369,11 +380,11 @@ theorem mem_commonWitnessPairsStage_eventually_iff
     exact ⟨z, hz, hx, hy⟩
   · rintro ⟨z, hz, hx, hy⟩
     obtain ⟨pz, hpzLen, hpz⟩ :=
-      (condKLeIff V z [] α).1 hz
+      (condK_le_iff V z [] α).1 hz
     obtain ⟨px, hpxLen, hpx⟩ :=
-      (condKLeIff V x z β).1 hx
+      (condK_le_iff V x z β).1 hx
     obtain ⟨py, hpyLen, hpy⟩ :=
-      (condKLeIff V y z γ).1 hy
+      (condK_le_iff V y z γ).1 hy
     obtain ⟨tz, htz⟩ := conditionalRunOut_complete hc hpz
     obtain ⟨tx, htx⟩ := conditionalRunOut_complete hc hpx
     obtain ⟨ty, hty⟩ := conditionalRunOut_complete hc hpy

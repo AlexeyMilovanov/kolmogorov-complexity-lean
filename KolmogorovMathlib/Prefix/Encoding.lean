@@ -87,4 +87,19 @@ theorem natCode_append_inj {m n : ℕ} {a b : BitString}
   subst hmn
   exact ⟨rfl, List.append_cancel_left h⟩
 
+/-- The self-delimiting code of a natural number is primitive recursive. -/
+lemma primrec_natCode : Primrec natCode := by
+  have : natCode = fun n => Nat.rec [false] (fun _ l => true :: l) n := by
+    funext n
+    induction n with
+    | zero => rfl
+    | succ n ih =>
+      dsimp
+      rw [← ih]
+      simp [natCode, List.replicate_succ]
+  rw [this]
+  have h_step : Primrec₂ (fun (_ : Unit) (p : ℕ × List Bool) => true :: p.2) :=
+    Primrec.list_cons.comp (Primrec.const true) (Primrec.snd.comp Primrec.snd)
+  exact (Primrec.nat_rec (Primrec.const [false]) h_step).comp (Primrec.const ()) Primrec.id
+
 end Kolmogorov

@@ -125,6 +125,7 @@ lemma findIdx_go_add (p : Bool → Bool) (z : BitString) (n : ℕ) :
     · simp only [cond_true]
       exact (Nat.zero_add n).symm
 
+/-- The length of the initial run of ones of a bitstring is the position of its first zero. -/
 lemma len_takeWhile_eq_findIdx (z : BitString) :
     (z.takeWhile id).length = List.findIdx (fun b ↦ !b) z := by
   induction z with
@@ -137,6 +138,7 @@ lemma len_takeWhile_eq_findIdx (z : BitString) :
       change (tail.takeWhile id).length + 1 = List.findIdx (fun b ↦ !b) tail + 1
       rw [ih]
 
+/-- The decoder of the self-delimiting code of a natural number is computable. -/
 lemma decodeNat_computable : Computable decodeNat := by
   have hlen : Primrec (fun z : BitString => (z.takeWhile id).length) :=
     (Primrec.list_findIdx Primrec.id (Primrec.not.comp Primrec.snd).to₂).of_eq
@@ -185,6 +187,8 @@ lemma dyadicValue_mul_pow (n s k : ℕ) :
   cases s <;> simp +decide [ dyadicValue ] ; ring_nf;
   rw [ ENNReal.div_eq_inv_mul, ENNReal.div_eq_inv_mul ] ; ring_nf
 
+/-- The scaled stage approximations of the output weight of a machine are non-decreasing in the
+stage, so their supremum is a limit from below. -/
 lemma scaledApprox_mono (c : Nat.Partrec.Code) (s : ℕ) (out ctx : BitString) :
     dyadicValue (scaledApprox c s out ctx) s
       ≤ dyadicValue (scaledApprox c (s + 1) out ctx) (s + 1) := by
@@ -256,7 +260,7 @@ lemma scaledApproxVal_computable (c : Nat.Partrec.Code) :
     (h_comp.pair (_ : Computable fun q : ℕ × BitString × BitString =>
       decodeNat (decodeSecond q.2.2))) using 1
   · have h_mul : Computable (fun q : ℕ × ℕ => q.1 * 2 ^ q.2) := by
-      have h_exp : Computable (fun n : ℕ => 2 ^ n) := primrec_two_pow.to_comp
+      have h_exp : Computable (fun n : ℕ => 2 ^ n) := primrec_two_pow_aux.to_comp
       have h_mul : Computable (fun q : ℕ × ℕ => q.1 * q.2) :=
         (Primrec.nat_mul.comp Primrec.fst Primrec.snd).to_comp
       convert h_mul.comp (Computable.fst.pair (h_exp.comp Computable.snd)) using 1

@@ -5,6 +5,7 @@ Authors: Alexey Milovanov
 -/
 
 import KolmogorovMathlib.AlgorithmicProbability.OptimalCoding
+import KolmogorovMathlib.Prefix.Properties.StableAliasesSUVTheorem
 import KolmogorovMathlib.Prefix.Properties
 
 /-!
@@ -38,7 +39,7 @@ theorem card_KPPlain_le_boundedPrograms_length (U : Map) (n : ℕ)
     intro x hx
     have hxK : condK U x [] ≤ (n : ENat) := by
       simpa [KPPlain, KP, KP_eq_condK] using hA x hx
-    exact (condKLeIff U x [] n).mp hxK
+    exact (condK_le_iff U x [] n).mp hxK
   let pOf : BitString → BitString := fun x ↦
     if hx : x ∈ A then Classical.choose (h_exists x hx) else []
   have hpOf_mem :
@@ -95,9 +96,9 @@ theorem KPPlain_natBits_sub_self_le (U : Map) (hU : IsOptimalPrefixConditional U
           ≤ KPPlain U w + c1 := by
       have hf_computable : Computable (fun w : BitString ↦
           Nat.bits ((decodeBits (decodeFirst w)) - ((decodeSecond w).length - 1))) := by
-        refine Computable.comp natBitsComputable ?_
+        refine Computable.comp natBits_computable ?_
         apply Computable.comp Primrec.nat_sub.to_comp
-          (Computable.pair (decodeBitsComputable.comp decodeFirst_computable)
+          (Computable.pair (decodeBits_computable.comp decodeFirst_computable)
             (Computable.comp Primrec.nat_sub.to_comp
               (Computable.pair (Computable.list_length.comp decodeSecond_computable)
                 (Computable.const 1))))
@@ -146,13 +147,13 @@ theorem card_KPPlain_le_lower_bound_faithful (U : Map)
   use stringsOfLength (n - kn)
   refine ⟨?_, ?_⟩
   · intro x hx
-    have hxlen : x.length = n - kn := (memStringsOfLength (n - kn) x).mp hx
+    have hxlen : x.length = n - kn := (mem_stringsOfLength (n - kn) x).mp hx
     refine le_trans (hc63a x) ?_
     rw [hxlen]
     refine le_trans (add_le_add_three le_rfl (hccrux n kn hkn) le_rfl) ?_
     norm_cast
     omega
-  · rw [cardStringsOfLength]
+  · rw [card_stringsOfLength]
     exact two_pow_mul_inv_pow_le_cast_pow_sub n kn
 
 /-! ### The counting lower-semicomputable function (SUV Theorem 64 upper bound)
@@ -335,7 +336,7 @@ lemma countingNum_guard_computable :
     constructor
     · have h_computable : Computable (fun q : ℕ × BitString ↦ decide (q.1 ≥ decodeBits q.2)) := by
         have h_decode : Computable (fun q : BitString ↦ decodeBits q) := by
-          convert decodeBitsComputable using 1
+          convert decodeBits_computable using 1
         have h_computable : Computable (fun q : ℕ × ℕ ↦ decide (q.1 ≥ q.2)) := by
           have h_computable : Computable (fun q : ℕ × ℕ ↦ decide (q.1 ≤ q.2)) := by
             have h_computable : Primrec (fun q : ℕ × ℕ ↦ decide (q.1 ≤ q.2)) := by
@@ -352,7 +353,8 @@ lemma countingNum_guard_computable :
             convert h_eq
           convert h_eq.to_comp using 1;
         convert h_eq.comp (Computable.pair (Computable.fst.comp Computable.snd)
-          (natBitsComputable.comp (decodeBitsComputable.comp (Computable.fst.comp Computable.snd))))
+          (natBits_computable.comp (decodeBits_computable.comp
+            (Computable.fst.comp Computable.snd))))
           using 1
       · have h_decide_empty : Computable (fun q : BitString ↦ decide (q = [])) := by
           convert Computable.of_eq _ _
@@ -399,7 +401,7 @@ lemma countingNum_computable (c : Nat.Partrec.Code) :
         · exact countingApprox_computable c
         · convert Computable.comp (show Computable (fun n ↦ 2 ^ n) from ?_)
             (show Computable (fun q : ℕ × ℕ ↦ q.1 - q.2) from ?_) using 1
-          · exact Computable.of_eq (Primrec.to_comp Kolmogorov.primrec_two_pow) fun n ↦ rfl
+          · exact Computable.of_eq (Primrec.to_comp Kolmogorov.primrec_two_pow_aux) fun n ↦ rfl
           · convert Primrec.to_comp (show Primrec (fun q : ℕ × ℕ ↦ q.1 - q.2) from ?_) using 1
             exact Primrec.nat_sub.comp Primrec.fst Primrec.snd
       convert Computable.comp (show Computable (fun q : ℕ × ℕ ↦ q.1 * q.2) from ?_)
@@ -407,7 +409,7 @@ lemma countingNum_computable (c : Nat.Partrec.Code) :
       convert Primrec.to_comp (show Primrec (fun q : ℕ × ℕ ↦ q.1 * q.2) from ?_) using 1
       exact Primrec.nat_mul.comp Primrec.fst Primrec.snd
     · exact Computable.pair Computable.fst
-        (decodeBitsComputable.comp (Computable.fst.comp Computable.snd))
+        (decodeBits_computable.comp (Computable.fst.comp Computable.snd))
   · exact Computable.const 0
   · rename_i q
     ext a b
@@ -434,7 +436,7 @@ lemma countingApprox_ge_card (U : Map) (c : Nat.Partrec.Code)
       ∧ (Nat.Partrec.Code.evaln s c (Encodable.encode (p, ([] : BitString)))
         = some (Encodable.encode x)) := by
     have h_exists_p : ∀ x ∈ A, ∃ p : BitString, p.length ≤ n ∧ produces U p [] x := by
-      exact fun x hx ↦ (condKLeIff U x [] n).mp (hA x hx)
+      exact fun x hx ↦ (condK_le_iff U x [] n).mp (hA x hx)
     choose! p hp₁ hp₂ using h_exists_p
     obtain ⟨s, hs⟩ : ∃ s : ℕ, ∀ x ∈ A, ∃ k : ℕ, k ≤ s
         ∧ (Nat.Partrec.Code.evaln k c (Encodable.encode (p x, ([] : BitString)))
@@ -782,6 +784,10 @@ theorem card_KPPlain_le_complexityWeight_bound (U : Map) (hU : IsOptimalPrefixCo
     _ = (2 : ℝ≥0∞) ^ (c + c₀) * complexityWeight (KPPlain U (Nat.bits n)) := by
           rw [pow_add]; ring
 
+/-- **Counting bound for prefix complexity.** For an optimal conditional prefix
+machine `U` there is a constant `c` such that, whenever the prefix complexity of
+`n` equals `kn`, any finite set of strings of prefix complexity at most `n` has at
+most `2 ^ (n + c) · 2 ^ (-kn)` elements. -/
 theorem card_KPPlain_le_upper_bound (U : Map) (hU : IsOptimalPrefixConditional U) :
     ∃ c : ℕ, ∀ (n kn : ℕ), HasPrefixComplexityValue U (Nat.bits n) kn →
     ∀ A : Finset BitString, (∀ x ∈ A, KPPlain U x ≤ (n : ENat)) →
@@ -828,7 +834,7 @@ referenced anywhere in the project.  The faithful, fully proved replacement
 -/
 
 /-
-theorem card_KPPlain_le_lower_bound (U : Map) (hU : IsOptimalPrefixConditional U) :
+private theorem card_KPPlain_le_lower_bound (U : Map) (hU : IsOptimalPrefixConditional U) :
     ∃ c : ℕ, ∀ (n kn : ℕ), HasPrefixComplexityValue U (Nat.bits n) kn →
     ∃ A : Finset BitString, (∀ x ∈ A, KPPlain U x ≤ (n : ENat)) ∧
     (2 : ℝ≥0∞) ^ n * (2 : ℝ≥0∞)⁻¹ ^ (kn + c) ≤ (A.card : ℝ≥0∞) :=

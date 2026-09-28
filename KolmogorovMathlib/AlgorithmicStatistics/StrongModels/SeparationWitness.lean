@@ -5,12 +5,35 @@ import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.AntistochasticExiste
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.NormalPair
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.CylinderRealization
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.SeparationCylinderTotal
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.HereditaryAssembly
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.Hereditary.Part01
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.Hereditary
+
+/-!
+# The witness of the separation theorem
+
+`exists_separation_witness_core`: for every `k > 0` there is a string `x = y ++ z` of length
+`4 * k` whose plain description profile and strong description profile are separated.  The
+witness is a head-and-noise pair — an antistochastic head `y` of complexity `k` followed by
+`2 * k` uniform noise bits — produced by `exists_separation_pairCode_witness` and
+`exists_separation_head_noise_pair`, with `separation_cylinder_strong_model` supplying the
+cylinder above the head as the separating strong model.
+
+The profile bookkeeping is done on the *gray* profile `separationGrayProfile`:
+`separationGrayProfile_admissible`, `k_P_separationGrayProfile`, `m_P_separationGrayProfile`
+and `auxiliaryProfile_separationGrayProfile` are its parameters, and
+`addNoiseProfileTransform_antistochastic_eq_separationGrayProfile` identifies it as the
+antistochastic region shifted by `2 * k` noise bits.
+`append_profile_and_normal_of_pairCode` transports the profile bound and normality from the
+pair code to the concatenation, and the `logSlack` lemmas around it absorb the transport
+errors.
+-/
 
 namespace Kolmogorov
 
 open Encodable
 
+/-- The plain description profile of an antistochastic string of length `n` and complexity `k` is
+within `epsilon` plus a logarithmic term of the region `{k ≤ i} ∪ {n ≤ i + j}`. -/
 lemma antistochastic_plainProfile_close_to_upperRegion (V : Map) (hV : isOptimalConditional V) :
     ∃ c : Nat, ∀ (n k epsilon : Nat) (y : BitString),
       IsAntistochastic V n k epsilon y →
@@ -22,7 +45,7 @@ lemma antistochastic_plainProfile_close_to_upperRegion (V : Map) (hV : isOptimal
     plainSetComplexity_cylinder_le V hV
   obtain ⟨cSingleton, hSingleton⟩ :=
     plainSetComplexity_singleton_le_plainK V hV
-  obtain ⟨cLength, hLength⟩ := plainKLeLength V hV
+  obtain ⟨cLength, hLength⟩ := plainK_le_length V hV
   let c := cCylinder + cSingleton + cLength + 1
   refine ⟨c, ?_⟩
   intro n k epsilon y hAnti
@@ -109,6 +132,7 @@ lemma antistochastic_plainProfile_close_to_upperRegion (V : Map) (hV : isOptimal
           unfold natPairLInfDistance
           apply max_le <;> omega
 
+/-- The gray profile used in the separation example is an admissible profile set. -/
 lemma separationGrayProfile_admissible (k : Nat) :
     IsAdmissibleProfileSet (separationGrayProfile k) := by
   refine ⟨⟨(3 * k, 0), (separationGrayProfile_endpoints k).2.2⟩,
@@ -121,8 +145,9 @@ lemma separationGrayProfile_admissible (k : Nat) :
     · exact Or.inr ⟨by omega, by omega⟩
   · exact Or.inr ⟨by omega, by omega⟩
 
+/-- The horizontal intercept of the gray separation profile is `3 * k`. -/
 lemma k_P_separationGrayProfile (k : Nat) :
-    k_P (separationGrayProfile k) = ((3 * k : Nat) : ENat) := by
+    kP (separationGrayProfile k) = ((3 * k : Nat) : ENat) := by
   apply le_antisymm
   · apply sInf_le
     exact ⟨3 * k, rfl, (separationGrayProfile_endpoints k).2.2⟩
@@ -133,8 +158,10 @@ lemma k_P_separationGrayProfile (k : Nat) :
       (k ≤ t ∧ 3 * k ≤ t + 0) at ht
     exact_mod_cast (show 3 * k ≤ t by omega)
 
+/-- On the anti-diagonal of total budget `3 * k`, the gray separation profile is first met at
+abscissa `k`. -/
 lemma m_P_separationGrayProfile (k : Nat) :
-    m_P (separationGrayProfile k) (3 * k) = (k : ENat) := by
+    mP (separationGrayProfile k) (3 * k) = (k : ENat) := by
   apply le_antisymm
   · apply sInf_le
     exact ⟨k, rfl, by
@@ -148,6 +175,8 @@ lemma m_P_separationGrayProfile (k : Nat) :
       (k ≤ t ∧ 3 * k ≤ t + (3 * k - t)) at ht
     exact_mod_cast (show k ≤ t by omega)
 
+/-- The auxiliary profile of the gray separation profile at parameters `k` and `3 * k` is the region
+`{k ≤ i} ∪ {2 * k ≤ i + j}`. -/
 lemma auxiliaryProfile_separationGrayProfile (k : Nat) :
     auxiliaryProfile (separationGrayProfile k) k (3 * k) =
       {q : Nat × Nat | k ≤ q.1 ∨ 2 * k ≤ q.1 + q.2} := by
@@ -155,6 +184,8 @@ lemma auxiliaryProfile_separationGrayProfile (k : Nat) :
   simp only [auxiliaryProfile, separationGrayProfile, Set.mem_setOf_eq]
   omega
 
+/-- Moving the breakpoint of the region `{k ≤ i} ∪ {n ≤ i + j}` by at most `e` moves the region by
+at most `e`. -/
 lemma upperRegion_breakpoint_near (n k k' e : Nat)
     (hkk' : k ≤ k' + e) (hk'k : k' ≤ k + e) :
     ProfileSetsWithinNeighborhood
@@ -172,6 +203,8 @@ lemma upperRegion_breakpoint_near (n k k' e : Nat)
       apply max_le <;> omega
     · exact ⟨(i, j), Or.inr hij, by simp [natPairLInfDistance]⟩
 
+/-- Adding `2 * k` noise bits to the antistochastic region `{k ≤ i} ∪ {2 * k ≤ i + j}` produces
+exactly the gray separation profile. -/
 lemma addNoiseProfileTransform_antistochastic_eq_separationGrayProfile :
     ∀ k : Nat,
       AddNoiseProfileTransform {q : Nat × Nat | k ≤ q.1 ∨ 2 * k ≤ q.1 + q.2} k (3 * k) (2 * k) =
@@ -206,6 +239,8 @@ lemma addNoiseProfileTransform_antistochastic_eq_separationGrayProfile :
       · right
         exact ⟨by omega, hsum⟩
 
+/-- Composing the hereditary strong transport strength with two logarithmic slacks again gives a
+logarithmic slack. -/
 lemma hereditaryStrongTransportStrength_logSlack_absorb (c a b : Nat) :
     ∃ C : Nat, ∀ n : Nat,
       hereditaryStrongTransportStrength c (logSlack a n) (logSlack b n) ≤ logSlack C n := by
@@ -310,31 +345,95 @@ private lemma normalTransportDelta_logSlack_bound (a b c d n : Nat) :
   unfold logSlack
   nlinarith [Nat.zero_le ((Nat.bits n).length)]
 
-lemma exists_separation_witness_core
+/-- **Transport of a profile bound and of normality from a pair code to the concatenation.**
+If the plain description profile of `pairCode y z` is within a logarithmic slack of a set `Q`
+of profile points and `pairCode y z` is normal with logarithmic parameters, then the plain
+description profile of the concatenation `y ++ z` is within a logarithmic slack of `Q` and
+`y ++ z` is normal, with a slack depending only on the incoming constants. -/
+lemma append_profile_and_normal_of_pairCode
+    (V T : Map) (hV : isOptimalConditional V)
+    (hT : IsOptimalTotalConditional T) (cProf cEps cDel : Nat) :
+    ∃ cOut : Nat, ∀ (y z : BitString) (N : Nat) (Q : Set (Nat × Nat)),
+      y.length + z.length = N →
+      ProfileSetsWithinNeighborhood
+        (plainDescriptionProfileSet V (pairCode y z)) Q (logSlack cProf N) →
+      IsNormalString V T (pairCode y z) (logSlack cEps N) (logSlack cDel N) →
+      ProfileSetsWithinNeighborhood
+          (plainDescriptionProfileSet V (y ++ z)) Q (logSlack cOut N) ∧
+        IsNormalString V T (y ++ z) (logSlack cOut N) (logSlack cOut N) := by
+  obtain ⟨cPairEq, hPairEq⟩ :=
+    fixedSplit_append_pairCode_totalEquivalent T hT
+  obtain ⟨cPlainEq, hPlainEq⟩ :=
+    totalEquivalentWithin_plainProfiles V T hV hT
+  obtain ⟨cNormPlain, cNormStrong, hNormTransport⟩ :=
+    normality_of_totalEquivalentWithin V T hV hT
+  obtain ⟨cNormStrength, hNormStrength⟩ :=
+    hereditaryStrongTransportStrength_logSlack_absorb cNormStrong cPairEq cEps
+  let cNormDelta := 4 * cPairEq + cNormPlain + cDel + cNormStrong
+  let cProfile := cProf + 2 * cPairEq + cPlainEq
+  let cOut := cNormStrength + cNormDelta + cProfile
+  refine ⟨cOut, ?_⟩
+  intro y z N Q hNsum hProfile hNormal
+  have hAppendPair := hPairEq y z
+  rw [hNsum] at hAppendPair
+  have hAppendPairProfile := hPlainEq (y ++ z) (pairCode y z)
+    (logSlack cPairEq N) hAppendPair
+  have hEqProfileRadius :
+      2 * logSlack cPairEq N + cPlainEq ≤
+        logSlack (2 * cPairEq + cPlainEq) N := by
+    unfold logSlack
+    nlinarith [Nat.zero_le ((Nat.bits N).length)]
+  have hAppendProfile :
+      ProfileSetsWithinNeighborhood
+        (plainDescriptionProfileSet V (y ++ z)) Q (logSlack cProfile N) := by
+    refine ((hAppendPairProfile.mono hEqProfileRadius).trans hProfile).mono ?_
+    rw [logSlack_add_const]
+    apply logSlack_mono_left
+    dsimp [cProfile]
+    omega
+  have hNormalTransported :=
+    hNormTransport (pairCode y z) (y ++ z)
+      (logSlack cPairEq N) (logSlack cEps N) (logSlack cDel N)
+      hAppendPair.symm hNormal
+  have hNormalDeltaBound :
+      (2 * logSlack cPairEq N + cNormPlain) +
+          logSlack cDel N +
+          (2 * logSlack cPairEq N + cNormStrong) ≤
+        logSlack cNormDelta N := by
+    dsimp [cNormDelta]
+    exact normalTransportDelta_logSlack_bound
+      cPairEq cDel cNormPlain cNormStrong N
+  have hAppendNormal :
+      IsNormalString V T (y ++ z)
+        (logSlack cNormStrength N) (logSlack cNormDelta N) :=
+    (hNormalTransported.mono_delta hNormalDeltaBound).mono_epsilon
+      (hNormStrength N)
+  refine ⟨hAppendProfile.mono (logSlack_mono_left (by dsimp [cOut]; omega) N), ?_⟩
+  refine (hAppendNormal.mono_delta ?_).mono_epsilon ?_ <;>
+    exact logSlack_mono_left (by dsimp [cOut]; omega) N
+
+
+/-- **The head-and-noise pair behind the separation witness.**  For every `k > 0` there are
+strings `y` and `z` of length `2 * k` such that the plain complexity of `y` equals `k` up to a
+logarithmic slack, the plain description profile of the pair code of `y` and `z` is within a
+logarithmic slack of the gray separation profile, and that pair code is normal with logarithmic
+parameters. -/
+lemma exists_separation_pairCode_witness
     (V T : Map) (hV : isOptimalConditional V)
     (hT : IsOptimalTotalConditional T) :
-    ∃ cSlack : Nat, ∀ k : Nat, 0 < k →
-      ∃ y z : BitString,
-        let x := y ++ z
-        let A := cylinder (4 * k) y
+    ∃ cPair : Nat, ∀ k : Nat, 0 < k →
+      ∃ (y z : BitString) (kx : Nat),
         y.length = 2 * k ∧
         z.length = 2 * k ∧
-        x.length = 4 * k ∧
+        plainK V y = (kx : ENat) ∧
+        k ≤ kx + logSlack cPair (4 * k) ∧
+        kx ≤ k + logSlack cPair (4 * k) ∧
         ProfileSetsWithinNeighborhood
-          (plainDescriptionProfileSet V x)
+          (plainDescriptionProfileSet V (pairCode y z))
           (separationGrayProfile k)
-          (logSlack cSlack (4 * k)) ∧
-        IsNormalString V T x
-          (logSlack cSlack (4 * k))
-          (logSlack cSlack (4 * k)) ∧
-        ∃ hA : A.Nonempty,
-        x ∈ A ∧
-        IsStrongSetModel T x A hA (logSlack cSlack (4 * k)) ∧
-        (k : ENat) ≤ plainSetComplexity V A hA + (logSlack cSlack (4 * k) : ENat) ∧
-        plainSetComplexity V A hA ≤ (k + logSlack cSlack (4 * k) : ENat) ∧
-        finiteSetLogCard A = 2 * k ∧
-        TotalEquivalentWithin T y (codedUniformOn A hA).code
-          (logSlack cSlack (4 * k)) := by
+          (logSlack cPair (4 * k)) ∧
+        IsNormalString V T (pairCode y z)
+          (logSlack cPair (4 * k)) (logSlack cPair (4 * k)) := by
   classical
   let U : Map := Classical.choose exists_isOptimalPrefixConditional
   have hU : IsOptimalPrefixConditional U :=
@@ -345,39 +444,13 @@ lemma exists_separation_witness_core
   obtain ⟨cNoise, hNoise⟩ := exists_noise_finset_near_profile V U hV hU
   obtain ⟨cPairNormal, hPairNormal⟩ :=
     normal_pair_of_conditionally_random_tail V U T hV hU hT
-  obtain ⟨cPairEq, hPairEq⟩ :=
-    fixedSplit_append_pairCode_totalEquivalent T hT
-  obtain ⟨cPlainEq, hPlainEq⟩ :=
-    totalEquivalentWithin_plainProfiles V T hV hT
-  obtain ⟨cNormPlain, cNormStrong, hNormTransport⟩ :=
-    normality_of_totalEquivalentWithin V T hV hT
   let cPairStrength := cHead + cPairNormal
   let cPairDelta :=
     cPairNormal * cHead + cPairNormal * cNoise + cPairNormal
-  obtain ⟨cNormStrength, hNormStrength⟩ :=
-    hereditaryStrongTransportStrength_logSlack_absorb
-      cNormStrong cPairEq cPairStrength
-  let cNormDelta :=
-    4 * cPairEq + cNormPlain + cPairDelta + cNormStrong
   let cPairProfile :=
     3 * cNoise * cHead + cNoise * cAnti + cNoise
-  let cProfile := cPairProfile + 2 * cPairEq + cPlainEq
-  obtain ⟨cCylinderStrong, hCylinderStrong⟩ :=
-    cylinder_isStrongSetModel T hT
-  obtain ⟨cCylinderEq, hCylinderEq⟩ :=
-    separationCylinder_totalEquivalent_prefix T hT
-  obtain ⟨cSim, hSim⟩ := hV.2 T hT.1
-  obtain ⟨cGap, hGap⟩ := plainK_forward_gap_of_condK V hV
-  obtain ⟨bHead, hbHead⟩ := logSlack_le_add_const cHead
-  obtain ⟨cGapUp, hGapUp⟩ := logSlack_linear_bound cGap 2 bHead
-  let cAUpper := cHead + cCylinderEq + cSim + cGapUp
-  obtain ⟨bAUpper, hbAUpper⟩ := logSlack_le_add_const cAUpper
-  obtain ⟨cGapLow, hGapLow⟩ :=
-    logSlack_linear_bound cGap 2 bAUpper
-  let cALower := cHead + cCylinderEq + cSim + cGapLow
-  let cSlack := cNormStrength + cNormDelta + cProfile +
-    cCylinderStrong + cCylinderEq + cAUpper + cALower + 1
-  refine ⟨cSlack, ?_⟩
+  let cPair := cPairProfile + cPairStrength + cPairDelta + cHead + 1
+  refine ⟨cPair, ?_⟩
   intro k hk
   set N := 4 * k with hN
   have hk2 : k < 2 * k := by omega
@@ -453,27 +526,6 @@ lemma exists_separation_witness_core
         (separationGrayProfile k)
         (logSlack cPairProfile N) :=
     hPairProfile.mono hPairProfileRadius
-  have hAppendPair := hPairEq y z
-  rw [hNsum] at hAppendPair
-  have hAppendPairProfile := hPlainEq (y ++ z) (pairCode y z)
-    (logSlack cPairEq N) hAppendPair
-  have hEqProfileRadius :
-      2 * logSlack cPairEq N + cPlainEq ≤
-        logSlack (2 * cPairEq + cPlainEq) N := by
-    unfold logSlack
-    nlinarith [Nat.zero_le ((Nat.bits N).length)]
-  have hAppendPairProfile' :=
-    hAppendPairProfile.mono hEqProfileRadius
-  have hAppendProfile :
-      ProfileSetsWithinNeighborhood
-        (plainDescriptionProfileSet V (y ++ z))
-        (separationGrayProfile k)
-        (logSlack cProfile N) := by
-    refine (hAppendPairProfile'.trans hPairProfile').mono ?_
-    rw [logSlack_add_const]
-    apply logSlack_mono_left
-    dsimp [cProfile]
-    omega
   have hPairNormalRaw :=
     hPairNormal y z (2 * k) headSlack headSlack cNoise
       (by simpa [headSlack] using hyNormal) hzLength'
@@ -510,30 +562,95 @@ lemma exists_separation_witness_core
         (logSlack cPairStrength N) (logSlack cPairDelta N) :=
     (hPairNormalRaw.mono_delta hPairDeltaBound).mono_epsilon
       hPairStrengthBound
-  have hNormalTransported :=
-    hNormTransport (pairCode y z) (y ++ z)
-      (logSlack cPairEq N) (logSlack cPairStrength N)
-      (logSlack cPairDelta N) hAppendPair.symm hPairNormal'
-  have hNormalStrengthBound :
-      hereditaryStrongTransportStrength cNormStrong
-          (logSlack cPairEq N) (logSlack cPairStrength N) ≤
-        logSlack cNormStrength N := hNormStrength N
-  have hNormalDeltaBound :
-      (2 * logSlack cPairEq N + cNormPlain) +
-          logSlack cPairDelta N +
-          (2 * logSlack cPairEq N + cNormStrong) ≤
-        logSlack cNormDelta N := by
-    dsimp [cNormDelta]
-    exact normalTransportDelta_logSlack_bound
-      cPairEq cPairDelta cNormPlain cNormStrong N
-  have hAppendNormal :
-      IsNormalString V T (y ++ z)
-        (logSlack cNormStrength N) (logSlack cNormDelta N) :=
-    (hNormalTransported.mono_delta hNormalDeltaBound).mono_epsilon
-      hNormalStrengthBound
+  have hHeadPair : headSlack ≤ logSlack cPair N :=
+    hHeadSlackN.trans (logSlack_mono_left (by dsimp [cPair]; omega) N)
+  refine ⟨y, z, kx, hyLength, hzLength', hyComplexity, by omega, by omega, ?_, ?_⟩
+  · exact hPairProfile'.mono (logSlack_mono_left (by dsimp [cPair]; omega) N)
+  · refine (hPairNormal'.mono_delta ?_).mono_epsilon ?_ <;>
+      exact logSlack_mono_left (by dsimp [cPair]; omega) N
+
+/-- **The head-and-noise witness of the separation theorem.**  For every `k > 0` there are
+strings `y` and `z` of length `2 * k` such that the plain complexity of `y` equals `k` up to a
+logarithmic slack, the plain description profile of `y ++ z` is within a logarithmic slack of
+the gray separation profile, and `y ++ z` is normal with logarithmic parameters. -/
+lemma exists_separation_head_noise_pair
+    (V T : Map) (hV : isOptimalConditional V)
+    (hT : IsOptimalTotalConditional T) :
+    ∃ cPair : Nat, ∀ k : Nat, 0 < k →
+      ∃ (y z : BitString) (kx : Nat),
+        y.length = 2 * k ∧
+        z.length = 2 * k ∧
+        plainK V y = (kx : ENat) ∧
+        k ≤ kx + logSlack cPair (4 * k) ∧
+        kx ≤ k + logSlack cPair (4 * k) ∧
+        ProfileSetsWithinNeighborhood
+          (plainDescriptionProfileSet V (y ++ z))
+          (separationGrayProfile k)
+          (logSlack cPair (4 * k)) ∧
+        IsNormalString V T (y ++ z)
+          (logSlack cPair (4 * k)) (logSlack cPair (4 * k)) := by
+  obtain ⟨cPairIn, hPairIn⟩ := exists_separation_pairCode_witness V T hV hT
+  obtain ⟨cOut, hOut⟩ :=
+    append_profile_and_normal_of_pairCode V T hV hT cPairIn cPairIn cPairIn
+  refine ⟨cPairIn + cOut, ?_⟩
+  intro k hk
+  obtain ⟨y, z, kx, hyLength, hzLength, hyComplexity, hkLower, hkUpper,
+    hProfile, hNormal⟩ := hPairIn k hk
+  have hNsum : y.length + z.length = 4 * k := by omega
+  obtain ⟨hAppendProfile, hAppendNormal⟩ :=
+    hOut y z (4 * k) (separationGrayProfile k) hNsum hProfile hNormal
+  have hMonoPair : logSlack cPairIn (4 * k) ≤ logSlack (cPairIn + cOut) (4 * k) :=
+    logSlack_mono_left (by omega) _
+  have hMonoOut : logSlack cOut (4 * k) ≤ logSlack (cPairIn + cOut) (4 * k) :=
+    logSlack_mono_left (by omega) _
+  exact ⟨y, z, kx, hyLength, hzLength, hyComplexity, by omega, by omega,
+    hAppendProfile.mono hMonoOut,
+    (hAppendNormal.mono_delta hMonoOut).mono_epsilon hMonoOut⟩
+
+/-- **The cylinder above the head is the separating model.**  If the plain complexity of a
+string `y` of length `2 * k` is `k` up to the logarithmic slack of `cIn`, then the cylinder of
+length-`4 * k` extensions of `y` contains `y ++ z`, is a strong set model of it, has plain set
+complexity `k` up to a logarithmic slack, has log-cardinality exactly `2 * k`, and its code is
+totally equivalent to `y` within a logarithmic slack. -/
+lemma separation_cylinder_strong_model
+    (V T : Map) (hV : isOptimalConditional V)
+    (hT : IsOptimalTotalConditional T) (cIn : Nat) :
+    ∃ cCyl : Nat, ∀ (k kx : Nat) (y z : BitString),
+      y.length = 2 * k → z.length = 2 * k →
+      plainK V y = (kx : ENat) →
+      k ≤ kx + logSlack cIn (4 * k) → kx ≤ k + logSlack cIn (4 * k) →
+      ∃ hA : (cylinder (4 * k) y).Nonempty,
+        y ++ z ∈ cylinder (4 * k) y ∧
+        IsStrongSetModel T (y ++ z) (cylinder (4 * k) y) hA (logSlack cCyl (4 * k)) ∧
+        (k : ENat) ≤ plainSetComplexity V (cylinder (4 * k) y) hA +
+          (logSlack cCyl (4 * k) : ENat) ∧
+        plainSetComplexity V (cylinder (4 * k) y) hA ≤
+          (k + logSlack cCyl (4 * k) : ENat) ∧
+        finiteSetLogCard (cylinder (4 * k) y) = 2 * k ∧
+        TotalEquivalentWithin T y (codedUniformOn (cylinder (4 * k) y) hA).code
+          (logSlack cCyl (4 * k)) := by
+  obtain ⟨cCylinderStrong, hCylinderStrong⟩ := cylinder_isStrongSetModel T hT
+  obtain ⟨cCylinderEq, hCylinderEq⟩ := separationCylinder_totalEquivalent_prefix T hT
+  obtain ⟨cSim, hSim⟩ := hV.2 T hT.1
+  obtain ⟨cGap, hGap⟩ := plainK_forward_gap_of_condK V hV
+  obtain ⟨bIn, hbIn⟩ := logSlack_le_add_const cIn
+  obtain ⟨cGapUp, hGapUp⟩ := logSlack_linear_bound cGap 2 bIn
+  let cAUpper := cIn + cCylinderEq + cSim + cGapUp
+  obtain ⟨bAUpper, hbAUpper⟩ := logSlack_le_add_const cAUpper
+  obtain ⟨cGapLow, hGapLow⟩ := logSlack_linear_bound cGap 2 bAUpper
+  let cALower := cIn + cCylinderEq + cSim + cGapLow
+  let cCyl := cCylinderStrong + cCylinderEq + cAUpper + cALower + 1
+  refine ⟨cCyl, ?_⟩
+  intro k kx y z hyLength hzLength hyComplexity hkLower hkUpper
+  set N := 4 * k with hN
+  set headSlack := logSlack cIn N with hHeadSlack
   let x := y ++ z
   let A := cylinder N y
   have hyN : y.length ≤ N := by rw [hyLength]; dsimp [N]; omega
+  have hxyLength : (y ++ z).length = N := by
+    rw [List.length_append, hyLength, hzLength]
+    dsimp [N]
+    ring
   have hxA : x ∈ A := by
     dsimp [x, A]
     rw [mem_cylinder]
@@ -548,36 +665,12 @@ lemma exists_separation_witness_core
     simpa [A, hA] using hCylinderEq y N hyN
   have hAYCond :
       condK V (codedUniformOn A hA).code y ≤
-        ((logSlack cCylinderEq N + cSim : Nat) : ENat) := by
-    calc
-      condK V (codedUniformOn A hA).code y
-          ≤ condK T (codedUniformOn A hA).code y + (cSim : ENat) :=
-        hSim _ _
-      _ ≤ totalCondK T (codedUniformOn A hA).code y + (cSim : ENat) := by
-        gcongr
-        exact condK_le_totalCondK T _ _
-      _ ≤ (logSlack cCylinderEq N : ENat) + (cSim : ENat) := by
-        gcongr
-        exact hAEqCodeY.1
-      _ = ((logSlack cCylinderEq N + cSim : Nat) : ENat) := by
-        push_cast
-        rfl
+        ((logSlack cCylinderEq N + cSim : Nat) : ENat) :=
+    condK_le_of_totalCondK_le_of_sim hSim hAEqCodeY.1
   have hYACond :
       condK V y (codedUniformOn A hA).code ≤
-        ((logSlack cCylinderEq N + cSim : Nat) : ENat) := by
-    calc
-      condK V y (codedUniformOn A hA).code
-          ≤ condK T y (codedUniformOn A hA).code + (cSim : ENat) :=
-        hSim _ _
-      _ ≤ totalCondK T y (codedUniformOn A hA).code + (cSim : ENat) := by
-        gcongr
-        exact condK_le_totalCondK T _ _
-      _ ≤ (logSlack cCylinderEq N : ENat) + (cSim : ENat) := by
-        gcongr
-        exact hAEqCodeY.2
-      _ = ((logSlack cCylinderEq N + cSim : Nat) : ENat) := by
-        push_cast
-        rfl
+        ((logSlack cCylinderEq N + cSim : Nat) : ENat) :=
+    condK_le_of_totalCondK_le_of_sim hSim hAEqCodeY.2
   have hACodeFinite : plainK V (codedUniformOn A hA).code ≠ ⊤ :=
     condK_ne_top_of_optimal V hV _ []
   let aA := (plainK V (codedUniformOn A hA).code).toNat
@@ -587,15 +680,15 @@ lemma exists_separation_witness_core
     exact (ENat.coe_toNat hACodeFinite).symm
   let headBudget := k + headSlack
   have hkxBudget : kx ≤ headBudget := by
-    dsimp [headBudget]
-    exact hkUpper'
+    dsimp [headBudget, headSlack]
+    exact hkUpper
   have hGapUpArg : logSlack cGap headBudget ≤ logSlack cGapUp N := by
     calc
       logSlack cGap headBudget
-          ≤ logSlack cGap (2 * N + bHead) := by
+          ≤ logSlack cGap (2 * N + bIn) := by
         apply logSlack_mono_right
+        have hh := hbIn N
         dsimp [headBudget]
-        have hh := hbHead N
         omega
       _ ≤ logSlack cGapUp N := hGapUp N
   have hAUpperNat : aA ≤ k + logSlack cAUpper N := by
@@ -608,7 +701,7 @@ lemma exists_separation_witness_core
           logSlack cGap headBudget := hraw
       _ ≤ k + headSlack + (logSlack cCylinderEq N + cSim) +
           logSlack cGapUp N := by omega
-      _ ≤ k + logSlack cHead N +
+      _ ≤ k + logSlack cIn N +
           (logSlack cCylinderEq N + logSlack cSim N) +
           logSlack cGapUp N := by
         have hcSim : cSim ≤ logSlack cSim N := const_le_logSlack le_rfl
@@ -631,11 +724,11 @@ lemma exists_separation_witness_core
       (by simpa [plainSetComplexity] using hAComplexity)
       hyComplexity haLowerBudget hYACond
     calc
-      k ≤ kx + headSlack := hkLower'
+      k ≤ kx + headSlack := hkLower
       _ ≤ aA + (logSlack cCylinderEq N + cSim) +
           logSlack cGap lowerBudget + headSlack := by omega
       _ ≤ aA + (logSlack cCylinderEq N + logSlack cSim N) +
-          logSlack cGapLow N + logSlack cHead N := by
+          logSlack cGapLow N + logSlack cIn N := by
         have hcSim : cSim ≤ logSlack cSim N := const_le_logSlack le_rfl
         omega
       _ = aA + logSlack cALower N := by
@@ -648,42 +741,66 @@ lemma exists_separation_witness_core
     have hsub : N - 2 * k = 2 * k := by dsimp [N]; omega
     rw [hsub]
     simp
-  have hProfileFinal :
-      ProfileSetsWithinNeighborhood
-        (plainDescriptionProfileSet V x) (separationGrayProfile k)
-        (logSlack cSlack N) := by
-    simpa [x] using hAppendProfile.mono
-      (logSlack_mono_left (by dsimp [cSlack]; omega) N)
-  have hNormalFinal :
-      IsNormalString V T x (logSlack cSlack N) (logSlack cSlack N) := by
-    refine (hAppendNormal.mono_delta ?_).mono_epsilon ?_ <;>
-      apply logSlack_mono_left <;> dsimp [cSlack] <;> omega
-  have hStrongFinal :
-      IsStrongSetModel T x A hA (logSlack cSlack N) :=
-    hAStrong.mono (logSlack_mono_left (by dsimp [cSlack]; omega) N)
-  have hUpperFinal :
-      plainSetComplexity V A hA ≤
-        ((k + logSlack cSlack N : Nat) : ENat) := by
-    rw [hAComplexity]
-    exact_mod_cast hAUpperNat.trans
-      (Nat.add_le_add_left
-        (logSlack_mono_left (by dsimp [cSlack]; omega) N) k)
-  have hLowerFinal :
-      (k : ENat) ≤ plainSetComplexity V A hA +
-        (logSlack cSlack N : ENat) := by
-    rw [hAComplexity]
+  refine ⟨hA, hxA, hAStrong.mono (logSlack_mono_left (by dsimp [cCyl]; omega) N), ?_, ?_,
+    hACard, hAEqCodeY.symm.mono (logSlack_mono_left (by dsimp [cCyl]; omega) N)⟩
+  · rw [hAComplexity]
     exact_mod_cast hALowerNat.trans
-      (Nat.add_le_add_left
-        (logSlack_mono_left (by dsimp [cSlack]; omega) N) aA)
-  have hEqFinal :
-      TotalEquivalentWithin T y (codedUniformOn A hA).code
-        (logSlack cSlack N) :=
-    hAEqCodeY.symm.mono
-      (logSlack_mono_left (by dsimp [cSlack]; omega) N)
+      (Nat.add_le_add_left (logSlack_mono_left (by dsimp [cCyl]; omega) N) aA)
+  · rw [hAComplexity]
+    exact_mod_cast hAUpperNat.trans
+      (Nat.add_le_add_left (logSlack_mono_left (by dsimp [cCyl]; omega) N) k)
+
+/-- For every `k > 0` there is a string `x = y ++ z` of length `4 * k` whose plain description
+profile is logarithmically close to the gray separation profile, which is normal, and whose
+cylinder above `y` is a strong set model of complexity about `k` and log-cardinality `2 * k`. -/
+lemma exists_separation_witness_core
+    (V T : Map) (hV : isOptimalConditional V)
+    (hT : IsOptimalTotalConditional T) :
+    ∃ cSlack : Nat, ∀ k : Nat, 0 < k →
+      ∃ y z : BitString,
+        let x := y ++ z
+        let A := cylinder (4 * k) y
+        y.length = 2 * k ∧
+        z.length = 2 * k ∧
+        x.length = 4 * k ∧
+        ProfileSetsWithinNeighborhood
+          (plainDescriptionProfileSet V x)
+          (separationGrayProfile k)
+          (logSlack cSlack (4 * k)) ∧
+        IsNormalString V T x
+          (logSlack cSlack (4 * k))
+          (logSlack cSlack (4 * k)) ∧
+        ∃ hA : A.Nonempty,
+        x ∈ A ∧
+        IsStrongSetModel T x A hA (logSlack cSlack (4 * k)) ∧
+        (k : ENat) ≤ plainSetComplexity V A hA + (logSlack cSlack (4 * k) : ENat) ∧
+        plainSetComplexity V A hA ≤ (k + logSlack cSlack (4 * k) : ENat) ∧
+        finiteSetLogCard A = 2 * k ∧
+        TotalEquivalentWithin T y (codedUniformOn A hA).code
+          (logSlack cSlack (4 * k)) := by
+  obtain ⟨cPair, hPair⟩ := exists_separation_head_noise_pair V T hV hT
+  obtain ⟨cCyl, hCyl⟩ := separation_cylinder_strong_model V T hV hT cPair
+  refine ⟨cPair + cCyl, ?_⟩
+  intro k hk
+  obtain ⟨y, z, kx, hyLength, hzLength, hyComplexity, hkLower, hkUpper,
+    hProfile, hNormal⟩ := hPair k hk
+  obtain ⟨hA, hxA, hStrong, hLower, hUpper, hACard, hEq⟩ :=
+    hCyl k kx y z hyLength hzLength hyComplexity hkLower hkUpper
+  have hPairSlack : logSlack cPair (4 * k) ≤ logSlack (cPair + cCyl) (4 * k) :=
+    logSlack_mono_left (by omega) _
+  have hCylSlack : logSlack cCyl (4 * k) ≤ logSlack (cPair + cCyl) (4 * k) :=
+    logSlack_mono_left (by omega) _
+  have hxyLength : (y ++ z).length = 4 * k := by
+    rw [List.length_append, hyLength, hzLength]
+    ring
   refine ⟨y, z, ?_⟩
   dsimp only
-  refine ⟨hyLength, hzLength', hxyLength, hProfileFinal, hNormalFinal, hA, hxA,
-    hStrongFinal, hLowerFinal, hUpperFinal, hACard, ?_⟩
-  simpa [N] using hEqFinal
+  refine ⟨hyLength, hzLength, hxyLength, hProfile.mono hPairSlack,
+    (hNormal.mono_delta hPairSlack).mono_epsilon hPairSlack, hA, hxA,
+    hStrong.mono hCylSlack, ?_, ?_, hACard, hEq.mono hCylSlack⟩
+  · refine hLower.trans ?_
+    gcongr
+  · refine hUpper.trans ?_
+    exact_mod_cast Nat.add_le_add_left hCylSlack k
 
 end Kolmogorov

@@ -1,5 +1,21 @@
 import KolmogorovMathlib.Restricted.FamilyCurve.Selector
 
+/-!
+# Effective rebuilding of a restricted-family suffix
+
+The abstract density argument chooses successive family models. This module turns that choice
+into partial recursive operations on codes. `restrictedEffectiveRebuildStep` performs one
+selection, while `restrictedEffectiveRebuildSuffix` iterates it over the requested sizes and
+records the live intersection codes.
+
+The accompanying primrec and partrec lemmas cover the encoded inputs, selector fields, live-code
+trace and decoded cover sizes. The main semantic result
+`restrictedEffectiveRebuildSuffix_decodes_density` states that a terminating encoded rebuild
+decodes to a suffix satisfying the required density bounds.
+
+This is the computational rebuilding component used by the effective sampled run.
+-/
+
 namespace Kolmogorov
 
 open Kolmogorov.CodedFiniteDistribution
@@ -17,6 +33,7 @@ def restrictedEffectiveRebuildStep (𝒜 : DescriptionFamily) :
   else
     Part.some Acode
 
+/-- One rebuild step, which selects a cover element from the enumeration, is partial computable. -/
 lemma restrictedEffectiveRebuildStep_partrec (𝒜 : DescriptionFamily) :
     Partrec (restrictedEffectiveRebuildStep 𝒜) := by
   have hfield (i : ℕ) : Computable (fun input : BitString =>
@@ -46,6 +63,8 @@ lemma restrictedEffectiveRebuildStep_partrec (𝒜 : DescriptionFamily) :
   · simp [h]
   · simp [h]
 
+/-- The rebuild step returns a family member `B` of size at most `c` whose trace on `C` satisfies
+`c · #C ≤ overhead n · A_bound · #(B ∩ C)`. -/
 lemma restrictedEffectiveRebuildStep_spec (𝒜 : DescriptionFamily)
     (Acode Ccode : BitString) (n c q0 A_bound : ℕ)
     (A C : Finset BitString)
@@ -98,6 +117,7 @@ noncomputable def restrictedLiveIntersectionCode
     ((decodeCoverCodeList Ccode).filter
       (fun x => decide (x ∈ decodeCoverCodeList Bcode))).dedup
 
+/-- Intersecting two coded finite sets is primitive recursive. -/
 theorem restrictedLiveIntersectionCode_primrec :
     Primrec (fun p : BitString × BitString =>
       restrictedLiveIntersectionCode p.1 p.2) := by
@@ -109,6 +129,7 @@ theorem restrictedLiveIntersectionCode_primrec :
   · exact bitString_mem_primrec.comp Primrec.snd
       (decodeCoverCodeList_primrec.comp (Primrec.snd.comp Primrec.fst))
 
+/-- Decoding the canonical uniform code of a list of strings returns the list. -/
 lemma decodeCoverCodeList_canonicalUniformCodeOfList (L : List BitString) :
     decodeCoverCodeList (canonicalUniformCodeOfList L) = L := by
   unfold decodeCoverCodeList canonicalUniformCodeOfList
@@ -116,6 +137,7 @@ lemma decodeCoverCodeList_canonicalUniformCodeOfList (L : List BitString) :
   rw [List.map_map]
   exact List.map_id'' (fun _ => rfl) L
 
+/-- The intersection code of the codes of `C` and `B` decodes to the canonical list of `C ∩ B`. -/
 lemma decode_restrictedLiveIntersectionCode
     (Ccode Bcode : BitString) (C B : Finset BitString)
     (hCcode : decodeCoverCodeList Ccode = canonicalFinsetList C)
@@ -136,11 +158,13 @@ lemma decode_restrictedLiveIntersectionCode
     canonicalFinsetList_of_sorted L hnd hpair
   rw [List.dedup_eq_self.mpr hnd, ← hfin, hcanon]
 
+/-- Reading a field of a selector input is primitive recursive in the input and the index. -/
 theorem restrictedSelectorField_primrec :
     Primrec₂ restrictedSelectorField := by
   exact (Primrec.list_getD []).comp
     (decodeListCode_primrec.comp Primrec.fst) Primrec.snd
 
+/-- Assembling a selector input from its four fields is primitive recursive. -/
 theorem restrictedCoverSelectorInput_primrec :
     Primrec (fun a : BitString × BitString × ℕ × ℕ =>
       restrictedCoverSelectorInput a.1 a.2.1 a.2.2.1 a.2.2.2) := by
@@ -149,9 +173,9 @@ theorem restrictedCoverSelectorInput_primrec :
   exact Primrec.list_cons.comp Primrec.fst
     (Primrec.list_cons.comp (Primrec.fst.comp Primrec.snd)
       (Primrec.list_cons.comp
-        (primrecNatBits.comp (Primrec.fst.comp (Primrec.snd.comp Primrec.snd)))
+        (primrec_natBits.comp (Primrec.fst.comp (Primrec.snd.comp Primrec.snd)))
         (Primrec.list_cons.comp
-          (primrecNatBits.comp (Primrec.snd.comp (Primrec.snd.comp Primrec.snd)))
+          (primrec_natBits.comp (Primrec.snd.comp (Primrec.snd.comp Primrec.snd)))
           (Primrec.const []))))
 
 /-- Input encoding for a suffix rebuild.  The fields are the predecessor model
@@ -161,6 +185,7 @@ def restrictedEffectiveRebuildSuffixInput
     (Acode Ccode : BitString) (sizes : List ℕ) (q0 : ℕ) : BitString :=
   listCode [Acode, Ccode, listCode (sizes.map Nat.bits), Nat.bits q0]
 
+/-- The zeroth field of a suffix-rebuild input is the code of `A`. -/
 @[simp] lemma restrictedSelectorField_suffixInput_zero
     (Acode Ccode : BitString) (sizes : List ℕ) (q0 : ℕ) :
     restrictedSelectorField
@@ -169,6 +194,7 @@ def restrictedEffectiveRebuildSuffixInput
   rw [decodeListCode_listCode]
   rfl
 
+/-- The first field of a suffix-rebuild input is the code of `C`. -/
 @[simp] lemma restrictedSelectorField_suffixInput_one
     (Acode Ccode : BitString) (sizes : List ℕ) (q0 : ℕ) :
     restrictedSelectorField
@@ -177,6 +203,7 @@ def restrictedEffectiveRebuildSuffixInput
   rw [decodeListCode_listCode]
   rfl
 
+/-- The second field of a suffix-rebuild input codes the list of requested cardinalities. -/
 @[simp] lemma restrictedSelectorField_suffixInput_two
     (Acode Ccode : BitString) (sizes : List ℕ) (q0 : ℕ) :
     restrictedSelectorField
@@ -186,6 +213,7 @@ def restrictedEffectiveRebuildSuffixInput
   rw [decodeListCode_listCode]
   rfl
 
+/-- The third field of a suffix-rebuild input codes the overhead `q₀`. -/
 @[simp] lemma restrictedSelectorField_suffixInput_three
     (Acode Ccode : BitString) (sizes : List ℕ) (q0 : ℕ) :
     bitsToNat (restrictedSelectorField
@@ -198,6 +226,7 @@ def restrictedEffectiveRebuildSuffixInput
 def restrictedEffectiveRebuildSizes (input : BitString) : List ℕ :=
   (decodeListCode (restrictedSelectorField input 2)).map bitsToNat
 
+/-- Decoding the requested cardinalities from a suffix-rebuild input is primitive recursive. -/
 theorem restrictedEffectiveRebuildSizes_primrec :
     Primrec restrictedEffectiveRebuildSizes := by
   unfold restrictedEffectiveRebuildSizes
@@ -206,6 +235,7 @@ theorem restrictedEffectiveRebuildSizes_primrec :
       (restrictedSelectorField_primrec.comp Primrec.id (Primrec.const 2)))
     (bitsToNat_primrec.comp Primrec.snd).to₂
 
+/-- The cardinalities decoded from an assembled suffix-rebuild input are the ones put in. -/
 @[simp] lemma restrictedEffectiveRebuildSizes_input
     (Acode Ccode : BitString) (sizes : List ℕ) (q0 : ℕ) :
     restrictedEffectiveRebuildSizes
@@ -235,6 +265,7 @@ noncomputable def restrictedEffectiveRebuildSuffixNext (𝒜 : DescriptionFamily
       (Bcode, restrictedLiveIntersectionCode state.2.1 Bcode,
         state.2.2 ++ [Bcode]))
 
+/-- The indexed transition of the suffix iterator is partial computable. -/
 lemma restrictedEffectiveRebuildSuffixNext_partrec (𝒜 : DescriptionFamily) :
     Partrec (fun a : BitString × (ℕ × RestrictedEffectiveRebuildState) =>
       restrictedEffectiveRebuildSuffixNext 𝒜 a.1 a.2) := by
@@ -342,6 +373,7 @@ noncomputable def restrictedEffectiveRebuildSuffix (𝒜 : DescriptionFamily) :
       sizes.length
   final.map (fun state => listCode state.2.2)
 
+/-- Iterating the rebuild step over all requested cardinalities is partial computable. -/
 lemma restrictedEffectiveRebuildSuffix_partrec (𝒜 : DescriptionFamily) :
     Partrec (restrictedEffectiveRebuildSuffix 𝒜) := by
   have hfield (i : ℕ) : Computable (fun input : BitString =>
@@ -420,6 +452,7 @@ noncomputable def restrictedEffectiveRebuildLiveCodes
   | [] => []
   | _Acode :: codes => restrictedEffectiveRebuildLiveCodesFrom Ccode codes
 
+/-- The list of live-pool codes has one more entry than the list of models. -/
 lemma restrictedEffectiveRebuildLiveCodesFrom_length
     (Ccode : BitString) (codes : List BitString) :
     (restrictedEffectiveRebuildLiveCodesFrom Ccode codes).length =
@@ -429,6 +462,7 @@ lemma restrictedEffectiveRebuildLiveCodesFrom_length
   | cons Bcode codes ih =>
       simp [restrictedEffectiveRebuildLiveCodesFrom, ih]
 
+/-- The rebuilt live-pool codes are as many as the model codes. -/
 lemma restrictedEffectiveRebuildLiveCodes_length
     (Ccode : BitString) (codes : List BitString) :
     (restrictedEffectiveRebuildLiveCodes Ccode codes).length = codes.length := by
@@ -438,6 +472,7 @@ lemma restrictedEffectiveRebuildLiveCodes_length
       simp [restrictedEffectiveRebuildLiveCodes,
         restrictedEffectiveRebuildLiveCodesFrom_length]
 
+/-- Extending the list of models extends the list of live pools without changing its beginning. -/
 lemma restrictedEffectiveRebuildLiveCodesFrom_prefix_append
     (Ccode : BitString) (codes extra : List BitString) :
     restrictedEffectiveRebuildLiveCodesFrom Ccode codes <+:
@@ -451,6 +486,7 @@ lemma restrictedEffectiveRebuildLiveCodesFrom_prefix_append
         (restrictedLiveIntersectionCode Ccode Bcode)
       exact ⟨extra', congrArg (List.cons Ccode) hextra'⟩
 
+/-- Extending a non-empty list of model codes extends the rebuilt live pools by a suffix. -/
 lemma restrictedEffectiveRebuildLiveCodes_prefix_append
     (Ccode : BitString) (codes extra : List BitString) (hcodes : codes ≠ []) :
     restrictedEffectiveRebuildLiveCodes Ccode codes <+:
@@ -460,6 +496,7 @@ lemma restrictedEffectiveRebuildLiveCodes_prefix_append
   | cons Acode codes =>
       exact restrictedEffectiveRebuildLiveCodesFrom_prefix_append Ccode codes extra
 
+/-- The live pool after one further model is the intersection of the last pool with that model. -/
 lemma restrictedEffectiveRebuildLiveCodesFrom_append_getD
     (Ccode Bcode : BitString) (codes : List BitString) :
     (restrictedEffectiveRebuildLiveCodesFrom Ccode (codes ++ [Bcode])).getD
@@ -473,6 +510,8 @@ lemma restrictedEffectiveRebuildLiveCodesFrom_append_getD
       simpa [restrictedEffectiveRebuildLiveCodesFrom, Nat.add_assoc] using
         ih (restrictedLiveIntersectionCode Ccode code)
 
+/-- The last rebuilt live pool after appending a model code is the intersection of the previous
+one with that code. -/
 lemma restrictedEffectiveRebuildLiveCodes_append_getD
     (Ccode Bcode : BitString) (codes : List BitString) (hcodes : codes ≠ []) :
     (restrictedEffectiveRebuildLiveCodes Ccode (codes ++ [Bcode])).getD
@@ -723,9 +762,10 @@ lemma restrictedEffectiveRebuildCodeTrace_prefix_spec (𝒜 : DescriptionFamily)
         · intro x hx
           exact hCcur_n x (Finset.inter_subset_left hx)
 
-/-- Valid decreasing requested sizes make the executable suffix iterator
-terminate with a code-level trace. -/
-lemma restrictedEffectiveRebuildSuffix_terminates (𝒜 : DescriptionFamily)
+/-- Valid decreasing requested sizes make the effective suffix computation
+terminate, and every decoded step has the family-membership, size, and density
+properties needed by the extensional sampled-run rebuild. -/
+lemma restrictedEffectiveRebuildSuffix_decodes_density (𝒜 : DescriptionFamily)
     (Acode Ccode : BitString) (sizes : List ℕ) (q0 n A_bound : ℕ)
     (A C : Finset BitString)
     (hAcode : decodeCoverCodeList Acode = canonicalFinsetList A)
@@ -744,7 +784,24 @@ lemma restrictedEffectiveRebuildSuffix_terminates (𝒜 : DescriptionFamily)
         Part.some output ∧
       output = listCode codes ∧
       RestrictedEffectiveRebuildCodeTrace 𝒜 q0 sizes Acode Ccode
-        sizes.length Afinal Cfinal codes := by
+        sizes.length Afinal Cfinal codes ∧
+      codes.length = sizes.length + 1 ∧
+      ∀ i < sizes.length, ∃ Bprev Cprev Bnext : Finset BitString,
+        decodeCoverCodeList (codes.getD i []) = canonicalFinsetList Bprev ∧
+        decodeCoverCodeList ((restrictedEffectiveRebuildLiveCodes Ccode codes).getD i []) =
+          canonicalFinsetList Cprev ∧
+        decodeCoverCodeList (codes.getD (i + 1) []) =
+          canonicalFinsetList Bnext ∧
+        𝒜.mem Bprev ∧
+        Bprev.card ≤ (if i = 0 then A_bound else sizes.getD (i - 1) 0) ∧
+        Cprev ⊆ Bprev ∧
+        (∀ x ∈ Cprev, x.length = n) ∧
+        𝒜.mem Bnext ∧
+        Bnext.card ≤ sizes.getD i 0 ∧
+        sizes.getD i 0 * Cprev.card ≤
+          (𝒜.overhead n *
+            (if i = 0 then A_bound else sizes.getD (i - 1) 0)) *
+            (Bnext ∩ Cprev).card := by
   let input := restrictedEffectiveRebuildSuffixInput Acode Ccode sizes q0
   have run_exists : ∀ count : ℕ, count ≤ sizes.length →
       ∃ state : RestrictedEffectiveRebuildState,
@@ -793,70 +850,28 @@ lemma restrictedEffectiveRebuildSuffix_terminates (𝒜 : DescriptionFamily)
             restrictedSelectorField_suffixInput_three, hstep, Part.map_some]
           rfl
         · exact RestrictedEffectiveRebuildCodeTrace.cons htrace hstep
-  obtain ⟨state, hrun, htrace⟩ := run_exists sizes.length le_rfl
-  refine ⟨listCode state.2.2, state.1, state.2.1, state.2.2, ?_, rfl, htrace⟩
-  unfold restrictedEffectiveRebuildSuffix
-  simp only [restrictedEffectiveRebuildSizes_input,
-    restrictedSelectorField_suffixInput_zero,
-    restrictedSelectorField_suffixInput_one]
-  change (Nat.rec (motive := fun _ => Part RestrictedEffectiveRebuildState)
-      (Part.some (Acode, Ccode, [Acode]))
-      (fun idx current => current.bind (fun value =>
-        restrictedEffectiveRebuildSuffixNext 𝒜 input (idx, value)))
-      sizes.length).map (fun current => listCode current.2.2) = _
-  rw [hrun]
-  rfl
-
-/-- Valid decreasing requested sizes make the effective suffix computation
-terminate, and every decoded step has the family-membership, size, and density
-properties needed by the extensional sampled-run rebuild. -/
-lemma restrictedEffectiveRebuildSuffix_decodes_density (𝒜 : DescriptionFamily)
-    (Acode Ccode : BitString) (sizes : List ℕ) (q0 n A_bound : ℕ)
-    (A C : Finset BitString)
-    (hAcode : decodeCoverCodeList Acode = canonicalFinsetList A)
-    (hCcode : decodeCoverCodeList Ccode = canonicalFinsetList C)
-    (hq0 : q0 = 𝒜.overhead n)
-    (hA : 𝒜.mem A) (hC : C ⊆ A)
-    (hC_n : ∀ x ∈ C, x.length = n)
-    (hAcard : A.card ≤ A_bound)
-    (hsizes_pos : ∀ i < sizes.length, 0 < sizes.getD i 0)
-    (hsizes_head : sizes.getD 0 0 ≤ A_bound)
-    (hsizes_mono : ∀ i, i + 1 < sizes.length →
-      sizes.getD (i + 1) 0 ≤ sizes.getD i 0) :
-    ∃ output Afinal Cfinal codes,
-      restrictedEffectiveRebuildSuffix 𝒜
-          (restrictedEffectiveRebuildSuffixInput Acode Ccode sizes q0) =
-        Part.some output ∧
-      output = listCode codes ∧
-      RestrictedEffectiveRebuildCodeTrace 𝒜 q0 sizes Acode Ccode
-        sizes.length Afinal Cfinal codes ∧
-      codes.length = sizes.length + 1 ∧
-      ∀ i < sizes.length, ∃ Bprev Cprev Bnext : Finset BitString,
-        decodeCoverCodeList (codes.getD i []) = canonicalFinsetList Bprev ∧
-        decodeCoverCodeList ((restrictedEffectiveRebuildLiveCodes Ccode codes).getD i []) =
-          canonicalFinsetList Cprev ∧
-        decodeCoverCodeList (codes.getD (i + 1) []) =
-          canonicalFinsetList Bnext ∧
-        𝒜.mem Bprev ∧
-        Bprev.card ≤ (if i = 0 then A_bound else sizes.getD (i - 1) 0) ∧
-        Cprev ⊆ Bprev ∧
-        (∀ x ∈ Cprev, x.length = n) ∧
-        𝒜.mem Bnext ∧
-        Bnext.card ≤ sizes.getD i 0 ∧
-        sizes.getD i 0 * Cprev.card ≤
-          (𝒜.overhead n *
-            (if i = 0 then A_bound else sizes.getD (i - 1) 0)) *
-            (Bnext ∩ Cprev).card := by
-  obtain ⟨output, Afinal, Cfinal, codes, hrun, houtput, htrace⟩ :=
-    restrictedEffectiveRebuildSuffix_terminates 𝒜 Acode Ccode sizes
-      q0 n A_bound A C hAcode hCcode hq0 hA hC hC_n hAcard
-      hsizes_pos hsizes_head hsizes_mono
+  obtain ⟨state, hstateRun, htrace⟩ := run_exists sizes.length le_rfl
+  have hrun : restrictedEffectiveRebuildSuffix 𝒜
+      (restrictedEffectiveRebuildSuffixInput Acode Ccode sizes q0) =
+        Part.some (listCode state.2.2) := by
+    unfold restrictedEffectiveRebuildSuffix
+    simp only [restrictedEffectiveRebuildSizes_input,
+      restrictedSelectorField_suffixInput_zero,
+      restrictedSelectorField_suffixInput_one]
+    change (Nat.rec (motive := fun _ => Part RestrictedEffectiveRebuildState)
+        (Part.some (Acode, Ccode, [Acode]))
+        (fun idx current => current.bind (fun value =>
+          restrictedEffectiveRebuildSuffixNext 𝒜 input (idx, value)))
+        sizes.length).map (fun current => listCode current.2.2) = _
+    rw [hstateRun]
+    rfl
   have hspec := restrictedEffectiveRebuildCodeTrace_prefix_spec 𝒜
     Acode Ccode sizes q0 n A_bound A C hAcode hCcode hq0 hA hC hC_n
     hAcard hsizes_pos hsizes_head hsizes_mono
-    (count := sizes.length) (Afinal := Afinal) (Cfinal := Cfinal)
-    (codes := codes) le_rfl htrace
-  refine ⟨output, Afinal, Cfinal, codes, hrun, houtput, htrace, hspec.1, ?_⟩
+    (count := sizes.length) (Afinal := state.1) (Cfinal := state.2.1)
+    (codes := state.2.2) le_rfl htrace
+  refine ⟨listCode state.2.2, state.1, state.2.1, state.2.2, hrun, rfl, htrace,
+    hspec.1, ?_⟩
   intro i hi
   have hstep := hspec.2.2.2.1 i hi
   simpa [RestrictedEffectiveRebuildDecodedStep,

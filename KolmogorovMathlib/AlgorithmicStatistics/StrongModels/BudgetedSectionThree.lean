@@ -1,6 +1,6 @@
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.BudgetedStochasticity
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.GapCounting
-import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.DescriptionSnapshot
+import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.Snapshots
 
 /-!
 # The Section 3 chain at the complexity scale
@@ -21,6 +21,7 @@ altogether.
 
 namespace Kolmogorov
 
+open CodedFiniteDistribution
 open Nat
 open Nat.Partrec (Code)
 open scoped ENNReal
@@ -235,8 +236,8 @@ theorem description_count_of_conditional_complexity_gap_length_free (U : Map)
     exact lt_of_lt_of_le hr_lt (h1.trans (h2.trans h3))
   let M := i + j
   have h_w_len_M : w.length ≤ 3 * M + 7 := by
-    have hi_len : (Nat.bits i).length ≤ i := length_natBits_le_self i
-    have hj_len : (Nat.bits j).length ≤ j := length_natBits_le_self j
+    have hi_len : (Nat.bits i).length ≤ i := length_natBits_le i
+    have hj_len : (Nat.bits j).length ≤ j := length_natBits_le j
     have hr_len : (Nat.bits r).length ≤ i + 1 := by
       rw [Nat.size_eq_bits_len]
       exact Nat.size_le.mpr hr_lt_2i
@@ -439,6 +440,86 @@ theorem deficiencies_theorem_tight_budget (U : Map) (hU : IsOptimalPrefixConditi
     have hnat : (i - k + s) + (j + s) ≤ kx + (d + logSlack (c1 + 2 * c2 + 2) M) := by omega
     exact_mod_cast hnat
 
+/-- Deficiency bound for a uniform set model derived from symmetry of information. -/
+private theorem deficiencyLe_codedUniformOn_of_soi (U : Map) (hU : IsOptimalPrefixConditional U)
+    (A : Finset BitString) (hA : A.Nonempty) (x : BitString) (hxA : x ∈ A) (kx i j delta c_soi : ℕ)
+    (hj_upper : A.card ≤ 2 ^ j)
+    (hdelta : i + j ≤ kx + delta)
+    (h_soi_bound : kx ≤ i + (KP U x (codedUniformOn A hA).code).toNat + c_soi) :
+    CodedFiniteDistribution.DeficiencyLe U (codedUniformOn A hA) x (delta + c_soi) := by
+  unfold CodedFiniteDistribution.DeficiencyLe
+  have h_mass : (codedUniformOn A hA).mass x = ((A.card : ℝ≥0∞)⁻¹) :=
+    codedUniformOn_mass_of_mem _ _ _ hxA
+  rw [h_mass]
+  have h_kp : (KP U x (codedUniformOn A hA).code).toNat + c_soi + delta ≥ j := by
+    omega
+  have h4 : ((2 : ℝ≥0∞) ^ j)⁻¹ ≤ (A.card : ℝ≥0∞)⁻¹ := by
+    apply ENNReal.inv_le_inv.mpr
+    exact_mod_cast hj_upper
+  have hkp_eq : complexityWeight (KP U x (codedUniformOn A hA).code) = (2 : ℝ≥0∞)⁻¹ ^
+      (KP U x (codedUniformOn A hA).code).toNat := by
+    have : KP U x (codedUniformOn A hA).code =
+        ((KP U x (codedUniformOn A hA).code).toNat : ENat) :=
+      (ENat.coe_toNat (KP_ne_top_of_optimal U hU x _)).symm
+    rw [this]
+    rfl
+  rw [hkp_eq]
+  have h1_inv : (2 : ℝ≥0∞)⁻¹ ^ (KP U x (codedUniformOn A hA).code).toNat =
+      ((2 : ℝ≥0∞) ^ (KP U x (codedUniformOn A hA).code).toNat)⁻¹ := by
+    rw [ENNReal.inv_pow]
+  rw [h1_inv]
+  have h2_pow : (2 : ℝ≥0∞) ^ j ≤ (2 : ℝ≥0∞) ^ (delta + c_soi) * (2 : ℝ≥0∞) ^
+      (KP U x (codedUniformOn A hA).code).toNat := by
+    rw [← pow_add]
+    apply pow_le_pow_right' (by norm_num)
+    omega
+  have h4_inv :
+      ((2 : ℝ≥0∞) ^ (delta + c_soi) * (2 : ℝ≥0∞) ^ (KP U x (codedUniformOn A hA).code).toNat)⁻¹ =
+      ((2 : ℝ≥0∞) ^ (delta + c_soi))⁻¹ *
+      ((2 : ℝ≥0∞) ^ (KP U x (codedUniformOn A hA).code).toNat)⁻¹ :=
+    ENNReal.mul_inv (by norm_num) (by norm_num)
+  have h6 : ((2 : ℝ≥0∞) ^ (KP U x (codedUniformOn A hA).code).toNat)⁻¹ ≤ (2 : ℝ≥0∞) ^
+      (delta + c_soi) * ((2 : ℝ≥0∞) ^ j)⁻¹ := by
+    calc ((2 : ℝ≥0∞) ^ (KP U x (codedUniformOn A hA).code).toNat)⁻¹
+      _ = 1 * ((2 : ℝ≥0∞) ^ (KP U x (codedUniformOn A hA).code).toNat)⁻¹ := by rw [one_mul]
+      _ = ((2 : ℝ≥0∞) ^ (delta + c_soi) * ((2 : ℝ≥0∞) ^ (delta + c_soi))⁻¹) *
+          ((2 : ℝ≥0∞) ^ (KP U x (codedUniformOn A hA).code).toNat)⁻¹ := by
+        have : (2 : ℝ≥0∞) ^ (delta + c_soi) *
+            ((2 : ℝ≥0∞) ^ (delta + c_soi))⁻¹ = 1 :=
+          ENNReal.mul_inv_cancel (by norm_num) (by norm_num)
+        rw [this]
+      _ = (2 : ℝ≥0∞) ^ (delta + c_soi) *
+          (((2 : ℝ≥0∞) ^ (delta + c_soi))⁻¹ *
+            ((2 : ℝ≥0∞) ^ (KP U x (codedUniformOn A hA).code).toNat)⁻¹) := by
+              rw [mul_assoc]
+      _ = (2 : ℝ≥0∞) ^ (delta + c_soi) *
+          ((2 : ℝ≥0∞) ^ (delta + c_soi) *
+            (2 : ℝ≥0∞) ^ (KP U x (codedUniformOn A hA).code).toNat)⁻¹ := by
+              rw [h4_inv]
+      _ ≤ (2 : ℝ≥0∞) ^ (delta + c_soi) * ((2 : ℝ≥0∞) ^ j)⁻¹ := by gcongr
+  exact le_trans h6 (mul_le_mul_right h4 _)
+
+/-- Upper bound on the dyadic exponent `j` for a level set from its cardinality lower bound. -/
+private theorem levelSet_dyadic_exponent_le (P : CodedFiniteDistribution) (k : ℕ)
+    (h_prob : P.IsProbability) (A : Finset BitString) (hA_def : A = levelSet P k)
+    (j : ℕ) (hj_lower : (2 : ℝ≥0∞) ^ j / 2 ≤ A.card) :
+    j ≤ k + 1 := by
+  have hcard_k : A.card ≤ 2 ^ k := by
+    subst hA_def
+    have h := levelSet_card_le P k h_prob
+    exact_mod_cast h
+  have hj2 : 2 ^ j ≤ 2 * A.card := by
+    have h := hj_lower
+    rw [ENNReal.div_le_iff (by norm_num) (by norm_num)] at h
+    have h' : (2 : ℝ≥0∞) ^ j ≤ ((2 * A.card : ℕ) : ℝ≥0∞) := by
+      push_cast; simpa [mul_comm] using h
+    exact_mod_cast h'
+  have hpow : 2 ^ j ≤ 2 ^ (k + 1) := by
+    calc 2 ^ j ≤ 2 * A.card := hj2
+      _ ≤ 2 * 2 ^ k := by gcongr
+      _ = 2 ^ (k + 1) := by rw [pow_succ]; ring
+  exact (Nat.pow_le_pow_iff_right (by norm_num)).mp hpow
+
 /-- **The uniform-set realized gap at the complexity scale.**  Same conclusion as
 `exists_realizedGap_uniformSet_of_stochastic`, with all bounds measured against
 `kx + alpha + beta` (`kx = C_P(x)`) instead of `l(x) + alpha + beta`. -/
@@ -490,64 +571,13 @@ theorem exists_realizedGap_uniformSet_of_stochastic_budget
   have h_realized : RealizedSetOptimalityGap U A hA x delta i j kx :=
     ⟨hxA, hi_eq, hj_upper, hj_lower, hkx_val, rfl⟩
   -- The `delta + c_soi` deficiency bound from Symmetry of Information.
-  have h_def_soi :
-      CodedFiniteDistribution.DeficiencyLe U (codedUniformOn A hA) x (delta + c_soi) := by
-    unfold CodedFiniteDistribution.DeficiencyLe
-    have h_mass : (codedUniformOn A hA).mass x = ((A.card : ℝ≥0∞)⁻¹) :=
-      codedUniformOn_mass_of_mem _ _ _ hxA
-    rw [h_mass]
-    have h_soi_bound := h_soi A hA x hxA
-    rw [hkx_toNat] at h_soi_bound
-    have h_i : (setComplexity U A hA).toNat = i := rfl
-    rw [h_i] at h_soi_bound
-    have h_kp : (KP U x (codedUniformOn A hA).code).toNat + c_soi + delta ≥ j := by
-      simp only [hdelta_def]
-      omega
-    have h4 : ((2 : ℝ≥0∞) ^ j)⁻¹ ≤ (A.card : ℝ≥0∞)⁻¹ := by
-      apply ENNReal.inv_le_inv.mpr
-      exact_mod_cast hj_upper
-    have hkp_eq : complexityWeight (KP U x (codedUniformOn A hA).code) = (2 : ℝ≥0∞)⁻¹ ^
-        (KP U x (codedUniformOn A hA).code).toNat := by
-      have : KP U x (codedUniformOn A hA).code =
-          ((KP U x (codedUniformOn A hA).code).toNat : ENat) :=
-        (ENat.coe_toNat (KP_ne_top_of_optimal U hU x _)).symm
-      rw [this]
-      rfl
-    rw [hkp_eq]
-    have h1_inv : (2 : ℝ≥0∞)⁻¹ ^ (KP U x (codedUniformOn A hA).code).toNat =
-        ((2 : ℝ≥0∞) ^ (KP U x (codedUniformOn A hA).code).toNat)⁻¹ := by
-      rw [ENNReal.inv_pow]
-    rw [h1_inv]
-    have h2_pow : (2 : ℝ≥0∞) ^ j ≤ (2 : ℝ≥0∞) ^ (delta + c_soi) * (2 : ℝ≥0∞) ^
-        (KP U x (codedUniformOn A hA).code).toNat := by
-      rw [← pow_add]
-      apply pow_le_pow_right' (by norm_num)
-      omega
-    have h4_inv :
-        ((2 : ℝ≥0∞) ^ (delta + c_soi) * (2 : ℝ≥0∞) ^ (KP U x (codedUniformOn A hA).code).toNat)⁻¹ =
-        ((2 : ℝ≥0∞) ^ (delta + c_soi))⁻¹ *
-        ((2 : ℝ≥0∞) ^ (KP U x (codedUniformOn A hA).code).toNat)⁻¹ :=
-      ENNReal.mul_inv (by norm_num) (by norm_num)
-    have h6 : ((2 : ℝ≥0∞) ^ (KP U x (codedUniformOn A hA).code).toNat)⁻¹ ≤ (2 : ℝ≥0∞) ^
-        (delta + c_soi) * ((2 : ℝ≥0∞) ^ j)⁻¹ := by
-      calc ((2 : ℝ≥0∞) ^ (KP U x (codedUniformOn A hA).code).toNat)⁻¹
-        _ = 1 * ((2 : ℝ≥0∞) ^ (KP U x (codedUniformOn A hA).code).toNat)⁻¹ := by rw [one_mul]
-        _ = ((2 : ℝ≥0∞) ^ (delta + c_soi) * ((2 : ℝ≥0∞) ^ (delta + c_soi))⁻¹) *
-            ((2 : ℝ≥0∞) ^ (KP U x (codedUniformOn A hA).code).toNat)⁻¹ := by
-          have : (2 : ℝ≥0∞) ^ (delta + c_soi) *
-              ((2 : ℝ≥0∞) ^ (delta + c_soi))⁻¹ = 1 :=
-            ENNReal.mul_inv_cancel (by norm_num) (by norm_num)
-          rw [this]
-        _ = (2 : ℝ≥0∞) ^ (delta + c_soi) *
-            (((2 : ℝ≥0∞) ^ (delta + c_soi))⁻¹ *
-              ((2 : ℝ≥0∞) ^ (KP U x (codedUniformOn A hA).code).toNat)⁻¹) := by
-                rw [mul_assoc]
-        _ = (2 : ℝ≥0∞) ^ (delta + c_soi) *
-            ((2 : ℝ≥0∞) ^ (delta + c_soi) *
-              (2 : ℝ≥0∞) ^ (KP U x (codedUniformOn A hA).code).toNat)⁻¹ := by
-                rw [h4_inv]
-        _ ≤ (2 : ℝ≥0∞) ^ (delta + c_soi) * ((2 : ℝ≥0∞) ^ j)⁻¹ := by gcongr
-    exact le_trans h6 (mul_le_mul_right h4 _)
+  have h_soi_bound : kx ≤ i + (KP U x (codedUniformOn A hA).code).toNat + c_soi := by
+    have h := h_soi A hA x hxA
+    rw [hkx_toNat] at h
+    rw [← hi_def] at h
+    exact h
+  have h_def_soi := deficiencyLe_codedUniformOn_of_soi U hU A hA x hxA kx i j delta c_soi
+    hj_upper (by omega) h_soi_bound
   have h_def_d : CodedFiniteDistribution.DeficiencyLe U (codedUniformOn A hA) x d := by
     by_cases h_min : d0 ≤ delta + c_soi
     · rw [hd_def, Nat.min_eq_left h_min]
@@ -581,21 +611,7 @@ theorem exists_realizedGap_uniformSet_of_stochastic_budget
     have : d0 ≤ beta + logSlack c_gate k := hd0_le
     omega
   -- Linear control of the visible budget.
-  have hj_k : j ≤ k + 1 := by
-    have hcard_k : A.card ≤ 2 ^ k := by
-      have h := levelSet_card_le P k h_prob
-      exact_mod_cast h
-    have hj2 : 2 ^ j ≤ 2 * A.card := by
-      have h := hj_lower
-      rw [ENNReal.div_le_iff (by norm_num) (by norm_num)] at h
-      have h' : (2 : ℝ≥0∞) ^ j ≤ ((2 * A.card : ℕ) : ℝ≥0∞) := by
-        push_cast; simpa [mul_comm] using h
-      exact_mod_cast h'
-    have hpow : 2 ^ j ≤ 2 ^ (k + 1) := by
-      calc 2 ^ j ≤ 2 * A.card := hj2
-        _ ≤ 2 * 2 ^ k := by gcongr
-        _ = 2 ^ (k + 1) := by rw [pow_succ]; ring
-    exact (Nat.pow_le_pow_iff_right (by norm_num)).mp hpow
+  have hj_k : j ≤ k + 1 := levelSet_dyadic_exponent_le P k h_prob A rfl j hj_lower
   -- Linear (slack-free) control of the level and of the three parameters.
   have hk_lin : k ≤ 2 * kx + beta + b_lb := by
     have := hb_lb kx
@@ -724,7 +740,7 @@ theorem budgeted_stochasticity_to_plain_corner_of_beta_le
   -- the exact prefix complexity of `x`.
   obtain ⟨p, hp⟩ := ENat.ne_top_iff_exists.mp (KPPlain_ne_top_of_optimal U hU x)
   have hp_eq : KPPlain U x = (p : ENat) := hp.symm
-  have hbits_self : (Nat.bits kx).length ≤ kx := length_natBits_le_self kx
+  have hbits_self : (Nat.bits kx).length ≤ kx := length_natBits_le kx
   have hp_bd : p ≤ kx + 2 * (Nat.bits kx).length + cBits + cKP := by
     have h3 : (p : ENat) ≤ ((kx + 2 * (Nat.bits kx).length + cBits + cKP : ℕ) : ENat) := by
       calc (p : ENat) = KPPlain U x := hp

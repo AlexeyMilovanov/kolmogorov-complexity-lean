@@ -14,6 +14,8 @@ namespace Kolmogorov
 
 open Nat
 
+/-- The slack accumulated by the add-noise construction is absorbed by a single constant: the
+sum of the six slack terms is bounded by `C * e + logSlack C x + logSlack C y`. -/
 theorem propAddNoise_slack_absorption (cRem cBeta cC cS cLen cP : Nat) :
     ∃ C : Nat, ∀ (x y e : Nat),
       let baseBudget := x + logSlack (cLen + cBeta) x
@@ -45,7 +47,7 @@ theorem propAddNoise_slack_absorption (cRem cBeta cC cS cLen cP : Nat) :
     rw [hbase]
     dsimp [a]
     unfold logSlack
-    nlinarith [length_natBits_le_self x]
+    nlinarith [length_natBits_le x]
   have hbaseSlack : logSlack cC baseBudget ≤ logSlack cBase x := by
     exact (logSlack_mono_right cC hbaseLinear).trans (hBase x)
   have hnLinear : nBound ≤ A * (x + y + e) + B := by
@@ -54,15 +56,15 @@ theorem propAddNoise_slack_absorption (cRem cBeta cC cS cLen cP : Nat) :
     have hPLog : logSlack cP (x + y) ≤ cP * (x + y) + cP := by
       unfold logSlack
       exact Nat.add_le_add_right
-        (Nat.mul_le_mul_left cP (length_natBits_le_self (x + y))) cP
+        (Nat.mul_le_mul_left cP (length_natBits_le (x + y))) cP
     have hCLog : logSlack cC baseBudget ≤ cC * baseBudget + cC := by
       unfold logSlack
       exact Nat.add_le_add_right
-        (Nat.mul_le_mul_left cC (length_natBits_le_self baseBudget)) cC
+        (Nat.mul_le_mul_left cC (length_natBits_le baseBudget)) cC
     have hRemLog : logSlack cRem (x + y) ≤ cRem * (x + y) + cRem := by
       unfold logSlack
       exact Nat.add_le_add_right
-        (Nat.mul_le_mul_left cRem (length_natBits_le_self (x + y))) cRem
+        (Nat.mul_le_mul_left cRem (length_natBits_le (x + y))) cRem
     have hbaseD : baseBudget ≤ D := hbaseLinear
     have hCbaseD : cC * baseBudget ≤ cC * D :=
       Nat.mul_le_mul_left cC hbaseD
@@ -118,8 +120,56 @@ theorem propAddNoise_slack_absorption (cRem cBeta cC cS cLen cP : Nat) :
   refine hlogs.trans ?_
   unfold logSlack
   dsimp [C, cx, cy]
-  nlinarith [length_natBits_le_self e]
+  nlinarith [length_natBits_le e]
 
+/-- Every string with bounded plain complexity has finite plain complexity coercion to `Nat`. -/
+private lemma plainK_exists_nat (V : Map) (cLen : Nat) (z : BitString)
+    (hcLen : plainK V z ≤ z.length + cLen) :
+    ∃ k : Nat, plainK V z = (k : ENat) := by
+  have h := hcLen
+  cases hz : plainK V z with
+  | top => rw [hz] at h; exact False.elim (ENat.coe_ne_top _ (top_le_iff.mp h))
+  | coe k => exact ⟨k, rfl⟩
+
+/-- The plain complexity of `x` is bounded by `baseBudget`. -/
+private lemma plainK_le_baseBudget (V : Map) (cLen cBeta : Nat) (x : BitString) (kx : Nat)
+    (hcLen : plainK V x ≤ x.length + cLen)
+    (hkx_eq : plainK V x = (kx : ENat)) :
+    kx ≤ x.length + logSlack (cLen + cBeta) x.length := by
+  have h := hcLen
+  rw [hkx_eq] at h
+  have h' : kx ≤ x.length + cLen := by exact_mod_cast h
+  have h_c : cLen ≤ logSlack (cLen + cBeta) x.length := by
+    simp [logSlack]
+    omega
+  omega
+
+/-- Membership in `AddNoiseProfileTransform` for conditional profile transformation points. -/
+private lemma mem_addNoiseProfileTransform_of_cases (S : Set (Nat × Nat)) (i j kx kxy ylen : Nat)
+    (h_case : i ≤ kx → (i, j) ∈ S) :
+    (if i ≤ kx then (i, j + ylen) else (i, kxy - i)) ∈ AddNoiseProfileTransform S kx kxy ylen := by
+  dsimp [AddNoiseProfileTransform]
+  split_ifs with h
+  · exact Or.inl ⟨i, j, h, h_case h, rfl⟩
+  · push_neg at h
+    exact Or.inr ⟨h, by omega⟩
+
+/-- Bounding the plain complexity of a pair code by string lengths and machine constant. -/
+private lemma plainK_pairCode_le (V : Map) (cLen : Nat)
+    (x y : BitString) (kxy : Nat)
+    (hcLen : plainK V (pairCode x y) ≤ (pairCode x y).length + cLen)
+    (hkxy_eq : plainK V (pairCode x y) = (kxy : ENat)) :
+    kxy ≤ 2 * x.length + y.length + 1 + cLen := by
+  have h := hcLen
+  rw [hkxy_eq] at h
+  have h_len : (pairCode x y).length = 2 * x.length + y.length + 1 := by
+    rw [length_pairCode]
+    omega
+  rw [h_len] at h
+  exact_mod_cast h
+
+/-- The stochasticity-profile add-noise statement follows from its remainder form for the same
+optimal machines. -/
 theorem propAddNoise_of_remAddNoise
     (V U : Map) (hV : isOptimalConditional V)
     (hU : IsOptimalPrefixConditional U) :
@@ -130,7 +180,7 @@ theorem propAddNoise_of_remAddNoise
   obtain ⟨cBeta, hcBeta⟩ := isStochastic_beta_le_length U hU
   obtain ⟨cC, hcC⟩ := budgeted_stochasticity_to_plain_corner_of_length_le V U hV hU
   obtain ⟨cS, hcS⟩ := isStochastic_of_plainProfile_twoPartSum V U hV hU
-  obtain ⟨cLen, hcLen⟩ := plainKLeLength V hV
+  obtain ⟨cLen, hcLen⟩ := plainK_le_length V hV
   obtain ⟨cP, hcP⟩ := plainK_pair_ge_plainK_add_length_of_random V U hV hU
   obtain ⟨C_abs, hcAbs⟩ := propAddNoise_slack_absorption cRem cBeta cC cS cLen cP
   let C := max cProj C_abs
@@ -142,22 +192,8 @@ theorem propAddNoise_of_remAddNoise
     let beta1 := min beta (x.length + logSlack cBeta x.length)
     have h_stoch1 := hcBeta x alpha beta h_stoch
     let baseBudget := x.length + logSlack (cLen + cBeta) x.length
-    have hkx : ∃ kx : Nat, plainK V x = (kx : ENat) := by
-      have h := hcLen x
-      cases hz : plainK V x with
-      | top => rw [hz] at h; exact False.elim (ENat.coe_ne_top _ (top_le_iff.mp h))
-      | coe k => exact ⟨k, rfl⟩
-    obtain ⟨kx, hkx_eq⟩ := hkx
-    have hkx_le : kx ≤ baseBudget := by
-      have h := hcLen x
-      rw [hkx_eq] at h
-      have h_prog_x : programLength x = x.length := rfl
-      rw [h_prog_x] at h
-      have h' : kx ≤ x.length + cLen := by exact_mod_cast h
-      have h_c : cLen ≤ logSlack (cLen + cBeta) x.length := by
-        simp [logSlack]
-        omega
-      omega
+    obtain ⟨kx, hkx_eq⟩ := plainK_exists_nat V cLen x (hcLen x)
+    have hkx_le : kx ≤ baseBudget := plainK_le_baseBudget V cLen cBeta x kx (hcLen x) hkx_eq
     have h_beta1_le : beta1 ≤ baseBudget := by
       have h_c : logSlack cBeta x.length ≤ logSlack (cLen + cBeta) x.length :=
         logSlack_mono_left (by omega) x.length
@@ -165,45 +201,27 @@ theorem propAddNoise_of_remAddNoise
     have h_xlen_le : x.length ≤ baseBudget := by omega
     obtain ⟨i, j, hprof, hi, hij⟩ := hcC x kx baseBudget (alpha + logSlack cBeta x.length) beta1
       hkx_eq hkx_le h_xlen_le h_beta1_le h_stoch1
-    have hkxy : ∃ kxy : Nat, plainK V (pairCode x y) = (kxy : ENat) := by
-      have h := hcLen (pairCode x y)
-      cases hz : plainK V (pairCode x y) with
-      | top => rw [hz] at h; exact False.elim (ENat.coe_ne_top _ (top_le_iff.mp h))
-      | coe k => exact ⟨k, rfl⟩
-    obtain ⟨kxy, hkxy_eq⟩ := hkxy
+    obtain ⟨kxy, hkxy_eq⟩ := plainK_exists_nat V cLen (pairCode x y) (hcLen (pairCode x y))
     have hRem_app := hcRem x y epsilon kx kxy hkx_eq hkxy_eq h_eps
     let B := AddNoiseProfileTransform (plainDescriptionProfileSet V x) kx kxy y.length
     let q := if i ≤ kx then (i, j + y.length) else (i, kxy - i)
-    have hq_in_B : q ∈ B := by
-      dsimp [q, B, AddNoiseProfileTransform]
-      split_ifs with h_case
-      · exact Or.inl ⟨i, j, h_case, hprof, rfl⟩
-      · push_neg at h_case
-        exact Or.inr ⟨h_case, by omega⟩
+    have hq_in_B : q ∈ B := mem_addNoiseProfileTransform_of_cases _ i j kx kxy y.length
+      (fun h_case => hprof)
     obtain ⟨q', hq', hdist⟩ := hRem_app.2 q hq_in_B
     set R := cRem * epsilon + logSlack cRem (x.length + y.length) with hR
     set beta2 := beta1 + epsilon + logSlack cP (x.length + y.length) +
       logSlack cC baseBudget + 2 * R with hbeta2
     set N := kxy + beta2 with hN
+    have h_pair : kx + y.length ≤ kxy + epsilon + logSlack cP (x.length + y.length) :=
+      hcP x y epsilon kx kxy hkx_eq hkxy_eq h_eps
     have hi2_N : q'.1 ≤ N := by
       have : q'.1 ≤ q.1 + R := by unfold natPairLInfDistance at hdist; omega
       have : q'.1 ≤ (if i ≤ kx then (i, j + y.length) else (i, kxy - i)).1 + R := this
-      split_ifs at this with h_case
-      · have : kx + y.length ≤ kxy + epsilon + logSlack cP (x.length + y.length) :=
-          hcP x y epsilon kx kxy hkx_eq hkxy_eq h_eps
-        omega
-      · have : kx + y.length ≤ kxy + epsilon + logSlack cP (x.length + y.length) :=
-          hcP x y epsilon kx kxy hkx_eq hkxy_eq h_eps
-        omega
+      split_ifs at this with h_case <;> omega
     have hj2_N : q'.2 ≤ N := by
       have : q'.2 ≤ q.2 + R := by unfold natPairLInfDistance at hdist; omega
       have : q'.2 ≤ (if i ≤ kx then (i, j + y.length) else (i, kxy - i)).2 + R := this
-      split_ifs at this with h_case
-      · have : kx + y.length ≤ kxy + epsilon + logSlack cP (x.length + y.length) :=
-          hcP x y epsilon kx kxy hkx_eq hkxy_eq h_eps
-        omega
-      · have : kxy - i ≤ kxy := by omega
-        omega
+      split_ifs at this with h_case <;> omega
     have hbeta2_N : beta2 ≤ N := by omega
     have hkxy_N : kxy ≤ N := by omega
     have hq_sum : q'.1 + q'.2 ≤ kxy + beta2 := by
@@ -213,26 +231,13 @@ theorem propAddNoise_of_remAddNoise
       have h4 : q'.1 + q'.2 ≤ (if i ≤ kx then (i, j + y.length) else (i, kxy - i)).1 +
         (if i ≤ kx then (i, j + y.length) else (i, kxy - i)).2 + 2 * R := h3
       split_ifs at h4 with h_case
-      · have : kx + y.length ≤ kxy + epsilon + logSlack cP (x.length + y.length) :=
-          hcP x y epsilon kx kxy hkx_eq hkxy_eq h_eps
-        omega
+      · omega
       · have : i + (kxy - i) = max i kxy := by omega
-        have : kx + y.length ≤ kxy + epsilon + logSlack cP (x.length + y.length) :=
-          hcP x y epsilon kx kxy hkx_eq hkxy_eq h_eps
         omega
     have h_stoch2 := hcS (pairCode x y) N kxy q'.1 q'.2 beta2 hi2_N hj2_N hbeta2_N
       hkxy_N hkxy_eq hq' hq_sum
     have h_abs := hcAbs x.length y.length epsilon
-    have hkxy_bound : kxy ≤ 2 * x.length + y.length + 1 + cLen := by
-      have h := hcLen (pairCode x y)
-      rw [hkxy_eq] at h
-      have h_prog : programLength (pairCode x y) = (pairCode x y).length := rfl
-      rw [h_prog] at h
-      have h_len : (pairCode x y).length = 2 * x.length + y.length + 1 := by
-        rw [length_pairCode]
-        omega
-      rw [h_len] at h
-      exact_mod_cast h
+    have hkxy_bound := plainK_pairCode_le V cLen x y kxy (hcLen (pairCode x y)) hkxy_eq
     let beta2Bound := baseBudget + epsilon + logSlack cP (x.length + y.length) +
       logSlack cC baseBudget + 2 * R
     have h_beta2_le : beta2 ≤ beta2Bound := by
@@ -272,6 +277,8 @@ theorem propAddNoise_of_remAddNoise
       exact this.trans (const_le_addNoiseRadius C epsilon x.length y.length)
     exact isStochastic_mono (by omega) (by omega) h_proj
 
+/-- The add-noise property of stochasticity profiles holds for optimal plain and prefix
+conditional machines. -/
 theorem prop_add_noise
     (V U : Map) (hV : isOptimalConditional V)
     (hU : IsOptimalPrefixConditional U) :

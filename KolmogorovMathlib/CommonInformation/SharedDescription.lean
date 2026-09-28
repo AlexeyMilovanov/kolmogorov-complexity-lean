@@ -1,6 +1,7 @@
 import KolmogorovMathlib.CommonInformation.OverlapGeometry
-import KolmogorovMathlib.CommonInformation.Splitting
 import KolmogorovMathlib.Foundation.NatEncoding
+import KolmogorovMathlib.Encoding.Tuples
+import KolmogorovMathlib.CommonInformation.Splitting
 
 /-!
 # Common Information: conditional-complexity decoder leaves
@@ -36,8 +37,9 @@ theorem condK_slice_le (V : Map) (hV : isOptimalConditional V) :
         (decodeBits (decodeSecond pr.1))) :=
     (Primrec.list_take.comp
       (Primrec.list_drop.comp Primrec.snd
-        (primrecDecodeBits.comp (decodeFirst_primrec'.comp Primrec.fst)))
-      (primrecDecodeBits.comp (decodeSecond_primrec'.comp Primrec.fst))).to_comp
+        (primrec_decodeBits.comp (CodedFiniteDistribution.decodeFirst_primrec.comp Primrec.fst)))
+      (primrec_decodeBits.comp (CodedFiniteDistribution.decodeSecond_primrec.comp
+        Primrec.fst))).to_comp
   have hD : isDecompressor D := Computable.partrec hf
   obtain ⟨c₀, hc₀⟩ := hV.2 D hD
   refine ⟨c₀ + 3, fun w i n hi hn => ?_⟩
@@ -94,13 +96,13 @@ theorem condK_output_given_splitIndexed_reverseConcat_le
   have hFirst : Partrec (fun pr : BitString × BitString =>
       V (pr.2.drop (decodeBits pr.1), [])) :=
     Partrec.comp hV.1 (Computable.pair
-      ((Primrec.list_drop.comp Primrec.snd (primrecDecodeBits.comp Primrec.fst)).to_comp)
+      ((Primrec.list_drop.comp Primrec.snd (primrec_decodeBits.comp Primrec.fst)).to_comp)
       (Computable.const []))
   have hSecond : Partrec (fun q : (BitString × BitString) × BitString =>
       V (q.1.2.take (decodeBits q.1.1), q.2)) :=
     Partrec.comp hV.1 (Computable.pair
       ((Primrec.list_take.comp (Primrec.snd.comp Primrec.fst)
-        (primrecDecodeBits.comp (Primrec.fst.comp Primrec.fst))).to_comp)
+        (primrec_decodeBits.comp (Primrec.fst.comp Primrec.fst))).to_comp)
       Computable.snd)
   have hD : isDecompressor D := Partrec.bind hFirst hSecond
   obtain ⟨c₀, hc₀⟩ := hV.2 D hD
@@ -148,13 +150,13 @@ theorem condK_output_given_splitIndexed_forwardConcat_le
   have hFirst : Partrec (fun pr : BitString × BitString =>
       V (pr.2.take (decodeBits pr.1), [])) :=
     Partrec.comp hV.1 (Computable.pair
-      ((Primrec.list_take.comp Primrec.snd (primrecDecodeBits.comp Primrec.fst)).to_comp)
+      ((Primrec.list_take.comp Primrec.snd (primrec_decodeBits.comp Primrec.fst)).to_comp)
       (Computable.const []))
   have hSecond : Partrec (fun q : (BitString × BitString) × BitString =>
       V (q.1.2.drop (decodeBits q.1.1), q.2)) :=
     Partrec.comp hV.1 (Computable.pair
       ((Primrec.list_drop.comp (Primrec.snd.comp Primrec.fst)
-        (primrecDecodeBits.comp (Primrec.fst.comp Primrec.fst))).to_comp)
+        (primrec_decodeBits.comp (Primrec.fst.comp Primrec.fst))).to_comp)
       Computable.snd)
   have hD : isDecompressor D := Partrec.bind hFirst hSecond
   obtain ⟨c₀, hc₀⟩ := hV.2 D hD
@@ -183,6 +185,8 @@ theorem condK_output_given_splitIndexed_forwardConcat_le
     _ = ((prog.length + c₀ : Nat) : ENat) := by push_cast; ring
     _ ≤ (logSlack (c₀ + 2) (p.length + 1) : ENat) := by exact_mod_cast hfinal
 
+/-- Resizing a string to a length close to its own produces a plain equivalent string, up to a
+logarithmic slack. -/
 theorem resizeToLength_equivalent
     (V : Map) (hV : isOptimalConditional V) :
   ∃ C, ∀ w n r,
@@ -196,7 +200,7 @@ theorem resizeToLength_equivalent
       resizeToLength pr.2 (decodeBits pr.1)) := by
     have hn : Primrec (fun pr : BitString × BitString =>
         decodeBits pr.1) :=
-      primrecDecodeBits.comp Primrec.fst
+      primrec_decodeBits.comp Primrec.fst
     have hwlen : Primrec (fun pr : BitString × BitString =>
         pr.2.length) :=
       Primrec.list_length.comp Primrec.snd
@@ -221,8 +225,8 @@ theorem resizeToLength_equivalent
       pr.2.take (decodeBits (decodeFirst pr.1)) ++ decodeSecond pr.1) := by
     exact Computable.list_append.comp
       ((Primrec.list_take.comp Primrec.snd
-        (primrecDecodeBits.comp
-          (decodeFirst_primrec'.comp Primrec.fst))).to_comp)
+        (primrec_decodeBits.comp
+          (CodedFiniteDistribution.decodeFirst_primrec.comp Primrec.fst))).to_comp)
       (decodeSecond_computable.comp Computable.fst)
   have hRestoreD : isDecompressor restoreD :=
     Computable.partrec hRestore
@@ -312,20 +316,20 @@ theorem resizeToLength_equivalent
       rw [← Nat.cast_add]
       exact_mod_cast hResizeNat)
 
+/-- The decompressor that extracts two programs from a pair code and runs them on prefix
+and suffix condition slices of the input context. -/
+private def pairFromPrefixSuffixDecompressor (V : Map) : Map := fun pr =>
+  (V ((decodeSecond (decodeSecond (decodeSecond pr.1))).take (decodeBits (decodeFirst pr.1)),
+      pr.2.take (decodeBits (decodeFirst (decodeSecond pr.1))))).bind fun x =>
+    (V ((decodeSecond (decodeSecond (decodeSecond pr.1))).drop (decodeBits (decodeFirst pr.1)),
+        pr.2.drop (pr.2.length - decodeBits
+          (decodeFirst (decodeSecond (decodeSecond pr.1)))))).map fun y =>
+      pairCode x y
 
-theorem condK_pair_from_prefix_suffix_le
-    (V : Map) (hV : isOptimalConditional V) :
-  ∃ C, ∀ (u x y : BitString) (lx ly a b : Nat),
-    lx ≤ u.length → ly ≤ u.length → a ≤ u.length →
-    condK V x (u.take lx) ≤ (a : ENat) →
-    condK V y (u.drop (u.length - ly)) ≤ (b : ENat) →
-    condK V (pairCode x y) u ≤
-      (a + b + logSlack C (u.length + 1) : ENat) := by
-  -- Program layout:
-  --   pairCode (bits |px|)
-  --     (pairCode (bits lx) (pairCode (bits ly) (px ++ py))).
-  -- Thus the two arbitrary plain programs occur literally once; only their
-  -- split and the two condition slices are self-delimited metadata.
+/-- The prefix-suffix pair decompressor is a valid decompressor if `V` is computable. -/
+private theorem isDecompressor_pairFromPrefixSuffixDecompressor
+    (V : Map) (hV : Partrec V) :
+    isDecompressor (pairFromPrefixSuffixDecompressor V) := by
   let body : BitString → BitString := fun q =>
     decodeSecond (decodeSecond (decodeSecond q))
   let split : BitString → Nat := fun q =>
@@ -334,22 +338,16 @@ theorem condK_pair_from_prefix_suffix_le
     decodeBits (decodeFirst (decodeSecond q))
   let suffixLength : BitString → Nat := fun q =>
     decodeBits (decodeFirst (decodeSecond (decodeSecond q)))
-  let D : Map := fun pr =>
-    (V ((body pr.1).take (split pr.1),
-        pr.2.take (prefixLength pr.1))).bind fun x =>
-      (V ((body pr.1).drop (split pr.1),
-          pr.2.drop (pr.2.length - suffixLength pr.1))).map fun y =>
-        pairCode x y
-  have hBody : Computable body := by
-    exact decodeSecond_computable.comp
+  have hBody : Computable body :=
+    decodeSecond_computable.comp
       (decodeSecond_computable.comp decodeSecond_computable)
-  have hSplit : Computable split := by
-    exact decodeBitsComputable.comp decodeFirst_computable
-  have hPrefixLength : Computable prefixLength := by
-    exact decodeBitsComputable.comp
+  have hSplit : Computable split :=
+    decodeBits_computable.comp decodeFirst_computable
+  have hPrefixLength : Computable prefixLength :=
+    decodeBits_computable.comp
       (decodeFirst_computable.comp decodeSecond_computable)
-  have hSuffixLength : Computable suffixLength := by
-    exact decodeBitsComputable.comp
+  have hSuffixLength : Computable suffixLength :=
+    decodeBits_computable.comp
       (decodeFirst_computable.comp
         (decodeSecond_computable.comp decodeSecond_computable))
   have hFirstProgram : Computable (fun pr : BitString × BitString =>
@@ -363,7 +361,7 @@ theorem condK_pair_from_prefix_suffix_le
   have hFirst : Partrec (fun pr : BitString × BitString =>
       V ((body pr.1).take (split pr.1),
         pr.2.take (prefixLength pr.1))) :=
-    Partrec.comp hV.1 (hFirstProgram.pair hFirstContext)
+    Partrec.comp hV (hFirstProgram.pair hFirstContext)
   have hSecondProgram :
       Computable (fun q : (BitString × BitString) × BitString =>
         (body q.1.1).drop (split q.1.1)) :=
@@ -386,7 +384,7 @@ theorem condK_pair_from_prefix_suffix_le
       Partrec (fun q : (BitString × BitString) × BitString =>
         V ((body q.1.1).drop (split q.1.1),
           q.1.2.drop (q.1.2.length - suffixLength q.1.1))) :=
-    Partrec.comp hV.1 (hSecondProgram.pair hSecondContext)
+    Partrec.comp hV (hSecondProgram.pair hSecondContext)
   have hPair :
       Computable
         (fun q : ((BitString × BitString) × BitString) × BitString =>
@@ -400,28 +398,44 @@ theorem condK_pair_from_prefix_suffix_le
           q.1.2.drop (q.1.2.length - suffixLength q.1.1))).map fun y =>
             pairCode q.2 y) :=
     Partrec.map hSecondRun hPair
-  have hD : isDecompressor D := Partrec.bind hFirst hSecond
+  exact Partrec.bind hFirst hSecond
+
+/-- If `x` is cheap given a prefix of `u` and `y` is cheap given a suffix of `u`, the pair is
+cheap given `u`, up to a logarithmic slack. -/
+theorem condK_pair_from_prefix_suffix_le
+    (V : Map) (hV : isOptimalConditional V) :
+  ∃ C, ∀ (u x y : BitString) (lx ly a b : Nat),
+    lx ≤ u.length → ly ≤ u.length → a ≤ u.length →
+    condK V x (u.take lx) ≤ (a : ENat) →
+    condK V y (u.drop (u.length - ly)) ≤ (b : ENat) →
+    condK V (pairCode x y) u ≤
+      (a + b + logSlack C (u.length + 1) : ENat) := by
+  set D := pairFromPrefixSuffixDecompressor V
+  have hD : isDecompressor D :=
+    isDecompressor_pairFromPrefixSuffixDecompressor V hV.1
   obtain ⟨cD, hcD⟩ := hV.2 D hD
   refine ⟨cD + 7,
     fun u x y lx ly a b hlx hly ha hx hy => ?_⟩
   obtain ⟨px, hpxLength, hpx⟩ :=
-    (condKLeIff V x (u.take lx) a).mp hx
+    (condK_le_iff V x (u.take lx) a).mp hx
   obtain ⟨py, hpyLength, hpy⟩ :=
-    (condKLeIff V y (u.drop (u.length - ly)) b).mp hy
+    (condK_le_iff V y (u.drop (u.length - ly)) b).mp hy
   set prog : BitString :=
     pairCode (Nat.bits px.length)
       (pairCode (Nat.bits lx)
         (pairCode (Nat.bits ly) (px ++ py))) with hProg
   have hDProd : produces D prog u (pairCode x y) := by
     change pairCode x y ∈
-      (V ((body prog).take (split prog),
-        u.take (prefixLength prog))).bind fun x =>
-          (V ((body prog).drop (split prog),
-            u.drop (u.length - suffixLength prog))).map fun y =>
+      (V ((decodeSecond (decodeSecond (decodeSecond prog))).take
+          (decodeBits (decodeFirst prog)),
+        u.take (decodeBits (decodeFirst (decodeSecond prog))))).bind fun x =>
+          (V ((decodeSecond (decodeSecond (decodeSecond prog))).drop
+              (decodeBits (decodeFirst prog)),
+            u.drop (u.length - decodeBits
+              (decodeFirst (decodeSecond (decodeSecond prog)))))).map fun y =>
               pairCode x y
     rw [hProg]
-    simp only [body, split, prefixLength, suffixLength,
-      decodeFirst_pairCode, decodeSecond_pairCode, decodeBits_natBits,
+    simp only [decodeFirst_pairCode, decodeSecond_pairCode, decodeBits_natBits,
       List.take_left, List.drop_left]
     exact Part.mem_bind_iff.mpr
       ⟨x, hpx, Part.mem_map (fun z => pairCode x z) hpy⟩
@@ -508,9 +522,9 @@ theorem condK_pair_from_prefix_suffix_visible_le
   have hSecondProg : Computable secondProg :=
     decodeSecond_computable.comp hProgBody
   have hPrefixLength : Computable prefixLength :=
-    decodeBitsComputable.comp decodeFirst_computable
+    decodeBits_computable.comp decodeFirst_computable
   have hSuffixLength : Computable suffixLength :=
-    decodeBitsComputable.comp
+    decodeBits_computable.comp
       (decodeFirst_computable.comp decodeSecond_computable)
   have hFirstProgram : Computable (fun pr : BitString × BitString =>
       firstProg pr.1) := hFirstProg.comp Computable.fst
@@ -559,9 +573,9 @@ theorem condK_pair_from_prefix_suffix_visible_le
   obtain ⟨cD, hcD⟩ := hV.2 D hD
   refine ⟨cD + 7, fun u x y lx ly a b hlx hly hx hy => ?_⟩
   obtain ⟨px, hpxLength, hpx⟩ :=
-    (condKLeIff V x (u.take lx) a).mp hx
+    (condK_le_iff V x (u.take lx) a).mp hx
   obtain ⟨py, hpyLength, hpy⟩ :=
-    (condKLeIff V y (u.drop (u.length - ly)) b).mp hy
+    (condK_le_iff V y (u.drop (u.length - ly)) b).mp hy
   set prog : BitString :=
     pairCode (Nat.bits lx)
       (pairCode (Nat.bits ly) (pairCode px py)) with hProg
@@ -610,6 +624,109 @@ theorem condK_pair_from_prefix_suffix_visible_le
     exact_mod_cast hLength)
 
 
+/-- Restores the first program from the concatenated resized context and metadata program. -/
+private def restoreResizedFirst (pr : BitString × BitString) : BitString :=
+  (pr.2.take (decodeBits (decodeFirst pr.1))).take
+    (decodeBits (decodeFirst (decodeSecond pr.1))) ++
+    decodeFirst (decodeSecond (decodeSecond (decodeSecond pr.1)))
+
+/-- Restores the second program from the concatenated resized context and metadata program. -/
+private def restoreResizedSecond (pr : BitString × BitString) : BitString :=
+  (pr.2.drop (decodeBits (decodeFirst pr.1))).take
+    (decodeBits (decodeFirst (decodeSecond (decodeSecond pr.1)))) ++
+    decodeSecond (decodeSecond (decodeSecond (decodeSecond pr.1)))
+
+/-- `restoreResizedFirst` is computable. -/
+private theorem computable_restoreResizedFirst : Computable restoreResizedFirst := by
+  have hSplitLength : Computable (fun q : BitString => decodeBits (decodeFirst q)) :=
+    decodeBits_computable.comp decodeFirst_computable
+  have hFirstLength : Computable (fun q : BitString =>
+      decodeBits (decodeFirst (decodeSecond q))) :=
+    decodeBits_computable.comp
+      (decodeFirst_computable.comp decodeSecond_computable)
+  have hTails : Computable (fun q : BitString =>
+      decodeSecond (decodeSecond (decodeSecond q))) :=
+    decodeSecond_computable.comp
+      (decodeSecond_computable.comp decodeSecond_computable)
+  have hFirstTail : Computable (fun q : BitString =>
+      decodeFirst (decodeSecond (decodeSecond (decodeSecond q)))) :=
+    decodeFirst_computable.comp
+      (decodeSecond_computable.comp
+        (decodeSecond_computable.comp decodeSecond_computable))
+  exact Computable.list_append.comp
+    (Primrec.list_take.to_comp.comp
+      (Primrec.list_take.to_comp.comp Computable.snd
+        (hSplitLength.comp Computable.fst))
+      (hFirstLength.comp Computable.fst))
+    (hFirstTail.comp Computable.fst)
+
+/-- `restoreResizedSecond` is computable. -/
+private theorem computable_restoreResizedSecond : Computable restoreResizedSecond := by
+  have hSplitLength : Computable (fun q : BitString => decodeBits (decodeFirst q)) :=
+    decodeBits_computable.comp decodeFirst_computable
+  have hSecondLength : Computable (fun q : BitString =>
+      decodeBits (decodeFirst (decodeSecond (decodeSecond q)))) :=
+    decodeBits_computable.comp
+      (decodeFirst_computable.comp
+        (decodeSecond_computable.comp decodeSecond_computable))
+  have hTails : Computable (fun q : BitString =>
+      decodeSecond (decodeSecond (decodeSecond q))) :=
+    decodeSecond_computable.comp
+      (decodeSecond_computable.comp decodeSecond_computable)
+  have hSecondTail : Computable (fun q : BitString =>
+      decodeSecond (decodeSecond (decodeSecond (decodeSecond q)))) :=
+    decodeSecond_computable.comp
+      (decodeSecond_computable.comp
+        (decodeSecond_computable.comp decodeSecond_computable))
+  exact Computable.list_append.comp
+    (Primrec.list_take.to_comp.comp
+      (Primrec.list_drop.to_comp.comp Computable.snd
+        (hSplitLength.comp Computable.fst))
+      (hSecondLength.comp Computable.fst))
+    (hSecondTail.comp Computable.fst)
+
+/-- Two-stage reverse-order decompressor for resized program contexts. -/
+private def resizedReverseConcatDecompressor (V : Map) : Map := fun pr =>
+  (V (restoreResizedSecond pr, [])).bind fun z =>
+    V (restoreResizedFirst pr, z)
+
+/-- `resizedReverseConcatDecompressor V` is a valid decompressor if `V` is computable. -/
+private theorem isDecompressor_resizedReverseConcatDecompressor
+    (V : Map) (hV : Partrec V) :
+    isDecompressor (resizedReverseConcatDecompressor V) := by
+  have hFirstRun : Partrec (fun pr : BitString × BitString =>
+      V (restoreResizedSecond pr, [])) :=
+    Partrec.comp hV
+      (computable_restoreResizedSecond.pair (Computable.const []))
+  have hSecondRun :
+      Partrec (fun q : (BitString × BitString) × BitString =>
+        V (restoreResizedFirst q.1, q.2)) :=
+    Partrec.comp hV
+      ((computable_restoreResizedFirst.comp Computable.fst).pair Computable.snd)
+  exact Partrec.bind hFirstRun hSecondRun
+
+/-- Two-stage forward-order decompressor for resized program contexts. -/
+private def resizedForwardConcatDecompressor (V : Map) : Map := fun pr =>
+  (V (restoreResizedFirst pr, [])).bind fun z =>
+    V (restoreResizedSecond pr, z)
+
+/-- `resizedForwardConcatDecompressor V` is a valid decompressor if `V` is computable. -/
+private theorem isDecompressor_resizedForwardConcatDecompressor
+    (V : Map) (hV : Partrec V) :
+    isDecompressor (resizedForwardConcatDecompressor V) := by
+  have hFirstRun : Partrec (fun pr : BitString × BitString =>
+      V (restoreResizedFirst pr, [])) :=
+    Partrec.comp hV
+      (computable_restoreResizedFirst.pair (Computable.const []))
+  have hSecondRun :
+      Partrec (fun q : (BitString × BitString) × BitString =>
+        V (restoreResizedSecond q.1, q.2)) :=
+    Partrec.comp hV
+      ((computable_restoreResizedSecond.comp Computable.fst).pair Computable.snd)
+  exact Partrec.bind hFirstRun hSecondRun
+
+/-- The output of a two-stage computation is cheap given the concatenation of the resized
+programs of the two stages, in the reverse order. -/
 theorem condK_output_given_resized_reverseConcat_le
     (V : Map) (hV : isOptimalConditional V) :
     ∃ C, ∀ a p z x na np r,
@@ -621,71 +738,9 @@ theorem condK_output_given_resized_reverseConcat_le
         (resizeToLength a na ++ resizeToLength p np) ≤
       (commonInformationSlack C r
         (a.length + p.length + na + np + 1) : ENat) := by
-  -- The program contains three binary indices (`na`, `|a|`, `|p|`) and
-  -- the two literal suffixes discarded by resizing.  The condition determines
-  -- the resized blocks because its left block has the advertised exact length
-  -- `na`.
-  let splitLength : BitString → Nat := fun q =>
-    decodeBits (decodeFirst q)
-  let firstLength : BitString → Nat := fun q =>
-    decodeBits (decodeFirst (decodeSecond q))
-  let secondLength : BitString → Nat := fun q =>
-    decodeBits (decodeFirst (decodeSecond (decodeSecond q)))
-  let tails : BitString → BitString := fun q =>
-    decodeSecond (decodeSecond (decodeSecond q))
-  let firstTail : BitString → BitString := fun q =>
-    decodeFirst (tails q)
-  let secondTail : BitString → BitString := fun q =>
-    decodeSecond (tails q)
-  let restoreFirst : BitString × BitString → BitString := fun pr =>
-    (pr.2.take (splitLength pr.1)).take (firstLength pr.1) ++
-      firstTail pr.1
-  let restoreSecond : BitString × BitString → BitString := fun pr =>
-    (pr.2.drop (splitLength pr.1)).take (secondLength pr.1) ++
-      secondTail pr.1
-  let D : Map := fun pr =>
-    (V (restoreSecond pr, [])).bind fun z =>
-      V (restoreFirst pr, z)
-  have hSplitLength : Computable splitLength :=
-    decodeBitsComputable.comp decodeFirst_computable
-  have hFirstLength : Computable firstLength :=
-    decodeBitsComputable.comp
-      (decodeFirst_computable.comp decodeSecond_computable)
-  have hSecondLength : Computable secondLength :=
-    decodeBitsComputable.comp
-      (decodeFirst_computable.comp
-        (decodeSecond_computable.comp decodeSecond_computable))
-  have hTails : Computable tails :=
-    decodeSecond_computable.comp
-      (decodeSecond_computable.comp decodeSecond_computable)
-  have hFirstTail : Computable firstTail :=
-    decodeFirst_computable.comp hTails
-  have hSecondTail : Computable secondTail :=
-    decodeSecond_computable.comp hTails
-  have hRestoreFirst : Computable restoreFirst := by
-    exact Computable.list_append.comp
-      (Primrec.list_take.to_comp.comp
-        (Primrec.list_take.to_comp.comp Computable.snd
-          (hSplitLength.comp Computable.fst))
-        (hFirstLength.comp Computable.fst))
-      (hFirstTail.comp Computable.fst)
-  have hRestoreSecond : Computable restoreSecond := by
-    exact Computable.list_append.comp
-      (Primrec.list_take.to_comp.comp
-        (Primrec.list_drop.to_comp.comp Computable.snd
-          (hSplitLength.comp Computable.fst))
-        (hSecondLength.comp Computable.fst))
-      (hSecondTail.comp Computable.fst)
-  have hFirstRun : Partrec (fun pr : BitString × BitString =>
-      V (restoreSecond pr, [])) :=
-    Partrec.comp hV.1
-      (hRestoreSecond.pair (Computable.const []))
-  have hSecondRun :
-      Partrec (fun q : (BitString × BitString) × BitString =>
-        V (restoreFirst q.1, q.2)) :=
-    Partrec.comp hV.1
-      ((hRestoreFirst.comp Computable.fst).pair Computable.snd)
-  have hD : isDecompressor D := Partrec.bind hFirstRun hSecondRun
+  set D := resizedReverseConcatDecompressor V
+  have hD : isDecompressor D :=
+    isDecompressor_resizedReverseConcatDecompressor V hV.1
   obtain ⟨cD, hcD⟩ := hV.2 D hD
   let C := cD + 10
   refine ⟨C, fun a p z x na np r hp ha hna hnp => ?_⟩
@@ -702,21 +757,21 @@ theorem condK_output_given_resized_reverseConcat_le
   have hDropCtx : ctx.drop na = resizeToLength p np := by
     rw [hCtx]
     simp
-  have hRestoreFirstEval : restoreFirst (prog, ctx) = a := by
-    dsimp [restoreFirst, splitLength, firstLength, firstTail, tails]
+  have hRestoreFirstEval : restoreResizedFirst (prog, ctx) = a := by
+    dsimp [restoreResizedFirst]
     rw [hProg]
     simp only [decodeFirst_pairCode, decodeSecond_pairCode,
       decodeBits_natBits, hTakeCtx]
     exact resizeToLength_take_original_append_drop a na
-  have hRestoreSecondEval : restoreSecond (prog, ctx) = p := by
-    dsimp [restoreSecond, splitLength, secondLength, secondTail, tails]
+  have hRestoreSecondEval : restoreResizedSecond (prog, ctx) = p := by
+    dsimp [restoreResizedSecond]
     rw [hProg]
     simp only [decodeFirst_pairCode, decodeSecond_pairCode,
       decodeBits_natBits, hDropCtx]
     exact resizeToLength_take_original_append_drop p np
   have hDProd : produces D prog ctx x := by
-    change x ∈ (V (restoreSecond (prog, ctx), [])).bind
-      (fun z => V (restoreFirst (prog, ctx), z))
+    change x ∈ (V (restoreResizedSecond (prog, ctx), [])).bind
+      (fun z => V (restoreResizedFirst (prog, ctx), z))
     rw [hRestoreFirstEval, hRestoreSecondEval]
     exact Part.mem_bind_iff.mpr ⟨z, hp, ha⟩
   have hDBound :
@@ -764,6 +819,8 @@ theorem condK_output_given_resized_reverseConcat_le
     rw [← Nat.cast_add]
     exact_mod_cast hLength)
 
+/-- The output of a two-stage computation is cheap given the concatenation of the resized
+programs of the two stages, in the forward order. -/
 theorem condK_output_given_resized_forwardConcat_le
     (V : Map) (hV : isOptimalConditional V) :
     ∃ C, ∀ p b z y np nb r,
@@ -775,67 +832,9 @@ theorem condK_output_given_resized_forwardConcat_le
         (resizeToLength p np ++ resizeToLength b nb) ≤
       (commonInformationSlack C r
         (p.length + b.length + np + nb + 1) : ENat) := by
-  let splitLength : BitString → Nat := fun q =>
-    decodeBits (decodeFirst q)
-  let firstLength : BitString → Nat := fun q =>
-    decodeBits (decodeFirst (decodeSecond q))
-  let secondLength : BitString → Nat := fun q =>
-    decodeBits (decodeFirst (decodeSecond (decodeSecond q)))
-  let tails : BitString → BitString := fun q =>
-    decodeSecond (decodeSecond (decodeSecond q))
-  let firstTail : BitString → BitString := fun q =>
-    decodeFirst (tails q)
-  let secondTail : BitString → BitString := fun q =>
-    decodeSecond (tails q)
-  let restoreFirst : BitString × BitString → BitString := fun pr =>
-    (pr.2.take (splitLength pr.1)).take (firstLength pr.1) ++
-      firstTail pr.1
-  let restoreSecond : BitString × BitString → BitString := fun pr =>
-    (pr.2.drop (splitLength pr.1)).take (secondLength pr.1) ++
-      secondTail pr.1
-  let D : Map := fun pr =>
-    (V (restoreFirst pr, [])).bind fun z =>
-      V (restoreSecond pr, z)
-  have hSplitLength : Computable splitLength :=
-    decodeBitsComputable.comp decodeFirst_computable
-  have hFirstLength : Computable firstLength :=
-    decodeBitsComputable.comp
-      (decodeFirst_computable.comp decodeSecond_computable)
-  have hSecondLength : Computable secondLength :=
-    decodeBitsComputable.comp
-      (decodeFirst_computable.comp
-        (decodeSecond_computable.comp decodeSecond_computable))
-  have hTails : Computable tails :=
-    decodeSecond_computable.comp
-      (decodeSecond_computable.comp decodeSecond_computable)
-  have hFirstTail : Computable firstTail :=
-    decodeFirst_computable.comp hTails
-  have hSecondTail : Computable secondTail :=
-    decodeSecond_computable.comp hTails
-  have hRestoreFirst : Computable restoreFirst := by
-    exact Computable.list_append.comp
-      (Primrec.list_take.to_comp.comp
-        (Primrec.list_take.to_comp.comp Computable.snd
-          (hSplitLength.comp Computable.fst))
-        (hFirstLength.comp Computable.fst))
-      (hFirstTail.comp Computable.fst)
-  have hRestoreSecond : Computable restoreSecond := by
-    exact Computable.list_append.comp
-      (Primrec.list_take.to_comp.comp
-        (Primrec.list_drop.to_comp.comp Computable.snd
-          (hSplitLength.comp Computable.fst))
-        (hSecondLength.comp Computable.fst))
-      (hSecondTail.comp Computable.fst)
-  have hFirstRun : Partrec (fun pr : BitString × BitString =>
-      V (restoreFirst pr, [])) :=
-    Partrec.comp hV.1
-      (hRestoreFirst.pair (Computable.const []))
-  have hSecondRun :
-      Partrec (fun q : (BitString × BitString) × BitString =>
-        V (restoreSecond q.1, q.2)) :=
-    Partrec.comp hV.1
-      ((hRestoreSecond.comp Computable.fst).pair Computable.snd)
-  have hD : isDecompressor D := Partrec.bind hFirstRun hSecondRun
+  set D := resizedForwardConcatDecompressor V
+  have hD : isDecompressor D :=
+    isDecompressor_resizedForwardConcatDecompressor V hV.1
   obtain ⟨cD, hcD⟩ := hV.2 D hD
   let C := cD + 10
   refine ⟨C, fun p b z y np nb r hp hb hnp hnb => ?_⟩
@@ -852,21 +851,21 @@ theorem condK_output_given_resized_forwardConcat_le
   have hDropCtx : ctx.drop np = resizeToLength b nb := by
     rw [hCtx]
     simp
-  have hRestoreFirstEval : restoreFirst (prog, ctx) = p := by
-    dsimp [restoreFirst, splitLength, firstLength, firstTail, tails]
+  have hRestoreFirstEval : restoreResizedFirst (prog, ctx) = p := by
+    dsimp [restoreResizedFirst]
     rw [hProg]
     simp only [decodeFirst_pairCode, decodeSecond_pairCode,
       decodeBits_natBits, hTakeCtx]
     exact resizeToLength_take_original_append_drop p np
-  have hRestoreSecondEval : restoreSecond (prog, ctx) = b := by
-    dsimp [restoreSecond, splitLength, secondLength, secondTail, tails]
+  have hRestoreSecondEval : restoreResizedSecond (prog, ctx) = b := by
+    dsimp [restoreResizedSecond]
     rw [hProg]
     simp only [decodeFirst_pairCode, decodeSecond_pairCode,
       decodeBits_natBits, hDropCtx]
     exact resizeToLength_take_original_append_drop b nb
   have hDProd : produces D prog ctx y := by
-    change y ∈ (V (restoreFirst (prog, ctx), [])).bind
-      (fun z => V (restoreSecond (prog, ctx), z))
+    change y ∈ (V (restoreResizedFirst (prog, ctx), [])).bind
+      (fun z => V (restoreResizedSecond (prog, ctx), z))
     rw [hRestoreFirstEval, hRestoreSecondEval]
     exact Part.mem_bind_iff.mpr ⟨z, hp, hb⟩
   have hDBound :

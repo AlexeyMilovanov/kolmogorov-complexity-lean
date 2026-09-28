@@ -1,6 +1,8 @@
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.Basic
-import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.GapCounting
 import KolmogorovMathlib.Prefix.Properties
+import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.GapCounting.GapBounds
+import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.GapCounting.IndexSelector
+import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.GapCounting
 
 /-!
 # Parameter-charge helpers for the strong-models section
@@ -102,6 +104,7 @@ have the same length, so the domain is prefix-free. -/
 def exactWidthContextDecompressor (width : BitString → ℕ) : Map := fun pr =>
   Part.ofOption (exactWidthContextDecompressorOpt width pr)
 
+/-- The decompressor that reads a context of computable width is again a decompressor. -/
 lemma exactWidthContextDecompressor_computable {width : BitString → ℕ}
     (hwidth : Computable width) :
     isDecompressor (exactWidthContextDecompressor width) := by
@@ -121,6 +124,8 @@ lemma exactWidthContextDecompressor_computable {width : BitString → ℕ}
         cases h : (pr.1.length == width pr.2) <;> rfl)
   exact Computable.ofOption h_opt
 
+/-- The exact-width context decompressor is a prefix machine: its domain is prefix-free in the
+program for every fixed condition. -/
 lemma exactWidthContextDecompressor_isPrefixMachine (width : BitString → ℕ) :
     IsPrefixMachine (exactWidthContextDecompressor width) := by
   intro y p hp q hq hpre
@@ -143,6 +148,8 @@ lemma exactWidthContextDecompressor_isPrefixMachine (width : BitString → ℕ) 
   have hqlen : q.length = width y := beq_iff_eq.mp hq_eq
   exact hpre.eq_of_length (by rw [hplen, hqlen])
 
+/-- A string `z` of the prescribed width for the condition `y` is its own program under the
+exact-width context decompressor. -/
 lemma exactWidthContextDecompressor_produces {width : BitString → ℕ}
     (z y : BitString) (h : z.length = width y) :
     produces (exactWidthContextDecompressor width) z y z := by

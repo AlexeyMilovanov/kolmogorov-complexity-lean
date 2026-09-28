@@ -61,3 +61,42 @@ import KolmogorovMathlib.CommonInformation.MaximalSampleFibre
 import KolmogorovMathlib.CommonInformation.ChainSample
 import KolmogorovMathlib.CommonInformation.ChainNonextractabilityEngine
 import KolmogorovMathlib.CommonInformation.ChainNonextractability
+
+/-!
+# Common information
+
+Given two strings of high mutual information, can one exhibit a third string that carries it —
+a *common witness* cheap to describe and making both strings cheap?  This part of the library
+formalises the obstructions to doing so and the exact region of achievable witness profiles.
+
+### The region
+
+`RegionEnvelopes` states the outer, three-face and lower envelopes of the achievable region;
+`RegionLower` realizes the lower envelope by explicit witnesses and `RegionConsequences`
+records what follows.  `WorstCase` proves Muchnik's non-extractability theorem and
+`WorstCaseRegion` the worst-case region theorem (SUV Theorem 224), with their counting,
+advice, search and selector modules (`WorstCase*`, `CompactAdvice`, `Counting`,
+`ConditionalCounting`).
+
+### The incidence example
+
+A point–line incidence relation over a concrete finite field gives a pair with no cheap common
+witness: `AffineIncidence`, `ConcreteField`, `IncidenceCoding`, `IncidenceProfile`,
+`IncidenceWitnessRectangles`, `IncidenceWitnessSelector`, the covering apparatus
+(`RectangleCover`, `NoFourCycleDensity`, `IncidenceCoverArithmetic`, `IncidenceRectangleCapacity`,
+`IncidenceCapacityCover`, `IncidenceShearCode`) and the quadratic variant
+(`Quadratic*`, `IncidenceRegion`, `IncidenceConsequences`).
+
+### Chains and histograms
+
+The Gács–Körner style obstruction along a Markov chain: `ConditionalIndependence` and
+`ConditionalIndependenceChains` for the information inequalities and the chains realizing them,
+`FixedFrequency`, `FixedHistogram`, `FixedHistogramRank` and `TypeBounds` for the rank coding
+of words of a given type, and `ChainWitness`, `ChainSample`, `MaximalSampleFibre`,
+`ChainNonextractability` for the argument itself.
+
+### Shared vocabulary
+
+`Definitions`, `Interfaces`, `PlainCoding`, `PlainSymmetry`, `Nested`, `OverlapGeometry`,
+`OverlapExtraction`, `SharedDescription`, `CommonWitnessCoding`.
+-/

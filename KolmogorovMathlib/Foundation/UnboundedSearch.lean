@@ -18,7 +18,7 @@ namespace Kolmogorov
 
 /-! ### Basic Math Computability -/
 
-/-- Auxiliary lemma: Exponentiation `2^k` is a computable function. -/
+/-- `k ↦ 2 ^ k` is computable. -/
 lemma Computable.pow2 : Computable (fun k : ℕ => 2 ^ k) := by
   apply Primrec.to_comp
   rw [Primrec.nat_iff]

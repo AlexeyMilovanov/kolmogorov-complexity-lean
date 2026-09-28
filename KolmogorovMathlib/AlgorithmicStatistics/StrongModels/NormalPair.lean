@@ -32,7 +32,7 @@ theorem plainK_pair_le_plainK_add_length
         ((kx + y.length + logSlack c (x.length + y.length) : Nat) : ENat) := by
   obtain ⟨cPair, hPair⟩ := plainK_pair_le_KPPlain_add_KPPlain V U hV hU
   obtain ⟨cB, hB⟩ := KP_le_condK_of_logSlack_budget V U hV hU
-  obtain ⟨cLen, hLen⟩ := plainKLeLength V hV
+  obtain ⟨cLen, hLen⟩ := plainK_le_length V hV
   obtain ⟨cL, hL⟩ := KPPlain_le_length_add_log U hU
   obtain ⟨cFold, hFold⟩ := logSlack_linear_bound cB 2 (1 + cLen)
   refine ⟨cFold + (2 + cL + cPair), ?_⟩
@@ -220,7 +220,7 @@ theorem strongProfile_pair_tailCube
     have hMle : (pairCode y (z.take (z.length - t))).length + (Nat.bits t).length
         ≤ 3 * (y.length + z.length) + 1 := by
       rw [length_pairCode, hwlen]
-      have := length_natBits_le_self t
+      have := length_natBits_le t
       omega
     have hslackM : logSlack cUp ((pairCode y (z.take (z.length - t))).length
         + (Nat.bits t).length) ≤ logSlack cFold (y.length + z.length) :=
@@ -264,49 +264,89 @@ theorem strongProfile_pair_tailCube
             * (Nat.bits (y.length + z.length)).length := by ring
     omega
 
-lemma normal_pair_of_conditionally_random_tail
-    (V U T : Map)
-    (hV : isOptimalConditional V)
-    (hU : IsOptimalPrefixConditional U)
-    (hT : IsOptimalTotalConditional T) :
-  ∃ C : ℕ, ∀ (y z : BitString) (d strength delta epsilon : ℕ),
-    IsNormalString V T y strength delta →
-    z.length = d →
-    (d : ENat) ≤ condK V z y + (epsilon : ENat) →
-    IsNormalString V T (pairCode y z)
-      (strength + logSlack C (y.length + d))
-      (C * (delta + epsilon) + logSlack C (y.length + d)) := by
-  obtain ⟨cTrans, hTrans⟩ := pairProfile_to_addNoiseProfileTransform V U hV hU
-  obtain ⟨cExt, hExt⟩ := strongProfile_pair_of_strongProfile_head V T hV hT
-  obtain ⟨cCube, hCube⟩ := strongProfile_pair_tailCube V U T hV hU hT
-  obtain ⟨cSing, hSing⟩ := plainSetComplexity_singleton_le_plainK V hV
-  obtain ⟨cPair, hPair⟩ := pair_complexity_close_of_random_tail V U hV hU
-  refine ⟨cTrans + cExt + cCube + cPair + cSing + 1, ?_⟩
-  intro y z d strength delta epsilon hnorm hzlen hrand
-  subst hzlen
-  -- elementary reformulation of the concrete distance
-  have dist_le : ∀ (p q : ℕ × ℕ) (m : ℕ), p.1 ≤ q.1 + m → q.1 ≤ p.1 + m →
-      p.2 ≤ q.2 + m → q.2 ≤ p.2 + m → natPairLInfDistance p q ≤ m := by
-    intro p q m h1 h2 h3 h4
-    unfold natPairLInfDistance
-    apply max_le <;> omega
-  have dist_ge : ∀ (p q : ℕ × ℕ) (m : ℕ), natPairLInfDistance p q ≤ m →
-      p.1 ≤ q.1 + m ∧ q.1 ≤ p.1 + m ∧ p.2 ≤ q.2 + m ∧ q.2 ≤ p.2 + m := by
-    intro p q m h
-    unfold natPairLInfDistance at h
-    have h1 := le_trans (le_max_left _ _) h
-    have h2 := le_trans (le_max_right _ _) h
+/-- Bounding `natPairLInfDistance` of two pairs given coordinate inequalities. -/
+private lemma natPairLInfDistance_le_of_coords {p1 p2 q1 q2 : ℕ} {m : ℕ}
+    (h1 : p1 ≤ q1 + m) (h2 : q1 ≤ p1 + m)
+    (h3 : p2 ≤ q2 + m) (h4 : q2 ≤ p2 + m) :
+    natPairLInfDistance (p1, p2) (q1, q2) ≤ m := by
+  unfold natPairLInfDistance
+  apply max_le <;> omega
+
+/-- Coordinate inequalities derived from a bound on `natPairLInfDistance`. -/
+private lemma coords_le_of_natPairLInfDistance {p1 p2 q1 q2 : ℕ} {m : ℕ}
+    (h : natPairLInfDistance (p1, p2) (q1, q2) ≤ m) :
+    p1 ≤ q1 + m ∧ q1 ≤ p1 + m ∧ p2 ≤ q2 + m ∧ q2 ≤ p2 + m := by
+  unfold natPairLInfDistance at h
+  have h1 := le_trans (le_max_left _ _) h
+  have h2 := le_trans (le_max_right _ _) h
+  omega
+
+/-- Slack inequality combining transform slack, singleton slack, and profile slack bounds. -/
+private lemma normal_pair_slack_bound
+    (cTrans cExt cCube cPair cSing delta epsilon ylen zlen : ℕ) :
+    let C := cTrans + cExt + cCube + cPair + cSing + 1
+    let M := delta + cSing + cPair * epsilon
+      + logSlack (cExt + cCube + cPair) (ylen + zlen)
+    cTrans * epsilon + logSlack cTrans (ylen + zlen) + M
+      ≤ C * (delta + epsilon) + logSlack C (ylen + zlen) := by
+  intro C M
+  have hm1 : delta ≤ C * delta := Nat.le_mul_of_pos_left _ (by omega)
+  have hm2 : (cTrans + cPair) * epsilon ≤ C * epsilon :=
+    Nat.mul_le_mul_right _ (by omega)
+  have hm3 : C * (delta + epsilon) = C * delta + C * epsilon := by ring
+  have hm4 : (cTrans + cPair) * epsilon = cTrans * epsilon + cPair * epsilon := by
+    ring
+  have e1 : logSlack cTrans (ylen + zlen)
+        + logSlack (cExt + cCube + cPair) (ylen + zlen)
+      = logSlack (cTrans + (cExt + cCube + cPair)) (ylen + zlen) :=
+    logSlack_add_const _ _ _
+  have e2 : logSlack (cTrans + (cExt + cCube + cPair)) (ylen + zlen)
+        + logSlack (cSing + 1) (ylen + zlen)
+      = logSlack C (ylen + zlen) := by
+    rw [logSlack_add_const]
+    congr 1
     omega
-  set C := cTrans + cExt + cCube + cPair + cSing + 1 with hCdef
-  obtain ⟨ky, hky⟩ : ∃ k : ℕ, plainK V y = (k : ENat) :=
-    ⟨(plainK V y).toNat, (ENat.coe_toNat (condK_ne_top_of_optimal V hV y [])).symm⟩
-  obtain ⟨kyz, hkyz⟩ : ∃ k : ℕ, plainK V (pairCode y z) = (k : ENat) :=
-    ⟨(plainK V (pairCode y z)).toNat,
-      (ENat.coe_toNat (condK_ne_top_of_optimal V hV (pairCode y z) [])).symm⟩
-  obtain ⟨-, hlow⟩ := hPair y z ky z.length 0 epsilon ky kyz hky hkyz
-    (by omega) (by omega) rfl hrand
-  rw [Nat.zero_add] at hlow
-  -- slack bookkeeping
+  have e3 : cSing + 1 ≤ logSlack (cSing + 1) (ylen + zlen) := by
+    unfold logSlack
+    exact Nat.le_add_left _ _
+  omega
+
+/-- The three profile interfaces of the pair construction: extending a strong profile point of
+`y` to the pair `(y, z)` at cost `cExt`, the cube points of the pair at cost `cCube`, and the
+set complexity of a singleton at cost `cSing`. -/
+private def StrongProfileInterfaces (V T : Map) (cExt cCube cSing : ℕ) : Prop :=
+  (∀ (y z : BitString) (e i j : ℕ),
+      InStrongDescriptionProfile V T y e i j →
+      InStrongDescriptionProfile V T (pairCode y z) (e + cExt)
+        (i + logSlack cExt z.length) (j + z.length)) ∧
+  (∀ (y z : BitString) (t ky : ℕ), t ≤ z.length →
+      plainK V y = (ky : ENat) →
+      InStrongDescriptionProfile V T (pairCode y z)
+        (logSlack cCube (y.length + z.length))
+        (ky + (z.length - t) + logSlack cCube (y.length + z.length)) t) ∧
+  ∀ y : BitString,
+    plainSetComplexity V {y} (Finset.singleton_nonempty y) ≤ plainK V y + (cSing : ENat)
+
+/-- Points in the `AddNoiseProfileTransform` of the head plain profile are close
+to strong profile points of the pair. -/
+private lemma add_noise_transform_point_near_strong_profile
+    (V T : Map)
+    (cTrans cExt cCube cPair cSing : ℕ)
+    (hint : StrongProfileInterfaces V T cExt cCube cSing)
+    {y z : BitString} {strength delta ky kyz : ℕ} (epsilon : ℕ)
+    (hnorm : IsNormalString V T y strength delta)
+    (hky : plainK V y = (ky : ENat))
+    (hlow : ky + z.length ≤ kyz + (cPair * epsilon + logSlack cPair (y.length + z.length)))
+    {a b : ℕ}
+    (hab : (a, b) ∈ AddNoiseProfileTransform (plainDescriptionProfileSet V y) ky kyz z.length) :
+    let C := cTrans + cExt + cCube + cPair + cSing + 1
+    let M := delta + cSing + cPair * epsilon
+      + logSlack (cExt + cCube + cPair) (y.length + z.length)
+    ∃ q'' ∈ strongDescriptionProfileSet V T (pairCode y z)
+        (strength + logSlack C (y.length + z.length)),
+      natPairLInfDistance (a, b) q'' ≤ M := by
+  intro C M
+  obtain ⟨hExt, hCube, hSing⟩ := hint
   have hlsC : C ≤ logSlack C (y.length + z.length) := by
     unfold logSlack
     exact Nat.le_add_left _ _
@@ -328,95 +368,96 @@ lemma normal_pair_of_conditionally_random_tail
   have hCubeC : logSlack cCube (y.length + z.length)
       ≤ logSlack C (y.length + z.length) :=
     logSlack_mono_left (by omega) _
-  set M := delta + cSing + cPair * epsilon
-    + logSlack (cExt + cCube + cPair) (y.length + z.length) with hMdef
   have hUpper := strongDescriptionProfileSet_isUpperSet V T (pairCode y z)
     (strength + logSlack C (y.length + z.length))
-  -- every point of the add-noise transform is close to a strong profile point
-  have key : ∀ a b : ℕ,
-      (a, b) ∈ AddNoiseProfileTransform (plainDescriptionProfileSet V y) ky kyz
-        z.length →
-      ∃ q'' ∈ strongDescriptionProfileSet V T (pairCode y z)
-          (strength + logSlack C (y.length + z.length)),
-        natPairLInfDistance (a, b) q'' ≤ M := by
-    rintro a b (⟨i, j, hi, hij, hq⟩ | ⟨hgt, hsum⟩)
-    · have ha : a = i := congrArg Prod.fst hq
-      have hb : b = j + z.length := congrArg Prod.snd hq
-      obtain ⟨⟨i', j'⟩, hmem', hdist'⟩ := hnorm.1 (i, j) hij
-      obtain ⟨d1, d2, d3, d4⟩ := dist_ge (i, j) (i', j') delta hdist'
-      simp only at d1 d2 d3 d4
+  rcases hab with (⟨i, j, hi, hij, hq⟩ | ⟨hgt, hsum⟩)
+  · have ha : a = i := congrArg Prod.fst hq
+    have hb : b = j + z.length := congrArg Prod.snd hq
+    obtain ⟨⟨i', j'⟩, hmem', hdist'⟩ := hnorm.1 (i, j) hij
+    obtain ⟨d1, d2, d3, d4⟩ := coords_le_of_natPairLInfDistance hdist'
+    have hstrong : InStrongDescriptionProfile V T (pairCode y z)
+        (strength + cExt) (i' + logSlack cExt z.length) (j' + z.length) :=
+      hExt y z strength i' j' hmem'
+    refine ⟨(i' + logSlack cExt z.length, j' + z.length), ?_, ?_⟩
+    · exact hstrong.mono_epsilon (by omega)
+    · refine natPairLInfDistance_le_of_coords ?_ ?_ ?_ ?_ <;> dsimp <;> omega
+  · simp only at hgt hsum
+    rcases Nat.lt_or_ge b z.length with hb | hb
+    · have hcube : InStrongDescriptionProfile V T (pairCode y z)
+          (logSlack cCube (y.length + z.length))
+          (ky + (z.length - b) + logSlack cCube (y.length + z.length)) b :=
+        hCube y z b ky (by omega) hky
+      refine ⟨(max a (ky + (z.length - b)
+        + logSlack cCube (y.length + z.length)), b), ?_, ?_⟩
+      · refine hUpper (a := (ky + (z.length - b)
+          + logSlack cCube (y.length + z.length), b)) ?_ ?_
+        · exact Prod.mk_le_mk.mpr ⟨le_max_right _ _, le_rfl⟩
+        · exact hcube.mono_epsilon (by omega)
+      · refine natPairLInfDistance_le_of_coords ?_ ?_ ?_ ?_ <;> dsimp <;> omega
+    · have hyplain : (a + cSing, 0) ∈ plainDescriptionProfileSet V y := by
+        refine ⟨{y}, Finset.singleton_nonempty y,
+          Finset.mem_singleton_self y, ?_, ?_⟩
+        · calc plainSetComplexity V {y} (Finset.singleton_nonempty y)
+              ≤ plainK V y + (cSing : ENat) := hSing y
+            _ = ((ky + cSing : ℕ) : ENat) := by rw [hky]; push_cast; ring
+            _ ≤ ((a + cSing : ℕ) : ENat) := by
+                exact_mod_cast (show ky + cSing ≤ a + cSing by omega)
+        · simp
+      obtain ⟨⟨i', j'⟩, hmem', hdist'⟩ := hnorm.1 (a + cSing, 0) hyplain
+      obtain ⟨d1, d2, d3, d4⟩ := coords_le_of_natPairLInfDistance hdist'
       have hstrong : InStrongDescriptionProfile V T (pairCode y z)
           (strength + cExt) (i' + logSlack cExt z.length) (j' + z.length) :=
         hExt y z strength i' j' hmem'
-      refine ⟨(i' + logSlack cExt z.length, j' + z.length), ?_, ?_⟩
-      · exact hstrong.mono_epsilon (by omega)
-      · refine dist_le _ _ _ ?_ ?_ ?_ ?_ <;> simp only <;> omega
-    · simp only at hgt hsum
-      rcases Nat.lt_or_ge b z.length with hb | hb
-      · -- sufficiency-line branch: freeze all but the last `b` bits of the tail
-        have hcube : InStrongDescriptionProfile V T (pairCode y z)
-            (logSlack cCube (y.length + z.length))
-            (ky + (z.length - b) + logSlack cCube (y.length + z.length)) b :=
-          hCube y z b ky (by omega) hky
-        refine ⟨(max a (ky + (z.length - b)
-          + logSlack cCube (y.length + z.length)), b), ?_, ?_⟩
-        · refine hUpper (a := (ky + (z.length - b)
-            + logSlack cCube (y.length + z.length), b)) ?_ ?_
-          · exact Prod.mk_le_mk.mpr ⟨le_max_right _ _, le_rfl⟩
-          · exact hcube.mono_epsilon (by omega)
-        · refine dist_le _ _ _ ?_ ?_ ?_ ?_ <;> simp only <;> omega
-      · -- above the noise level: extend a strong model of the head
-        have hyplain : (a + cSing, 0) ∈ plainDescriptionProfileSet V y := by
-          refine ⟨{y}, Finset.singleton_nonempty y,
-            Finset.mem_singleton_self y, ?_, ?_⟩
-          · calc plainSetComplexity V {y} (Finset.singleton_nonempty y)
-                ≤ plainK V y + (cSing : ENat) := hSing y
-              _ = ((ky + cSing : ℕ) : ENat) := by rw [hky]; push_cast; ring
-              _ ≤ ((a + cSing : ℕ) : ENat) := by
-                  exact_mod_cast (show ky + cSing ≤ a + cSing by omega)
-          · simp
-        obtain ⟨⟨i', j'⟩, hmem', hdist'⟩ := hnorm.1 (a + cSing, 0) hyplain
-        obtain ⟨d1, d2, d3, d4⟩ := dist_ge (a + cSing, 0) (i', j') delta hdist'
-        simp only at d1 d2 d3 d4
-        have hstrong : InStrongDescriptionProfile V T (pairCode y z)
-            (strength + cExt) (i' + logSlack cExt z.length) (j' + z.length) :=
-          hExt y z strength i' j' hmem'
-        refine ⟨(max a (i' + logSlack cExt z.length),
-          max b (j' + z.length)), ?_, ?_⟩
-        · refine hUpper (a := (i' + logSlack cExt z.length, j' + z.length)) ?_ ?_
-          · exact Prod.mk_le_mk.mpr ⟨le_max_right _ _, le_max_right _ _⟩
-          · exact hstrong.mono_epsilon (by omega)
-        · refine dist_le _ _ _ ?_ ?_ ?_ ?_ <;> simp only <;> omega
+      refine ⟨(max a (i' + logSlack cExt z.length),
+        max b (j' + z.length)), ?_, ?_⟩
+      · refine hUpper (a := (i' + logSlack cExt z.length, j' + z.length)) ?_ ?_
+        · exact Prod.mk_le_mk.mpr ⟨le_max_right _ _, le_max_right _ _⟩
+        · exact hstrong.mono_epsilon (by omega)
+      · refine natPairLInfDistance_le_of_coords ?_ ?_ ?_ ?_ <;> dsimp <;> omega
+
+/-- If `y` is normal and `z` of length `d` is incompressible given `y` up to `epsilon`, then the
+pair `(y, z)` is normal, with strength and deficiency degraded by
+`logSlack C (y.length + d)` and by `C * (delta + epsilon)`. -/
+lemma normal_pair_of_conditionally_random_tail
+    (V U T : Map)
+    (hV : isOptimalConditional V)
+    (hU : IsOptimalPrefixConditional U)
+    (hT : IsOptimalTotalConditional T) :
+  ∃ C : ℕ, ∀ (y z : BitString) (d strength delta epsilon : ℕ),
+    IsNormalString V T y strength delta →
+    z.length = d →
+    (d : ENat) ≤ condK V z y + (epsilon : ENat) →
+    IsNormalString V T (pairCode y z)
+      (strength + logSlack C (y.length + d))
+      (C * (delta + epsilon) + logSlack C (y.length + d)) := by
+  obtain ⟨cTrans, hTrans⟩ := pairProfile_to_addNoiseProfileTransform V U hV hU
+  obtain ⟨cExt, hExt⟩ := strongProfile_pair_of_strongProfile_head V T hV hT
+  obtain ⟨cCube, hCube⟩ := strongProfile_pair_tailCube V U T hV hU hT
+  obtain ⟨cSing, hSing⟩ := plainSetComplexity_singleton_le_plainK V hV
+  obtain ⟨cPair, hPair⟩ := pair_complexity_close_of_random_tail V U hV hU
+  refine ⟨cTrans + cExt + cCube + cPair + cSing + 1, ?_⟩
+  intro y z d strength delta epsilon hnorm hzlen hrand
+  subst hzlen
+  obtain ⟨ky, hky⟩ : ∃ k : ℕ, plainK V y = (k : ENat) :=
+    ⟨(plainK V y).toNat, (ENat.coe_toNat (condK_ne_top_of_optimal V hV y [])).symm⟩
+  obtain ⟨kyz, hkyz⟩ : ∃ k : ℕ, plainK V (pairCode y z) = (k : ENat) :=
+    ⟨(plainK V (pairCode y z)).toNat,
+      (ENat.coe_toNat (condK_ne_top_of_optimal V hV (pairCode y z) [])).symm⟩
+  obtain ⟨-, hlow⟩ := hPair y z ky z.length 0 epsilon ky kyz hky hkyz
+    (by omega) (by omega) rfl hrand
+  rw [Nat.zero_add] at hlow
   constructor
   · intro q hq
     obtain ⟨q', hq', hdist⟩ := hTrans y z epsilon ky kyz q hky hkyz hrand hq
-    obtain ⟨q'', hq'', hdist''⟩ := key q'.1 q'.2 (by simpa using hq')
+    obtain ⟨q'', hq'', hdist''⟩ := add_noise_transform_point_near_strong_profile V T
+      cTrans cExt cCube cPair cSing ⟨hExt, hCube, hSing⟩ epsilon hnorm hky hlow hq'
     refine ⟨q'', hq'', ?_⟩
     have htri := natPairLInfDistance_triangle q q' q''
     have hq'eq : (q'.1, q'.2) = q' := rfl
     rw [hq'eq] at hdist''
-    have hfinal : cTrans * epsilon + logSlack cTrans (y.length + z.length) + M
-        ≤ C * (delta + epsilon) + logSlack C (y.length + z.length) := by
-      have hm1 : delta ≤ C * delta := Nat.le_mul_of_pos_left _ (by omega)
-      have hm2 : (cTrans + cPair) * epsilon ≤ C * epsilon :=
-        Nat.mul_le_mul_right _ (by omega)
-      have hm3 : C * (delta + epsilon) = C * delta + C * epsilon := by ring
-      have hm4 : (cTrans + cPair) * epsilon = cTrans * epsilon + cPair * epsilon := by
-        ring
-      have e1 : logSlack cTrans (y.length + z.length)
-            + logSlack (cExt + cCube + cPair) (y.length + z.length)
-          = logSlack (cTrans + (cExt + cCube + cPair)) (y.length + z.length) :=
-        logSlack_add_const _ _ _
-      have e2 : logSlack (cTrans + (cExt + cCube + cPair)) (y.length + z.length)
-            + logSlack (cSing + 1) (y.length + z.length)
-          = logSlack C (y.length + z.length) := by
-        rw [logSlack_add_const]
-        congr 1
-        omega
-      have e3 : cSing + 1 ≤ logSlack (cSing + 1) (y.length + z.length) := by
-        unfold logSlack
-        exact Nat.le_add_left _ _
-      omega
+    have hfinal := normal_pair_slack_bound cTrans cExt cCube cPair cSing delta epsilon
+      y.length z.length
+    clear hlow hPair hTrans hExt hCube hSing hnorm
     omega
   · intro q hq
     exact ⟨q, strongDescriptionProfileSet_subset_plain V T (pairCode y z) _ hq,

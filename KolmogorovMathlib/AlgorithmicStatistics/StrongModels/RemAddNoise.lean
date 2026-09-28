@@ -2,10 +2,10 @@ import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.AddNoiseProduct
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.AddNoiseFibres
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.Lemma4Support
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.ProfileBridges
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.RemAddNoiseSymmetry
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.RemAddNoiseLowBranch
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.PlainPairSymmetry
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.FullCube
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.RemAddNoiseSymmetry
 
 /-!
 # The ordinary-profile add-noise transformation
@@ -30,6 +30,8 @@ def AddNoiseProfileTransform
   {q | (∃ i j, i ≤ kx ∧ (i, j) ∈ P ∧ q = (i, j + l)) ∨
     (kx < q.1 ∧ kxy ≤ q.1 + q.2)}
 
+/-- A profile point `(i, j)` with `i ≤ kx` contributes the point `(i, j + l)` to the add-noise
+transform of the profile. -/
 theorem addNoiseProfileTransform_base_mem
     {P : Set (Nat × Nat)} {kx kxy l i j : Nat}
     (hi : i ≤ kx) (hij : (i, j) ∈ P) :
@@ -113,7 +115,7 @@ theorem truncation_or_exact_gain (V : Map) (x y A_code : BitString) (k0 : Nat) :
       exact_mod_cast (by omega : c + (y.length - c) ≤ y.length)
     · omega
 
-/-- Bookkeeping in the shape required by `ImprovingDescriptionsComplexityLogSlack`. -/
+/-- The clamped gain is at most the budget: `min k (i + c0) ≤ i + c0`. -/
 theorem clamped_gain_le_complexity_budget (k i c0 : Nat) :
     min k (i + c0) ≤ i + c0 := by
   exact Nat.min_le_right k (i + c0)
@@ -136,7 +138,7 @@ theorem pairProfile_high_coordinate_to_transform
         natPairLInfDistance (i, j) q' ≤
           logSlack c (x.length + y.length) := by
   obtain ⟨c0, hc0⟩ := plainK_mem_le_of_plainSetComplexity_le V hV
-  obtain ⟨cLen, hLen⟩ := plainKLeLength V hV
+  obtain ⟨cLen, hLen⟩ := plainK_le_length V hV
   obtain ⟨C, hC⟩ := logSlack_linear_bound 2 2 (1 + cLen)
   refine ⟨C + c0, ?_⟩
   intro x y kx kxy i j _hkx hkxy hlow hprof
@@ -228,7 +230,7 @@ theorem pairProfile_low_coordinate_to_transform_gap
         natPairLInfDistance (i, j) q' ≤
           (kx - i) + logSlack c (x.length + y.length) := by
   obtain ⟨c0, hc0⟩ := plainK_mem_le_of_plainSetComplexity_le V hV
-  obtain ⟨cLen, hLen⟩ := plainKLeLength V hV
+  obtain ⟨cLen, hLen⟩ := plainK_le_length V hV
   obtain ⟨C, hC⟩ := logSlack_linear_bound 2 1 cLen
   refine ⟨C + c0 + 1, ?_⟩
   intro x y kx kxy i j hkx hkxy hle hprof
@@ -318,7 +320,7 @@ theorem pairProfile_low_coordinate_to_transform
   obtain ⟨cCube, hCube⟩ := plainSetComplexity_fullCube_le_logSlack V hV
   obtain ⟨cLow, hLow⟩ := inPlainDescriptionProfile_fst_of_pair_model V U hV hU
   obtain ⟨c0, hc0⟩ := plainK_mem_le_of_plainSetComplexity_le V hV
-  obtain ⟨cLen, hLen⟩ := plainKLeLength V hV
+  obtain ⟨cLen, hLen⟩ := plainK_le_length V hV
   obtain ⟨cPair, hPair⟩ := plainK_pair_ge_plainK_add_length_of_random V U hV hU
   obtain ⟨cLow2, hcLow2⟩ := logSlack_linear_bound cLow 1 cLen
   obtain ⟨cBits, hcBits⟩ := logSlack_linear_bound 2 1 cLen
@@ -370,8 +372,8 @@ theorem pairProfile_low_coordinate_to_transform
         addNoiseProfileTransform_base_mem (max_le hle hcube) ?_, ?_⟩
       · have hfull : InPlainDescriptionProfile V x (logSlack cCube x.length) x.length := by
           refine ⟨stringsOfLength x.length, codedStringsOfLength_nonempty x.length,
-            (memStringsOfLength x.length x).mpr rfl, hCube x.length, ?_⟩
-          rw [cardStringsOfLength]
+            (mem_stringsOfLength x.length x).mpr rfl, hCube x.length, ?_⟩
+          rw [card_stringsOfLength]
         exact (hfull.mono_i (le_max_right _ _)).mono_j (by omega)
       · unfold natPairLInfDistance
         simp only

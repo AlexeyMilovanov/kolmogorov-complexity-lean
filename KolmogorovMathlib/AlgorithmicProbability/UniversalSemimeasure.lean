@@ -57,6 +57,7 @@ noncomputable def unaryMixture (w : ℕ → ℝ≥0∞)
     (μ : ℕ → BitString → ℝ≥0∞) (x : BitString) : ℝ≥0∞ :=
   ∑' i, w i * μ i x
 
+/-- A mixture of semimeasures whose weights have total mass at most one is again a semimeasure. -/
 theorem unaryMixture_isSemimeasure (w : ℕ → ℝ≥0∞)
     (μ : ℕ → BitString → ℝ≥0∞) (hw : (∑' i, w i) ≤ 1)
     (hμ : ∀ i, IsSemimeasure (μ i)) :
@@ -261,6 +262,8 @@ lemmas are used). -/
       | some v => v * 2 ^ (s - s')
       | none => 0)
 
+/-- The stage approximation of the machine with index `i` is computable jointly in the index, the
+stage and the two strings. -/
 lemma approxEnum_computable :
     Computable (fun p : ℕ × ℕ × BitString × BitString =>
       approxEnum p.1 p.2.1 p.2.2.1 p.2.2.2) := by
@@ -313,7 +316,7 @@ lemma approxEnum_computable :
                 have h_primrec : Primrec (fun p : ℕ × ℕ => p.2 - p.1) := by
                   exact Primrec.nat_sub.comp ( Primrec.snd ) ( Primrec.fst );
                 have h_primrec : Primrec (fun p : ℕ => 2 ^ p) := by
-                  convert primrec_two_pow using 1;
+                  convert primrec_two_pow_aux using 1;
                 exact h_primrec.comp ‹_›;
               convert h_primrec.comp ( show Primrec
                   ( fun p : ℕ × ℕ × BitString × BitString × ℕ => ( p.1, p.2.1 ) )
@@ -467,6 +470,7 @@ def makeMono (approx : ℕ → BitString → BitString → ℕ) : ℕ → BitStr
   | 0, out, ctx => approx 0 out ctx
   | (s+1), out, ctx => max (2 * makeMono approx s out ctx) (approx (s+1) out ctx)
 
+/-- Monotonisation makes the dyadic stage values non-decreasing in the stage. -/
 lemma makeMono_mono (approx : ℕ → BitString → BitString → ℕ) (s : ℕ) (out ctx : BitString) :
     dyadicValue (makeMono approx s out ctx) s ≤ dyadicValue (makeMono approx (s + 1) out ctx)
         (s + 1) := by
@@ -492,6 +496,7 @@ lemma makeMono_mono (approx : ℕ → BitString → BitString → ℕ) (s : ℕ)
           exact_mod_cast Nat.le_max_left (2 * makeMono approx s out ctx)
             (approx (s + 1) out ctx)
 
+/-- Monotonisation only increases a stage value. -/
 lemma makeMono_ge (approx : ℕ → BitString → BitString → ℕ) (s : ℕ) (out ctx : BitString) :
     dyadicValue (approx s out ctx) s ≤ dyadicValue (makeMono approx s out ctx) s := by
   cases s with
@@ -506,20 +511,7 @@ lemma makeMono_ge (approx : ℕ → BitString → BitString → ℕ) (s : ℕ) (
       exact_mod_cast Nat.le_max_right (2 * makeMono approx s out ctx)
         (approx (s + 1) out ctx)
 
-lemma dyadicValue_two_mul_succ (n s : ℕ) :
-    dyadicValue (2 * n) (s + 1) = dyadicValue n s := by
-  unfold dyadicValue
-  rw [pow_succ', div_eq_mul_inv, div_eq_mul_inv]
-  rw [ENNReal.mul_inv]
-  · norm_num
-    rw [show (2 : ℝ≥0∞) * (n : ℝ≥0∞) *
-          ((2 : ℝ≥0∞)⁻¹ * ((2 : ℝ≥0∞) ^ s)⁻¹)
-        = (n : ℝ≥0∞) *
-          (((2 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹) * ((2 : ℝ≥0∞) ^ s)⁻¹) by ring,
-      ENNReal.mul_inv_cancel two_ne_zero ENNReal.ofNat_ne_top, one_mul]
-  · exact Or.inl two_ne_zero
-  · exact Or.inl ENNReal.ofNat_ne_top
-
+/-- The monotonisation of a computable family of stage approximations is computable. -/
 lemma makeMono_computable (approx : ℕ → BitString → BitString → ℕ)
     (hcomp : Computable (fun p : ℕ × BitString × BitString => approx p.1 p.2.1 p.2.2)) :
     Computable (fun p : ℕ × BitString × BitString => makeMono approx p.1 p.2.1 p.2.2) := by
@@ -606,6 +598,7 @@ lemma makeMono_computable_uniform (b : ℕ → ℕ → BitString → BitString �
 noncomputable def lscEnum (i : ℕ) : BitString → BitString → ℝ≥0∞ :=
   truncG (makeMono (approxEnum i)) 0
 
+/-- Every member of the enumeration is lower semicomputable. -/
 lemma lscEnum_isLSC (i : ℕ) : IsLSC (lscEnum i) := by
   refine ⟨truncGapprox (makeMono (approxEnum i)) 0, ?_, ?_, ?_⟩
   · intro S out ctx; exact truncGapprox_mono 0 S out ctx
@@ -615,10 +608,12 @@ lemma lscEnum_isLSC (i : ℕ) : IsLSC (lscEnum i) := by
       (approxEnum_computable.comp
         ((Computable.const i).pair (Computable.fst.pair Computable.snd)))
 
+/-- Every member of the enumeration is a semimeasure in its output argument. -/
 lemma lscEnum_isSemimeasure (i : ℕ) : IsSemimeasure (fun x => lscEnum i x []) := by
   change (∑' x, truncG (makeMono (approxEnum i)) 0 x []) ≤ 1
   exact tsum_truncG_le 0 []
 
+/-- Monotonisation does not change the supremum of the stage values. -/
 lemma iSup_makeMono_eq_iSup (approx : ℕ → BitString → BitString → ℕ) (out ctx : BitString) :
     (⨆ s, dyadicValue (makeMono approx s out ctx) s) = (⨆ s, dyadicValue (approx s out ctx) s) := by
   apply le_antisymm
@@ -793,7 +788,7 @@ lemma isLSC_unaryMixture_dyadicWeight_of_uniform
           rotate_right
           · exact fun p => 2 ^ ( p.1.1 - ( p.2 + 1 ) - p.1.1 / 2 )
           · convert Primrec.to_comp _
-            convert Primrec.comp ( primrec_two_pow )
+            convert Primrec.comp ( primrec_two_pow_aux )
               ( Primrec.nat_sub.comp ( Primrec.nat_sub.comp ( Primrec.fst.comp (
                 Primrec.fst ) ) ( Primrec.succ.comp ( Primrec.snd ) ) ) (
                   Primrec.nat_div.comp ( Primrec.fst.comp ( Primrec.fst ) )

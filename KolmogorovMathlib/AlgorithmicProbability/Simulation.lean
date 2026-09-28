@@ -134,11 +134,4 @@ def ProgramSimulation.refl (M : Map) : ProgramSimulation M M 0 where
   length_le := fun p => by simp
   simulates := fun _ _ _ hp => hp
 
-/-- Self-domination recovered through the packaged simulation, matching
-`aprioriMeasure_dominates_self`. -/
-theorem aprioriMeasure_dominates_self_via_programSimulation (M : Map) :
-    Dominates (aprioriMeasure M) (aprioriMeasure M) 1 := by
-  have h := (ProgramSimulation.refl M).aprioriMeasure_dominates
-  simpa using h
-
 end Kolmogorov

@@ -2,6 +2,7 @@ import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.RemAddNoiseFibreInde
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.RemAddNoiseHeavySymmetry
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.RemAddNoiseRankIndex
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.MinimalModelBounds
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.Separation.Part01
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.Separation
 
 /-!
@@ -37,6 +38,23 @@ namespace Kolmogorov
 
 open Kolmogorov.CodedFiniteDistribution
 
+/-- Finding a description count parameter `k` such that `x` has `2^k` descriptions
+of complexity `i1` and size `j1`, but not `2^(k+1)`. -/
+private lemma exists_many_not_many_descriptions (U : Map) (x : BitString) (H : Finset BitString)
+    (hxH : x ∈ H) (i1 j1 : Nat) (hi1 : setComplexity U H ⟨x, hxH⟩ = (i1 : ENat))
+    (hHcard : H.card ≤ 2 ^ j1) :
+    ∃ k : Nat, ManyIJDescriptions U x i1 j1 k ∧ ¬ ManyIJDescriptions U x i1 j1 (k + 1) := by
+  set fam := (descriptionsWithComplexityLeAndSizeLe U i1 j1).filter (fun S => x ∈ S)
+  have hHfam : H ∈ fam := by
+    rw [Finset.mem_filter]
+    refine ⟨?_, hxH⟩
+    rw [descriptionsWithComplexityLeAndSizeLe, Finset.mem_filter]
+    exact ⟨mem_descriptionsWithComplexityLe_of_complexity ⟨x, hxH⟩ (le_of_eq hi1), hHcard⟩
+  have hcntpos : 0 < fam.card := Finset.card_pos.mpr ⟨H, hHfam⟩
+  refine ⟨Nat.log 2 fam.card, Nat.pow_log_le_self 2 (by omega), ?_⟩
+  rw [ManyIJDescriptions, not_le]
+  exact Nat.lt_pow_succ_log_self (by norm_num) _
+
 /-- **Fibre projection of a pair model.**  An ordinary plain `(i, j)`-model of
 `pairCode x y`, together with conditional `epsilon`-randomness of `y` given `x`,
 yields an ordinary plain model of `x` of complexity `i + epsilon + O(log N)` and
@@ -61,7 +79,6 @@ theorem inPlainDescriptionProfile_fst_of_pair_model
   obtain ⟨cDrop, hDrop⟩ := exists_description_smaller_complexity_of_many_logSlack U hU
   obtain ⟨cBridge, hBridge⟩ := inPlainDescriptionProfile_of_inDescriptionProfile V U hV hU
   obtain ⟨cShift, hShift⟩ := inPlainDescriptionProfile_shift V hV
-  -- Fold every auxiliary slack argument back into a slack in `N`.
   obtain ⟨bSym, hbSym⟩ := logSlack_le_add_const cSym
   obtain ⟨cPre2, hcPre2⟩ := logSlack_linear_bound cPre 2 bSym
   obtain ⟨bPre2, hbPre2⟩ := logSlack_le_add_const cPre2
@@ -72,32 +89,24 @@ theorem inPlainDescriptionProfile_fst_of_pair_model
     logSlack_linear_bound cFib 4 (bSym + bPre2 + 2 + bRank2 + bSym)
   refine ⟨cSym + cPre2 + cRank2 + cDrop2 + cFib2 + cShift + cBridge + 2, ?_⟩
   intro x y epsilon i j N hprofile hrandom hlenN hiN hjN
-  set c : Nat :=
-    cSym + cPre2 + cRank2 + cDrop2 + cFib2 + cShift + cBridge + 2 with hc
+  set c : Nat := cSym + cPre2 + cRank2 + cDrop2 + cFib2 + cShift + cBridge + 2 with hc
   obtain ⟨B, hB, hpair, hcompl, hcard⟩ := hprofile
-  set l := y.length with hl
-  set F := finiteSetLogCard (finiteSetFstFiber B x) with hF
-  set H := finiteSetFstHeavyTruncation B F with hH
+  set l := y.length
+  set F := finiteSetLogCard (finiteSetFstFiber B x)
+  set H := finiteSetFstHeavyTruncation B F
   have hxH : x ∈ H := finiteSetFstHeavyTruncation_mem hpair le_rfl
   have hHne : H.Nonempty := ⟨x, hxH⟩
-  -- Basic size bookkeeping.
   have hlogB : finiteSetLogCard B ≤ j := (finiteSetLogCard_le_iff B j).mpr hcard
-  have hFj : F ≤ j := by
-    refine le_trans ?_ hlogB
-    refine finiteSetLogCard_mono ?_
-    exact Finset.card_le_card (Finset.filter_subset _ _)
+  have hFj : F ≤ j := le_trans (finiteSetLogCard_mono
+    (Finset.card_le_card (Finset.filter_subset _ _))) hlogB
   have hlN : l ≤ N := by omega
   have hxlenN : x.length ≤ N := by omega
-  -- The conditional complexity of `B` given the heavy truncation.
   have hqfin : condK V (codedUniformOn B hB).code (codedUniformOn H hHne).code ≠ ⊤ :=
     condK_ne_top_of_optimal V hV _ _
-  set q := (condK V (codedUniformOn B hB).code (codedUniformOn H hHne).code).toNat with hqdef
+  set q := (condK V (codedUniformOn B hB).code (codedUniformOn H hHne).code).toNat
   have hq : condK V (codedUniformOn B hB).code (codedUniformOn H hHne).code = (q : ENat) :=
     (ENat.coe_toNat hqfin).symm
-  -- Finite-set symmetry of information for the heavy truncation.
-  have hBN : plainSetComplexity V B hB ≤ (N : ENat) :=
-    hcompl.trans (by exact_mod_cast hiN)
-  have hsym := hSym B hB F N hHne hBN (by omega)
+  have hsym := hSym B hB F N hHne (hcompl.trans (by exact_mod_cast hiN)) (by omega)
   have hHle : plainSetComplexity V H hHne ≤ ((i + logSlack cSym N : Nat) : ENat) := by
     refine le_trans le_self_add (hsym.trans ?_)
     calc
@@ -106,7 +115,7 @@ theorem inPlainDescriptionProfile_fst_of_pair_model
       _ = ((i + logSlack cSym N : Nat) : ENat) := by push_cast; ring
   have hHfin : plainSetComplexity V H hHne ≠ ⊤ :=
     ne_top_of_le_ne_top (ENat.coe_ne_top _) hHle
-  set iH := (plainSetComplexity V H hHne).toNat with hiHdef
+  set iH := (plainSetComplexity V H hHne).toNat
   have hiH : plainSetComplexity V H hHne = (iH : ENat) := (ENat.coe_toNat hHfin).symm
   have hiHq : iH + q ≤ i + logSlack cSym N := by
     rw [hiH, hq] at hsym
@@ -118,18 +127,13 @@ theorem inPlainDescriptionProfile_fst_of_pair_model
               ≤ (i : ENat) + (logSlack cSym N : ENat) := by gcongr
           _ = ((i + logSlack cSym N : Nat) : ENat) := by push_cast; ring
     exact_mod_cast hsym'
-  -- Prefix set complexity of the heavy truncation.
-  have hHleN : plainSetComplexity V H hHne ≤ ((i + logSlack cSym N : Nat) : ENat) := hHle
-  have hpre := hPre H hHne (i + logSlack cSym N) hHleN
   have hi1le0 : setComplexity U H hHne ≤
       ((iH + logSlack cPre (i + logSlack cSym N) : Nat) : ENat) := by
-    refine hpre.trans ?_
-    rw [hiH]
-    push_cast
-    exact le_rfl
+    refine (hPre H hHne (i + logSlack cSym N) hHle).trans ?_
+    rw [hiH]; push_cast; exact le_rfl
   have hi1fin : setComplexity U H hHne ≠ ⊤ :=
     ne_top_of_le_ne_top (ENat.coe_ne_top _) hi1le0
-  set i1 := (setComplexity U H hHne).toNat with hi1def
+  set i1 := (setComplexity U H hHne).toNat
   have hi1 : setComplexity U H hHne = (i1 : ENat) := (ENat.coe_toNat hi1fin).symm
   have hSymBound : logSlack cSym N ≤ N + bSym := hbSym N
   have hPreFold : logSlack cPre (i + logSlack cSym N) ≤ logSlack cPre2 N := by
@@ -143,37 +147,18 @@ theorem inPlainDescriptionProfile_fst_of_pair_model
   have hPre2Bound : logSlack cPre2 N ≤ N + bPre2 := hbPre2 N
   have hiHle : iH ≤ i + logSlack cSym N := by omega
   have hi1N : i1 ≤ 3 * N + (bSym + bPre2) := by omega
-  -- The size parameter of the heavy truncation.
-  set j1 := finiteSetLogCard H with hj1def
+  set j1 := finiteSetLogCard H
   have hHcard : H.card ≤ 2 ^ j1 := (finiteSetLogCard_le_iff H j1).mp le_rfl
   have hj1le : j1 ≤ j - F + 1 := by
-    have h : finiteSetLogCard H ≤ finiteSetLogCard B - F + 1 := by
-      rw [hH]
-      exact finiteSetFstHeavyTruncation_logCard_le B F
+    have h : finiteSetLogCard H ≤ finiteSetLogCard B - F + 1 :=
+      finiteSetFstHeavyTruncation_logCard_le B F
     omega
   have hj1N : j1 ≤ N + 1 := by omega
-  -- The description family of `x` with the parameters of `H`.
-  set fam := (descriptionsWithComplexityLeAndSizeLe U i1 j1).filter (fun S => x ∈ S) with hfam
-  have hHfam : H ∈ fam := by
-    rw [hfam, Finset.mem_filter]
-    refine ⟨?_, hxH⟩
-    rw [descriptionsWithComplexityLeAndSizeLe, Finset.mem_filter]
-    exact ⟨mem_descriptionsWithComplexityLe_of_complexity hHne (le_of_eq hi1), hHcard⟩
-  have hcntpos : 0 < fam.card := Finset.card_pos.mpr ⟨H, hHfam⟩
-  set k := Nat.log 2 fam.card with hkdef
-  have hk1 : 2 ^ k ≤ fam.card := Nat.pow_log_le_self 2 (by omega)
-  have hk2 : fam.card < 2 ^ (k + 1) := Nat.lt_pow_succ_log_self (by norm_num) _
-  have hmany : ManyIJDescriptions U x i1 j1 k := hk1
-  have hnotmany : ¬ ManyIJDescriptions U x i1 j1 (k + 1) := by
-    rw [ManyIJDescriptions, not_le]
-    exact hk2
-  -- The heavy truncation is cheap given `x`.
+  obtain ⟨k, hmany, hnotmany⟩ := exists_many_not_many_descriptions U x H hxH i1 j1 hi1 hHcard
   have hrank := hRank H hHne x i1 j1 (k + 1) hxH hi1 hHcard hnotmany
-  have hgfin : condK V (codedUniformOn H hHne).code x ≠ ⊤ :=
-    condK_ne_top_of_optimal V hV _ _
-  set g := (condK V (codedUniformOn H hHne).code x).toNat with hgdef
-  have hg : condK V (codedUniformOn H hHne).code x = (g : ENat) :=
-    (ENat.coe_toNat hgfin).symm
+  have hgfin : condK V (codedUniformOn H hHne).code x ≠ ⊤ := condK_ne_top_of_optimal V hV _ _
+  set g := (condK V (codedUniformOn H hHne).code x).toNat
+  have hg : condK V (codedUniformOn H hHne).code x = (g : ENat) := (ENat.coe_toNat hgfin).symm
   have hRankFold : logSlack cRank (i1 + j1) ≤ logSlack cRank2 N := by
     refine le_trans (logSlack_mono_right cRank ?_) (hcRank2 N)
     omega
@@ -183,8 +168,7 @@ theorem inPlainDescriptionProfile_fst_of_pair_model
     omega
   have hkle : k ≤ i1 + 1 := hmany.le_succ
   have hRank2Bound : logSlack cRank2 N ≤ N + bRank2 := hbRank2 N
-  -- Conditional randomness forces a large fibre.
-  set N3 := 4 * N + (bSym + bPre2 + 2 + bRank2 + bSym) with hN3
+  set N3 := 4 * N + (bSym + bPre2 + 2 + bRank2 + bSym)
   have hqN3 : q ≤ N3 := by omega
   have hgN3 : g ≤ N3 := by omega
   have hfib := hFibLower B H hB hHne x y epsilon g q N3 hpair hrandom
@@ -195,40 +179,33 @@ theorem inPlainDescriptionProfile_fst_of_pair_model
   have hfibNat : l ≤ epsilon + g + q + F + logSlack cFib2 N := by
     have := hfib
     omega
-  -- Many descriptions produce a simpler one.
-  set k' := min k i1 with hk'
+  set k' := min k i1
   have hmany' : ManyIJDescriptions U x i1 j1 k' := hmany.mono_k (min_le_left _ _)
   have hdrop := hDrop x x.length i1 j1 k' rfl hmany' (min_le_right _ _)
   have hDropFold : logSlack cDrop (x.length + i1 + j1) ≤ logSlack cDrop2 N := by
     refine le_trans (logSlack_mono_right cDrop ?_) (hcDrop2 N)
     omega
-  set SD := logSlack cDrop (x.length + i1 + j1) with hSD
+  set SD := logSlack cDrop (x.length + i1 + j1)
   have hplain : InPlainDescriptionProfile V x (i1 - k' + SD + cBridge) (j1 + SD) :=
     hBridge x (i1 - k' + SD) (j1 + SD) hdrop
-  -- Chunk the description down to the target log-size.
-  set s := l - F with hs
+  set s := l - F
   have hchunk := hShift x (i1 - k' + SD + cBridge) (j1 + SD) s hplain
-  have hShiftFold : logSlack cShift s ≤ logSlack cShift N :=
-    logSlack_mono_right cShift (by omega)
-  -- Collect the slack budget.
-  have hslackSum :
-      logSlack cSym N + logSlack cPre2 N + logSlack cRank2 N + logSlack cDrop2 N +
-        logSlack cFib2 N + logSlack cShift N + cBridge + 2 ≤ logSlack c N := by
-    have h1 : logSlack cSym N + logSlack cPre2 N + logSlack cRank2 N + logSlack cDrop2 N +
+  have hShiftFold : logSlack cShift s ≤ logSlack cShift N := logSlack_mono_right cShift (by omega)
+  have hslackSum : logSlack cSym N + logSlack cPre2 N + logSlack cRank2 N + logSlack cDrop2 N +
+      logSlack cFib2 N + logSlack cShift N + cBridge + 2 ≤ logSlack c N := by
+    have hmerge : logSlack cSym N + logSlack cPre2 N + logSlack cRank2 N + logSlack cDrop2 N +
         logSlack cFib2 N + logSlack cShift N =
         logSlack (cSym + cPre2 + cRank2 + cDrop2 + cFib2 + cShift) N := by
       simp only [logSlack_add_const]
-    have h2 : logSlack (cSym + cPre2 + cRank2 + cDrop2 + cFib2 + cShift) N + (cBridge + 2) ≤
-        logSlack (cSym + cPre2 + cRank2 + cDrop2 + cFib2 + cShift + (cBridge + 2)) N :=
-      logSlack_add_const_le _ _ _
-    have h3 : logSlack (cSym + cPre2 + cRank2 + cDrop2 + cFib2 + cShift + (cBridge + 2)) N ≤
-        logSlack c N := logSlack_mono_left (by omega) N
+    have habsorb := logSlack_add_const_le
+      (cSym + cPre2 + cRank2 + cDrop2 + cFib2 + cShift) (cBridge + 2) N
+    have hsum : cSym + cPre2 + cRank2 + cDrop2 + cFib2 + cShift + (cBridge + 2) = c := by
+      omega
+    rw [hsum] at habsorb
     omega
   refine (hchunk.mono_i ?_).mono_j ?_
-  · -- complexity coordinate
-    have hk'k : i1 - k' + k ≤ i1 + 1 := by omega
+  · have hk'k : i1 - k' + k ≤ i1 + 1 := by omega
     omega
-  · -- size coordinate
-    omega
+  · omega
 
 end Kolmogorov

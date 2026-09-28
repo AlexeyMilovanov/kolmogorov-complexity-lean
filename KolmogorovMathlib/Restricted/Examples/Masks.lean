@@ -1,5 +1,14 @@
 import KolmogorovMathlib.Restricted.Family
 
+/-!
+# Masks as a description family
+
+A `Mask` is a list of `Option Bool` in which `none` is a wildcard, and `maskSet m` the set of
+strings matching it; `maskFamilyMem` collects those sets. The module records their basic
+properties and cardinalities and concludes with `maskFamily`, the description family they form,
+and `maskFamily_hasPolynomialOverhead`: the covering overhead is the constant `maskOverhead = 2`.
+-/
+
 namespace Kolmogorov
 
 open Kolmogorov.CodedFiniteDistribution
@@ -17,13 +26,14 @@ def maskSet (m : Mask) : Finset BitString :=
 def maskFamilyMem (A : Finset BitString) : Prop :=
   ∃ m : Mask, A = maskSet m
 
+/-- A member of the mask family is non-empty. -/
 theorem maskFamilyMem_nonempty {A : Finset BitString} (h : maskFamilyMem A) : A.Nonempty :=
   by
     rcases h with ⟨m, rfl⟩
     refine ⟨m.map (fun b => b.getD false), ?_⟩
     rw [maskSet, Finset.mem_filter]
     constructor
-    · rw [memStringsOfLength, List.length_map]
+    · rw [mem_stringsOfLength, List.length_map]
     · intro i hi b hfixed
       rw [List.getElem?_map]
       rw [hfixed]
@@ -32,9 +42,11 @@ theorem maskFamilyMem_nonempty {A : Finset BitString} (h : maskFamilyMem A) : A.
 /-- The overhead for masks is a constant 2. -/
 def maskOverhead (_n : ℕ) : ℕ := 2
 
+/-- The overhead of the mask family is positive. -/
 theorem maskOverhead_pos (n : ℕ) : 0 < maskOverhead n := by
   simp [maskOverhead]
 
+/-- The whole cube `{0,1}^n` is a member of the mask family, given by the all-wildcard mask. -/
 theorem maskFamily_fullCube (n : ℕ) : maskFamilyMem (stringsOfLength n) :=
   by
     refine ⟨List.replicate n none, ?_⟩
@@ -56,7 +68,7 @@ redundant, since `m[i]? = some (some b)` already forces `i < m.length`). -/
 theorem mem_maskSet (m : Mask) (x : BitString) :
     x ∈ maskSet m ↔ x.length = m.length ∧
       ∀ (i : ℕ) (b : Bool), m[i]? = some (some b) → x[i]? = some b := by
-  rw [maskSet, Finset.mem_filter, memStringsOfLength]
+  rw [maskSet, Finset.mem_filter, mem_stringsOfLength]
   constructor
   · rintro ⟨hlen, h⟩
     refine ⟨hlen, fun i b hb => ?_⟩
@@ -171,6 +183,7 @@ def fixWildcards : Mask → ℕ → List Mask
       | 0 => (fixWildcards t 0).map (fun m' => some false :: m') ++
              (fixWildcards t 0).map (fun m' => some true :: m')
 
+/-- Fixing all but `keep` wildcards of a mask produces `2 ^ (wild - keep)` refinements. -/
 theorem fixWildcards_length (m : Mask) (keep : ℕ) :
     (fixWildcards m keep).length = 2 ^ (maskWild m - keep) := by
   induction m generalizing keep with
@@ -187,6 +200,7 @@ theorem fixWildcards_length (m : Mask) (keep : ℕ) :
       | succ k =>
           simpa [fixWildcards, maskWild, List.length_map, Nat.succ_sub_succ] using ih k
 
+/-- Each refinement produced has exactly `min keep (wild m)` wildcards left. -/
 theorem fixWildcards_maskWild (m : Mask) (keep : ℕ) :
     ∀ m' ∈ fixWildcards m keep, maskWild m' = min keep (maskWild m) := by
   induction m generalizing keep with
@@ -220,6 +234,7 @@ theorem fixWildcards_maskWild (m : Mask) (keep : ℕ) :
             rw [ih 0 a ha]
             omega
 
+/-- The refinements of a mask cover its set of strings. -/
 theorem fixWildcards_cover (m : Mask) (keep : ℕ) :
     ∀ x ∈ maskSet m, ∃ m' ∈ fixWildcards m keep, x ∈ maskSet m' := by
   induction m generalizing keep with
@@ -277,6 +292,7 @@ def maskList : Mask → List BitString
   | some b :: t => (maskList t).map (fun x => b :: x)
   | none :: t => (maskList t).map (fun x => false :: x) ++ (maskList t).map (fun x => true :: x)
 
+/-- The list of strings matching a mask has the mask's set as its underlying finite set. -/
 theorem maskList_toFinset (m : Mask) : (maskList m).toFinset = maskSet m := by
   ext y
   rw [List.mem_toFinset]
@@ -328,25 +344,30 @@ def decodeMask (w : BitString) : Mask := (decodeListCode w).map decodeOptionBool
 /-- Encode a mask into a bitstring. -/
 def encodeMask (m : Mask) : BitString := listCode (m.map encodeOptionBool)
 
+/-- Decoding the encoding of a mask returns the mask. -/
 theorem decodeMask_encodeMask (m : Mask) : decodeMask (encodeMask m) = m := by
   unfold decodeMask encodeMask;
   rw [ decodeListCode_listCode ];
   induction m <;> simp_all +decide only [List.map_cons, List.map_map, List.cons.injEq, and_true]
   rename_i k hk ih; cases k <;> rfl;
 
+/-- The set of strings matching a mask is non-empty. -/
 theorem maskSet_nonempty (m : Mask) : (maskSet m).Nonempty :=
   maskFamilyMem_nonempty ⟨m, rfl⟩
 
+/-- Decoding one mask symbol is primitive recursive. -/
 theorem decodeOptionBool_primrec : Primrec decodeOptionBool := by
   refine .of_eq (f := fun w => if w = [] then none else some ( w.head! )) ?_ ?_;
   · convert Primrec.list_head? using 1;
     exact funext fun x => by cases x <;> rfl;
   · intro n; cases n <;> rfl;
 
+/-- Decoding a mask from a bit string is primitive recursive. -/
 theorem decodeMask_primrec : Primrec decodeMask := by
   convert Primrec.list_map decodeListCode_primrec
       (decodeOptionBool_primrec.comp (Primrec.snd) |> Primrec.to₂) using 1
 
+/-- Listing the strings matching a mask is primitive recursive. -/
 theorem maskList_primrec : Primrec maskList := by
   have hstep : Primrec₂ (fun (_ : Mask) (p : Option Bool × List BitString) =>
       Option.casesOn (motive := fun _ => List BitString) p.1
@@ -371,11 +392,13 @@ theorem maskList_primrec : Primrec maskList := by
 noncomputable def maskCode (w : BitString) : BitString :=
   canonicalUniformCodeOfList (canonicalFinsetList (maskList (decodeMask w)).toFinset)
 
+/-- The canonical uniform code of the set described by a mask is primitive recursive in the mask. -/
 theorem maskCode_primrec : Primrec maskCode := by
   convert Primrec.comp ( canonicalUniformCodeOfList_primrec )
       ( Primrec.comp ( canonicalFinsetList_toFinset_primrec ) ( maskList_primrec.comp (
             decodeMask_primrec ) ) ) using 1
 
+/-- The code computed from a mask is the canonical uniform code of the set it describes. -/
 theorem maskCode_eq_code (w : BitString) :
     maskCode w = (codedUniformOn (maskSet (decodeMask w)) (maskSet_nonempty _)).code := by
       convert canonicalUniformCodeOfList_canonicalFinsetList _ _ using 1
@@ -386,16 +409,19 @@ theorem maskCode_eq_code (w : BitString) :
 /-- Stage `t` of the mask enumeration. -/
 noncomputable def maskEnum (t : ℕ) : List BitString := (boundedPrograms t).map maskCode
 
+/-- The stage enumeration of codes of mask sets is computable. -/
 theorem maskEnum_computable : Computable maskEnum := by
   unfold maskEnum
   exact (Primrec.list_map primrec_boundedPrograms ((maskCode_primrec.comp Primrec.snd).to₂)).to_comp
 
+/-- Each stage of the enumeration of mask codes is a prefix of the next. -/
 theorem maskEnum_mono (t : ℕ) : maskEnum t <+: maskEnum (t + 1) := by
   -- By definition of `maskEnum`, we know that `maskEnum t = (boundedPrograms t).map maskCode`.
   simp only [maskEnum]
   rw [ boundedPrograms_succ ];
   simp +decide [ List.map_append ]
 
+/-- Every code listed by the enumeration is the canonical uniform code of a mask set. -/
 theorem maskEnum_sound (t : ℕ) : ∀ w ∈ maskEnum t,
     ∃ (S : Finset BitString) (hS : S.Nonempty),
       maskFamilyMem S ∧ w = (codedUniformOn S hS).code := by
@@ -404,6 +430,7 @@ theorem maskEnum_sound (t : ℕ) : ∀ w ∈ maskEnum t,
           unfold maskEnum at hw; aesop;
         exact ⟨ _, maskSet_nonempty _, ⟨ _, rfl ⟩, hv.1.trans ( maskCode_eq_code _ ) ⟩
 
+/-- Every mask set has its canonical uniform code listed at some stage. -/
 theorem maskEnum_complete : ∀ (S : Finset BitString) (hS : S.Nonempty),
     maskFamilyMem S → ∃ t, (codedUniformOn S hS).code ∈ maskEnum t := by
       intro S hS hS';
@@ -459,6 +486,7 @@ noncomputable def maskFamily : DescriptionFamily where
   overhead_pos := maskOverhead_pos
   cover := maskFamily_cover
 
+/-- The family of mask sets has polynomial covering overhead, in fact overhead `2`. -/
 theorem maskFamily_hasPolynomialOverhead : maskFamily.HasPolynomialOverhead := by
   refine ⟨2, 0, by decide, ?_⟩
   intro n

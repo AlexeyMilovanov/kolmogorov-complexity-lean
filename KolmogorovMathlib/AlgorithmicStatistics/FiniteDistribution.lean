@@ -1,9 +1,13 @@
-import KolmogorovMathlib.AlgorithmicStatistics.Basic
 import KolmogorovMathlib.Complexity.Incompressibility
 import Mathlib.Algebra.BigOperators.Group.Finset.Basic
-import Mathlib.Topology.Algebra.InfiniteSum.ENNReal
 import KolmogorovMathlib.Prefix.Encoding
+import KolmogorovMathlib.Prefix.TwoStage
+import Mathlib.Data.ENNReal.Inv
+import Mathlib.Topology.Algebra.InfiniteSum.Basic
+import Mathlib.Topology.Order.Real
+import KolmogorovMathlib.AlgorithmicStatistics.Basic
 import KolmogorovMathlib.Prefix.Symmetry
+import Mathlib.Topology.Algebra.InfiniteSum.ENNReal
 
 /-!
 # Finite Probability Models
@@ -29,6 +33,7 @@ namespace FiniteDistribution
 
 variable (P : FiniteDistribution)
 
+/-- A point outside the support of a distribution has mass zero. -/
 @[simp] theorem mass_eq_zero (x : BitString) (hx : x ∉ P.support) : P.mass x = 0 :=
   P.mass_eq_zero_of_not_mem_support x hx
 
@@ -64,9 +69,11 @@ noncomputable def dirac (x : BitString) : FiniteDistribution where
   sum_mass := by
     simp only [Finset.sum_singleton, ite_true]
 
+/-- The Dirac distribution at `x` gives `x` mass one. -/
 @[simp] theorem dirac_mass_self (x : BitString) : (dirac x).mass x = 1 := by
   simp [dirac]
 
+/-- The Dirac distribution at `x` gives every other point mass zero. -/
 @[simp] theorem dirac_mass_ne (x y : BitString) (h : y ≠ x) : (dirac x).mass y = 0 := by
   simp [dirac, h]
 
@@ -92,12 +99,14 @@ noncomputable def uniformOn (S : Finset BitString) (hS : S.Nonempty) (code : Bit
     simp only [Finset.sum_const, nsmul_eq_mul]
     exact ENNReal.mul_inv_cancel hcard (ENNReal.natCast_ne_top _)
 
+/-- The uniform distribution on `S` gives each member mass `1 / |S|`. -/
 @[simp] theorem uniformOn_mass_of_mem (S : Finset BitString) (hS : S.Nonempty) (code : BitString)
     (x : BitString) (hx : x ∈ S) :
     (uniformOn S hS code).mass x = (S.card : ℝ≥0∞)⁻¹ := by
   dsimp [uniformOn]
   rw [if_pos hx]
 
+/-- The uniform distribution on `S` gives points outside `S` mass zero. -/
 @[simp] theorem uniformOn_mass_of_not_mem (S : Finset BitString) (hS : S.Nonempty)
     (code : BitString) (x : BitString) (hx : x ∉ S) :
     (uniformOn S hS code).mass x = 0 := by
@@ -106,23 +115,26 @@ noncomputable def uniformOn (S : Finset BitString) (hS : S.Nonempty) (code : Bit
 
 /-! ### Uniform Distribution on Strings of a Fixed Length -/
 
+/-- There is at least one string of each length. -/
 theorem stringsOfLength_nonempty (n : ℕ) : (stringsOfLength n).Nonempty := by
-  rw [Finset.card_pos.symm, cardStringsOfLength]
+  rw [Finset.card_pos.symm, card_stringsOfLength]
   exact pow_pos (by decide) n
 
 /-- The uniform distribution on all strings of length `n`. -/
 noncomputable def lengthUniform (n : ℕ) : FiniteDistribution :=
   uniformOn (stringsOfLength n) (stringsOfLength_nonempty n) (natCode n)
 
+/-- The uniform distribution on strings of length `n` gives each of them mass `2⁻¹ ^ n`. -/
 theorem lengthUniform_mass_of_mem (n : ℕ) (x : BitString) (hx : x.length = n) :
     (lengthUniform n).mass x = (2 : ℝ≥0∞)⁻¹ ^ n := by
-  have hmem : x ∈ stringsOfLength n := (memStringsOfLength n x).mpr hx
-  rw [lengthUniform, uniformOn_mass_of_mem _ _ _ _ hmem, cardStringsOfLength]
+  have hmem : x ∈ stringsOfLength n := (mem_stringsOfLength n x).mpr hx
+  rw [lengthUniform, uniformOn_mass_of_mem _ _ _ _ hmem, card_stringsOfLength]
   rw [Nat.cast_pow, Nat.cast_two, ENNReal.inv_pow]
 
+/-- The uniform distribution on strings of length `n` gives strings of other lengths mass zero. -/
 theorem lengthUniform_mass_of_not_mem (n : ℕ) (x : BitString) (hx : x.length ≠ n) :
     (lengthUniform n).mass x = 0 := by
-  have hnotmem : x ∉ stringsOfLength n := mt (memStringsOfLength n x).mp hx
+  have hnotmem : x ∉ stringsOfLength n := mt (mem_stringsOfLength n x).mp hx
   rw [lengthUniform, uniformOn_mass_of_not_mem _ _ _ _ hnotmem]
 
 end Kolmogorov

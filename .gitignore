@@ -1,9 +1,4 @@
 /.lake
-/build.log
-/build_all.log
-/build_final.log
-/build_warnings.log
-/build_warnings_snapshot.log
 /*.log
 /test*.lean
 /scratch*.lean
@@ -14,6 +9,6 @@
 /real.lean
 /fix*.lean
 /*.tmp
-/t1
-/t2
 /.DS_Store
+/scripts/__pycache__/
+**/__pycache__/

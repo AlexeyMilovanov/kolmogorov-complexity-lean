@@ -28,7 +28,7 @@ theorem plainK_append_le_pairPlainK (V : Map) (hV : isOptimalConditional V) :
       plainK V (x ++ y) ≤ pairPlainK V x y + (c : ENat) := by
   have hg : Computable (fun w : BitString => decodeFirst w ++ decodeSecond w) :=
     Computable.list_append.comp decodeFirst_computable decodeSecond_computable
-  obtain ⟨c, hc⟩ := plainKMapLe V hV (fun w => decodeFirst w ++ decodeSecond w) hg
+  obtain ⟨c, hc⟩ := plainK_map_le V hV (fun w => decodeFirst w ++ decodeSecond w) hg
   refine ⟨c, fun x y => ?_⟩
   have h := hc (pairCode x y)
   simpa [pairPlainK, decodeFirst_pairCode, decodeSecond_pairCode] using h
@@ -44,7 +44,7 @@ theorem pairPlainK_le_plainK_add_plainK_values (V : Map) (hV : isOptimalConditio
       HasPlainComplexityValue V (pairCode x y) kxy →
       kxy ≤ kx + ky + logSlack c (kxy + 1) := by
   obtain ⟨cUpper, hUpper⟩ := pairPlainK_chain_upper_values V hV
-  obtain ⟨cCond, hCond⟩ := condKLePlainK V hV
+  obtain ⟨cCond, hCond⟩ := condK_le_plainK V hV
   refine ⟨cUpper + cCond, fun x y kx ky kxy hx hy hxy => ?_⟩
   obtain ⟨kyx, hkyx⟩ := exists_plainConditionalComplexityValue V hV y x
   have hkyxle : kyx ≤ ky + cCond := by
@@ -99,7 +99,7 @@ theorem condK_shortestDescription_le (V : Map) (hV : isOptimalConditional V) :
       p.length = k →
       condK V p x ≤ (logSlack c (k + 1) : ENat) := by
   obtain ⟨cPair, hPair⟩ := pairPlainK_output_program_le_plainK_program V hV
-  obtain ⟨cLength, hLength⟩ := plainKLeLength V hV
+  obtain ⟨cLength, hLength⟩ := plainK_le_length V hV
   obtain ⟨cChain, hChain⟩ := pairPlainK_chain_lower_values V hV
   obtain ⟨cClose, hClose⟩ := chain_lower_close_conditional (cLength + cPair) cChain
   refine ⟨cClose, fun x p k hx hp hpLength => ?_⟩

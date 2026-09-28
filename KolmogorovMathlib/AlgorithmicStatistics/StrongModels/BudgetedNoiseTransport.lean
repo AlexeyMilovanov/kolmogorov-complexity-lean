@@ -39,6 +39,7 @@ statement below asks for it with no such restriction.
 
 namespace Kolmogorov
 
+open CodedFiniteDistribution
 open Nat
 
 /-- **Sharp form of the two-part-sum conversion.**  Identical to
@@ -58,7 +59,7 @@ theorem isStochastic_of_plainProfile_twoPartSum_sharp
       i + j ≤ kz + beta →
       IsStochastic U z (i + logSlack c N) (beta + logSlack c N) := by
   obtain ⟨cB, hB⟩ := inDescriptionProfile_of_inPlainDescriptionProfile V U hV hU
-  obtain ⟨cP, hP⟩ := plainK_le_KPPlain V U hV hU.isPrefixDecompressor
+  obtain ⟨cP, hP⟩ := plain_le_prefix V U hV hU.isPrefixDecompressor
   obtain ⟨cR, hR⟩ := randomness_optimality U hU
   refine ⟨cB + cP + cR, fun z N kz i j beta hi hkz hprof hsum => ?_⟩
   obtain ⟨A, hA, hzA, hcompA, hcardA⟩ := hB z i j hprof
@@ -94,28 +95,12 @@ theorem isStochastic_of_plainProfile_twoPartSum_sharp
       exact h
     omega
 
-/-- **The budget-scale forward plain corner.**  An `(alpha, beta)`-stochasticity
-witness for `x` yields an ordinary plain `(i, j)` description with
-
-* `i ≤ alpha + O(log baseBudget)` and
-* `i + j ≤ C(x) + beta + O(log baseBudget)`,
-
-where the *only* visible parameter in the slack is a complexity budget
-`baseBudget ≥ C(x)`: neither the length `l(x)`, nor `alpha`, nor `beta` occurs.
-
-The `alpha`-freeness is already proved (`isStochastic_alpha_le_budget`); the
-proved corner `budgeted_stochasticity_to_plain_corner_of_length_le` gives this
-statement whenever `l(x) ≤ baseBudget` and `beta ≤ baseBudget`.
-
-It is *not* claimed here that the statement holds in general: the proved §3
-route (deficiencies theorem plus improving descriptions) pays
-`O(log (C(x) + alpha + beta))`, and the residual `log beta` is precisely what
-the length-scale argument removes by truncating `beta` first.  This shows that
-the currently proved §3 route does not establish the statement; it is not a
-refutation of the statement in the large-`beta` regime.  The proposition is
-retained as a research/reduction interface for the conditional assembly below,
-not as an external dependency that may be assumed to complete `prop:upward`.
-The completion route remains the direct charged heavy-truncation argument. -/
+/-- The budget-scale forward plain corner, as a proposition about `V` and `U`: there is a
+constant `c` such that for every `x` with `plainK V x = kx ≤ baseBudget` and every
+`(alpha, beta)`-stochasticity witness for `x`, the string `x` has a plain `(i, j)`-description
+with `i ≤ alpha + logSlack c baseBudget` and `i + j ≤ kx + beta + logSlack c baseBudget`; the
+slack depends on the complexity budget only.  It is used as a hypothesis; it is not proved
+here. -/
 def BudgetedPlainProfileCornerStatement (V U : Map) : Prop :=
   ∃ c : Nat, ∀ (x : BitString) (kx baseBudget alpha beta : Nat),
     plainK V x = (kx : ENat) →
@@ -126,14 +111,7 @@ def BudgetedPlainProfileCornerStatement (V U : Map) : Prop :=
       i ≤ alpha + logSlack c baseBudget ∧
       i + j ≤ kx + beta + logSlack c baseBudget
 
-/-- **The reduction.**  The budget-scale forward corner implies the full
-budgeted random-noise transport required by `prop:upward`.
-
-All remaining ingredients are budget-scale: the `alpha`-reduction, the uniform
-noise extension (slack `O(log l(y))`), the budgeted pair symmetry of information
-`plainK_pair_ge_plainK_add_length_of_random_budget`, and the sharp two-part-sum
-conversion `isStochastic_of_plainProfile_twoPartSum_sharp`, whose slack is
-logarithmic in the complexity coordinate only. -/
+/-- The budget-scale forward plain corner implies the budgeted random-noise transport. -/
 theorem budgetedRandomNoiseTransport_of_budgetedPlainCorner
     (V U : Map) (hV : isOptimalConditional V)
     (hU : IsOptimalPrefixConditional U)

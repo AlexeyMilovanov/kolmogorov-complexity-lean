@@ -3,112 +3,25 @@ import KolmogorovMathlib.Foundation.NatEncoding
 import KolmogorovMathlib.Prefix.ConditionalSymmetry
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.SlackArith
 import KolmogorovMathlib.Encoding.Tuples
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.AddNoise
 
 namespace Kolmogorov
 open scoped ENNReal
 
-/-- Run the ordinary conditional decompressor `V`, but accept only programs
-whose length is encoded in the second component of the context.  For every
-fixed context all halting programs therefore have the same length. -/
-def conditionalPlainLengthDecompressor (V : Map) : Map := fun pr =>
-  bif (pr.1.length == decodeBits (decodeSecond pr.2))
-    then V (pr.1, decodeFirst pr.2)
-    else Part.none
+/-!
+# Exact-budget corollaries
 
-/-- The fixed-length wrapper remains a partial recursive decompressor. -/
-theorem conditionalPlainLengthDecompressor_partrec
-    (V : Map) (hV : isDecompressor V) :
-    isDecompressor (conditionalPlainLengthDecompressor V) := by
-  unfold conditionalPlainLengthDecompressor isDecompressor
-  have hcond : Computable (fun (pr : BitString × BitString) =>
-      pr.1.length == decodeBits (decodeSecond pr.2)) := by
-    apply Primrec.to_comp
-    apply Primrec₂.comp Primrec.beq
-    · apply Primrec.list_length.comp Primrec.fst
-    · apply primrecDecodeBits.comp (decodeSecond_primrec'.comp Primrec.snd)
-  have hbody : Partrec (fun (pr : BitString × BitString) => V (pr.1, decodeFirst pr.2)) := by
-    apply hV.comp
-    apply Computable.pair
-    · exact Computable.fst
-    · apply Primrec.to_comp (decodeFirst_primrec'.comp Primrec.snd)
-  exact Partrec.cond hcond hbody Partrec.none
+The exact-budget decompressor `conditionalPlainLengthDecompressor` and the
+bound `KP_le_condK_given_plain_program_length` live in
+`AlgorithmicStatistics/StrongModels/AddNoise.lean`; this module only adds the
+two corollaries that turn an exact complexity value into a prefix-complexity
+bound with a logarithmic surcharge.  (Both used to be duplicated here, which
+made this module impossible to import together with the `KolmogorovMathlib`
+aggregate.)
+-/
 
-/-- At each context, the fixed-length wrapper has prefix-free domain. -/
-theorem conditionalPlainLengthDecompressor_isPrefixMachine
-    (V : Map) :
-    IsPrefixMachine (conditionalPlainLengthDecompressor V) := by
-  intro y p hp q hq hpre
-  unfold domainAt conditionalPlainLengthDecompressor at hp hq
-  dsimp at hp hq
-  have hp_cond : p.length == decodeBits (decodeSecond y) := by
-    cases h : p.length == decodeBits (decodeSecond y)
-    · rw [h] at hp; change False at hp; exact False.elim hp
-    · rfl
-  have hq_cond : q.length == decodeBits (decodeSecond y) := by
-    cases h : q.length == decodeBits (decodeSecond y)
-    · rw [h] at hq; change False at hq; exact False.elim hq
-    · rfl
-  have hlen : p.length = q.length := by
-    have h1 := beq_iff_eq.mp hp_cond
-    have h2 := beq_iff_eq.mp hq_cond
-    omega
-  exact hpre.eq_of_length hlen
 
-/-- A `V`-program is accepted when its exact length is supplied in the
-context. -/
-theorem conditionalPlainLengthDecompressor_produces
-    {V : Map} {p y x : BitString} {k : Nat}
-    (hprod : produces V p y x) (hlen : p.length = k) :
-    produces (conditionalPlainLengthDecompressor V) p
-      (pairCode y (Nat.bits k)) x := by
-  unfold produces conditionalPlainLengthDecompressor
-  dsimp
-  have hlen' : p.length == decodeBits (decodeSecond (pairCode y (Nat.bits k))) := by
-    rw [decodeSecond_pairCode, decodeBits_natBits, hlen]
-    exact beq_self_eq_true k
-  rw [hlen', cond_true, decodeFirst_pairCode]
-  exact hprod
-
-/-- Exact conditional plain complexity becomes an upper bound for conditional
-prefix complexity when that exact program length is included in the context.
-The additive constant is uniform in the strings and in the complexity value. -/
-theorem KP_le_condK_given_plain_program_length
-    (V U : Map) (hV : isOptimalConditional V)
-    (hU : IsOptimalPrefixConditional U) :
-    ∃ c : Nat, ∀ (x y : BitString) (k : Nat),
-      condK V x y = (k : ENat) →
-      KP U x (pairCode y (Nat.bits k)) ≤ (k + c : Nat) := by
-  have hM : IsPrefixDecompressor (conditionalPlainLengthDecompressor V) :=
-    ⟨conditionalPlainLengthDecompressor_partrec V hV.1,
-      conditionalPlainLengthDecompressor_isPrefixMachine V⟩
-  obtain ⟨c, hc⟩ := hU.invariance hM
-  refine ⟨c, ?_⟩
-  intro x y k hk
-  have hfinite : KP V x y ≠ ⊤ := by
-    rw [KP_eq_condK, hk]
-    exact ENat.coe_ne_top k
-  obtain ⟨p, hp, hpLen⟩ :=
-    exists_program_of_KP_ne_top (M := V) (x := x) (y := y) hfinite
-  have hpLenNat : p.length = k := by
-    have : (p.length : ENat) = (k : ENat) := by
-      rw [hpLen, KP_eq_condK, hk]
-    exact_mod_cast this
-  have hpWrapped : produces (conditionalPlainLengthDecompressor V) p
-      (pairCode y (Nat.bits k)) x :=
-    conditionalPlainLengthDecompressor_produces hp hpLenNat
-  calc
-    KP U x (pairCode y (Nat.bits k))
-        ≤ KP (conditionalPlainLengthDecompressor V) x
-            (pairCode y (Nat.bits k)) + (c : ENat) :=
-          hc x (pairCode y (Nat.bits k))
-    _ ≤ (p.length : ENat) + (c : ENat) := by
-          gcongr
-          exact KP_le_programLength_of_produces hpWrapped
-    _ = (k + c : Nat) := by
-          rw [hpLenNat]
-          norm_cast
-
-theorem KP_le_condK_of_exact_budget
+private theorem KP_le_condK_of_exact_budget
     (V U : Map) (hV : isOptimalConditional V)
     (hU : IsOptimalPrefixConditional U) :
     ∃ C : Nat, ∀ x y (k N : Nat),
@@ -142,7 +55,7 @@ theorem KP_le_condK_of_exact_budget
           push_cast; abel
     _ ≤ ((k + C * (Nat.bits N).length + C : Nat) : ENat) := by exact_mod_cast h_bound
 
-theorem KPPlain_le_plainK_of_exact_budget
+private theorem KPPlain_le_plainK_of_exact_budget
     (V U : Map) (hV : isOptimalConditional V)
     (hU : IsOptimalPrefixConditional U) :
     ∃ C : Nat, ∀ x (k N : Nat),

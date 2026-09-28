@@ -19,6 +19,7 @@ that neither `l(x)` nor `alpha` is restricted.
 
 namespace Kolmogorov
 
+open CodedFiniteDistribution
 open Nat
 
 /-- **The budgeted random-noise transport for `beta ≤ baseBudget`.**  Adding

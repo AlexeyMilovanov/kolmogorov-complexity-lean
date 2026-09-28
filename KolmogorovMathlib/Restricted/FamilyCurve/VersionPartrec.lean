@@ -1,7 +1,7 @@
 import KolmogorovMathlib.Restricted.FamilyCurve.VersionDecoder
 
 /-!
-# M7: uniform computability layer of the version decoder
+# Uniform computability layer of the version decoder
 
 Partial-recursiveness of the version decoder, uniform in the encoded grid.
 The decoder definitions themselves live in `VersionDecoder.lean`.
@@ -37,11 +37,11 @@ lemma restrictedSampledBadCodesRaw_computable_all (c : Code)
   have hindex : Computable (fun r : Q × (ℕ × List BitString) => r.2.1) :=
     Computable.fst.comp Computable.snd
   have hsample : Computable (fun r : Q × (ℕ × List BitString) =>
-      decode_restrictedCurveGridCode_sample r.1.1.1.1 r.2.1) :=
+      decodeRestrictedCurveGridCodeSample r.1.1.1.1 r.2.1) :=
     (decode_restrictedCurveGridCode_sample_primrec.to_comp.comp
       (Computable.pair hgrid hindex)).of_eq fun _ => rfl
   have hnextSample : Computable (fun r : Q × (ℕ × List BitString) =>
-      decode_restrictedCurveGridCode_sample r.1.1.1.1 (r.2.1 + 1)) :=
+      decodeRestrictedCurveGridCodeSample r.1.1.1.1 (r.2.1 + 1)) :=
     (decode_restrictedCurveGridCode_sample_primrec.to_comp.comp
       (Computable.pair hgrid (Computable.succ.comp hindex))).of_eq fun _ => rfl
   have hΔ : Computable (fun r : Q × (ℕ × List BitString) => r.1.1.2) :=
@@ -49,23 +49,23 @@ lemma restrictedSampledBadCodesRaw_computable_all (c : Code)
   have ht : Computable (fun r : Q × (ℕ × List BitString) => r.1.2) :=
     Computable.snd.comp Computable.fst
   have hj : Computable (fun r : Q × (ℕ × List BitString) =>
-      (decode_restrictedCurveGridCode_sample r.1.1.1.1 r.2.1).2 -
+      (decodeRestrictedCurveGridCodeSample r.1.1.1.1 r.2.1).2 -
         (r.1.1.2 + 1)) :=
     (Primrec.nat_sub.to_comp.comp (Computable.snd.comp hsample)
       (Computable.succ.comp hΔ)).of_eq fun _ => rfl
   have hstage : Computable (fun r : Q × (ℕ × List BitString) =>
       familyStageModelCodesList c
-        (decode_restrictedCurveGridCode_sample r.1.1.1.1 (r.2.1 + 1)).1
+        (decodeRestrictedCurveGridCodeSample r.1.1.1.1 (r.2.1 + 1)).1
         𝒜
-        ((decode_restrictedCurveGridCode_sample r.1.1.1.1 r.2.1).2 -
+        ((decodeRestrictedCurveGridCodeSample r.1.1.1.1 r.2.1).2 -
           (r.1.1.2 + 1)) r.1.2) :=
     ((familyStageModelCodesList_computable_uniform c 𝒜).comp
       (Computable.pair (Computable.fst.comp hnextSample)
         (Computable.pair hj ht))).of_eq fun _ => rfl
   have hstep : Computable₂ (fun (_p : Q) (r : ℕ × List BitString) =>
       r.2 ++ familyStageModelCodesList c
-        (decode_restrictedCurveGridCode_sample _p.1.1.1 (r.1 + 1)).1 𝒜
-        ((decode_restrictedCurveGridCode_sample _p.1.1.1 r.1).2 -
+        (decodeRestrictedCurveGridCodeSample _p.1.1.1 (r.1 + 1)).1 𝒜
+        ((decodeRestrictedCurveGridCodeSample _p.1.1.1 r.1).2 -
           (_p.1.2 + 1)) _p.2) :=
     ((Computable.list_append.comp
       (Computable.snd.comp Computable.snd) hstage).to₂).of_eq fun _ => rfl
@@ -158,14 +158,14 @@ lemma restrictedEffectiveSampledRunStepInput_primrec_all :
   have hsuffix := Primrec.list_drop.comp (Primrec.fst.comp Primrec.snd)
     (Primrec.succ.comp hq)
   have hsuffixBits := Primrec.list_map hsuffix
-    (primrecNatBits.comp Primrec.snd).to₂
+    (primrec_natBits.comp Primrec.snd).to₂
   unfold restrictedEffectiveSampledRunStepInput
   unfold restrictedEffectiveRebuildSuffixInput
   exact listCode_primrec.comp
     (Primrec.list_cons.comp hpredecessor
       (Primrec.list_cons.comp hliveAtQ
         (Primrec.list_cons.comp (listCode_primrec.comp hsuffixBits)
-          (Primrec.list_cons.comp (primrecNatBits.comp Primrec.fst)
+          (Primrec.list_cons.comp (primrec_natBits.comp Primrec.fst)
             (Primrec.const [])))))
 
 /-- The decoded size list is computable jointly in code and parameters. -/
@@ -178,7 +178,7 @@ lemma restrictedAnchoredSizesFromCode_computable_all :
       (Computable.pair (Computable.fst.comp Computable.fst)
         (Computable.snd.comp Computable.fst))
   have hhead : Computable (fun p : ((BitString × ℕ) × ℕ) × ℕ => 2 ^ p.2) :=
-    twoPow_primrec.to_comp.comp Computable.snd
+    primrec_two_pow_aux.to_comp.comp Computable.snd
   unfold restrictedAnchoredSizesFromCode
   exact Computable.list_cons.comp hhead hsizes
 
@@ -216,20 +216,20 @@ lemma restrictedAnchoredInitialFromCode_partrec_packed
     fullCubeUniformCode_primrec.comp hamb
   have hsizes : Primrec (fun q : BitString × ℕ =>
       (List.range ((Nat.unpair (Nat.unpair q.2).2).1 + 1)).map (fun s =>
-        2 ^ ((decode_restrictedCurveGridCode_sample q.1 s).2 -
+        2 ^ ((decodeRestrictedCurveGridCodeSample q.1 s).2 -
           ((Nat.unpair (Nat.unpair (Nat.unpair q.2).2).2).1 + 1)))) :=
     Primrec.list_map (Primrec.list_range.comp (Primrec.succ.comp hgs))
-      ((twoPow_primrec.comp (Primrec.nat_sub.comp
+      ((primrec_two_pow_aux.comp (Primrec.nat_sub.comp
         (Primrec.snd.comp
           (decode_restrictedCurveGridCode_sample_primrec.comp
             (Primrec.pair (Primrec.fst.comp Primrec.fst) Primrec.snd)))
         (Primrec.succ.comp (hΔ.comp Primrec.fst)))).to₂)
   have hsizesBits : Primrec (fun q : BitString × ℕ =>
       ((List.range ((Nat.unpair (Nat.unpair q.2).2).1 + 1)).map (fun s =>
-        2 ^ ((decode_restrictedCurveGridCode_sample q.1 s).2 -
+        2 ^ ((decodeRestrictedCurveGridCodeSample q.1 s).2 -
           ((Nat.unpair (Nat.unpair (Nat.unpair q.2).2).2).1 + 1)))).map
         Nat.bits) :=
-    Primrec.list_map hsizes (primrecNatBits.comp Primrec.snd).to₂
+    Primrec.list_map hsizes (primrec_natBits.comp Primrec.snd).to₂
   have hinput : Primrec (fun q : BitString × ℕ =>
       restrictedEffectiveRebuildSuffixInput
         (codedUniformOn
@@ -248,7 +248,7 @@ lemma restrictedAnchoredInitialFromCode_partrec_packed
       (Primrec.list_cons.comp hAcode
         (Primrec.list_cons.comp hAcode
           (Primrec.list_cons.comp (listCode_primrec.comp hsizesBits)
-            (Primrec.list_cons.comp (primrecNatBits.comp hq0)
+            (Primrec.list_cons.comp (primrec_natBits.comp hq0)
               (Primrec.const [])))))
   have hpost : Computable₂ (fun (q : BitString × ℕ) (output : BitString) =>
       restrictedEffectiveSampledStateCode

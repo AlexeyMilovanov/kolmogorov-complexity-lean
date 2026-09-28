@@ -1,6 +1,22 @@
 import KolmogorovMathlib.Restricted.FamilyCurve.EffectiveRun
 import KolmogorovMathlib.Restricted.FamilyCurve.BadStream
 import KolmogorovMathlib.Restricted.FamilyCurve.AnchoredRun
+import KolmogorovMathlib.Foundation.BigOperators
+
+/-!
+# Stabilization and output bounds for the restricted-family run
+
+This module controls the cumulative bad descriptions processed by the effective anchored run.
+It identifies membership in the bad-code unions, bounds their decoded volume and the length of
+the sampled bad stream, and deduces stabilization from the finite length bound.
+
+Grid padding then shows that the terminal live family is nonempty and avoids the profile bad
+set. The existence lemmas successively extract a terminal state, a structural output for a fixed
+code and an unconditional anchored output.
+
+`restrictedAnchoredState_to_sampledOutputCore` converts the terminal state into the core output
+consumed by the final curve assembly.
+-/
 
 namespace Kolmogorov
 
@@ -122,21 +138,6 @@ lemma restrictedAnchoredProcessedBadUnion_eq_codes
           List.flatMap_append]]
       rw [restrictedDecodedBadCodesUnion_append]
 
-/-- Removing duplicate indices from a list cannot increase a nonnegative
-natural-valued sum. -/
-private lemma sum_toFinset_le_list_sum {α : Type*} [DecidableEq α]
-    (values : α → ℕ) : ∀ items : List α,
-    ∑ item ∈ items.toFinset, values item ≤ (items.map values).sum := by
-  intro items
-  induction items with
-  | nil => simp
-  | cons item items ih =>
-      by_cases hitem : item ∈ items
-      · have hle : (items.map values).sum ≤
-            values item + (items.map values).sum := by omega
-        simpa [hitem] using ih.trans hle
-      · simpa [hitem] using Nat.add_le_add_left ih (values item)
-
 /-- A decoded-code union is no larger than the sum of the decoded set
 cardinalities, even when the code list contains repetitions. -/
 lemma restrictedDecodedBadCodesUnion_card_le (codes : List BitString) :
@@ -192,8 +193,8 @@ lemma restrictedSampledBadCodesRaw_decoded_volume_le
     ((restrictedSampledBadCodesRaw c gridCode 𝒜 gridSteps streamSlack time).map
         fun w => (decodeCoverCodeList w).toFinset.card).sum ≤
       ((List.range gridSteps).map fun s =>
-        2 ^ ((decode_restrictedCurveGridCode_sample gridCode (s + 1)).1 + 1) *
-          2 ^ ((decode_restrictedCurveGridCode_sample gridCode s).2 -
+        2 ^ ((decodeRestrictedCurveGridCodeSample gridCode (s + 1)).1 + 1) *
+          2 ^ ((decodeRestrictedCurveGridCodeSample gridCode s).2 -
             (streamSlack + 1))).sum := by
   induction gridSteps with
   | zero => simp [restrictedSampledBadCodesRaw]
@@ -205,9 +206,9 @@ lemma restrictedSampledBadCodesRaw_decoded_volume_le
         List.map_singleton, List.sum_singleton]
       exact Nat.add_le_add ih
         (familyStageModelCodesList_decoded_volume_le c
-          (decode_restrictedCurveGridCode_sample gridCode (gridSteps + 1)).1
+          (decodeRestrictedCurveGridCodeSample gridCode (gridSteps + 1)).1
           𝒜
-          ((decode_restrictedCurveGridCode_sample gridCode gridSteps).2 -
+          ((decodeRestrictedCurveGridCodeSample gridCode gridSteps).2 -
             (streamSlack + 1)) time)
 
 /-- Every code carried by the accumulated stream at time `t` is already in
@@ -227,9 +228,9 @@ lemma restrictedSampledBadCodeStream_mem_raw
         obtain ⟨s, hs, hcode⟩ := ih hprevious
         exact ⟨s, hs,
           (familyStageModelCodesList_mono c
-            (decode_restrictedCurveGridCode_sample gridCode (s + 1)).1
+            (decodeRestrictedCurveGridCodeSample gridCode (s + 1)).1
             𝒜
-            ((decode_restrictedCurveGridCode_sample gridCode s).2 - (Δ + 1))
+            ((decodeRestrictedCurveGridCodeSample gridCode s).2 - (Δ + 1))
             t).subset hcode⟩
       · exact mem_eraseDups_bitString.mp hcurrent
 
@@ -271,8 +272,8 @@ lemma restrictedAnchoredProcessedBadUnion_card_le
     _ ≤ (raw.map fun w => (decodeCoverCodeList w).toFinset.card).sum :=
       restrictedDecodedBadCodesUnion_card_le raw
     _ ≤ ((List.range N).map fun s =>
-          2 ^ ((decode_restrictedCurveGridCode_sample gridCode (s + 1)).1 + 1) *
-            2 ^ ((decode_restrictedCurveGridCode_sample gridCode s).2 -
+          2 ^ ((decodeRestrictedCurveGridCodeSample gridCode (s + 1)).1 + 1) *
+            2 ^ ((decodeRestrictedCurveGridCodeSample gridCode s).2 -
               (streamSlack + 1))).sum :=
       restrictedSampledBadCodesRaw_decoded_volume_le c gridCode 𝒜.toPre
         N streamSlack time
@@ -295,7 +296,7 @@ lemma restrictedSampledBadCodeStream_length_le
     (gridSteps Δ t : ℕ) :
     (restrictedSampledBadCodeStream c gridCode 𝒜 gridSteps Δ t).length ≤
       ((List.range gridSteps).map (fun s =>
-        2 ^ ((decode_restrictedCurveGridCode_sample gridCode (s + 1)).1 + 1))).sum := by
+        2 ^ ((decodeRestrictedCurveGridCodeSample gridCode (s + 1)).1 + 1))).sum := by
   classical
   have hsubset :
       (restrictedSampledBadCodeStream c gridCode 𝒜 gridSteps Δ t).toFinset ⊆
@@ -315,13 +316,13 @@ lemma restrictedSampledBadCodeStream_length_le
     _ ≤ (restrictedSampledBadCodesRaw c gridCode 𝒜 gridSteps Δ t).length :=
       List.toFinset_card_le _
     _ ≤ ((List.range gridSteps).map (fun s =>
-        2 ^ ((decode_restrictedCurveGridCode_sample gridCode (s + 1)).1 + 1))).sum := by
+        2 ^ ((decodeRestrictedCurveGridCodeSample gridCode (s + 1)).1 + 1))).sum := by
       rw [restrictedSampledBadCodesRaw, List.length_flatMap]
       apply List.sum_le_sum
       intro s hs
       exact familyStageModelCodesList_length_le c
-        (decode_restrictedCurveGridCode_sample gridCode (s + 1)).1 𝒜
-        ((decode_restrictedCurveGridCode_sample gridCode s).2 - (Δ + 1)) t
+        (decodeRestrictedCurveGridCodeSample gridCode (s + 1)).1 𝒜
+        ((decodeRestrictedCurveGridCodeSample gridCode s).2 - (Δ + 1)) t
 
 /-- A stream whose length is bounded across all later times has stabilized. -/
 lemma restrictedSampledBadCodeStream_stabilizes_of_length_bound
@@ -371,7 +372,7 @@ lemma restrictedSampledBadCodeStream_stabilizes
   exact restrictedSampledBadCodeStream_stabilizes_of_length_bound
     c gridCode 𝒜 gridSteps Δ
     ((List.range gridSteps).map (fun s =>
-      2 ^ ((decode_restrictedCurveGridCode_sample gridCode (s + 1)).1 + 1))).sum
+      2 ^ ((decodeRestrictedCurveGridCodeSample gridCode (s + 1)).1 + 1))).sum
     (restrictedSampledBadCodeStream_length_le c gridCode 𝒜 gridSteps Δ)
 
 /-- At every grid interval, the next horizontal coordinate plus the next
@@ -526,7 +527,7 @@ lemma restrictedAnchoredRun_terminal_nonempty
     rw [Finset.sdiff_nonempty]
     intro hsubset
     have hcube_card : (stringsOfLength ambientLength).card = 2 ^ ambientLength :=
-      cardStringsOfLength ambientLength
+      card_stringsOfLength ambientLength
     have hcard_le := Finset.card_le_card hsubset
     rw [hcube_card] at hcard_le
     omega

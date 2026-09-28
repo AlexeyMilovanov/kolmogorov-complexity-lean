@@ -1,6 +1,7 @@
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.NormalPair
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.ProfileCardinality
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.RemAddNoise
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.NormalPair
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.T3Boundary
 
 /-!
 # The auxiliary profile of VS40 Theorem `card`
@@ -16,26 +17,6 @@ namespace Kolmogorov
 
 open Kolmogorov.CodedFiniteDistribution
 
-/-- A string whose conditional complexity is strictly below `k` is a
-compressible word of budget `k - 1`.  Local copy of the S5 counting lemma so
-this S9 file does not depend on the strange-string cluster. -/
-private theorem mem_compressibleWords_of_condK_lt'
-    (V : Map) (x y : BitString) (k : ℕ) (hk : 1 ≤ k)
-    (h : condK V x y < (k : ENat)) :
-    x ∈ compressibleWords V y (k - 1) := by
-  rw [compressibleWords, Finset.mem_filter]
-  have h' : sInf (candidateLengths V x y) < (k : ENat) := h
-  obtain ⟨len, h_mem_len, h_val_lt⟩ := sInf_lt_iff.mp h'
-  obtain ⟨p, hp_prod, rfl⟩ := h_mem_len
-  have h_len_lt : programLength p < k := by exact_mod_cast h_val_lt
-  have h_len_le : programLength p ≤ k - 1 := by omega
-  refine ⟨?_, ?_⟩
-  · rw [generatedWords, List.mem_toFinset, List.mem_filterMap]
-    exact ⟨p, mem_programsLe (k - 1) p h_len_le, progToOut_eq_some.mpr hp_prod⟩
-  · have hmem : (programLength p : ENat) ∈ candidateLengths V x y := ⟨p, hp_prod, rfl⟩
-    calc condK V x y ≤ (programLength p : ENat) := sInf_le hmem
-      _ ≤ ((k - 1 : ℕ) : ENat) := by exact_mod_cast h_len_le
-
 /-- The auxiliary profile `P̃` used to bound the cardinality from below. -/
 def auxiliaryProfile (P : Set (Nat × Nat)) (mp kp : Nat) : Set (Nat × Nat) :=
   {q | (q.1 ≤ mp ∧ (q.1, q.2 + (kp - mp)) ∈ P) ∨ mp ≤ q.1}
@@ -50,6 +31,7 @@ noncomputable def auxiliaryCurveCode (w : BitString) : BitString :=
   let offset := decodeNatCode (decodeSecond params)
   curveEncode (fun i => decodeCurve oldCode i - offset) newK
 
+/-- Re-encoding a curve after subtracting an offset and truncating is computable. -/
 theorem auxiliaryCurveCode_computable : Computable auxiliaryCurveCode := by
   unfold auxiliaryCurveCode curveEncode
   have hcode : Primrec (fun w : BitString => decodeFirst w) :=
@@ -81,10 +63,12 @@ theorem auxiliaryCurveCode_computable : Computable auxiliaryCurveCode := by
             (fun v => List.replicate v true ++ [false])) := by
     apply Primrec.list_flatMap hmap
     have hnat : Primrec₂ (fun (_ : BitString) (v : ℕ) => natCode v) :=
-      natCode_primrec.comp Primrec.snd
+      primrec_natCode.comp Primrec.snd
     simpa [natCode] using hnat
   exact hfinal.to_comp
 
+/-- On the input packing an old curve code with a new endpoint and an offset, the encoder returns
+the curve obtained by lowering the old curve by the offset and cutting it at the new endpoint. -/
 theorem auxiliaryCurveCode_input (oldCode : BitString) (newK offset : ℕ) :
     auxiliaryCurveCode
         (pairCode oldCode (pairCode (natCode newK) (natCode offset))) =
@@ -103,7 +87,7 @@ lemma auxiliaryCurveCode_complexity
       (plainK V (curveEncode (fun i => b.height i - offset) newK)).toNat ≤
         C * b.KP + logSlack C n := by
   obtain ⟨cMap, hMap⟩ :=
-    plainKMapLe V hV auxiliaryCurveCode auxiliaryCurveCode_computable
+    plainK_map_le V hV auxiliaryCurveCode auxiliaryCurveCode_computable
   obtain ⟨cPlainPair, hPlainPair⟩ :=
     plainK_pair_le_KPPlain_add_KPPlain V U hV hU
   obtain ⟨cPrefixPair, hPrefixPair⟩ :=
@@ -176,7 +160,7 @@ lemma auxiliaryCurveCode_complexity
   have hoffsetBits : (Nat.bits offset).length ≤ (Nat.bits n).length :=
     length_natBits_mono hoffset
   have hbBits : (Nat.bits b.KP).length ≤ b.KP :=
-    length_natBits_le_self b.KP
+    length_natBits_le b.KP
   have hbudget :
       b.KP + cExact + 2 * (Nat.bits b.KP).length + cLength + cRemove +
           (2 * (Nat.bits newK).length + cNat +
@@ -217,8 +201,9 @@ lemma auxiliaryCurveCode_complexity
   rw [← ENat.coe_toNat hnewFinite] at hbound
   exact_mod_cast hbound
 
+/-- The auxiliary profile of an admissible profile set is again admissible. -/
 lemma auxiliaryProfile_isAdmissible (P : Set (Nat × Nat)) (kp mp : ℕ)
-    (hadm : IsAdmissibleProfileSet P) (_hkP : k_P P = (kp : ENat)) (hmP : m_P P kp = (mp : ENat)) :
+    (hadm : IsAdmissibleProfileSet P) (_hkP : kP P = (kp : ENat)) (hmP : mP P kp = (mp : ENat)) :
     IsAdmissibleProfileSet (auxiliaryProfile P mp kp) := by
   have hmp_mem : (mp, kp - mp) ∈ P := m_P_mem_of_eq P kp mp hmP
   have hUp : IsUpperSet P := hadm.isUpperSet
@@ -248,32 +233,35 @@ lemma auxiliaryProfile_isAdmissible (P : Set (Nat × Nat)) (kp mp : ℕ)
         exact hstep a b (c + (kp - mp)) hP'
     · right; omega
 
+/-- The auxiliary profile of a boundary-presented profile set is again cut out by a boundary, with
+horizontal intercept `mp`, vertical intercept `np - (kp - mp)` and complexity linear in the
+original one plus a logarithmic term. -/
 lemma auxiliaryProfile_boundary (V U : Map)
     (hV : isOptimalConditional V)
     (hU : IsOptimalPrefixConditional U) :
   ∃ C : ℕ, ∀ (P : Set (Nat × Nat)) (kp mp np : ℕ) (b : ProfileBoundary V),
     IsAdmissibleProfileSet P →
     profileSet V b = P →
-    k_P P = (kp : ENat) →
-    m_P P kp = (mp : ENat) →
-    n_P P = (np : ENat) →
+    kP P = (kp : ENat) →
+    mP P kp = (mp : ENat) →
+    nP P = (np : ENat) →
     ∃ b_tilde : ProfileBoundary V,
-      b_tilde.k_P = mp ∧
-      b_tilde.n_P = np - (kp - mp) ∧
+      b_tilde.kP = mp ∧
+      b_tilde.nP = np - (kp - mp) ∧
       profileSet V b_tilde = auxiliaryProfile P mp kp ∧
       b_tilde.KP ≤ C * b.KP + logSlack C np := by
   obtain ⟨C, hcomplexity⟩ := auxiliaryCurveCode_complexity V U hV hU
   refine ⟨C, ?_⟩
   intro P kp mp np b hadm hbP hkP hmP hnP
-  have hbKP : k_P P = (b.k_P : ENat) := by
+  have hbKP : kP P = (b.kP : ENat) := by
     rw [← hbP]
     exact b.k_P_profileSet
-  have hbNP : n_P P = (b.n_P : ENat) := by
+  have hbNP : nP P = (b.nP : ENat) := by
     rw [← hbP]
     exact b.n_P_profileSet
-  have hbk : b.k_P = kp := by
+  have hbk : b.kP = kp := by
     exact_mod_cast hbKP.symm.trans hkP
-  have hbn : b.n_P = np := by
+  have hbn : b.nP = np := by
     exact_mod_cast hbNP.symm.trans hnP
   have hmpkp : mp ≤ kp := by
     have h := m_P_le_k_P_of_eq P kp hkP
@@ -309,8 +297,8 @@ lemma auxiliaryProfile_boundary (V U : Map)
     have hdiag : (i, kp - i) ∈ P := by
       rw [← hbP]
       exact hdiagB
-    have hle : m_P P kp ≤ (i : ENat) := by
-      unfold m_P
+    have hle : mP P kp ≤ (i : ENat) := by
+      unfold mP
       apply sInf_le
       exact ⟨i, rfl, hdiag⟩
     rw [hmP] at hle
@@ -318,8 +306,8 @@ lemma auxiliaryProfile_boundary (V U : Map)
     omega
   let b_tilde : ProfileBoundary V := {
     height := fun i => b.height i - d
-    k_P := mp
-    n_P := np - d
+    kP := mp
+    nP := np - d
     height_zero_of_ge := hzeroAfter
     height_pos_of_lt := hpositiveBefore
     height_zero := by rw [b.height_zero, hbn]
@@ -361,6 +349,8 @@ lemma auxiliaryProfile_boundary (V U : Map)
       · exact hzeroAfter i hmpi ▸ Nat.zero_le j
   · exact hcomplexity b mp d np hmpnp hdnp
 
+/-- The noise transform is continuous in its arguments: profile sets and parameters that agree up to
+`eps` are sent to profile sets that agree up to `C * eps`. -/
 lemma addNoiseProfileTransform_continuity :
   ∃ C : ℕ, ∀ (P' P'' : Set (Nat×Nat)) (kx kx' kxy kxy' l l' eps : ℕ),
     ProfileSetsWithinNeighborhood P' P'' eps →
@@ -420,6 +410,8 @@ lemma addNoiseProfileTransform_continuity :
   · exact transport P'' P' kx' kx kxy' kxy l' l hnear.symm
       hkx' hkx hkxy' hkxy hl' hl hsuff
 
+/-- For every `y` and every `d` there are at least about `2 ^ d` strings of length `d` that are
+random given `y` up to a fixed additive constant. -/
 lemma exists_many_conditionally_random_tails {V : Map} :
   ∃ C : ℕ, ∀ (y : BitString) (d : ℕ),
     ∃ R : Finset BitString,
@@ -433,9 +425,9 @@ lemma exists_many_conditionally_random_tails {V : Map} :
   rcases Nat.lt_or_ge d 3 with hd | hd
   · -- Small `d`: the whole length-`d` cube works, everything is `≤ 2`.
     refine ⟨stringsOfLength d, ?_, ?_, ?_⟩
-    · exact Finset.card_pos.mp (by rw [cardStringsOfLength]; positivity)
+    · exact Finset.card_pos.mp (by rw [card_stringsOfLength]; positivity)
     · intro z hz
-      refine ⟨(memStringsOfLength d z).mp hz, ?_⟩
+      refine ⟨(mem_stringsOfLength d z).mp hz, ?_⟩
       calc (d : ENat) ≤ ((2 : ℕ) : ENat) := by exact_mod_cast (show d ≤ 2 by omega)
         _ ≤ condK V z y + ((2 : ℕ) : ENat) := le_add_self
     · calc (d : ENat) ≤ ((2 : ℕ) : ENat) := by exact_mod_cast (show d ≤ 2 by omega)
@@ -451,18 +443,18 @@ lemma exists_many_conditionally_random_tails {V : Map} :
       rw [hBad, Finset.mem_filter] at hz
       have hlt : condK V z y < ((d - 1 : ℕ) : ENat) :=
         lt_of_le_of_lt hz.2 (by exact_mod_cast (show d - 2 < d - 1 by omega))
-      have hmem := mem_compressibleWords_of_condK_lt' V z y (d - 1) (by omega) hlt
+      have hmem := mem_compressibleWords_of_condK_lt V z y (d - 1) (by omega) hlt
       have heq : (d - 1) - 1 = d - 2 := by omega
       rwa [heq] at hmem
     have hBad_lt : Bad.card < 2 ^ (d - 1) := by
       calc Bad.card ≤ (compressibleWords V y (d - 2)).card := Finset.card_le_card hBad_sub
-        _ < 2 ^ ((d - 2) + 1) := cardCompressibleWordsLt V y (d - 2)
+        _ < 2 ^ ((d - 2) + 1) := card_compressibleWordsLt V y (d - 2)
         _ = 2 ^ (d - 1) := by congr 1; omega
     -- The two filters partition the length-`d` cube.
     have hsum : Bad.card + R.card = 2 ^ d := by
       have h := Finset.card_filter_add_card_filter_not
         (s := stringsOfLength d) (fun z => condK V z y ≤ ((d - 2 : ℕ) : ENat))
-      rw [cardStringsOfLength] at h
+      rw [card_stringsOfLength] at h
       exact h
     have hpow : (2 : ℕ) ^ d = 2 ^ (d - 1) + 2 ^ (d - 1) := by
       have h1 : (d - 1) + 1 = d := by omega
@@ -479,7 +471,7 @@ lemma exists_many_conditionally_random_tails {V : Map} :
     · rw [← Finset.card_pos]; omega
     · intro z hz
       rw [hR, Finset.mem_filter] at hz
-      refine ⟨(memStringsOfLength d z).mp hz.1, ?_⟩
+      refine ⟨(mem_stringsOfLength d z).mp hz.1, ?_⟩
       have hlt : ((d - 2 : ℕ) : ENat) < condK V z y := not_le.mp hz.2
       have hle2 : ((d - 2 : ℕ) : ENat) ≤ condK V z y := le_of_lt hlt
       have hd2 : (d : ENat) = ((d - 2 : ℕ) : ENat) + ((2 : ℕ) : ENat) := by
@@ -489,11 +481,12 @@ lemma exists_many_conditionally_random_tails {V : Map} :
     · calc (d : ENat) ≤ (finiteSetLogCard R : ENat) := by exact_mod_cast hlog
         _ ≤ (finiteSetLogCard R : ENat) + ((2 : ℕ) : ENat) := le_self_add
 
+/-- Adding `kp - mp` noise bits to the auxiliary profile of `P` recovers `P` itself. -/
 lemma addNoiseProfileTransform_auxiliaryProfile :
   ∀ (P : Set (Nat × Nat)) (kp mp : ℕ),
     IsAdmissibleProfileSet P →
-    k_P P = (kp : ENat) →
-    m_P P kp = (mp : ENat) →
+    kP P = (kp : ENat) →
+    mP P kp = (mp : ENat) →
     AddNoiseProfileTransform (auxiliaryProfile P mp kp) mp kp (kp - mp) = P := by
   intro P kp mp hadm hkP hmP
   have hkp_mem : (kp, 0) ∈ P := k_P_mem_of_eq P kp hkP
@@ -508,7 +501,7 @@ lemma addNoiseProfileTransform_auxiliaryProfile :
   have hsuff : ∀ a b : ℕ, (a, b) ∈ P → kp ≤ a + b := by
     intro a b hab
     have hstep' : (a + b, 0) ∈ P := by simpa using hstep a b 0 (by simpa using hab)
-    have hle : k_P P ≤ ((a + b : ℕ) : ENat) := sInf_le ⟨a + b, rfl, hstep'⟩
+    have hle : kP P ≤ ((a + b : ℕ) : ENat) := sInf_le ⟨a + b, rfl, hstep'⟩
     rw [hkP] at hle; exact_mod_cast hle
   ext ⟨a, b⟩
   simp only [AddNoiseProfileTransform, auxiliaryProfile, Set.mem_setOf_eq, Prod.mk.injEq]

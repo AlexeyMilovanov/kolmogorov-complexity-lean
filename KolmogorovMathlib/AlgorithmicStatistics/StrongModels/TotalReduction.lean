@@ -13,7 +13,7 @@ directed relation and its elementary structure, together with the bridge
 `condK ≤ totalCondK` (a total producing program is in particular a producing
 program).
 
-These are the S1 primitives on which Proposition `prop:equivalence` and the
+These are the primitives on which Proposition `prop:equivalence` and the
 strong-model theory are built.  Nothing here assumes any winning strategy,
 partition, or profile neighborhood; those are the mathematical content of later
 results.
@@ -89,6 +89,7 @@ def totalComposeDecompressor (T : Map) : Map := fun pr =>
   (T (decodeFirst pr.1, pr.2)).bind fun y =>
     T (decodeSecond pr.1, y)
 
+/-- The machine that runs two programs in sequence is a decompressor. -/
 lemma totalComposeDecompressor_partrec {T : Map} (hT : isDecompressor T) :
     isDecompressor (totalComposeDecompressor T) := by
   have hfirst :
@@ -107,6 +108,7 @@ lemma totalComposeDecompressor_partrec {T : Map} (hT : isDecompressor T) :
         Computable.snd)
   exact Partrec.bind hfirst hsecond
 
+/-- The pair code of two total programs is a total program of the composition machine. -/
 lemma IsTotalProgram.compose
     {T : Map} {p q : BitString}
     (hp : IsTotalProgram T p) (hq : IsTotalProgram T q) :
@@ -117,6 +119,8 @@ lemma IsTotalProgram.compose
   rw [Part.bind_dom]
   exact ⟨hp z, hq _⟩
 
+/-- The composition machine run on the pair code of `p` and `q` maps `z` to the result of feeding
+the output of `p` on `z` into `q`. -/
 lemma totalComposeDecompressor_produces
     {T : Map} {p q y z w : BitString}
     (hp : produces T p z y) (hq : produces T q y w) :
@@ -128,7 +132,7 @@ lemma totalComposeDecompressor_produces
 /-- Coarse, explicitly pair-coded composition of directed total reductions.
 
 This is not the logarithmically sharp triangle inequality: the repository's
-`pairCode p q` has length `2 * |p| + |q| + 1`, so this reusable S1 bound keeps
+`pairCode p q` has length `2 * |p| + |q| + 1`, so this reusable bound keeps
 that exact asymmetry visible.  A later length-prefixed composition theorem can
 sharpen the `2 * epsilon` term without changing this primitive. -/
 theorem TotalReducesWithin.trans_pair
@@ -208,48 +212,56 @@ def decodeTotalProgramPairFirst (w : BitString) : BitString :=
 def decodeTotalProgramPairSecond (w : BitString) : BitString :=
   (decodeSecond w).drop (decodeBits (decodeFirst w))
 
+/-- Decoding the first component of a length-prefixed program pair recovers `p`. -/
 @[simp] theorem decodeTotalProgramPairFirst_pair
     (p q : BitString) :
     decodeTotalProgramPairFirst (totalProgramPairCode p q) = p := by
   simp [decodeTotalProgramPairFirst, totalProgramPairCode,
     decodeFirst_pairCode, decodeSecond_pairCode, decodeBits_natBits]
 
+/-- Decoding the second component of a length-prefixed program pair recovers `q`. -/
 @[simp] theorem decodeTotalProgramPairSecond_pair
     (p q : BitString) :
     decodeTotalProgramPairSecond (totalProgramPairCode p q) = q := by
   simp [decodeTotalProgramPairSecond, totalProgramPairCode,
     decodeFirst_pairCode, decodeSecond_pairCode, decodeBits_natBits]
 
+/-- The length-prefixed pair code costs the two program lengths plus twice the number of bits of the
+first length, plus one. -/
 theorem length_totalProgramPairCode (p q : BitString) :
     (totalProgramPairCode p q).length =
       p.length + q.length + 2 * (Nat.bits p.length).length + 1 := by
   simp [totalProgramPairCode, length_pairCode]
   omega
 
+/-- The length-prefixed pairing of programs is computable. -/
 theorem totalProgramPairCode_computable :
     Computable (fun input : BitString × BitString =>
       totalProgramPairCode input.1 input.2) := by
-  exact (pairCode_primrec.comp
-    (primrecNatBits.comp (Primrec.list_length.comp Primrec.fst))
+  exact (CodedFiniteDistribution.pairCode_primrec.comp
+    (primrec_natBits.comp (Primrec.list_length.comp Primrec.fst))
     (Primrec.list_append.comp Primrec.fst Primrec.snd)).to_comp
 
+/-- Extracting the first component of a length-prefixed program pair is computable. -/
 theorem decodeTotalProgramPairFirst_computable :
     Computable decodeTotalProgramPairFirst := by
   unfold decodeTotalProgramPairFirst
   exact Primrec.list_take.to_comp.comp decodeSecond_computable
-    (decodeBitsComputable.comp decodeFirst_computable)
+    (decodeBits_computable.comp decodeFirst_computable)
 
+/-- Extracting the second component of a length-prefixed program pair is computable. -/
 theorem decodeTotalProgramPairSecond_computable :
     Computable decodeTotalProgramPairSecond := by
   unfold decodeTotalProgramPairSecond
   exact Primrec.list_drop.to_comp.comp decodeSecond_computable
-    (decodeBitsComputable.comp decodeFirst_computable)
+    (decodeBits_computable.comp decodeFirst_computable)
 
 /-- Sequential composition using the binary-length-framed program pair. -/
 def totalLengthPrefixedComposeDecompressor (T : Map) : Map := fun pr =>
   (T (decodeTotalProgramPairFirst pr.1, pr.2)).bind fun y =>
     T (decodeTotalProgramPairSecond pr.1, y)
 
+/-- The composition machine reading length-prefixed program pairs is a decompressor. -/
 theorem totalLengthPrefixedComposeDecompressor_partrec
     {T : Map} (hT : isDecompressor T) :
     isDecompressor (totalLengthPrefixedComposeDecompressor T) := by
@@ -270,6 +282,8 @@ theorem totalLengthPrefixedComposeDecompressor_partrec
         Computable.snd)
   exact Partrec.bind hfirst hsecond
 
+/-- The length-prefixed pair code of two total programs is a total program of the composition
+machine. -/
 theorem IsTotalProgram.compose_lengthPrefixed
     {T : Map} {p q : BitString}
     (hp : IsTotalProgram T p) (hq : IsTotalProgram T q) :
@@ -281,6 +295,8 @@ theorem IsTotalProgram.compose_lengthPrefixed
     decodeTotalProgramPairSecond_pair, Part.bind_dom]
   exact ⟨hp z, hq _⟩
 
+/-- The length-prefixed composition machine maps `z` to the result of feeding the output of `p` on
+`z` into `q`. -/
 theorem totalLengthPrefixedComposeDecompressor_produces
     {T : Map} {p q y z w : BitString}
     (hp : produces T p z y) (hq : produces T q y w) :

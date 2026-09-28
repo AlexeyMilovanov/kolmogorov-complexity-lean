@@ -47,9 +47,11 @@ theorem code_injective : Function.Injective code := by
   simp_all
 
 /-- A computable predicate for whether `2^-k ≤ q.value`. -/
-def ge_invPow2 (q : RatMass) (k : ℕ) : Bool :=
+def geInvPow2 (q : RatMass) (k : ℕ) : Bool :=
   decide (q.den ≤ q.num * 2 ^ k)
 
+/-- A rational mass is at least `2⁻¹ ^ k` exactly when its denominator is at most
+its numerator times `2 ^ k`. -/
 theorem ge_invPow2_iff (q : RatMass) (k : ℕ) :
     (2 : ENNReal)⁻¹ ^ k ≤ q.value ↔ q.den ≤ q.num * 2 ^ k := by
   have hden0 : (q.den : ENNReal) ≠ 0 := by
@@ -194,13 +196,15 @@ theorem code_injective : Function.Injective code := by
   simp only [code] at h
   exact congrArg CodedFiniteDistribution.mk (codedDistributionDataCode_injective h)
 
-/-- `DeficiencyLe` for a coded finite distribution, in multiplicative form. -/
+/-- The randomness deficiency of `x` in the coded finite model `P` is at most `beta`, written
+multiplicatively: `2 ^ (-K(x | P.code)) ≤ 2 ^ beta * P.mass x`. -/
 noncomputable def DeficiencyLe (U : Map) (P : CodedFiniteDistribution)
     (x : BitString) (beta : Nat) : Prop :=
   complexityWeight (KP U x P.code) <= (2 : ENNReal) ^ beta * P.mass x
 
-/-- Coded stochasticity: the model complexity is the complexity of the canonical
-finite rational list code. -/
+/-- `x` is `(alpha, beta)`-stochastic for coded models: some coded finite distribution `P` is a
+probability distribution, has model complexity `K(P.code) ≤ alpha`, and gives `x` deficiency at
+most `beta`. -/
 noncomputable def IsStochastic (U : Map) (x : BitString) (alpha beta : Nat) : Prop :=
   Exists fun P : CodedFiniteDistribution =>
     P.IsProbability /\ P.complexity U <= (alpha : ENat) /\ P.DeficiencyLe U x beta
@@ -219,6 +223,7 @@ def ratMassOne : RatMass where
   den := 1
   den_pos := by decide
 
+/-- The rational mass `1` has value one. -/
 @[simp] theorem ratMassOne_value : ratMassOne.value = 1 := by
   norm_num [ratMassOne, RatMass.value]
 
@@ -235,23 +240,28 @@ it changes with `x` and cannot be replaced by an arbitrary fixed label. -/
 def codedDirac (x : BitString) : CodedFiniteDistribution where
   data := [{ point := x, mass := ratMassOne }]
 
+/-- The code of the point mass at `x` is the one-entry data code with mass one. -/
 @[simp] theorem codedDirac_code (x : BitString) :
     (codedDirac x).code =
       codedDistributionDataCode [{ point := x, mass := ratMassOne }] := rfl
 
+/-- The point mass at `x` gives `x` mass one. -/
 @[simp] theorem codedDirac_mass_self (x : BitString) :
     (codedDirac x).mass x = 1 := by
   simp [codedDirac, CodedFiniteDistribution.mass]
 
+/-- The point mass at `x` gives every other string mass zero. -/
 @[simp] theorem codedDirac_mass_ne (x y : BitString) (h : y ≠ x) :
     (codedDirac x).mass y = 0 := by
   have hxy : x ≠ y := fun hxy => h hxy.symm
   simp [codedDirac, CodedFiniteDistribution.mass, hxy]
 
+/-- The support of the point mass at `x` is `{x}`. -/
 @[simp] theorem codedDirac_support (x : BitString) :
     (codedDirac x).support = {x} := by
   rfl
 
+/-- The point mass is a probability distribution. -/
 @[simp] theorem codedDirac_isProbability (x : BitString) :
     (codedDirac x).IsProbability := by
   simp [CodedFiniteDistribution.IsProbability]
@@ -282,15 +292,19 @@ elements sorted by their `Encodable` codes.  Unlike `Finset.toList`, this is
 computable, so codes built from it are computable functions of the set. -/
 def canonicalFinsetList (S : Finset BitString) : List BitString := S.sort bitStringLE
 
+/-- The canonical listing of a finite set has exactly its elements. -/
 @[simp] theorem canonicalFinsetList_toFinset (S : Finset BitString) :
     (canonicalFinsetList S).toFinset = S := Finset.sort_toFinset S bitStringLE
 
+/-- The canonical listing has no repetitions. -/
 theorem canonicalFinsetList_nodup (S : Finset BitString) :
     (canonicalFinsetList S).Nodup := Finset.sort_nodup S bitStringLE
 
+/-- Membership in the canonical listing is membership in the set. -/
 @[simp] theorem mem_canonicalFinsetList {S : Finset BitString} {x : BitString} :
     x ∈ canonicalFinsetList S ↔ x ∈ S := Finset.mem_sort bitStringLE
 
+/-- The canonical listing has as many entries as the set has elements. -/
 @[simp] theorem length_canonicalFinsetList (S : Finset BitString) :
     (canonicalFinsetList S).length = S.card := Finset.length_sort bitStringLE
 
@@ -400,7 +414,7 @@ theorem codedUniformOn_code_eq (S : Finset BitString) (hS : S.Nonempty) :
 
 /-- Nonemptiness of the finite set of strings of a fixed length. -/
 theorem codedStringsOfLength_nonempty (n : Nat) : (stringsOfLength n).Nonempty := by
-  rw [Finset.card_pos.symm, cardStringsOfLength]
+  rw [Finset.card_pos.symm, card_stringsOfLength]
   exact pow_pos (by decide) n
 
 /-- The data list of the coded uniform distribution on all strings of length `n`,
@@ -417,6 +431,8 @@ a computable function of `n`. -/
 def codedLengthUniform (n : Nat) : CodedFiniteDistribution where
   data := lengthUniformData n
 
+/-- The uniform distribution on strings of length `n` gives each of them mass
+`2⁻¹ ^ n`. -/
 theorem codedLengthUniform_mass_of_mem (n : Nat) (x : BitString) (hx : x.length = n) :
     (codedLengthUniform n).mass x = (2 : ENNReal)⁻¹ ^ n := by
       unfold CodedFiniteDistribution.mass
@@ -441,6 +457,7 @@ theorem codedLengthUniform_mass_of_mem (n : Nat) (x : BitString) (hx : x.length 
       · norm_num [ ratMassInvNat ];
       · norm_num [ ENNReal.inv_pow ]
 
+/-- It gives mass zero to strings of any other length. -/
 theorem codedLengthUniform_mass_of_not_mem (n : Nat) (x : BitString) (hx : x.length ≠ n) :
     (codedLengthUniform n).mass x = 0 := by
       -- By definition of `codedLengthUniform`, we know that the mass of `x` is zero if `x` is not
@@ -454,6 +471,7 @@ theorem codedLengthUniform_mass_of_not_mem (n : Nat) (x : BitString) (hx : x.len
         intro l hl; induction l <;> aesop;
       exact h_mass_zero _ ‹_›
 
+/-- Its support is the set of strings of length `n`. -/
 theorem codedLengthUniform_support (n : Nat) :
     (codedLengthUniform n).support = stringsOfLength n := by
       unfold CodedFiniteDistribution.support codedLengthUniform lengthUniformData;
@@ -464,6 +482,7 @@ theorem codedLengthUniform_support (n : Nat) :
       convert h_foldr _ using 2;
       induction ( allStrings n ) <;> aesop
 
+/-- It is a probability distribution. -/
 theorem codedLengthUniform_isProbability (n : Nat) :
     (codedLengthUniform n).IsProbability := by
       unfold CodedFiniteDistribution.IsProbability
@@ -477,7 +496,7 @@ theorem codedLengthUniform_isProbability (n : Nat) :
         grind +suggestions;
       convert Finset.sum_congr rfl h_mass using 1;
       · exact h_support ▸ rfl;
-      · norm_num [ cardStringsOfLength ];
+      · norm_num [ card_stringsOfLength ];
         rw [ ← mul_pow, ENNReal.mul_inv_cancel ] <;> norm_num
 
 end Kolmogorov

@@ -58,9 +58,11 @@ support entries. -/
 def SupportReach {A B : Type*} (P : A → B → ℝ) : A → A → Prop :=
   Relation.ReflTransGen (SupportLink P)
 
+/-- Reachability in the support graph is reflexive. -/
 theorem supportReach_refl {A B : Type*} (P : A → B → ℝ) (a : A) : SupportReach P a a :=
   Relation.ReflTransGen.refl
 
+/-- Reachability in the support graph is preserved by appending one further link. -/
 theorem supportReach_tail {A B : Type*} {P : A → B → ℝ} {a a' a'' : A}
     (h : SupportReach P a a') (hlink : SupportLink P a' a'') : SupportReach P a a'' :=
   Relation.ReflTransGen.tail h hlink

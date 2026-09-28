@@ -1,5 +1,6 @@
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.AddNoiseEnumeration
-import KolmogorovMathlib.AlgorithmicStatistics.BoundedComplexityLists.OmegaEquivalence
+import KolmogorovMathlib.AlgorithmicStatistics.BoundedLists.OmegaPrefix.Part01
+import KolmogorovMathlib.AlgorithmicStatistics.BoundedLists.OmegaPrefix
 
 /-!
 # Fixed-width rank decoding of the add-noise candidate truncations
@@ -34,32 +35,44 @@ def noiseRankJ (p : BitString) : ℕ := bitsToNat (decodeSecond (decodeSecond (d
 /-- The rank packed into a rank program. -/
 def noiseRankR (p : BitString) : ℕ := bitsToNat (decodeSecond p)
 
+/-- Reading back the length field of a noise rank program returns the value it was built with. -/
 @[simp] theorem noiseRankL_program (l i j k r : ℕ) :
     noiseRankL (noiseRankProgram l i j k r) = l := by
   simp [noiseRankL, noiseRankProgram, decodeFirst_pairCode, bitsToNat_bits]
 
+/-- Reading back the first index field of a noise rank program returns the value it was built with.
+Reading back the first index field of a noise rank program returns the value it was built with. -/
 @[simp] theorem noiseRankI_program (l i j k r : ℕ) :
     noiseRankI (noiseRankProgram l i j k r) = i := by
   simp [noiseRankI, noiseRankProgram, decodeFirst_pairCode, decodeSecond_pairCode,
     bitsToNat_bits]
 
+/-- Reading back the second index field of a noise rank program returns the value it was built with.
+Reading back the second index field of a noise rank program returns the value it was built with. -/
 @[simp] theorem noiseRankJ_program (l i j k r : ℕ) :
     noiseRankJ (noiseRankProgram l i j k r) = j := by
   simp [noiseRankJ, noiseRankProgram, decodeFirst_pairCode, decodeSecond_pairCode,
     bitsToNat_bits]
 
+/-- Reading back the rank field of a noise rank program returns the value it was built with. -/
 @[simp] theorem noiseRankR_program (l i j k r : ℕ) :
     noiseRankR (noiseRankProgram l i j k r) = r := by
   simp [noiseRankR, noiseRankProgram, decodeSecond_pairCode, bitsToNat_chunkAddress]
 
+/-- The length field of a noise rank program is a primitive recursive function of the program. -/
 theorem noiseRankL_primrec : Primrec noiseRankL :=
   bitsToNat_primrec.comp (decodeFirst_primrec.comp decodeFirst_primrec)
+/-- The first index field of a noise rank program is a primitive recursive function of the program.
+The first index field of a noise rank program is a primitive recursive function of the program. -/
 theorem noiseRankI_primrec : Primrec noiseRankI :=
   bitsToNat_primrec.comp
     (decodeFirst_primrec.comp (decodeSecond_primrec.comp decodeFirst_primrec))
+/-- The second index field of a noise rank program is a primitive recursive function of the program.
+The second index field of a noise rank program is a primitive recursive function of the program. -/
 theorem noiseRankJ_primrec : Primrec noiseRankJ :=
   bitsToNat_primrec.comp
     (decodeSecond_primrec.comp (decodeSecond_primrec.comp decodeFirst_primrec))
+/-- The rank field of a noise rank program is a primitive recursive function of the program. -/
 theorem noiseRankR_primrec : Primrec noiseRankR :=
   bitsToNat_primrec.comp decodeSecond_primrec
 
@@ -74,6 +87,8 @@ theorem length_noiseRankProgram (l i j k r : ℕ) (hr : r < 2 ^ k) :
 
 /-! ### Stability of the enumeration under time -/
 
+/-- The list of noise candidate appearance codes grows only by appending: the list at time `t₁` is a
+prefix of the list at any later time `t₂`. -/
 theorem noiseCandidateTruncationAppearanceCodes_prefix_of_le
     (c : Code) (x : BitString) (l i j : ℕ) {t₁ t₂ : ℕ} (h : t₁ ≤ t₂) :
     noiseCandidateTruncationAppearanceCodes c x l i j t₁ <+:
@@ -108,6 +123,7 @@ section DecoderPartrec
 attribute [local irreducible] noiseCandidateTruncationAppearanceCodes
   noiseRankL noiseRankI noiseRankJ noiseRankR
 
+/-- The noise rank decoder is a partial recursive function of the pair (input string, program). -/
 theorem noiseRankDecoder_partrec (c : Code) :
     Partrec (fun q : BitString × BitString => noiseRankDecoder c q.1 q.2) := by
   have hcodes : Computable (fun st : (BitString × BitString) × ℕ =>
@@ -141,6 +157,8 @@ theorem noiseRankDecoder_partrec (c : Code) :
   · funext t; exact PFun.coe_val _ t
   · funext t; exact PFun.coe_val _ t
 
+/-- If `w` occupies position `r` in the list of noise candidate appearance codes collected up to
+some time, then the rank decoder run on the corresponding rank program outputs `w`. -/
 theorem mem_noiseRankDecoder_of_rank
     (c : Code) (x : BitString) (l i j k r t : ℕ) {w : BitString}
     (hlt : r < (noiseCandidateTruncationAppearanceCodes c x l i j t).length)

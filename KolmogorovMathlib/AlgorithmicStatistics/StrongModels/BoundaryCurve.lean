@@ -14,32 +14,32 @@ the boundary code.  A Section 7 `ProfileBoundary` carries the *plain* complexity
 missing ingredients:
 
 * `ProfileBoundary.k_P_le_add_height`: the boundary lies above the sufficiency
-  line `i + h i ≥ k_P` (a consequence of the strict slope);
+  line `i + h i ≥ kP` (a consequence of the strict slope);
 * `profileBoundary_KPPlain_le`: the prefix complexity of the boundary code is
   linear in `KP`.
 -/
 
 namespace Kolmogorov
 
-/-- A profile boundary never dips below the sufficiency line `i + h i ≥ k_P`.
+/-- A profile boundary never dips below the sufficiency line `i + h i ≥ kP`.
 This is the geometric content of the strict-slope field: the height must lose at
-least one unit per step, so it cannot reach `0` before coordinate `k_P`. -/
+least one unit per step, so it cannot reach `0` before coordinate `kP`. -/
 theorem ProfileBoundary.k_P_le_add_height {V : Map} (b : ProfileBoundary V) (i : ℕ) :
-    b.k_P ≤ i + b.height i := by
-  have key : ∀ n i : ℕ, b.k_P ≤ i + n → b.k_P ≤ i + b.height i := by
+    b.kP ≤ i + b.height i := by
+  have key : ∀ n i : ℕ, b.kP ≤ i + n → b.kP ≤ i + b.height i := by
     intro n
     induction n with
     | zero => intro i hi; omega
     | succ n ih =>
       intro i hi
-      rcases Nat.lt_or_ge i b.k_P with hlt | hge
+      rcases Nat.lt_or_ge i b.kP with hlt | hge
       · have hstep := ih (i + 1) (by omega)
         have hpos := b.height_pos_of_lt i hlt
         rcases b.slope i with hzero | hdrop
         · omega
         · omega
       · omega
-  exact key b.k_P i (by omega)
+  exact key b.kP i (by omega)
 
 /-- The prefix complexity of a boundary code is bounded by a constant multiple
 of the stored plain complexity `KP`. -/
@@ -78,19 +78,19 @@ theorem profileBoundary_KPPlain_le
             (cRemove : ENat) := by gcongr
       _ = _ := by push_cast; ring
   refine hbPrefix.trans ?_
-  have hbits : (Nat.bits b.KP).length ≤ b.KP := length_natBits_le_self b.KP
+  have hbits : (Nat.bits b.KP).length ≤ b.KP := length_natBits_le b.KP
   have : b.KP + cExact + (2 * (Nat.bits b.KP).length + cLength) + cRemove ≤
       (cExact + cRemove + cLength + 3) * b.KP + (cExact + cRemove + cLength + 3) := by
     nlinarith [Nat.zero_le b.KP]
   exact_mod_cast this
 
 /-- Every profile boundary is a `ProfileCurve` (with zero slack constant) for the
-length `n_P`, the endpoint `k_P` and a complexity parameter linear in `KP`. -/
+length `nP`, the endpoint `kP` and a complexity parameter linear in `KP`. -/
 theorem profileBoundary_profileCurve
     (V U : Map) (hV : isOptimalConditional V)
     (hU : IsOptimalPrefixConditional U) :
     ∃ C : ℕ, ∀ b : ProfileBoundary V,
-      Nonempty (ProfileCurve U 0 b.n_P b.k_P (C * b.KP + C) b.height) := by
+      Nonempty (ProfileCurve U 0 b.nP b.kP (C * b.KP + C) b.height) := by
   obtain ⟨C, hC⟩ := profileBoundary_KPPlain_le V U hV hU
   refine ⟨C, fun b => ⟨?_⟩⟩
   refine
@@ -102,12 +102,12 @@ theorem profileBoundary_profileCurve
       top := by rw [b.height_zero]
       bottom := ?_
       sufficient := ?_ }
-  · have : logSlack 0 b.n_P = 0 := by simp [logSlack]
+  · have : logSlack 0 b.nP = 0 := by simp [logSlack]
     rw [this, Nat.add_zero]
-    exact b.height_zero_of_ge b.k_P le_rfl
+    exact b.height_zero_of_ge b.kP le_rfl
   · intro i
     have h := b.k_P_le_add_height i
-    have : logSlack 0 (b.n_P + i + b.height i) = 0 := by simp [logSlack]
+    have : logSlack 0 (b.nP + i + b.height i) = 0 := by simp [logSlack]
     omega
 
 end Kolmogorov

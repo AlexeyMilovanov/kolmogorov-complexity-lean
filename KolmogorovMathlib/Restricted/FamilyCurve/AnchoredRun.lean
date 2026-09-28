@@ -1,7 +1,8 @@
 import KolmogorovMathlib.Restricted.FamilyCurve.EffectiveRunSemantics
+import KolmogorovMathlib.Restricted.FamilyCurve.SizeSchedule
 
 /-!
-# M7: anchored effective sampled run
+# Anchored effective sampled run
 
 The unanchored executor stores only the sampled family models.  Consequently
 its level zero is retained forever, whereas the paper's first sampled model
@@ -25,11 +26,13 @@ def restrictedAnchoredTarget
   | 0 => ambientLength
   | s + 1 => grid.j s - (Δ + 1)
 
+/-- The anchored target at scale zero is the ambient length. -/
 @[simp] lemma restrictedAnchoredTarget_zero
     {n k N : ℕ} {target : ℕ → ℕ}
     (ambientLength Δ : ℕ) (grid : RestrictedCurveGrid n k N target) :
     restrictedAnchoredTarget ambientLength Δ grid 0 = ambientLength := rfl
 
+/-- The anchored target at scale `s + 1` is the grid value `j s` lowered by `Δ + 1`. -/
 @[simp] lemma restrictedAnchoredTarget_succ
     {n k N : ℕ} {target : ℕ → ℕ}
     (ambientLength Δ : ℕ) (grid : RestrictedCurveGrid n k N target)
@@ -46,12 +49,14 @@ def restrictedEffectiveAnchoredSizes
   2 ^ ambientLength :: restrictedEffectiveSampledSizes
     (restrictedCurveGridCode grid) N Δ
 
+/-- The anchored run requests `N + 2` cardinalities. -/
 @[simp] lemma restrictedEffectiveAnchoredSizes_length
     {n k N : ℕ} {target : ℕ → ℕ}
     (ambientLength Δ : ℕ) (grid : RestrictedCurveGrid n k N target) :
     (restrictedEffectiveAnchoredSizes ambientLength Δ grid).length = N + 2 := by
   simp [restrictedEffectiveAnchoredSizes]
 
+/-- The first requested cardinality is the size `2 ^ ambientLength` of the whole cube. -/
 @[simp] lemma restrictedEffectiveAnchoredSizes_getD_zero
     {n k N : ℕ} {target : ℕ → ℕ}
     (ambientLength Δ : ℕ) (grid : RestrictedCurveGrid n k N target) :
@@ -169,6 +174,326 @@ def restrictedAnchoredProcessedBadUnion
         𝒜.toPre N Δ stage))
     time
 
+/-- The first entry `2 ^ t 1` of a shifted size schedule is at most `2 ^ ambientLength` when
+`t 0 = ambientLength` and the exponents `t` are antitone. -/
+private lemma shiftedSizeSchedule_head_le_of_powers
+    {N ambientLength : ℕ} {t : ℕ → ℕ} {sizes : List ℕ}
+    (hpowers : IsPowerSizeSchedule sizes N (fun s => t (s + 1)))
+    (htop : t 0 = ambientLength)
+    (hmono : ExponentsAntitone t (N + 1)) :
+    sizes.getD 0 0 ≤ 2 ^ ambientLength := by
+  have h0le : (0 : ℕ) ≤ N := Nat.zero_le N
+  rw [hpowers 0 h0le]
+  refine Nat.pow_le_pow_right (by decide) ?_
+  exact htop ▸ hmono 0 (by omega)
+
+/-- A shifted size schedule whose entries are the powers `2 ^ t (s + 1)` has positive entries. -/
+private lemma shiftedSizeSchedule_pos_of_powers
+    {N : ℕ} {t : ℕ → ℕ} {sizes : List ℕ}
+    (hlen : sizes.length = N + 1)
+    (hpowers : ∀ s ≤ N, sizes.getD s 0 = 2 ^ t (s + 1)) :
+    ∀ i < sizes.length, 0 < sizes.getD i 0 := by
+  intro i hi
+  have hiN : i ≤ N := by omega
+  rw [hpowers i hiN]
+  positivity
+
+/-- A shifted size schedule whose entries are the powers `2 ^ t (s + 1)` is antitone as soon as
+the exponents `t` are. -/
+private lemma shiftedSizeSchedule_antitone_of_powers
+    {N : ℕ} {t : ℕ → ℕ} {sizes : List ℕ}
+    (hlen : sizes.length = N + 1)
+    (hpowers : IsPowerSizeSchedule sizes N (fun s => t (s + 1)))
+    (hmono : ExponentsAntitone t (N + 1)) :
+    ∀ i, i + 1 < sizes.length → sizes.getD (i + 1) 0 ≤ sizes.getD i 0 := by
+  intro i hi
+  have hiN : i < N := by omega
+  rw [hpowers (i + 1) (by omega), hpowers i (by omega)]
+  exact Nat.pow_le_pow_right (by decide) (hmono (i + 1) (by omega))
+
+/-- Non-emptiness of codes in a rebuild trace. -/
+private lemma restrictedEffectiveRebuildCodeTrace_ne_nil
+    {𝒜 : DescriptionFamily} {q0 : ℕ} {sizes : List ℕ} {Acode Ccode : BitString}
+    {idx : ℕ} {Acode_s Ccode_s : BitString} {codes : List BitString}
+    (ht : RestrictedEffectiveRebuildCodeTrace 𝒜 q0 sizes Acode Ccode idx Acode_s Ccode_s codes) :
+    codes ≠ [] := by
+  induction ht with
+  | nil => simp
+  | cons _ _ => simp
+
+/-- Head element of a rebuild trace matches the start code. -/
+private lemma restrictedEffectiveRebuildCodeTrace_headI
+    {𝒜 : DescriptionFamily} {q0 : ℕ} {sizes : List ℕ} {Acode Ccode : BitString}
+    {idx : ℕ} {Acode_s Ccode_s : BitString} {codes : List BitString}
+    (ht : RestrictedEffectiveRebuildCodeTrace 𝒜 q0 sizes Acode Ccode idx Acode_s Ccode_s codes) :
+    codes.headI = Acode := by
+  induction ht with
+  | nil => rfl
+  | cons hprev ih =>
+      rename_i idx' Acode_s' Ccode_s' codes' ih'
+      have hne : codes' ≠ [] := restrictedEffectiveRebuildCodeTrace_ne_nil hprev
+      cases codes' with
+      | nil => contradiction
+      | cons x xs => simp_all
+
+/-- Density step inequality for anchored initial state. -/
+private lemma restrictedEffectiveAnchoredInitialState_density_step
+    (𝒜 : DescriptionFamily) (ambientLength : ℕ) {N : ℕ} {t : ℕ → ℕ} {sizes : List ℕ}
+    (hpowers : ∀ s ≤ N, sizes.getD s 0 = 2 ^ t (s + 1))
+    (htop : t 0 = ambientLength)
+    (s : ℕ) (hs : s ≤ N) (Cprev Bnext : Finset BitString)
+    (hdensity : sizes.getD s 0 * Cprev.card ≤
+      (𝒜.overhead ambientLength * if s = 0 then 2 ^ ambientLength else sizes.getD (s - 1) 0) *
+        (Bnext ∩ Cprev).card) :
+    (2 ^ t (s + 1)) * Cprev.card ≤
+      (2 * 𝒜.overhead ambientLength * 2 ^ t s) * (Cprev ∩ Bnext).card := by
+  have hsizes_eq : sizes.getD s 0 = 2 ^ t (s + 1) := hpowers s hs
+  rw [← hsizes_eq, Finset.inter_comm]
+  rcases s.eq_zero_or_pos with rfl | hs_pos
+  · have h2 : 2 ^ t 0 = 2 ^ ambientLength := by rw [htop]
+    have h3 : 𝒜.overhead ambientLength ≤ 2 * 𝒜.overhead ambientLength := by omega
+    calc sizes.getD 0 0 * Cprev.card
+        ≤ 𝒜.overhead ambientLength * 2 ^ ambientLength * (Bnext ∩ Cprev).card := hdensity
+      _ ≤ 2 * 𝒜.overhead ambientLength * 2 ^ ambientLength * (Bnext ∩ Cprev).card := by
+          gcongr
+      _ = 2 * 𝒜.overhead ambientLength * 2 ^ t 0 * (Bnext ∩ Cprev).card := by rw [h2]
+  · have hsizes_pred : sizes.getD (s - 1) 0 = 2 ^ t s := by
+      have h1 : s - 1 + 1 = s := Nat.sub_add_cancel hs_pos
+      rw [← h1]
+      exact hpowers (s - 1) (by omega)
+    calc sizes.getD s 0 * Cprev.card
+        ≤ 𝒜.overhead ambientLength * sizes.getD (s - 1) 0 * (Bnext ∩ Cprev).card := by
+          rw [if_neg (ne_of_gt hs_pos)] at hdensity; exact hdensity
+      _ = 𝒜.overhead ambientLength * 2 ^ t s * (Bnext ∩ Cprev).card := by rw [hsizes_pred]
+      _ ≤ 2 * 𝒜.overhead ambientLength * 2 ^ t s * (Bnext ∩ Cprev).card := by
+          gcongr; omega
+
+/-- One step of an anchored rebuild suffix, as the rebuild trace delivers it: at stage `i` the
+model codes decode to sets `Bprev` and `Bnext` of the family, the live codes decode to a
+subset `Cprev` of `Bprev` all of whose strings have the ambient length, the two models respect
+the size schedule, and the density inequality of stage `i` holds. -/
+def RestrictedAnchoredRebuildStep (𝒜 : DescriptionFamily) (ambientLength : ℕ) (sizes : List ℕ)
+    (Acode : BitString) (stateModelCodes : List BitString) (i : ℕ) : Prop :=
+  ∃ Bprev Cprev Bnext,
+    decodeCoverCodeList (stateModelCodes.getD i []) = canonicalFinsetList Bprev ∧
+    decodeCoverCodeList
+      ((restrictedEffectiveRebuildLiveCodes Acode stateModelCodes).getD i []) =
+        canonicalFinsetList Cprev ∧
+    decodeCoverCodeList (stateModelCodes.getD (i + 1) []) = canonicalFinsetList Bnext ∧
+    𝒜.mem Bprev ∧
+    (Bprev.card ≤ if i = 0 then 2 ^ ambientLength else sizes.getD (i - 1) 0) ∧
+    Cprev ⊆ Bprev ∧
+    (∀ x ∈ Cprev, List.length x = ambientLength) ∧
+    𝒜.mem Bnext ∧
+    Bnext.card ≤ sizes.getD i 0 ∧
+    sizes.getD i 0 * Cprev.card ≤
+      (𝒜.overhead ambientLength * if i = 0 then 2 ^ ambientLength else sizes.getD (i - 1) 0) *
+        (Bnext ∩ Cprev).card
+
+/-- The stage datum of the anchored initial state at stage `s`: the model code of stage `s + 1`
+decodes to a set `Bnext` of the family respecting the schedule, the live codes of stages `s`
+and `s + 1` decode to `Cprev` and to `Cprev ∩ Bnext`, the live set has ambient-length strings,
+and the density inequality of stage `s` holds.  This is what one step of the rebuild trace
+contributes to the sampled-run state. -/
+def RestrictedAnchoredStageDatum (𝒜 : DescriptionFamily) (ambientLength : ℕ) (sizes : List ℕ)
+    (Acode : BitString) (stateModelCodes : List BitString) (s : ℕ) : Prop :=
+  ∃ Cprev Bnext : Finset BitString,
+    decodeCoverCodeList (stateModelCodes.getD (s + 1) []) = canonicalFinsetList Bnext ∧
+    decodeCoverCodeList
+      ((restrictedEffectiveRebuildLiveCodes Acode stateModelCodes).getD (s + 1) []) =
+        canonicalFinsetList (Cprev ∩ Bnext) ∧
+    decodeCoverCodeList
+      ((restrictedEffectiveRebuildLiveCodes Acode stateModelCodes).getD s []) =
+        canonicalFinsetList Cprev ∧
+    𝒜.mem Bnext ∧ Bnext.card ≤ sizes.getD s 0 ∧
+    (∀ x ∈ Cprev, x.length = ambientLength) ∧
+    sizes.getD s 0 * Cprev.card ≤
+      (𝒜.overhead ambientLength * if s = 0 then 2 ^ ambientLength else sizes.getD (s - 1) 0) *
+        (Bnext ∩ Cprev).card
+
+/-- Step data extraction for anchored rebuild suffix. -/
+private lemma restrictedEffectiveAnchoredInitialState_stepData
+    (𝒜 : DescriptionFamily) (ambientLength N : ℕ) (sizes : List ℕ)
+    (Acode : BitString) (stateModelCodes : List BitString)
+    (hmodelLen : stateModelCodes.length = N + 2)
+    (hsteps : ∀ i < sizes.length,
+      RestrictedAnchoredRebuildStep 𝒜 ambientLength sizes Acode stateModelCodes i)
+    (hlen : sizes.length = N + 1) (s : ℕ) (hs : s ≤ N) :
+    RestrictedAnchoredStageDatum 𝒜 ambientLength sizes Acode stateModelCodes s := by
+  obtain ⟨_Bprev, Cprev, Bnext, _hBprevCode, hCprevCode,
+      hBnextCode, _hBprevMem, _hBprevCard, _hCprevSub, hCprevLength,
+      hBnextMem, hBnextCard, hdensity⟩ := hsteps s (by
+        rw [hlen]
+        exact Nat.lt_succ_of_le hs)
+  refine ⟨Cprev, Bnext, ?_, ?_, ?_, hBnextMem, hBnextCard, hCprevLength, hdensity⟩
+  · exact hBnextCode
+  · show decodeCoverCodeList
+        ((restrictedEffectiveRebuildLiveCodes Acode stateModelCodes).getD (s + 1) []) = _
+    rw [restrictedEffectiveRebuildLiveCodes_succ_getD Acode
+        stateModelCodes s (by omega)]
+    exact decode_restrictedLiveIntersectionCode _ _ Cprev Bnext hCprevCode hBnextCode
+  · exact hCprevCode
+
+/-- The anchor set of an anchored run, as its code presents it: the code `Acode` decodes to
+`A`, the set `A` belongs to the family, all its strings have the ambient length, and it has at
+most `2 ^ ambientLength` of them. -/
+structure RestrictedAnchorSet (𝒜 : DescriptionFamily) (ambientLength : ℕ) (Acode : BitString)
+    (A : Finset BitString) : Prop where
+  /-- The code decodes to the anchor set. -/
+  decodes : decodeCoverCodeList Acode = canonicalFinsetList A
+  /-- The anchor set belongs to the family. -/
+  mem : 𝒜.mem A
+  /-- Its strings have the ambient length. -/
+  lengths : ∀ x ∈ A, x.length = ambientLength
+  /-- It is no larger than the ambient cube. -/
+  card_le : A.card ≤ 2 ^ ambientLength
+
+/-- **The anchored initial state exists.**  From a decoded family code `Acode` for `A`, a list
+of model codes and the per-stage step data, the sampled-run state whose model and live sets are
+the decoded codes satisfies every field of `RestrictedSampledRunState`, its stage-`0` model and
+live sets both being `A`. -/
+private lemma restrictedEffectiveAnchoredInitialState_make_state
+    (𝒜 : DescriptionFamily) (N ambientLength : ℕ) (t : ℕ → ℕ)
+    (sizes : List ℕ) (Acode : BitString) (A : Finset BitString)
+    (stateModelCodes : List BitString)
+    (hstateModelLen : stateModelCodes.length = N + 2)
+    (hanchor : RestrictedAnchorSet 𝒜 ambientLength Acode A)
+    (hpowers : IsPowerSizeSchedule sizes N (fun s => t (s + 1)))
+    (htop : t 0 = ambientLength)
+    (hpredecessor_eq_A : stateModelCodes.getD 0 [] = Acode)
+    (hstepData : ∀ s ≤ N,
+      RestrictedAnchoredStageDatum 𝒜 ambientLength sizes Acode stateModelCodes s) :
+    ∃ state : RestrictedSampledRunState 𝒜 (N + 1) ambientLength (2 * 𝒜.overhead ambientLength) t,
+      DecodesToRestrictedSampledRunState
+        (restrictedEffectiveSampledStateCode Acode stateModelCodes) state ∧
+      state.B 0 = A ∧ state.live 0 = A := by
+  obtain ⟨hAcode, hAmem, hAlength, hAcard⟩ := hanchor
+  let stateLiveCodes := restrictedEffectiveRebuildLiveCodes Acode stateModelCodes
+  have hstateLive0 : stateLiveCodes.getD 0 [] = Acode :=
+    restrictedEffectiveRebuildLiveCodes_getD_zero Acode stateModelCodes (by
+      intro hnil
+      rw [hnil] at hstateModelLen
+      contradiction)
+  let decodedModels : ℕ → Finset BitString := fun s =>
+    (decodeCoverCodeList (stateModelCodes.getD s [])).toFinset
+  let decodedLive : ℕ → Finset BitString := fun s =>
+    (decodeCoverCodeList (stateLiveCodes.getD s [])).toFinset
+  have hdecoded : ∀ s ≤ N + 1,
+      decodeCoverCodeList (stateModelCodes.getD s []) =
+          canonicalFinsetList (decodedModels s) ∧
+      decodeCoverCodeList (stateLiveCodes.getD s []) =
+          canonicalFinsetList (decodedLive s) := by
+    intro s hs
+    simp only [decodedModels, decodedLive]
+    cases s with
+    | zero =>
+      constructor
+      · rw [hpredecessor_eq_A, hAcode, canonicalFinsetList_toFinset]
+      · rw [hstateLive0, hAcode, canonicalFinsetList_toFinset]
+    | succ s =>
+      have hs' : s ≤ N := by omega
+      obtain ⟨Cprev, Bnext, hBnextCode, hliveCode, _, _⟩ := hstepData s hs'
+      constructor
+      · rw [hBnextCode, canonicalFinsetList_toFinset]
+      · rw [hliveCode, canonicalFinsetList_toFinset]
+  have hstateModel0 : stateModelCodes.getD 0 [] = Acode := hpredecessor_eq_A
+  have hB0 : decodedModels 0 = A := by
+    dsimp [decodedModels]
+    rw [hstateModel0, hAcode, canonicalFinsetList_toFinset]
+  have hlive0 : decodedLive 0 = A := by
+    dsimp [decodedLive]
+    rw [hstateLive0, hAcode, canonicalFinsetList_toFinset]
+  let state : RestrictedSampledRunState 𝒜 (N + 1) ambientLength
+      (2 * 𝒜.overhead ambientLength) t :=
+    { B := decodedModels
+      live := decodedLive
+      mem_family := by
+        intro s hs
+        cases s with
+        | zero =>
+          dsimp [decodedModels]
+          rw [hstateModel0, hAcode, canonicalFinsetList_toFinset]
+          exact hAmem
+        | succ s =>
+          have hs' : s ≤ N := by omega
+          obtain ⟨Cprev, Bnext, hBnextCode, _, _, hBnextMem, _⟩ := hstepData s hs'
+          dsimp [decodedModels]
+          rw [hBnextCode, canonicalFinsetList_toFinset]
+          exact hBnextMem
+      size_bound := by
+        intro s hs
+        cases s with
+        | zero =>
+          dsimp [decodedModels]
+          rw [hstateModel0, hAcode, canonicalFinsetList_toFinset, htop]
+          exact hAcard
+        | succ s =>
+          have hs' : s ≤ N := by omega
+          obtain ⟨Cprev, Bnext, hBnextCode, _, _, _, hBnextCard, _⟩ := hstepData s hs'
+          dsimp [decodedModels]
+          rw [hBnextCode, canonicalFinsetList_toFinset]
+          rw [hpowers s hs'] at hBnextCard
+          exact hBnextCard
+      live_subset := by
+        intro s hs
+        cases s with
+        | zero =>
+          dsimp [decodedLive, decodedModels]
+          rw [hstateLive0, hstateModel0, hAcode]
+        | succ s =>
+          have hs' : s ≤ N := by omega
+          obtain ⟨Cprev, Bnext, hBnextCode, hliveCode, _⟩ := hstepData s hs'
+          dsimp [decodedLive, decodedModels]
+          rw [hliveCode, hBnextCode, canonicalFinsetList_toFinset, canonicalFinsetList_toFinset]
+          exact Finset.inter_subset_right
+      live_ambient := by
+        intro s hs x hx
+        cases s with
+        | zero =>
+          dsimp [decodedLive] at hx
+          rw [hstateLive0, hAcode] at hx
+          rw [canonicalFinsetList_toFinset] at hx
+          exact hAlength x hx
+        | succ s =>
+          have hs' : s ≤ N := by omega
+          obtain ⟨Cprev, Bnext, hBnextCode, hliveCode, hCprevCode,
+              hBnextMem, hBnextCard, hCprevLength, _⟩ := hstepData s hs'
+          dsimp [decodedLive] at hx
+          rw [hliveCode, canonicalFinsetList_toFinset] at hx
+          exact hCprevLength x (Finset.inter_subset_left hx)
+      live_monotonic := by
+        intro s hsN
+        have hsLE : s ≤ N := by omega
+        obtain ⟨Cprev, Bnext, hBnextCode, hliveCode, hliveCode_s, hBnextMem, hBnextCard,
+          hCprevLength, _⟩ := hstepData s hsLE
+        have hdecodedLive_s :
+            decodeCoverCodeList (stateLiveCodes.getD s []) = canonicalFinsetList Cprev :=
+          hliveCode_s
+        dsimp [decodedLive]
+        rw [hliveCode, hdecodedLive_s, canonicalFinsetList_toFinset, canonicalFinsetList_toFinset]
+        exact Finset.inter_subset_left
+      density := by
+        intro s hsN
+        have hsLE : s ≤ N := by omega
+        obtain ⟨Cprev, Bnext, hBnextCode, hliveCode, hCprevCode,
+            _, _, _, hdensity⟩ := hstepData s hsLE
+        have hdecodedLive_s : decodedLive s = Cprev := by
+          simp only [decodedLive]
+          rw [hCprevCode]
+          exact canonicalFinsetList_toFinset Cprev
+        have hdecodedLive_sp : decodedLive (s + 1) = Cprev ∩ Bnext := by
+          simp only [decodedLive]
+          rw [hliveCode]
+          exact canonicalFinsetList_toFinset (Cprev ∩ Bnext)
+        simp only [hdecodedLive_s, hdecodedLive_sp]
+        exact restrictedEffectiveAnchoredInitialState_density_step
+          𝒜 ambientLength hpowers htop s hsLE Cprev Bnext hdensity }
+  refine ⟨state, ?_, hB0, hlive0⟩
+  unfold DecodesToRestrictedSampledRunState
+  simp only [restrictedSelectorField_sampledState_zero,
+    restrictedSelectorField_sampledState_one]
+  refine ⟨by omega, fun s hs => hdecoded s hs⟩
+
 /-- Generic decoding theorem for an anchored rebuild trace.  Unlike the
 unanchored initializer, the predecessor emitted at the head of the trace is
 retained as level zero. -/
@@ -195,32 +520,20 @@ lemma restrictedEffectiveAnchoredInitialState_generic_spec
   let A := stringsOfLength ambientLength
   let hA : A.Nonempty := codedStringsOfLength_nonempty ambientLength
   let Acode := (codedUniformOn A hA).code
-  have hAcode : decodeCoverCodeList Acode = canonicalFinsetList A := by
-    exact decodeCoverCodeList_code A hA
+  have hAcode : decodeCoverCodeList Acode = canonicalFinsetList A :=
+    decodeCoverCodeList_code A hA
   have hAmem : 𝒜.mem A := 𝒜.fullCube ambientLength
   have hAsub : A ⊆ A := Finset.Subset.rfl
-  have hAlength : ∀ x ∈ A, x.length = ambientLength := by
-    intro x hx
-    exact (memStringsOfLength ambientLength x).mp hx
+  have hAlength : ∀ x ∈ A, x.length = ambientLength := fun x hx =>
+    (mem_stringsOfLength ambientLength x).mp hx
   have hAcard : A.card ≤ 2 ^ ambientLength := by
-    rw [show A = stringsOfLength ambientLength from rfl, cardStringsOfLength]
-  have hsizes_head : sizes.getD 0 0 ≤ 2 ^ ambientLength := by
-    have h0le : (0 : ℕ) ≤ N := Nat.zero_le N
-    rw [hpowers 0 h0le]
-    refine Nat.pow_le_pow_right (by decide) ?_
-    exact htop ▸ hmono 0 (by omega)
-  have hsizes_pos : ∀ i < sizes.length, 0 < sizes.getD i 0 := by
-    intro i hi
-    have hiN : i ≤ N := by omega
-    rw [hpowers i hiN]
-    positivity
-  have hsizes_mono : ∀ i, i + 1 < sizes.length →
-      sizes.getD (i + 1) 0 ≤ sizes.getD i 0 := by
-    intro i hi
-    have hiN : i < N := by omega
-    rw [hpowers (i + 1) (by omega), hpowers i (by omega)]
-    exact Nat.pow_le_pow_right (by decide) (hmono (i + 1) (by omega))
-  -- Call rebuild suffix decodes density
+    rw [show A = stringsOfLength ambientLength from rfl, card_stringsOfLength]
+  have hsizes_head : sizes.getD 0 0 ≤ 2 ^ ambientLength :=
+    shiftedSizeSchedule_head_le_of_powers hpowers htop hmono
+  have hsizes_pos : ∀ i < sizes.length, 0 < sizes.getD i 0 :=
+    shiftedSizeSchedule_pos_of_powers hlen hpowers
+  have hsizes_mono : ∀ i, i + 1 < sizes.length → sizes.getD (i + 1) 0 ≤ sizes.getD i 0 :=
+    shiftedSizeSchedule_antitone_of_powers hlen hpowers hmono
   obtain ⟨output, Afinal, Cfinal, codes, hrun, houtput, htrace,
       hcodesLength, hsteps⟩ :=
     restrictedEffectiveRebuildSuffix_decodes_density 𝒜 Acode Acode sizes
@@ -234,31 +547,10 @@ lemma restrictedEffectiveAnchoredInitialState_generic_spec
     simp at hcodesLength
   obtain ⟨predecessorCode, tail, hcodes⟩ :=
     List.exists_cons_of_ne_nil hcodes_ne
-  have codes_ne_nil : ∀ {idx Acode_s Ccode_s codes}
-      (ht : RestrictedEffectiveRebuildCodeTrace 𝒜 (𝒜.overhead ambientLength) sizes Acode Acode idx
-        Acode_s Ccode_s codes),
-      codes ≠ [] := by
-    intro idx Acode_s Ccode_s codes ht
-    induction ht with
-    | nil => simp
-    | cons hprev _ => simp
-  have codes_head_eq : ∀ {idx Acode_s Ccode_s codes}
-      (ht : RestrictedEffectiveRebuildCodeTrace 𝒜 (𝒜.overhead ambientLength) sizes Acode Acode idx
-        Acode_s Ccode_s codes),
-      codes.headI = Acode := by
-    intro idx Acode_s Ccode_s codes ht
-    induction ht with
-    | nil => rfl
-    | cons hprev ih =>
-        rename_i idx Acode_s Ccode_s codes ih'
-        rcases codes with - | ⟨x, xs⟩
-        · exact (codes_ne_nil hprev rfl).elim
-        · simp_all
   have hpredecessor_eq_A : predecessorCode = Acode := by
-    have := codes_head_eq htrace
+    have := restrictedEffectiveRebuildCodeTrace_headI htrace
     rw [hcodes] at this
     simp_all
-  -- htrace already has Acode, nothing to simp
   have htail_ne : tail ≠ [] := by
     intro hnil
     rw [hcodes, hnil] at hcodesLength
@@ -271,9 +563,6 @@ lemma restrictedEffectiveAnchoredInitialState_generic_spec
     simp only [List.length_cons] at hcodesLength
     omega
   let extendedModelCodes := predecessorCode :: firstModelCode :: remainingModelCodes
-  have hextendedLength : extendedModelCodes.length = N + 2 := by
-    simp [extendedModelCodes, hremainingLength]
-  let modelCodes := firstModelCode :: remainingModelCodes
   let stateModelCodes := extendedModelCodes
   have hcodes_eq : codes = stateModelCodes := by rw [hcodes]
   let stateLiveCodes := restrictedEffectiveRebuildLiveCodes Acode stateModelCodes
@@ -282,12 +571,8 @@ lemma restrictedEffectiveAnchoredInitialState_generic_spec
     simp [stateModelCodes, extendedModelCodes, hremainingLength]
   have hstateModel0 : stateModelCodes.getD 0 [] = Acode := by
     simp [stateModelCodes, extendedModelCodes, hpredecessor_eq_A]
-  have hstateLive0 : stateLiveCodes.getD 0 [] = Acode := by
-    change (restrictedEffectiveRebuildLiveCodes Acode stateModelCodes).getD 0 [] = Acode
-    simp only [restrictedEffectiveRebuildLiveCodes, stateModelCodes, extendedModelCodes]
-    rfl
-  -- Get step data with proper indexing for s ≤ N (indices 0 to N of stateModelCodes)
-  have hstepData : ∀ s ≤ N, ∃ Bprev Cprev Bnext : Finset BitString,
+  have hstateLive0 : stateLiveCodes.getD 0 [] = Acode := rfl
+  have hstepData : ∀ s ≤ N, ∃ Cprev Bnext : Finset BitString,
       decodeCoverCodeList (stateModelCodes.getD (s + 1) []) = canonicalFinsetList Bnext ∧
       decodeCoverCodeList (stateLiveCodes.getD (s + 1) []) =
         canonicalFinsetList (Cprev ∩ Bnext) ∧
@@ -298,191 +583,17 @@ lemma restrictedEffectiveAnchoredInitialState_generic_spec
         (𝒜.overhead ambientLength * if s = 0 then 2 ^ ambientLength else sizes.getD (s - 1) 0) *
           (Bnext ∩ Cprev).card := by
     intro s hs
-    obtain ⟨Bprev, Cprev, Bnext, hBprevCode, hCprevCode,
-        hBnextCode, hBprevMem, hBprevCard, hCprevSub, hCprevLength,
-        hBnextMem, hBnextCard, hdensity⟩ := hsteps s (by
-          rw [hlen]
-          exact Nat.lt_succ_of_le hs)
-    refine ⟨Bprev, Cprev, Bnext, ?_, ?_, ?_, hBnextMem, hBnextCard, hCprevLength, hdensity⟩
-    · simpa [hcodes_eq] using hBnextCode
-    · rw [hcodes_eq] at hCprevCode
-      simp only [stateLiveCodes]
-      show decodeCoverCodeList
-        ((restrictedEffectiveRebuildLiveCodes Acode stateModelCodes).getD (s + 1) []) = _
-      rw [restrictedEffectiveRebuildLiveCodes_succ_getD Acode
-          stateModelCodes s (by omega)]
-      simpa [hcodes_eq] using
-        decode_restrictedLiveIntersectionCode _ _ Cprev Bnext hCprevCode hBnextCode
-    · rw [hcodes_eq] at hCprevCode
-      simp only [stateLiveCodes]
-      rw [hcodes_eq] at hBprevCode
-      exact hCprevCode
-  let decodedModels : ℕ → Finset BitString := fun s =>
-    (decodeCoverCodeList (stateModelCodes.getD s [])).toFinset
-  let decodedLive : ℕ → Finset BitString := fun s =>
-    (decodeCoverCodeList (stateLiveCodes.getD s [])).toFinset
-  have hdecoded : ∀ s ≤ N + 1,
-      decodeCoverCodeList (stateModelCodes.getD s []) =
-          canonicalFinsetList (decodedModels s) ∧
-      decodeCoverCodeList (stateLiveCodes.getD s []) =
-          canonicalFinsetList (decodedLive s) := by
-    intro s hs
-    simp only [decodedModels, decodedLive]
-    cases s with
-    | zero =>
-      constructor
-      · -- stateModelCodes[0] = predecessorCode, and predecessorCode = Acode
-        have h0 : stateModelCodes.getD 0 [] = Acode := by
-          simp [stateModelCodes, extendedModelCodes, hpredecessor_eq_A]
-        rw [h0, hAcode]
-        simp [canonicalFinsetList_toFinset]
-      · -- stateLiveCodes[0] = Acode
-        have h0 : stateLiveCodes.getD 0 [] = Acode := by
-          change (restrictedEffectiveRebuildLiveCodes Acode stateModelCodes).getD 0 [] = Acode
-          simp only [restrictedEffectiveRebuildLiveCodes, stateModelCodes, extendedModelCodes]
-          rfl
-        rw [h0, hAcode]
-        simp [canonicalFinsetList_toFinset]
-    | succ s =>
-      have hs' : s ≤ N := by omega
-      obtain ⟨Bprev, Cprev, Bnext, hBnextCode, hliveCode, hBnextMem, hBnextCard, hCprevLength⟩ :=
-        hstepData s hs'
-      constructor
-      · rw [hBnextCode, canonicalFinsetList_toFinset]
-      · rw [hliveCode, canonicalFinsetList_toFinset]
-  let state : RestrictedSampledRunState 𝒜 (N + 1) ambientLength
-      (2 * 𝒜.overhead ambientLength) t :=
-    { B := decodedModels
-      live := decodedLive
-      mem_family := by
-        intro s hs
-        cases s with
-        | zero =>
-          dsimp [decodedModels]
-          rw [hstateModel0, hAcode]
-          simp [hAmem]
-        | succ s =>
-          have hs' : s ≤ N := by omega
-          obtain ⟨Bprev, Cprev, Bnext, hBnextCode, _, _, hBnextMem, _, _⟩ := hstepData s hs'
-          dsimp [decodedModels]
-          rw [hBnextCode, canonicalFinsetList_toFinset]
-          exact hBnextMem
-      size_bound := by
-        intro s hs
-        cases s with
-        | zero =>
-          dsimp [decodedModels]
-          rw [hstateModel0, hAcode, canonicalFinsetList_toFinset, htop]
-          exact hAcard
-        | succ s =>
-          have hs' : s ≤ N := by omega
-          obtain ⟨Bprev, Cprev, Bnext, hBnextCode, _, _, _, hBnextCard, _⟩ := hstepData s hs'
-          dsimp [decodedModels]
-          rw [hBnextCode, canonicalFinsetList_toFinset]
-          rw [hpowers s hs'] at hBnextCard
-          exact hBnextCard
-      live_subset := by
-        intro s hs
-        cases s with
-        | zero =>
-          dsimp [decodedLive, decodedModels]
-          rw [hstateLive0, hstateModel0, hAcode]
-        | succ s =>
-          have hs' : s ≤ N := by omega
-          obtain ⟨Bprev, Cprev, Bnext, hBnextCode, hliveCode, _, _, _, _⟩ := hstepData s hs'
-          dsimp [decodedLive, decodedModels]
-          rw [hliveCode, hBnextCode, canonicalFinsetList_toFinset,
-            canonicalFinsetList_toFinset]
-          exact Finset.inter_subset_right
-      live_ambient := by
-        intro s hs x hx
-        cases s with
-        | zero =>
-          dsimp [decodedLive] at hx
-          rw [hstateLive0, hAcode] at hx
-          rw [canonicalFinsetList_toFinset] at hx
-          exact hAlength x hx
-        | succ s =>
-          have hs' : s ≤ N := by omega
-          obtain ⟨Bprev, Cprev, Bnext, hBnextCode, hliveCode, hCprevCode,
-              hBnextMem, hBnextCard, hCprevLength, _⟩ := hstepData s hs'
-          dsimp [decodedLive] at hx
-          rw [hliveCode, canonicalFinsetList_toFinset] at hx
-          exact hCprevLength x (Finset.inter_subset_left hx)
-      live_monotonic := by
-        intro s hsN
-        have hsLE : s ≤ N := by omega
-        obtain ⟨Bprev, Cprev, Bnext, hBnextCode, hliveCode, hliveCode_s, hBnextMem, hBnextCard,
-          hCprevLength, _⟩ := hstepData s hsLE
-        have hdecodedLive_s :
-            decodeCoverCodeList (stateLiveCodes.getD s []) = canonicalFinsetList Cprev :=
-          hliveCode_s
-        dsimp [decodedLive]
-        rw [hliveCode, hdecodedLive_s, canonicalFinsetList_toFinset, canonicalFinsetList_toFinset]
-        exact Finset.inter_subset_left
-      density := by
-        intro s hsN
-        have hsLE : s ≤ N := by omega
-        -- Use hstepData which has the right form for stateModelCodes
-        obtain ⟨Bprev, Cprev, Bnext, hBnextCode, hliveCode, hCprevCode,
-            hBnextMem, hBnextCard, hCprevLength, hdensity⟩ := hstepData s hsLE
-        -- decodedLive s = Cprev
-        have hdecodedLive_s : decodedLive s = Cprev := by
-          simp only [decodedLive]
-          rw [hCprevCode]
-          exact canonicalFinsetList_toFinset Cprev
-        -- decodedLive (s + 1) = Cprev ∩ Bnext
-        have hdecodedLive_sp : decodedLive (s + 1) = Cprev ∩ Bnext := by
-          simp only [decodedLive]
-          rw [hliveCode]
-          exact canonicalFinsetList_toFinset (Cprev ∩ Bnext)
-        -- Now apply density property
-        simp only [hdecodedLive_s, hdecodedLive_sp]
-        -- hdensity: sizes.getD s 0 * Cprev.card ≤
-        --   (𝒜.overhead * (if s = 0 then 2^ambientLength else sizes.getD (s-1) 0)) *
-        --   (Bnext ∩ Cprev).card
-        -- Need: (2 ^ t (s + 1)) * Cprev.card ≤ (2 * overhead * 2 ^ t s) * (Cprev ∩ Bnext).card
-        have hsizes_eq : sizes.getD s 0 = 2 ^ t (s + 1) := hpowers s (by omega)
-        rw [← hsizes_eq, Finset.inter_comm]
-        -- Now need to show the bound follows from hdensity
-        rcases s.eq_zero_or_pos with rfl | hs_pos
-        · -- Case s = 0
-          have h2 : 2 ^ t 0 = 2 ^ ambientLength := by rw [htop]
-          have h3 : 𝒜.overhead ambientLength ≤ 2 * 𝒜.overhead ambientLength := by omega
-          calc sizes.getD 0 0 * Cprev.card
-              ≤ 𝒜.overhead ambientLength * 2 ^ ambientLength * (Bnext ∩ Cprev).card := hdensity
-            _ ≤ 2 * 𝒜.overhead ambientLength * 2 ^ ambientLength * (Bnext ∩ Cprev).card := by
-                gcongr
-            _ = 2 * 𝒜.overhead ambientLength * 2 ^ t 0 * (Bnext ∩ Cprev).card := by rw [h2]
-        · -- Case s > 0
-          have hsizes_pred : sizes.getD (s - 1) 0 = 2 ^ t s := by
-            have h1 : s - 1 + 1 = s := Nat.sub_add_cancel hs_pos
-            rw [← h1]
-            exact hpowers (s - 1) (by omega)
-          calc sizes.getD s 0 * Cprev.card
-              ≤ 𝒜.overhead ambientLength * sizes.getD (s - 1) 0 * (Bnext ∩ Cprev).card := by
-                rw [if_neg (ne_of_gt hs_pos)] at hdensity; exact hdensity
-            _ = 𝒜.overhead ambientLength * 2 ^ t s * (Bnext ∩ Cprev).card := by rw [hsizes_pred]
-            _ ≤ 2 * 𝒜.overhead ambientLength * 2 ^ t s * (Bnext ∩ Cprev).card := by
-                gcongr; omega }
-  have hstateB : ∀ s, state.B s = decodedModels s := fun _ => rfl
-  have hstateLive : ∀ s, state.live s = decodedLive s := fun _ => rfl
-  refine ⟨stateCode, state, ?_, ?_, ?_⟩
+    rw [hcodes_eq] at hsteps
+    exact restrictedEffectiveAnchoredInitialState_stepData
+      𝒜 ambientLength N sizes Acode stateModelCodes hstateModelLength hsteps hlen s hs
+  obtain ⟨state, hdecodes, hstateB, hstateLive⟩ :=
+    restrictedEffectiveAnchoredInitialState_make_state 𝒜 N ambientLength t sizes Acode A
+      stateModelCodes hstateModelLength ⟨hAcode, hAmem, hAlength, hAcard⟩ hpowers htop
+      hstateModel0 hstepData
+  refine ⟨stateCode, state, ?_, hdecodes, hstateB, hstateLive⟩
   · rw [hrun]
     simp [Part.map_some, houtput, hcodes_eq]
     rfl
-  · unfold DecodesToRestrictedSampledRunState
-    -- Need to show modelCodes.length = (N + 1) + 1 and decoding properties
-    simp only [stateCode, restrictedSelectorField_sampledState_zero,
-      restrictedSelectorField_sampledState_one]
-    refine ⟨?_, ?_⟩
-    · omega
-    · intro s hs
-      exact hdecoded s hs
-  · simp only [hstateB, hstateLive]
-    simp only [decodedModels, decodedLive, hstateModel0, hstateLive0, hAcode,
-      canonicalFinsetList_toFinset, A]
-    trivial
 
 /-- The anchored initializer terminates, decodes to the shifted
 state, and keeps both the level-zero model and live pool equal to the ambient

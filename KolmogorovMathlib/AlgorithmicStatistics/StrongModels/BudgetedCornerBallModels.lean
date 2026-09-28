@@ -1,10 +1,27 @@
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.BudgetedCornerHardRegime
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.FullCube
 import KolmogorovMathlib.AlgorithmicStatistics.CodedComputability
 import KolmogorovMathlib.AlgorithmicStatistics.NormalizedCodedFiniteDistribution
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.ModelsToSets2
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.BudgetedCornerLengthScale
 import Mathlib.Tactic.Ring
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.PlainProfile
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.BudgetedCornerHardRegime
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.FullCube
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.BudgetedCornerLengthScale
+
+/-!
+# The Hamming ball as a model, and the budgeted plain corner
+
+`stringsOfLengthLe n` is the set of strings of length at most `n` — the Hamming ball around
+the empty string — built from the explicit list `allStringsUpTo` with its membership,
+duplicate-freeness, cardinality and primitive recursiveness lemmas.
+
+Used as a model it gives the cheap end of the plain description profile:
+`plainSetComplexity_ball_le_KPPlain_natCode` bounds its plain set complexity by the prefix
+complexity of the numeral `n`, `inPlainDescriptionProfile_ball` puts `(m + c, n + 1)` in the
+plain profile of every string of length at most `n`, and
+`budgeted_plain_corner_of_ball_length` is the budgeted plain corner that follows.
+`exists_rounded_multiple` rounds a length up to a multiple of a power of two, as the corner
+statement requires.
+-/
 
 open Kolmogorov
 open CodedFiniteDistribution
@@ -14,6 +31,7 @@ def allStringsUpTo : ℕ → List BitString
   | 0 => allStrings 0
   | n + 1 => allStringsUpTo n ++ allStrings (n + 1)
 
+/-- The list of all strings of length at most `n` contains exactly those strings. -/
 @[simp]
 lemma mem_allStringsUpTo (n : ℕ) (s : BitString) : s ∈ allStringsUpTo n ↔ s.length ≤ n := by
   induction n with
@@ -22,6 +40,7 @@ lemma mem_allStringsUpTo (n : ℕ) (s : BitString) : s ∈ allStringsUpTo n ↔ 
     simp [allStringsUpTo, ih]
     omega
 
+/-- The list of all strings of length at most `n` has no duplicates. -/
 lemma allStringsUpTo_nodup (n : ℕ) : (allStringsUpTo n).Nodup := by
   induction n with
   | zero => exact allStrings_nodup 0
@@ -35,6 +54,7 @@ lemma allStringsUpTo_nodup (n : ℕ) : (allStringsUpTo n).Nodup := by
     subst y
     omega
 
+/-- There are `2 ^ (n + 1) - 1` strings of length at most `n`. -/
 @[simp]
 lemma length_allStringsUpTo (n : ℕ) : (allStringsUpTo n).length = 2 ^ (n + 1) - 1 := by
   induction n with
@@ -47,23 +67,29 @@ lemma length_allStringsUpTo (n : ℕ) : (allStringsUpTo n).length = 2 ^ (n + 1) 
     have h2 : 1 ≤ 2 ^ (n + 1) := Nat.one_le_two_pow
     omega
 
+/-- The finite set of all strings of length at most `n`, the Hamming ball around the empty
+string. -/
 def stringsOfLengthLe (n : ℕ) : Finset BitString :=
   (allStringsUpTo n).toFinset
 
+/-- Membership in the ball of radius `n` means having length at most `n`. -/
 @[simp]
-lemma memStringsOfLengthLe (n : ℕ) (s : BitString) : s ∈ stringsOfLengthLe n ↔ s.length ≤ n := by
+lemma mem_stringsOfLengthLe (n : ℕ) (s : BitString) : s ∈ stringsOfLengthLe n ↔ s.length ≤ n := by
   rw [stringsOfLengthLe, List.mem_toFinset, mem_allStringsUpTo]
 
+/-- The ball of radius `n` is nonempty, as it contains the empty string. -/
 lemma stringsOfLengthLe_nonempty (n : ℕ) : (stringsOfLengthLe n).Nonempty := by
   use []
   simp
 
+/-- The ball of radius `n` has at most `2 ^ (n + 1)` elements. -/
 lemma cardStringsOfLengthLe_le (n : ℕ) : (stringsOfLengthLe n).card ≤ 2 ^ (n + 1) := by
   rw [stringsOfLengthLe, List.toFinset_card_of_nodup (allStringsUpTo_nodup n)]
   rw [length_allStringsUpTo]
   have : 1 ≤ 2 ^ (n + 1) := Nat.one_le_two_pow
   omega
 
+/-- Listing all strings of length at most `n` is primitive recursive in `n`. -/
 theorem allStringsUpTo_primrec : Primrec allStringsUpTo := by
   convert Primrec.nat_rec' _ _ _ using 1
   rotate_left
@@ -81,6 +107,8 @@ theorem allStringsUpTo_primrec : Primrec allStringsUpTo := by
       exact Primrec.snd
   · funext l; induction l <;> simp [*, allStringsUpTo]
 
+/-- The plain set complexity of the ball of radius `n` exceeds the prefix complexity of `n` by at
+most an additive constant. -/
 theorem plainSetComplexity_ball_le_KPPlain_natCode
     (V U : Map) (hV : isOptimalConditional V) (hU : IsOptimalPrefixConditional U) :
     ∃ c : ℕ, ∀ n : ℕ,
@@ -94,7 +122,7 @@ theorem plainSetComplexity_ball_le_KPPlain_natCode
           using 1
         convert canonicalFinsetList_toFinset_primrec.comp
           (allStringsUpTo_primrec.comp decodeNatCode_primrec) |>.to_comp using 1)
-  obtain ⟨cBridge, hcBridge⟩ := plainK_le_KPPlain V U hV hU.isPrefixDecompressor
+  obtain ⟨cBridge, hcBridge⟩ := plain_le_prefix V U hV hU.isPrefixDecompressor
   refine ⟨c₁ + cBridge, fun n => ?_⟩
   have hcode : canonicalUniformCodeOfList (canonicalFinsetList (stringsOfLengthLe n))
       = (codedUniformOn (stringsOfLengthLe n) (stringsOfLengthLe_nonempty n)).code :=
@@ -108,6 +136,8 @@ theorem plainSetComplexity_ball_le_KPPlain_natCode
     _ ≤ (KPPlain U (natCode n) + (c₁ : ENat)) + (cBridge : ENat) := by gcongr
     _ = KPPlain U (natCode n) + ((c₁ + cBridge : ℕ) : ENat) := by push_cast; ring
 
+/-- Every string of length at most `n` has the point `(m + c, n + 1)` in its plain description
+profile, where `m` bounds the prefix complexity of `n`; the ball is the witnessing model. -/
 theorem inPlainDescriptionProfile_ball
     (V U : Map) (hV : isOptimalConditional V) (hU : IsOptimalPrefixConditional U) :
     ∃ c : ℕ, ∀ (n : ℕ) (x : BitString) (m : ℕ),
@@ -116,7 +146,7 @@ theorem inPlainDescriptionProfile_ball
   obtain ⟨c, hc⟩ := plainSetComplexity_ball_le_KPPlain_natCode V U hV hU
   refine ⟨c, fun n x m hlen hm => ?_⟩
   refine ⟨stringsOfLengthLe n, stringsOfLengthLe_nonempty n, ?_, ?_, ?_⟩
-  · exact (memStringsOfLengthLe _ _).mpr hlen
+  · exact (mem_stringsOfLengthLe _ _).mpr hlen
   · calc plainSetComplexity V (stringsOfLengthLe n) (stringsOfLengthLe_nonempty n)
       ≤ KPPlain U (natCode n) + c := hc n
     _ ≤ (m : ENat) + c := by gcongr

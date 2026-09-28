@@ -1,10 +1,10 @@
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.SeparationWitness
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.StepWisePlain
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.SeparationCylinderTotal
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.TotalReduction
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.SeparationWitness
 
 /-!
-# S7: the step-wise `KT(B | y)` upper bound
+# The step-wise `KT(B | y)` upper bound
 
 For the separation witness `x = y ++ z` (with `|y| = |z| = 2k`, `n = 4k`) whose
 plain profile `P_x` is `O(log n)`-close to the Figure-4 gray region, let `B` be a
@@ -24,6 +24,8 @@ estimate, which uses `M ≤ n` derived from the budget) are handled here.
 
 namespace Kolmogorov
 
+/-- A string whose plain description profile stays within `logSlack cSlack n` of the separation
+gray profile of `k` has plain complexity at least `3 * k` minus a logarithmic slack. -/
 lemma plainK_lower_of_separationGrayProfile_neighborhood
     (V : Map) (hV : isOptimalConditional V) :
     ∃ cLower : Nat, ∀ (n k cSlack : Nat) (x : BitString),
@@ -72,9 +74,8 @@ lemma plainK_lower_of_separationGrayProfile_neighborhood
   rw [hkx]
   exact_mod_cast hNat
 
-/-- **Geometric leaf (sufficiency of the standard block).**  If `x ∈ B`, the
-plain profile of `x` is within `logSlack cSlack n` of the gray region, and the
-parameters `(C(B), log #B)` are `L∞`-within `M` of `(k, 2k)`, then `B` is a
+/-- If `x ∈ B`, the plain profile of `x` is within `logSlack cSlack n` of the gray region, and
+the parameters `(C(B), log #B)` are `L∞`-within `M` of `(k, 2k)`, then `B` is a
 `(2M + O(log n))`-sufficient statistic for `x`.  The factor `2` on both `M` and
 the neighborhood radius is genuine: both coordinates contribute to the
 two-part sum.  The `x ∈ B` hypothesis is required: it is the
@@ -125,8 +126,7 @@ lemma separationGrayProfile_sufficiency_of_near_target
     a + finiteSetLogCard B ≤
       kx + (2 * M + logSlack (2 * cSlack + cLower) n) by omega)
 
-/-- **Geometric leaf (minimality of the standard block).**  Under the same
-gray-region and `L∞`-closeness hypotheses (and `x ∈ B`), if the total budget is
+/-- Under the same gray-region and `L∞`-closeness hypotheses (and `x ∈ B`), if the total budget is
 below `k`, then `B` is `(2M + O(log n), kappa)`-minimal: no competitor of
 complexity smaller by `2M + O(log n)` can keep its optimality deficiency within
 `kappa`, because the gray region forbids sufficient models of complexity below
@@ -203,8 +203,7 @@ lemma separationGrayProfile_minimality_of_near_target
     nlinarith [Nat.zero_le ((Nat.bits n).length)]
   omega
 
-/-- **Geometric leaf (sufficiency of the natural cylinder).**  The natural
-cylinder `A = cylinder n y` witnessing the corner `(k, 2k)` is an
+/-- The natural cylinder `A = cylinder n y` witnessing the corner `(k, 2k)` is an
 `O(log n)`-sufficient statistic for `x = y ++ z`.  Its complexity is `k ± O(log
 n)` (hypotheses `hLow`, `hUp`) and its log-cardinality is `2k`, matching
 `C(x) ≈ 3k`; no `M` term is needed.  Membership `x ∈ cylinder n y` follows from

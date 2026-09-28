@@ -1,8 +1,26 @@
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.Separation
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.Lemma4Support
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.CanonicalImage
-import KolmogorovMathlib.AlgorithmicStatistics.BoundedComplexityLists.OmegaCount
-import KolmogorovMathlib.AlgorithmicStatistics.BoundedComplexityLists.StandardDescriptions
+import KolmogorovMathlib.AlgorithmicStatistics.BoundedLists.OmegaCount
+import KolmogorovMathlib.AlgorithmicStatistics.BoundedLists.StandardBlock
+
+/-!
+# The decoder behind Lemma 4
+
+`lemma4Decoder` reconstructs the finite Omega count: given a program for the code of a finite
+set `D`, a program for the standard enumerator `q` and the bound `m`, it searches for the
+first stage at which the bounded output of `q` covers `D` and reads the count off that stage.
+`lemma4Decoder_partrec` and `lemma4Decoder_eval` are its correctness, prepared by
+`lemma4Decoder_check_computable₂`, `lemma4Decoder_post_computable₂` and
+`lemma4Decoder_searchThen_partrec`; `plainKNat_omegaCount_le_of_stage_cover_nested` is the
+complexity bound in the nested input layout, which `Lemma4` reframes.
+
+`exists_plain_fullCube_image_of_total_program` and
+`boundedOutputStage_remainder_lt_two_pow_succ_of_mem_standardBlock` are the two counting facts
+the search needs: a total program has few outputs, and once a member of a standard block has
+appeared, few outputs remain.
+-/
+
 namespace Kolmogorov
 
 open Kolmogorov.CodedFiniteDistribution
@@ -24,6 +42,9 @@ private theorem forall₂_produces_exists_output
     · obtain ⟨y, hy, hR⟩ := ih hx
       exact ⟨y, List.mem_cons_of_mem y' hy, hR⟩
 
+/-- Every output of a total program `p` on condition `y` lies in a finite set of at most
+`2 ^ y.length` strings whose plain set complexity is at most
+`programLength p + logSlack c y.length`. -/
 theorem exists_plain_fullCube_image_of_total_program
     (V T : Map)
     (hV : isOptimalConditional V)
@@ -111,6 +132,9 @@ theorem exists_plain_fullCube_image_of_total_program
             nlinarith [Nat.zero_le (cV * (Nat.bits ny).length)]
           exact_mod_cast harith
 
+/-- Once a member of the standard block `standardBlock q m j []` has appeared in the bounded
+output enumeration at stage `t`, fewer than `2 ^ (j + 1)` strings of the enumeration are
+still missing. -/
 theorem boundedOutputStage_remainder_lt_two_pow_succ_of_mem_standardBlock
     (q : Nat.Partrec.Code) (m j t : Nat) (b : BitString)
     (hb : b ∈ standardBlock q m j [])
@@ -164,6 +188,9 @@ theorem boundedOutputStage_remainder_lt_two_pow_succ_of_mem_standardBlock
   · simp at hb
 
 open Classical in
+/-- Decoder for Lemma 4: from a program for the code of a finite set `D`, a program for the
+standard enumerator of `q`, and numbers `m` and `r`, it searches for the first stage at which
+the enumeration of `q` at level `m` covers `D` and outputs that stage's length plus `r`. -/
 noncomputable def lemma4Decoder (V : Map) : Map := fun input => do
   let z := input.1
   let Dcode := decodeFirst (decodeFirst z)
@@ -185,6 +212,137 @@ noncomputable def lemma4Decoder (V : Map) : Map := fun input => do
 unbounded search. -/
 attribute [local irreducible] Primcodable.prod Primcodable.list
 
+private abbrev Lemma4Input := BitString × BitString
+private abbrev Lemma4AfterD := Lemma4Input × BitString
+private abbrev Lemma4AfterQ := Lemma4AfterD × BitString
+
+/-- Checking whether bounded output stage of `q` at stage `t` covers the points of `D`
+is computable. -/
+private theorem lemma4Decoder_check_computable₂ :
+    Computable₂ (fun (input : Lemma4AfterQ × Nat.Partrec.Code) (t : Nat) =>
+      ((decodeDistributionData input.1.1.2).map
+        CodedDistributionEntry.point).all
+          (fun z => decide (z ∈ boundedOutputStage input.2
+            (bitsToNat
+              (decodeFirst (decodeSecond input.1.1.1.1))) t))) := by
+  have hL : Primrec (fun input : Lemma4AfterQ =>
+      (decodeDistributionData input.1.2).map
+        CodedDistributionEntry.point) :=
+    Primrec.list_map
+      (decodeDistributionData_primrec.comp
+        (Primrec.snd.comp Primrec.fst))
+      (entry_point_primrec.comp Primrec.snd).to₂
+  have hmR : Primrec (fun input : Lemma4AfterQ =>
+      bitsToNat (decodeFirst (decodeSecond input.1.1.1))) :=
+    bitsToNat_primrec.comp
+      (decodeFirst_primrec.comp
+        (decodeSecond_primrec.comp
+          (Primrec.fst.comp (Primrec.fst.comp Primrec.fst))))
+  have hstage : Primrec
+      (fun input : ((Lemma4AfterQ × Nat.Partrec.Code) × Nat) =>
+        boundedOutputStage input.1.2
+          (bitsToNat
+            (decodeFirst (decodeSecond input.1.1.1.1.1)))
+          input.2) :=
+    boundedOutputStage_primrec_uniform.comp
+      (Primrec.pair
+        (Primrec.pair
+          (Primrec.snd.comp Primrec.fst)
+          (hmR.comp (Primrec.fst.comp Primrec.fst)))
+        Primrec.snd)
+  have hlist : Primrec
+      (fun input : ((Lemma4AfterQ × Nat.Partrec.Code) × Nat) =>
+        (decodeDistributionData input.1.1.1.2).map
+          CodedDistributionEntry.point) :=
+    hL.comp (Primrec.fst.comp Primrec.fst)
+  have hpred : Primrec₂
+      (fun (input : ((Lemma4AfterQ × Nat.Partrec.Code) × Nat))
+        (z : BitString) =>
+          decide (z ∈ boundedOutputStage input.1.2
+            (bitsToNat
+              (decodeFirst (decodeSecond input.1.1.1.1.1)))
+            input.2)) :=
+    (bitString_mem_primrec.comp Primrec.snd
+      (hstage.comp Primrec.fst)).to₂
+  have hcheckPair : Computable
+      (fun input : (Lemma4AfterQ × Nat.Partrec.Code) × Nat =>
+        ((decodeDistributionData input.1.1.1.2).map
+          CodedDistributionEntry.point).all
+            (fun z => decide (z ∈ boundedOutputStage input.1.2
+              (bitsToNat
+                (decodeFirst (decodeSecond input.1.1.1.1.1))) input.2))) :=
+    (list_all_primrec hlist hpred).to_comp
+  exact hcheckPair.to₂
+
+/-- The post-processing function computing the output string length and converting to bits
+for Lemma 4 decoder is computable. -/
+private theorem lemma4Decoder_post_computable₂ :
+    Computable₂ (fun (input : Lemma4AfterQ × Nat.Partrec.Code) (t : Nat) =>
+      Nat.bits
+        ((boundedOutputStage input.2
+          (bitsToNat
+            (decodeFirst (decodeSecond input.1.1.1.1))) t).length +
+          bitsToNat
+            (decodeSecond (decodeSecond input.1.1.1.1)))) := by
+  have hmR : Primrec (fun input : Lemma4AfterQ =>
+      bitsToNat (decodeFirst (decodeSecond input.1.1.1))) :=
+    bitsToNat_primrec.comp
+      (decodeFirst_primrec.comp
+        (decodeSecond_primrec.comp
+          (Primrec.fst.comp (Primrec.fst.comp Primrec.fst))))
+  have hstage : Primrec
+      (fun input : ((Lemma4AfterQ × Nat.Partrec.Code) × Nat) =>
+        boundedOutputStage input.1.2
+          (bitsToNat
+            (decodeFirst (decodeSecond input.1.1.1.1.1)))
+          input.2) :=
+    boundedOutputStage_primrec_uniform.comp
+      (Primrec.pair
+        (Primrec.pair
+          (Primrec.snd.comp Primrec.fst)
+          (hmR.comp (Primrec.fst.comp Primrec.fst)))
+        Primrec.snd)
+  have hr : Computable (fun input : Lemma4Input =>
+      bitsToNat (decodeSecond (decodeSecond input.1))) :=
+    bitsToNat_primrec.to_comp.comp
+      (decodeSecond_computable.comp
+        (decodeSecond_computable.comp Computable.fst))
+  have hrR : Computable (fun input : Lemma4AfterQ × Nat.Partrec.Code =>
+      bitsToNat
+        (decodeSecond (decodeSecond input.1.1.1.1))) :=
+    hr.comp (Computable.fst.comp (Computable.fst.comp Computable.fst))
+  exact natBits_computable.comp
+    (Primrec.nat_add.to_comp.comp
+      (Computable.list_length.comp hstage.to_comp)
+      (hrR.comp Computable.fst)) |>.to₂
+
+/-- Searching for the covering stage and computing the output bits is partial recursive. -/
+private theorem lemma4Decoder_searchThen_partrec :
+    Partrec (fun input : Lemma4AfterQ × Nat.Partrec.Code =>
+      (Nat.rfind (fun t => Part.some
+        (((decodeDistributionData input.1.1.2).map
+          CodedDistributionEntry.point).all
+            (fun z => decide (z ∈ boundedOutputStage input.2
+              (bitsToNat
+                (decodeFirst (decodeSecond input.1.1.1.1))) t))))).bind
+        (fun t => Part.some
+          (Nat.bits
+            ((boundedOutputStage input.2
+              (bitsToNat
+                (decodeFirst (decodeSecond input.1.1.1.1))) t).length +
+              bitsToNat
+                (decodeSecond (decodeSecond input.1.1.1.1)))))) := by
+  have hfind : Partrec (fun input : Lemma4AfterQ × Nat.Partrec.Code =>
+      Nat.rfind (fun t => Part.some
+        (((decodeDistributionData input.1.1.2).map
+          CodedDistributionEntry.point).all
+            (fun z => decide (z ∈ boundedOutputStage input.2
+              (bitsToNat
+                (decodeFirst (decodeSecond input.1.1.1.1))) t))))) :=
+    Partrec.rfind lemma4Decoder_check_computable₂.partrec₂
+  exact (Partrec.bind hfind lemma4Decoder_post_computable₂.partrec₂).of_eq (fun _ => rfl)
+
+/-- The Lemma 4 decoder built on a decompressor is partial recursive. -/
 theorem lemma4Decoder_partrec (V : Map) (hV : isDecompressor V) :
     Partrec (lemma4Decoder V) := by
   let Input := BitString × BitString
@@ -198,16 +356,6 @@ theorem lemma4Decoder_partrec (V : Map) (hV : isDecompressor V) :
       decodeSecond (decodeFirst input.1)) :=
     decodeSecond_computable.comp
       (decodeFirst_computable.comp Computable.fst)
-  have hm : Computable (fun input : Input =>
-      bitsToNat (decodeFirst (decodeSecond input.1))) :=
-    bitsToNat_primrec.to_comp.comp
-      (decodeFirst_computable.comp
-        (decodeSecond_computable.comp Computable.fst))
-  have hr : Computable (fun input : Input =>
-      bitsToNat (decodeSecond (decodeSecond input.1))) :=
-    bitsToNat_primrec.to_comp.comp
-      (decodeSecond_computable.comp
-        (decodeSecond_computable.comp Computable.fst))
   have hrunD : Partrec (fun input : Input =>
       V (decodeFirst (decodeFirst input.1), [])) :=
     Partrec.comp hV
@@ -226,116 +374,26 @@ theorem lemma4Decoder_partrec (V : Map) (hV : isDecompressor V) :
         (Encodable.decode (α := Nat.Partrec.Code)
           (bitsToNat input.2))) :=
     Computable.ofOption hdecodeQ
-  have hL : Primrec (fun input : AfterQ =>
-      (decodeDistributionData input.1.2).map
-        CodedDistributionEntry.point) :=
-    Primrec.list_map
-      (decodeDistributionData_primrec.comp
-        (Primrec.snd.comp Primrec.fst))
-      (entry_point_primrec.comp Primrec.snd).to₂
-  have hmR : Primrec (fun input : AfterQ =>
-      bitsToNat (decodeFirst (decodeSecond input.1.1.1))) :=
-    bitsToNat_primrec.comp
-      (decodeFirst_primrec.comp
-        (decodeSecond_primrec.comp
-          (Primrec.fst.comp (Primrec.fst.comp Primrec.fst))))
-  have hstage : Primrec
-      (fun input : ((AfterQ × Nat.Partrec.Code) × Nat) =>
-        boundedOutputStage input.1.2
-          (bitsToNat
-            (decodeFirst (decodeSecond input.1.1.1.1.1)))
-          input.2) :=
-    boundedOutputStage_primrec_uniform.comp
-      (Primrec.pair
-        (Primrec.pair
-          (Primrec.snd.comp Primrec.fst)
-          (hmR.comp (Primrec.fst.comp Primrec.fst)))
-        Primrec.snd)
-  have hlist : Primrec
-      (fun input : ((AfterQ × Nat.Partrec.Code) × Nat) =>
-        (decodeDistributionData input.1.1.1.2).map
-          CodedDistributionEntry.point) :=
-    hL.comp (Primrec.fst.comp Primrec.fst)
-  have hpred : Primrec₂
-      (fun (input : ((AfterQ × Nat.Partrec.Code) × Nat))
-        (z : BitString) =>
-          decide (z ∈ boundedOutputStage input.1.2
-            (bitsToNat
-              (decodeFirst (decodeSecond input.1.1.1.1.1)))
-            input.2)) :=
-    (bitString_mem_primrec.comp Primrec.snd
-      (hstage.comp Primrec.fst)).to₂
-  have hcheckPair : Computable
-      (fun input : (AfterQ × Nat.Partrec.Code) × Nat =>
-        ((decodeDistributionData input.1.1.1.2).map
-          CodedDistributionEntry.point).all
-            (fun z => decide (z ∈ boundedOutputStage input.1.2
-              (bitsToNat
-                (decodeFirst (decodeSecond input.1.1.1.1.1))) input.2))) :=
-    (list_all_primrec hlist hpred).to_comp
-  have hcheck : Computable₂
-      (fun (input : AfterQ × Nat.Partrec.Code) (t : Nat) =>
-        ((decodeDistributionData input.1.1.2).map
-          CodedDistributionEntry.point).all
-            (fun z => decide (z ∈ boundedOutputStage input.2
-              (bitsToNat
-                (decodeFirst (decodeSecond input.1.1.1.1))) t))) := by
-    exact hcheckPair.to₂
-  have hfind : Partrec (fun input : AfterQ × Nat.Partrec.Code =>
-      Nat.rfind (fun t => Part.some
-        (((decodeDistributionData input.1.1.2).map
-          CodedDistributionEntry.point).all
-            (fun z => decide (z ∈ boundedOutputStage input.2
-              (bitsToNat
-                (decodeFirst (decodeSecond input.1.1.1.1))) t))))) :=
-    Partrec.rfind hcheck.partrec₂
-  have hstageR : Computable
-      (fun input : (AfterQ × Nat.Partrec.Code) × Nat =>
-        boundedOutputStage input.1.2
-          (bitsToNat
-            (decodeFirst (decodeSecond input.1.1.1.1.1)))
-          input.2) :=
-    hstage.to_comp
-  have hrR : Computable (fun input : AfterQ × Nat.Partrec.Code =>
-      bitsToNat
-        (decodeSecond (decodeSecond input.1.1.1.1))) :=
-    hr.comp (Computable.fst.comp (Computable.fst.comp Computable.fst))
-  have hpost : Computable₂
-      (fun (input : AfterQ × Nat.Partrec.Code) (t : Nat) =>
-        Nat.bits
-          ((boundedOutputStage input.2
-            (bitsToNat
-              (decodeFirst (decodeSecond input.1.1.1.1))) t).length +
-            bitsToNat
-              (decodeSecond (decodeSecond input.1.1.1.1)))) := by
-    exact natBitsComputable.comp
-      (Primrec.nat_add.to_comp.comp
-        (Computable.list_length.comp hstageR)
-        (hrR.comp Computable.fst)) |>.to₂
-  let searchThen : AfterQ × Nat.Partrec.Code →. BitString :=
-      fun input =>
-        (Nat.rfind (fun t => Part.some
-          (((decodeDistributionData input.1.1.2).map
-            CodedDistributionEntry.point).all
-              (fun z => decide (z ∈ boundedOutputStage input.2
-                (bitsToNat
-                  (decodeFirst (decodeSecond input.1.1.1.1))) t))))).bind
-          (fun t => Part.some
-            (Nat.bits
-              ((boundedOutputStage input.2
-                (bitsToNat
-                  (decodeFirst (decodeSecond input.1.1.1.1))) t).length +
-                bitsToNat
-                  (decodeSecond (decodeSecond input.1.1.1.1)))))
-  have hsearchThen : Partrec searchThen := by
-    exact (Partrec.bind hfind hpost.partrec₂).of_eq (fun _ => rfl)
   let decodeThen : AfterQ →. BitString := fun input =>
       (Part.ofOption
         (Encodable.decode (α := Nat.Partrec.Code)
           (bitsToNat input.2))).bind
-        (fun q_code => searchThen (input, q_code))
+        (fun q_code => (fun input : AfterQ × Nat.Partrec.Code =>
+          (Nat.rfind (fun t => Part.some
+            (((decodeDistributionData input.1.1.2).map
+              CodedDistributionEntry.point).all
+                (fun z => decide (z ∈ boundedOutputStage input.2
+                  (bitsToNat
+                    (decodeFirst (decodeSecond input.1.1.1.1))) t))))).bind
+            (fun t => Part.some
+              (Nat.bits
+                ((boundedOutputStage input.2
+                  (bitsToNat
+                    (decodeFirst (decodeSecond input.1.1.1.1))) t).length +
+                  bitsToNat
+                    (decodeSecond (decodeSecond input.1.1.1.1)))))) (input, q_code))
   have hdecodeThen : Partrec decodeThen := by
-    exact (Partrec.bind hdecodeQPart hsearchThen.to₂).of_eq (fun _ => rfl)
+    exact (Partrec.bind hdecodeQPart lemma4Decoder_searchThen_partrec.to₂).of_eq (fun _ => rfl)
   let qThen : AfterD →. BitString := fun input =>
       (V (decodeSecond (decodeFirst input.1.1), [])).bind
         (fun q_enum => decodeThen (input, q_enum))
@@ -348,6 +406,9 @@ theorem lemma4Decoder_partrec (V : Map) (hV : isDecompressor V) :
     exact (Partrec.bind hrunD hqThen.to₂).of_eq (fun _ => rfl)
   exact hall.of_eq (fun _ => rfl)
 
+/-- Value of the Lemma 4 decoder: on programs for the code of `D` and for the standard
+enumerator of `q`, together with `m` and `r`, it outputs `|boundedOutputStage q m t| + r`,
+where `t` is the least stage covering `D`. -/
 theorem lemma4Decoder_eval
     (V : Map) (q : Nat.Partrec.Code) (m : Nat)
     (D : Finset BitString) (hD : D.Nonempty) (t r : Nat)
@@ -435,7 +496,7 @@ theorem plainKNat_omegaCount_le_of_stage_cover_nested
   obtain ⟨cMap, hMap⟩ :=
     plainK_partrec_map_le V hV
       (fun z : BitString => lemma4Decoder V (z, [])) hDecoder
-  obtain ⟨cLen, hLen⟩ := plainKLeLength V hV
+  obtain ⟨cLen, hLen⟩ := plainK_le_length V hV
   let c := 4 + cLen + cMap
   refine ⟨c, ?_⟩
   intro q m D hD t hcover hmin

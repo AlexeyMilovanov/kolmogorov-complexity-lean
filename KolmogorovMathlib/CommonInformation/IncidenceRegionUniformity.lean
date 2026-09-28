@@ -1,5 +1,6 @@
 import KolmogorovMathlib.CommonInformation.IncidenceRectangleCapacity
 import KolmogorovMathlib.CommonInformation.IncidenceCapacityCover
+import KolmogorovMathlib.CommonInformation.RegionEnvelopes
 import KolmogorovMathlib.CommonInformation.RegionConsequences
 
 /-!
@@ -23,8 +24,8 @@ Because the capacity `concreteIncidenceCapacity n (2^β) (2^γ)` depends only on
 `n, β, γ` and **never on the edge**, chaining necessity (for the source edge)
 with sufficiency (for the target edge) shows the two regions coincide up to a
 uniform `logSlack C n`.  This is the content of
-`exercise_312_incidence_region_criterion` (the two-directional criterion, fully
-derived here) and `exercise_312_incidence_region_uniformity` (the public
+`incidence_region_capacity_criterion` (the two-directional criterion, fully
+derived here) and `incidence_region_uniformity` (the public
 uniformity endpoint, fully derived here).  The `α`-shift in the derivation is
 absorbed by the additivity `logSlack c₁ n + logSlack c₂ n = logSlack (c₁+c₂) n`.
 -/
@@ -37,6 +38,8 @@ open AffineIncidence
 def incidenceCapacityCoverRankInput (n β γ : Nat) (rank : BitString) : BitString :=
   pairCode (listCode [Nat.bits n, Nat.bits β, Nat.bits γ]) rank
 
+/-- The length of the selector input built from the parameters and the rank of a cover
+rectangle. -/
 lemma incidenceCapacityCoverRankInput_length (n β γ : Nat) (rank : BitString) :
     (incidenceCapacityCoverRankInput n β γ rank).length =
       rank.length + 4 * ((Nat.bits n).length + (Nat.bits β).length +
@@ -54,7 +57,7 @@ private lemma incidenceCapacityCoverParameters_primrec :
     Primrec incidenceCapacityCoverParameters := by
   have hpList : Primrec (fun input : BitString =>
       decodeListCode (decodeFirst input)) :=
-    decodeListCode_primrec.comp decodeFirst_primrec'
+    decodeListCode_primrec.comp CodedFiniteDistribution.decodeFirst_primrec
   have hget (i : Nat) : Primrec (fun input : BitString =>
       (decodeListCode (decodeFirst input)).getD i []) :=
     (Primrec.list_getD ([] : BitString)).comp hpList (Primrec.const i)
@@ -69,7 +72,7 @@ private def incidenceCapacityCoverRankValue (input : BitString) : Nat :=
 
 private lemma incidenceCapacityCoverRankValue_primrec :
     Primrec incidenceCapacityCoverRankValue :=
-  (decodeFixedWidthNatCode_primrec.comp decodeSecond_primrec').of_eq
+  (decodeFixedWidthNatCode_primrec.comp CodedFiniteDistribution.decodeSecond_primrec).of_eq
     (fun _ => rfl)
 
 @[simp] private lemma incidenceCapacityCoverParameters_rankInput
@@ -104,8 +107,8 @@ private lemma incidenceCapacityCoverBudgets_primrec :
       (incidenceCapacityCoverParameters input).2.2) :=
     (Primrec.snd.comp Primrec.snd).comp incidenceCapacityCoverParameters_primrec
   exact (Primrec.pair hn
-    (Primrec.pair (CodedFiniteDistribution.twoPow_primrec.comp hβ)
-      (CodedFiniteDistribution.twoPow_primrec.comp hγ))).of_eq
+    (Primrec.pair (Kolmogorov.primrec_two_pow_aux.comp hβ)
+      (Kolmogorov.primrec_two_pow_aux.comp hγ))).of_eq
       (fun _ => rfl)
 
 private def incidenceCapacityCoverCodeAt (input : BitString) : BitString :=
@@ -128,10 +131,13 @@ private lemma incidenceCapacityCoverCodeAt_primrec :
 def incidenceCapacityCoverSelector : BitString →. BitString := fun input =>
   Part.some (incidenceCapacityCoverCodeAt input)
 
+/-- The selector recovering a rectangle of the capacity cover from its rank is partial
+recursive. -/
 lemma incidenceCapacityCoverSelector_partrec :
     Partrec incidenceCapacityCoverSelector := by
   exact incidenceCapacityCoverCodeAt_primrec.to_comp.partrec
 
+/-- The selector returns exactly the rectangle of the capacity cover at the given rank. -/
 lemma incidenceCapacityCoverSelector_recovers_cover (n β γ s rank : Nat) :
     rank < (incidenceCapacityShearCoverCode n (2 ^ β) (2 ^ γ)).length →
     rank < 2 ^ s →
@@ -142,6 +148,8 @@ lemma incidenceCapacityCoverSelector_recovers_cover (n β γ s rank : Nat) :
   simp [incidenceCapacityCoverSelector, incidenceCapacityCoverCodeAt,
     incidenceCapacityCoverBudgets, decodeFixedWidthNatCode_encode]
 
+/-- The selector input for a rank has plain complexity at most its bit length up to a
+constant. -/
 lemma plainK_incidenceCapacityCoverRank_le (V : Map) (hV : isOptimalConditional V) :
     ∃ C, ∀ n β γ s rank,
       rank < (incidenceCapacityShearCoverCode n (2 ^ β) (2 ^ γ)).length →
@@ -149,7 +157,7 @@ lemma plainK_incidenceCapacityCoverRank_le (V : Map) (hV : isOptimalConditional 
       plainK V (incidenceCapacityCoverRankInput n β γ (fixedWidthNatCode rank s))
         ≤ ((s + 4 * ((Nat.bits n).length + (Nat.bits β).length +
                    (Nat.bits γ).length) + 9 + C : Nat) : ENat) := by
-  obtain ⟨C, hC⟩ := plainKLeLength V hV
+  obtain ⟨C, hC⟩ := plainK_le_length V hV
   refine ⟨C, ?_⟩
   intro n β γ s rank _ hrank
   have hlen :
@@ -234,18 +242,21 @@ def incidenceCapacityPointSelector : BitString → BitString →. BitString :=
     ((decodeListCode (decodeFirst (incidenceCapacityCoverCodeAt context))).getD
       (decodeFixedWidthNatCode program) [])
 
+/-- The selector recovering a point of a cover rectangle is partial recursive. -/
 lemma incidenceCapacityPointSelector_partrec :
     Partrec₂ incidenceCapacityPointSelector := by
   have hside : Primrec (fun q : BitString × BitString =>
       decodeListCode (decodeFirst (incidenceCapacityCoverCodeAt q.1))) :=
     decodeListCode_primrec.comp
-      (decodeFirst_primrec'.comp
+      (CodedFiniteDistribution.decodeFirst_primrec.comp
         (incidenceCapacityCoverCodeAt_primrec.comp Primrec.fst))
   have hrank : Primrec (fun q : BitString × BitString =>
       decodeFixedWidthNatCode q.2) :=
     decodeFixedWidthNatCode_primrec.comp Primrec.snd
   exact ((Primrec.list_getD ([] : BitString)).comp hside hrank).to_comp.partrec
 
+/-- Given the cover rectangle, a point of its left side costs `β` further bits, up to a
+logarithmic term. -/
 lemma condK_concretePoint_given_coverRank_le (V : Map) (hV : isOptimalConditional V) :
     ∃ C, ∀ n β γ s rank P,
       rank < (incidenceCapacityShearCoverCode n (2 ^ β) (2 ^ γ)).length →
@@ -325,18 +336,21 @@ def incidenceCapacityLineSelector : BitString → BitString →. BitString :=
     ((decodeListCode (decodeSecond (incidenceCapacityCoverCodeAt context))).getD
       (decodeFixedWidthNatCode program) [])
 
+/-- The selector recovering a line of a cover rectangle is partial recursive. -/
 lemma incidenceCapacityLineSelector_partrec :
     Partrec₂ incidenceCapacityLineSelector := by
   have hside : Primrec (fun q : BitString × BitString =>
       decodeListCode (decodeSecond (incidenceCapacityCoverCodeAt q.1))) :=
     decodeListCode_primrec.comp
-      (decodeSecond_primrec'.comp
+      (CodedFiniteDistribution.decodeSecond_primrec.comp
         (incidenceCapacityCoverCodeAt_primrec.comp Primrec.fst))
   have hrank : Primrec (fun q : BitString × BitString =>
       decodeFixedWidthNatCode q.2) :=
     decodeFixedWidthNatCode_primrec.comp Primrec.snd
   exact ((Primrec.list_getD ([] : BitString)).comp hside hrank).to_comp.partrec
 
+/-- Given the cover rectangle, a line of its right side costs `γ` further bits, up to a
+logarithmic term. -/
 lemma condK_concreteLine_given_coverRank_le (V : Map) (hV : isOptimalConditional V) :
     ∃ C, ∀ n β γ s rank L,
       rank < (incidenceCapacityShearCoverCode n (2 ^ β) (2 ^ γ)).length →
@@ -415,8 +429,8 @@ lemma incidence_region_large_coordinate (V : Map) (hV : isOptimalConditional V) 
     ∃ c₀ : Nat, ∀ (α β γ : Nat) (x y : BitString),
       (α, β, γ) ∈ CommonInformationRegion V x y →
       (α, min β (x.length + c₀), min γ (y.length + c₀)) ∈ CommonInformationRegion V x y := by
-  obtain ⟨cLength, hLength⟩ := plainKLeLength V hV
-  obtain ⟨cCond, hCond⟩ := condKLePlainK V hV
+  obtain ⟨cLength, hLength⟩ := plainK_le_length V hV
+  obtain ⟨cCond, hCond⟩ := condK_le_plainK V hV
   refine ⟨cLength + cCond + 1, ?_⟩
   rintro α β γ x y ⟨z, hz, hx, hy⟩
   refine ⟨z, hz, ?_, ?_⟩
@@ -778,15 +792,13 @@ lemma incidence_capacity_sufficient
       _ < ((γ + logSlack Cfinal n : Nat) : ENat) := by
             exact_mod_cast (Nat.add_lt_add_left hbaseFinal γ)
 
-/-- **Exercise 312, two-directional capacity criterion.**  For a high-complexity
-concrete incident edge, membership of `(α, β, γ)` in its common-information region
-is equivalent — up to a uniform `logSlack C n` — to the capacity criterion
-`2^{3n} ≤ 2^α · concreteIncidenceCapacity n (2^β) (2^γ)`.
-
-Assembled from the necessity half (`incidence_region_capacity_necessary`) and the
-sufficiency half (`incidence_capacity_sufficient`); the shared constant is the
-sum of the two half-constants. -/
-lemma exercise_312_incidence_region_criterion
+/-- For a high-complexity concrete incident edge, membership of `(α, β, γ)` in its
+common-information region is equivalent — up to a uniform `logSlack C n` — to the capacity
+criterion `2^{3n} ≤ 2^α · concreteIncidenceCapacity n (2^β) (2^γ)`. Assembled from the
+necessity half (`incidence_region_capacity_necessary`) and the sufficiency half
+(`incidence_capacity_sufficient`); the shared constant is the sum of the two half-constants.
+Exercise 312, two-directional capacity criterion. -/
+lemma incidence_region_capacity_criterion
     (V : Map) (hV : isOptimalConditional V) (d : Nat) :
     ∃ C N, ∀ n, N ≤ n →
       ∀ (e : ConcreteIncidentEdge n) (kxy : Nat),
@@ -823,17 +835,14 @@ lemma exercise_312_incidence_region_criterion
     exact commonInformationRegion_upward_closed hIM.1 hIM.2.1 hIM.2.2
       (hsuf n hn2 e α β γ hcap)
 
-/-- **Exercise 312, public uniformity endpoint.**  For any two high-complexity
-concrete incident edges of the plane over `GF(concretePrime n)`, the two
-common-information regions coincide up to a single uniform `logSlack C n`
-inflation, in both directions.
-
-This is the precise `O(log n)`-precision equality of `C(x, y)` across all
-high-complexity incident edges asserted by SUV Exercise 312.  It is derived by
-chaining necessity for the source edge with sufficiency for the target edge; the
-capacity `concreteIncidenceCapacity n (2^β) (2^γ)` is the *same* function of
-`n, β, γ` for both edges, which is exactly why the regions match. -/
-lemma exercise_312_incidence_region_uniformity
+/-- For any two high-complexity concrete incident edges of the plane over `GF(concretePrime n)`,
+the two common-information regions coincide up to a single uniform `logSlack C n` inflation,
+in both directions. This is the precise `O(log n)`-precision equality of `C(x, y)` across
+all high-complexity incident edges asserted by SUV Exercise 312. It is derived by chaining
+necessity for the source edge with sufficiency for the target edge; the capacity
+`concreteIncidenceCapacity n (2^β) (2^γ)` is the *same* function of `n, β, γ` for both
+edges, which is exactly why the regions match.  Exercise 312, public uniformity endpoint. -/
+lemma incidence_region_uniformity
     (V : Map) (hV : isOptimalConditional V) (d : Nat) :
     ∃ C N, ∀ n, N ≤ n →
       ∀ (e₁ e₂ : ConcreteIncidentEdge n) (kxy₁ kxy₂ : Nat),

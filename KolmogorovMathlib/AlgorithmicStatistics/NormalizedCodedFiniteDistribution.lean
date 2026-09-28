@@ -1,4 +1,5 @@
 import KolmogorovMathlib.AlgorithmicStatistics.Stochasticity
+import KolmogorovMathlib.Foundation.ListUtil
 
 /-!
 # Normalized coded finite rational distributions
@@ -16,6 +17,7 @@ zero masses, but does not sort the result; it follows the order supplied by
 
 namespace Kolmogorov
 
+open CodedFiniteDistribution
 namespace RatMass
 
 /-- The rational mass `0`. -/
@@ -30,6 +32,7 @@ def add (q r : RatMass) : RatMass where
   den := q.den * r.den
   den_pos := Nat.mul_pos q.den_pos r.den_pos
 
+/-- The zero rational mass has value zero. -/
 @[simp] theorem zero_value : zero.value = 0 := by
   simp [zero, value]
 
@@ -45,6 +48,7 @@ theorem add_value (q r : RatMass) :
   rw [ENNReal.add_div, mul_comm (r.num : ENNReal) (q.den : ENNReal),
     ENNReal.mul_div_mul_left _ _ hb hbt, ENNReal.mul_div_mul_right _ _ hd hdt]
 
+/-- A sum of two rational masses has numerator zero exactly when both summands do. -/
 @[simp] theorem add_num_eq_zero {q r : RatMass} :
     (q.add r).num = 0 ↔ q.num = 0 ∧ r.num = 0 := by
   simp [add, Nat.pos_iff_ne_zero.mp q.den_pos, Nat.pos_iff_ne_zero.mp r.den_pos]
@@ -97,10 +101,12 @@ noncomputable def complexity (U : Map) (P : NormalizedFiniteDistribution) : ENat
 noncomputable def mass (P : NormalizedFiniteDistribution) (x : BitString) : ENNReal :=
   P.toCoded.mass x
 
+/-- The coded distribution underlying a normalized model has total mass one. -/
 theorem isProbability_coe (P : NormalizedFiniteDistribution) :
     (P : CodedFiniteDistribution).IsProbability :=
   P.isProbability
 
+/-- The coded distribution underlying a normalized model is normalized. -/
 theorem normalized_coe (P : NormalizedFiniteDistribution) :
     (P : CodedFiniteDistribution).Normalized :=
   P.normalized
@@ -110,7 +116,8 @@ expects a raw coded finite distribution. -/
 theorem isStochastic_of_deficiencyLe (U : Map) (x : BitString)
     (P : NormalizedFiniteDistribution) (alpha beta : Nat)
     (hcomp : P.complexity U ≤ (alpha : ENat))
-    (hdef : Kolmogorov.DeficiencyLe U (P : CodedFiniteDistribution) x beta) :
+    (hdef :
+      Kolmogorov.CodedFiniteDistribution.DeficiencyLe U (P : CodedFiniteDistribution) x beta) :
     IsStochastic U x alpha beta :=
   isStochastic_of_model U x (P : CodedFiniteDistribution) alpha beta
     P.isProbability hcomp hdef
@@ -169,6 +176,7 @@ dropping zero-mass entries. -/
 def normalize (P : CodedFiniteDistribution) : CodedFiniteDistribution where
   data := normalizeData P.data
 
+/-- The data of a normalized distribution is the normalization of its data. -/
 @[simp] theorem normalize_data (P : CodedFiniteDistribution) :
     P.normalize.data = normalizeData P.data := rfl
 
@@ -236,25 +244,9 @@ theorem normalize_normalized (P : CodedFiniteDistribution) :
     P.normalize.Normalized :=
   ⟨P.normalize_noDuplicatePoints, P.normalize_noZeroMassEntries⟩
 
-private theorem mem_eraseDups_iff {a : BitString} {l : List BitString} :
-    a ∈ l.eraseDups ↔ a ∈ l := by
-  induction l using List.reverseRecOn with
-  | nil => simp
-  | append_singleton l y ih =>
-    rw [List.eraseDups_append, List.mem_append, ih]
-    by_cases hy : y ∈ l
-    · have h0 : ([y] : List BitString).removeAll l = [] := by
-        simp [List.removeAll, hy]
-      rw [h0, List.eraseDups_nil]
-      simp only [List.not_mem_nil, or_false, List.mem_append, List.mem_singleton]
-      exact ⟨Or.inl, fun h => h.elim id (fun hay => hay ▸ hy)⟩
-    · have h1 : ([y] : List BitString).removeAll l = [y] := by
-        simp [List.removeAll, hy]
-      rw [h1]
-      have hy1 : ([y] : List BitString).eraseDups = [y] := by
-        simp [List.eraseDups_cons]
-      rw [hy1]
-      simp [List.mem_append]
+/-- Removing duplicates from a list of bit strings does not change its membership. -/
+theorem mem_eraseDups_iff {a : BitString} {l : List BitString} :
+    a ∈ l.eraseDups ↔ a ∈ l := mem_eraseDups_list
 
 /-
 Combining repeated entries preserves the represented mass at every point.
@@ -266,16 +258,8 @@ theorem normalize_mass (P : CodedFiniteDistribution) (x : BitString) :
       (fun y acc => (if y = x then (combinePointMass x P.data).value else 0) + acc) 0
           (List.eraseDups l) = (if x ∈ l then (combinePointMass x P.data).value else 0) := by
     intro l
-    let rec h_nodup_eraseDups : (d : List BitString) → d.eraseDups.Nodup
-      | [] => by simp
-      | a :: as => by
-        rw [List.eraseDups_cons]
-        refine List.nodup_cons.mpr ⟨?_, h_nodup_eraseDups _⟩
-        intro hmem
-        rw [mem_eraseDups_iff, List.mem_filter] at hmem
-        simp at hmem
-      termination_by d => d.length
-      decreasing_by exact Nat.lt_succ_of_le (List.length_filter_le _ _)
+    have h_nodup_eraseDups : (d : List BitString) → d.eraseDups.Nodup :=
+      fun d => nodup_eraseDups_list d
     have h_foldr_nodup : ∀ (d : List BitString), d.Nodup → List.foldr
         (fun y acc => (if y = x then (combinePointMass x P.data).value else 0) + acc) 0 d =
           (if x ∈ d then (combinePointMass x P.data).value else 0) := by
@@ -372,9 +356,9 @@ theorem deficiencyLe_normalize_of_mass_preserved (U : Map)
     (hKP :
       complexityWeight (KP U x P.normalize.code) ≤
         complexityWeight (KP U x P.code))
-    (hdef : Kolmogorov.DeficiencyLe U P x beta) :
-    Kolmogorov.DeficiencyLe U P.normalize x beta := by
-  unfold Kolmogorov.DeficiencyLe CodedFiniteDistribution.DeficiencyLe at *
+    (hdef : Kolmogorov.CodedFiniteDistribution.DeficiencyLe U P x beta) :
+    Kolmogorov.CodedFiniteDistribution.DeficiencyLe U P.normalize x beta := by
+  unfold CodedFiniteDistribution.DeficiencyLe at *
   rw [normalize_mass P x]
   exact le_trans hKP hdef
 
@@ -388,26 +372,31 @@ theorem isStochastic_normalize_of_model (U : Map) (x : BitString)
     (hKP :
       complexityWeight (KP U x P.normalize.code) ≤
         complexityWeight (KP U x P.code))
-    (hdef : Kolmogorov.DeficiencyLe U P x beta) :
+    (hdef : Kolmogorov.CodedFiniteDistribution.DeficiencyLe U P x beta) :
     IsStochastic U x alpha beta :=
   isStochastic_of_model U x P.normalize alpha beta
     (normalize_isProbability hprob) hcomp
     (deficiencyLe_normalize_of_mass_preserved U P x beta hKP hdef)
 
+/-- The number coded in unary by a leading block of ones. -/
 def decodeNatCode (z : BitString) : Nat := (z.takeWhile id).length
 
+/-- Decoding the unary code of `n` returns `n`. -/
 @[simp] lemma decodeNatCode_natCode (n : Nat) : decodeNatCode (natCode n) = n := by
   simp [decodeNatCode, natCode]
 
+/-- The rational mass coded by a string, with denominator forced to be positive. -/
 def decodeRatMass (w : BitString) : RatMass :=
   { num := decodeNatCode (decodeFirst w),
     den := max 1 (decodeNatCode (decodeSecond w)),
     den_pos := by omega }
 
+/-- The point-and-mass entry coded by a string. -/
 def decodeDistributionEntry (w : BitString) : CodedDistributionEntry :=
   { point := decodeFirst w,
     mass := decodeRatMass (decodeSecond w) }
 
+/-- The entry list read off a string, parsing at most the given number of entries. -/
 def decodeDistributionDataAux : Nat → BitString → List CodedDistributionEntry
   | 0, _ => []
   | _, [] => []
@@ -415,18 +404,22 @@ def decodeDistributionDataAux : Nat → BitString → List CodedDistributionEntr
   | n + 1, true :: w =>
       decodeDistributionEntry (decodeFirst w) :: decodeDistributionDataAux n (decodeSecond w)
 
+/-- The entry list coded by a string, parsed with the string's length as fuel. -/
 def decodeDistributionData (w : BitString) : List CodedDistributionEntry :=
   decodeDistributionDataAux w.length w
 
+/-- The coded finite distribution decoded from a string. -/
 def decodeCodedFiniteDistribution (w : BitString) : CodedFiniteDistribution :=
   { data := decodeDistributionData w }
 
+/-- Decoding the code of a rational mass returns that mass. -/
 theorem decodeRatMass_code (q : RatMass) : decodeRatMass (RatMass.code q) = q := by
   cases q with
   | mk num den den_pos =>
       simp [decodeRatMass, RatMass.code, decodeFirst_pairCode, decodeSecond_pairCode,
         Nat.max_eq_right (Nat.succ_le_of_lt den_pos)]
 
+/-- Decoding the code of an entry returns that entry. -/
 theorem decodeDistributionEntry_code (e : CodedDistributionEntry) :
     decodeDistributionEntry (CodedDistributionEntry.code e) = e := by
   cases e with
@@ -434,6 +427,7 @@ theorem decodeDistributionEntry_code (e : CodedDistributionEntry) :
       simp [decodeDistributionEntry, CodedDistributionEntry.code, decodeFirst_pairCode,
         decodeSecond_pairCode, decodeRatMass_code]
 
+/-- With enough fuel, the parser recovers the entry list from its code. -/
 theorem decodeDistributionDataAux_code (data : List CodedDistributionEntry) (k : Nat) :
     decodeDistributionDataAux ((codedDistributionDataCode data).length + k)
       (codedDistributionDataCode data) = data := by
@@ -451,10 +445,12 @@ theorem decodeDistributionDataAux_code (data : List CodedDistributionEntry) (k :
       simpa [Nat.add_assoc, Nat.add_comm, Nat.add_left_comm] using
         ih (e.code.length + 1 + e.code.length + k)
 
+/-- Decoding the code of an entry list returns that list. -/
 theorem decodeDistributionData_code (data : List CodedDistributionEntry) :
     decodeDistributionData (codedDistributionDataCode data) = data := by
   simpa [decodeDistributionData] using decodeDistributionDataAux_code data 0
 
+/-- Decoding the code of a coded finite distribution returns that distribution. -/
 theorem decodeCodedFiniteDistribution_code (P : CodedFiniteDistribution) :
     decodeCodedFiniteDistribution P.code = P := by
   cases P
@@ -784,6 +780,8 @@ it on codes of actual `CodedFiniteDistribution`s. -/
 def normalizeCode (w : BitString) : BitString :=
   (decodeCodedFiniteDistribution w).normalize.code
 
+/-- Normalizing on codes agrees with normalizing the distribution and taking its
+code. -/
 theorem normalizeCode_code (P : CodedFiniteDistribution) :
     normalizeCode P.code = P.normalize.code := by
   unfold normalizeCode

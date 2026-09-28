@@ -1,5 +1,6 @@
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.Basic
 import KolmogorovMathlib.Prefix.Symmetry
+import KolmogorovMathlib.Prefix.Properties.StableAliasesSUVTheorem
 import KolmogorovMathlib.Prefix.Properties
 
 /-!
@@ -12,6 +13,7 @@ deficiency up to a constant (P-RO: `d(x | P) ≤ δ(x,P) + O(1)`).
 
 namespace Kolmogorov
 
+open CodedFiniteDistribution
 open scoped ENNReal
 
 /-- Multiplicative addition for `complexityWeight` on `ENat`.

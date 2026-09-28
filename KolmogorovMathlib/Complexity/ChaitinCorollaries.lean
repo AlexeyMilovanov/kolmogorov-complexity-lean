@@ -43,15 +43,15 @@ structure Expresses (sys : GeneralSystem) (R : ℕ × ℕ → Prop) where
 /-! ### Bridging the Complexity Gap -/
 
 /-- The relation `K(x) > L` defined over natural numbers is co-computably enumerable. -/
-lemma plainKNatGtIsCore (U : Map) (hU : isOptimalConditional U) :
+lemma plainKNat_gt_isCore (U : Map) (hU : isOptimalConditional U) :
     IsCoRE (fun (p : ℕ × ℕ) => (p.2 : ENat) < plainKNat U p.1) := by
   unfold IsCoRE plainKNat
-  have h_base := plainKGtIsCore U hU
+  have h_base := plainK_gt_isCore U hU
   unfold IsCoRE IsRE at h_base
   obtain ⟨f, hf_partrec, hf_dom⟩ := h_base
   refine ⟨fun p => f (Nat.bits p.1, p.2), ?_, ?_⟩
   · have h_trans : Computable (fun (p : ℕ × ℕ) => (Nat.bits p.1, p.2)) :=
-      Computable.pair (natBitsComputable.comp Computable.fst) Computable.snd
+      Computable.pair (natBits_computable.comp Computable.fst) Computable.snd
     exact Partrec.comp hf_partrec h_trans
   · intro p
     exact hf_dom (Nat.bits p.1, p.2)
@@ -61,16 +61,16 @@ lemma plainKNatGtIsCore (U : Map) (hU : isOptimalConditional U) :
 /-- If a general formal system can express all co-RE relations, it must be incomplete
     with respect to Kolmogorov complexity. There exists a true lower bound `K(x) > L`
     that the system cannot prove. -/
-theorem chaitinGeneralized (U : Map) (hU : isOptimalConditional U)
+theorem chaitin_generalized (U : Map) (hU : isOptimalConditional U)
     (sys : GeneralSystem)
     (hExpressCore : ∀ (R : ℕ × ℕ → Prop), IsCoRE R → Expresses sys R) :
     ∃ x L : ℕ,
       (L : ENat) < plainKNat U x ∧
       let KRel := fun (p : ℕ × ℕ) => (p.2 : ENat) < plainKNat U p.1
-      let expr := (hExpressCore KRel (plainKNatGtIsCore U hU)).expr
+      let expr := (hExpressCore KRel (plainKNat_gt_isCore U hU)).expr
       ¬ sys.provable (expr x L) := by
   let KRel := fun (p : ℕ × ℕ) => (p.2 : ENat) < plainKNat U p.1
-  let hCore := plainKNatGtIsCore U hU
+  let hCore := plainKNat_gt_isCore U hU
   let exprPack := hExpressCore KRel hCore
   let F : FormalSystem U := {
     Formula := sys.Formula,
@@ -86,6 +86,6 @@ theorem chaitinGeneralized (U : Map) (hU : isOptimalConditional U)
     hParseInv := exprPack.hParseInv,
     hSound := exprPack.hSound
   }
-  exact F.chaitinIncompleteness hU
+  exact F.chaitin_incompleteness hU
 
 end Kolmogorov

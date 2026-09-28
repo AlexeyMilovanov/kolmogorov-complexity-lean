@@ -2,10 +2,11 @@ import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.RemAddNoiseFibreInde
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.RemAddNoiseHeavySymmetry
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.RemAddNoiseRankIndex
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.MinimalModelBounds
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.Separation
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.ChargedHeavyNoiseGain
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.BudgetedSectionThree
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.BudgetedAddNoiseArith
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.Separation.Part01
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.Separation
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.ChargedHeavyGain
 
 /-!
 # Budgeted low-coordinate add-noise branch
@@ -228,19 +229,12 @@ theorem inPlainDescriptionProfile_of_condK_compression_size_scale
   · omega
   · omega
 
-/-- **Budget-scale conditional compression of a finite model.**  A model `H` of
-`x` of plain set complexity at most `iH` and log-size at most `j1` which is
-cheap given `x`, say `C([H] | x) ≤ g`, should be replaceable by a model of `x`
-of complexity `iH - g` and log-size `j1`, up to a slack logarithmic in a
-complexity budget dominating `iH`.
-
-This is the *single* remaining input of the budgeted low add-noise branch: the
-reduction `inPlainDescriptionProfile_fst_of_pair_model_budgeted_of_conditionalCompression`
-below derives the whole branch from it.  At the length scale the statement is
-classical (many descriptions of `x` with the parameters of `H`, plus the
-improving-descriptions theorem); the open point is that the proved route pays
-`O(log (iH + j1))`, i.e. it also charges the *size* coordinate, which here may
-be exponentially larger than the complexity budget. -/
+/-- Budget-scale conditional compression of a finite model, as a proposition about `V`: there
+is a constant `c` such that whenever `x` belongs to a finite model `H` of plain set complexity
+at most `iH` and cardinality at most `2 ^ j1`, and the canonical code of `H` has conditional
+complexity exactly `g` given `x`, then for every budget `budget ≥ iH` the string `x` has a plain
+`(iH - g + logSlack c budget, j1 + logSlack c budget)`-description.  It is used as a hypothesis
+below; it is not proved here. -/
 def BudgetedConditionalCompressionStatement (V : Map) : Prop :=
   ∃ c : Nat, ∀ (H : Finset BitString) (hH : H.Nonempty) (x : BitString)
       (iH j1 g budget : Nat),
@@ -251,6 +245,59 @@ def BudgetedConditionalCompressionStatement (V : Map) : Prop :=
     iH ≤ budget →
     InPlainDescriptionProfile V x
       (iH - g + logSlack c budget) (j1 + logSlack c budget)
+
+/-- Convert an ENat sum inequality to a Nat inequality when individual terms are exact Nat
+coercions. -/
+private theorem enat_sum_le_of_le {a b c d : Nat} {E1 E2 : ENat}
+    (h1 : (a : ENat) = E1) (h2 : (b : ENat) = E2)
+    (h : E1 + E2 ≤ (c : ENat) + (d : ENat)) :
+    a + b ≤ c + d := by
+  have hcast : ((a + b : Nat) : ENat) ≤ ((c + d : Nat) : ENat) := by
+    push_cast; rw [h1, h2]; exact h
+  exact_mod_cast hcast
+
+/-- Convert a conditional complexity upper bound from ENat to Nat given a plain complexity
+bound. -/
+private theorem condK_le_nat_of_plainK_le {V : Map} {cCond : Nat} (u x : BitString)
+    (hCond : condK V u x ≤ plainK V u + (cCond : ENat))
+    {g iH : Nat}
+    (hg : condK V u x = (g : ENat))
+    (hiH : plainK V u ≤ (iH : ENat)) :
+    g ≤ iH + cCond := by
+  have h := hCond
+  rw [hg] at h
+  have h' : ((g : Nat) : ENat) ≤ ((iH + cCond : Nat) : ENat) := by
+    refine h.trans ?_
+    calc
+      plainK V u + (cCond : ENat) ≤ (iH : ENat) + (cCond : ENat) := by gcongr
+      _ = ((iH + cCond : Nat) : ENat) := by push_cast; ring
+  exact_mod_cast h'
+
+/-- Four log-slacks at the budget `baseBudget + l_y` and an additive constant are bounded by the
+sum of the two log-slacks at `baseBudget` and at `l_y` with the summed constant. -/
+private theorem logSlack_sum_budgeted_add_noise_le
+    (cSym cFib2 cCC2 cShift2 cCond cHeavy : Nat) (baseBudget l_y : Nat) :
+    logSlack cSym (baseBudget + l_y) + logSlack cFib2 (baseBudget + l_y) +
+        2 * logSlack cCC2 (baseBudget + l_y) + logSlack cShift2 (baseBudget + l_y) +
+        cCond + 1 ≤
+      logSlack (cHeavy + cSym + cFib2 + 2 * cCC2 + cShift2 + cCond + 1) baseBudget +
+        logSlack (cHeavy + cSym + cFib2 + 2 * cCC2 + cShift2 + cCond + 1) l_y := by
+  set c := cHeavy + cSym + cFib2 + 2 * cCC2 + cShift2 + cCond + 1
+  set M := baseBudget + l_y
+  set A := cSym + cFib2 + 2 * cCC2 + cShift2 with hA
+  have h1 : logSlack cSym M + logSlack cFib2 M + 2 * logSlack cCC2 M +
+      logSlack cShift2 M = logSlack A M := by
+    unfold logSlack
+    rw [hA]
+    ring
+  have h2 : logSlack A M ≤ logSlack A baseBudget + logSlack A l_y :=
+    logSlack_add_le A baseBudget l_y
+  have h3 : logSlack A baseBudget + (cCond + 1) ≤ logSlack c baseBudget :=
+    le_trans (logSlack_add_const_le A (cCond + 1) baseBudget)
+      (logSlack_mono_left (by omega) baseBudget)
+  have h4 : logSlack A l_y ≤ logSlack c l_y :=
+    logSlack_mono_left (by omega) l_y
+  omega
 
 /-- **Core of the budgeted low branch.**  The compression input is taken as an
 explicit hypothesis, which is only ever used at size parameters bounded by
@@ -298,7 +345,7 @@ theorem inPlainDescriptionProfile_fst_of_pair_model_budgeted_core
   obtain ⟨cSym, hSym⟩ :=
     finiteSetFstHeavyTruncation_plainSetComplexity_symmetry V U hV hU
   obtain ⟨cFib, hFib⟩ := finiteSetFstFiber_logCard_lower_of_random V hV
-  obtain ⟨cCond, hCond⟩ := condKLePlainK V hV
+  obtain ⟨cCond, hCond⟩ := condK_le_plainK V hV
   obtain ⟨cShift, hShift⟩ := inPlainDescriptionProfile_shift V hV
   obtain ⟨bSym, hbSym⟩ := logSlack_le_add_const cSym
   obtain ⟨cFib2, hcFib2⟩ := logSlack_linear_bound cFib 2 (bSym + cCond + 1)
@@ -316,7 +363,8 @@ theorem inPlainDescriptionProfile_fst_of_pair_model_budgeted_core
       logSlack_mono_left (by omega) _
     exact ((hHeavy B hB x y i j hpair hcompl hcard hheavy).mono_i (by omega)).mono_j
       (by omega)
-  · -- Light fibre.
+  · -- Light fibre: the heavy truncation of `B` at the fibre threshold `F < l(y)`
+    -- is compressed by `C([H] | x)` and chunked back down by the fibre deficit.
     push_neg at hheavy
     set F := finiteSetLogCard (finiteSetFstFiber B x) with hF
     have hxH : x ∈ finiteSetFstHeavyTruncation B F :=
@@ -348,37 +396,19 @@ theorem inPlainDescriptionProfile_fst_of_pair_model_budgeted_core
     have hg : condK V (codedUniformOn H hHne).code x = (g : ENat) :=
       (ENat.coe_toNat hgfin).symm
     -- Finite-set symmetry of information, in natural numbers.
-    have hiHq : iH + q ≤ i + logSlack cSym M := by
-      rw [hiH, hq] at hsym
-      have hcast : ((iH + q : Nat) : ENat) ≤ ((i + logSlack cSym M : Nat) : ENat) := by
-        refine le_trans (le_of_eq (by push_cast; ring)) (hsym.trans ?_)
-        calc
-          plainSetComplexity V B hB + (logSlack cSym M : ENat)
-              ≤ (i : ENat) + (logSlack cSym M : ENat) := by gcongr
-          _ = ((i + logSlack cSym M : Nat) : ENat) := by push_cast; ring
-      exact_mod_cast hcast
+    have hsym' : plainSetComplexity V H hHne +
+        condK V (codedUniformOn B hB).code (codedUniformOn H hHne).code ≤
+          (i : ENat) + (logSlack cSym M : ENat) := by
+      refine hsym.trans ?_
+      calc
+        plainSetComplexity V B hB + (logSlack cSym M : ENat)
+            ≤ (i : ENat) + (logSlack cSym M : ENat) := by gcongr
+        _ = ((i + logSlack cSym M : Nat) : ENat) := by push_cast; ring
+    have hiHq : iH + q ≤ i + logSlack cSym M :=
+      enat_sum_le_of_le hiH.symm hq.symm hsym'
     -- Both conditional complexities are budget-scale.
-    have hgle : g ≤ iH + cCond := by
-      have h := hCond (codedUniformOn H hHne).code x
-      rw [hg] at h
-      have h' : ((g : Nat) : ENat) ≤ ((iH + cCond : Nat) : ENat) := by
-        refine h.trans ?_
-        have hplain : plainK V (codedUniformOn H hHne).code = (iH : ENat) := hiH
-        rw [hplain]
-        push_cast
-        exact le_rfl
-      exact_mod_cast h'
-    have hqle : q ≤ i + cCond := by
-      have h := hCond (codedUniformOn B hB).code (codedUniformOn H hHne).code
-      rw [hq] at h
-      have h' : ((q : Nat) : ENat) ≤ ((i + cCond : Nat) : ENat) := by
-        refine h.trans ?_
-        have hplain : plainK V (codedUniformOn B hB).code ≤ (i : ENat) := hcompl
-        calc
-          plainK V (codedUniformOn B hB).code + (cCond : ENat)
-              ≤ (i : ENat) + (cCond : ENat) := by gcongr
-          _ = ((i + cCond : Nat) : ENat) := by push_cast; ring
-      exact_mod_cast h'
+    have hgle : g ≤ iH + cCond := condK_le_nat_of_plainK_le _ _ (hCond _ _) hg (le_of_eq hiH)
+    have hqle : q ≤ i + cCond := condK_le_nat_of_plainK_le _ _ (hCond _ _) hq hcompl
     set N3 := M + logSlack cSym M + cCond + 1 with hN3
     have hgN3 : g ≤ N3 := by omega
     have hqN3 : q ≤ N3 := by omega
@@ -406,24 +436,12 @@ theorem inPlainDescriptionProfile_fst_of_pair_model_budgeted_core
     have htle : t ≤ 2 * M + (1 + bCC2) := by omega
     have hShiftFold : logSlack cShift t ≤ logSlack cShift2 M :=
       le_trans (logSlack_mono_right cShift htle) (hcShift2 M)
-    have hslackSum :
-        logSlack cSym M + logSlack cFib2 M + 2 * logSlack cCC2 M +
-            logSlack cShift2 M + cCond + 1 ≤
-          logSlack c baseBudget + logSlack c y.length := by
-      set A := cSym + cFib2 + 2 * cCC2 + cShift2 with hA
-      have h1 : logSlack cSym M + logSlack cFib2 M + 2 * logSlack cCC2 M +
-          logSlack cShift2 M = logSlack A M := by
-        unfold logSlack
-        rw [hA]
-        ring
-      have h2 : logSlack A M ≤ logSlack A baseBudget + logSlack A y.length :=
-        logSlack_add_le A baseBudget y.length
-      have h3 : logSlack A baseBudget + (cCond + 1) ≤ logSlack c baseBudget :=
-        le_trans (logSlack_add_const_le A (cCond + 1) baseBudget)
-          (logSlack_mono_left (by omega) baseBudget)
-      have h4 : logSlack A y.length ≤ logSlack c y.length :=
-        logSlack_mono_left (by omega) y.length
-      omega
+    have hslackSum := logSlack_sum_budgeted_add_noise_le cSym cFib2 cCC2 cShift2 cCond cHeavy
+      baseBudget y.length
+    rw [← hM, ← hc] at hslackSum
+    change InPlainDescriptionProfile V x
+      (i + epsilon + logSlack c baseBudget + logSlack c y.length)
+      (j - y.length + logSlack c baseBudget + logSlack c y.length)
     refine (hchunk.mono_i ?_).mono_j ?_
     · omega
     · omega
@@ -475,16 +493,12 @@ theorem inPlainDescriptionProfile_fst_of_pair_model_budgeted_of_size_le
     omega
   exact ((hSize H hH x' iH j1 g hx' hcompl hcard hg).mono_i (by omega)).mono_j (by omega)
 
-/-- **Budgeted fibre projection of a pair model.**  This is the exact
-low-coordinate target after the charged-stratum multiplicity/compression
-bridge described in the module documentation has been proved.
-
-The generic reduction
-`budgetedPairProjection_of_conditionalCompression` derives it from
-`BudgetedConditionalCompressionStatement V`.  The direct route required by the
-chapter plan instead goes through `BudgetedPairProjectionManyStatement`, whose
-certificate has exactly the coordinates consumed by the length-free
-complexity-drop theorem.  Neither proposition is asserted here. -/
+/-- Budgeted fibre projection of a pair model, as a proposition about `V`: there is a constant
+`c` such that whenever `pairCode x y` has a plain `(i, j)`-description with `i ≤ baseBudget` and
+`y` is random given `x` up to `epsilon`, the string `x` has a plain description with complexity
+`i + epsilon + logSlack c baseBudget + logSlack c y.length` and log-size
+`j - y.length + logSlack c baseBudget + logSlack c y.length`.  It is used as a hypothesis; it is
+not proved here. -/
 def BudgetedPairProjectionStatement (V : Map) : Prop :=
   ∃ c : Nat, ∀ (x y : BitString) (epsilon i j baseBudget : Nat),
     InPlainDescriptionProfile V (pairCode x y) i j →
@@ -494,15 +508,13 @@ def BudgetedPairProjectionStatement (V : Map) : Prop :=
       (i + epsilon + logSlack c baseBudget + logSlack c y.length)
       (j - y.length + logSlack c baseBudget + logSlack c y.length)
 
-/-- **Direct multiplicity target for the budgeted pair projection.**  For the
-fixed constants of the length-free complexity-drop theorem and the
-prefix-to-plain bridge, produce a genuine `ManyIJDescriptions` certificate
-whose two displayed inequalities already absorb both costs into the visible
-budgets `baseBudget` and `y.length`.
-
-This is the exact consumer-shaped obligation for the mandated
-truncation/multiplicity route.  In particular, neither `j` nor `x.length`
-occurs in either final slack term. -/
+/-- Multiplicity form of the budgeted pair projection, as a proposition about `V` and `U`: for
+all constants `cDrop`, `cBridge` there is a constant `c` such that, under the same hypotheses as
+`BudgetedPairProjectionStatement`, one gets parameters `I, J, K` with `ManyIJDescriptions U x I J
+K`,
+`K ≤ I`, and the two displayed inequalities bounding `I - K + logSlack cDrop (I + J) + cBridge`
+and `J + logSlack cDrop (I + J)` by the budgeted targets.  It is used as a hypothesis; it is not
+proved here. -/
 def BudgetedPairProjectionManyStatement (V U : Map) : Prop :=
   ∀ cDrop cBridge : Nat, ∃ c : Nat,
     ∀ (x y : BitString) (epsilon i j baseBudget : Nat),
@@ -517,6 +529,8 @@ def BudgetedPairProjectionManyStatement (V U : Map) : Prop :=
         J + logSlack cDrop (I + J) ≤
           j - y.length + logSlack c baseBudget + logSlack c y.length
 
+/-- The budgeted pair projection statement follows from the budgeted conditional compression
+statement for the same optimal machines. -/
 theorem budgetedPairProjection_of_conditionalCompression
     (V U : Map) (hV : isOptimalConditional V) (hU : IsOptimalPrefixConditional U)
     (hCond : BudgetedConditionalCompressionStatement V) :

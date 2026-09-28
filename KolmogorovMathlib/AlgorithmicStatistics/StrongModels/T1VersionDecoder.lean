@@ -1,6 +1,23 @@
-import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.T1EffectiveRunCharging
 import KolmogorovMathlib.Foundation.EnumerationComplexity
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.CanonicalImage
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.T1Run.Part03
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.T1RunBounds
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.T1RunCharging
+
+/-!
+# Naming a version of the run by its ordinal
+
+`t1VersionDecoder` is the machine that turns a version ordinal into the model itself: from a
+header carrying `n`, `k`, `epsilon` and the ordinal, it searches for the first stage at which
+that version appears and returns its code.  `t1VersionDecoder_partrec` and
+`t1VersionDecoder_eval` are its correctness, and `t1VersionDecoder_search_terminates_of_seen`
+and `t1RunAt_version_getD_eq_of_le` justify the search — a version, once it has appeared, is
+stable at every later stage.  `t1RunAt_versions_computable_uniform` makes the version list
+computable uniformly in the run parameters.
+
+This is what makes a version cheap to describe: `T1RunComplexity` combines it with a bound on
+the ordinal to bound the plain set complexity of every reachable version.
+-/
 
 namespace Kolmogorov
 
@@ -52,6 +69,9 @@ theorem t1RunAt_versions_computable_uniform :
         (Primrec.snd.comp Primrec.snd)))))
   exact (hv.comp ht).to_comp.comp t1RunAt_computable_uniform
 
+/-- Decoder for the versions of the T1 run: from a header carrying `n`, `k`, `epsilon` and a
+version index it searches for the first time at which that version exists and outputs the
+code of the corresponding model. -/
 noncomputable def t1VersionDecoder
     (c : Code) (cDesc cSparse : Nat) :
     BitString →. BitString := fun input => do
@@ -66,9 +86,19 @@ noncomputable def t1VersionDecoder
   let L := (t1RunAt c cDesc cSparse n k epsilon quota t).versions.getD version []
   Part.some (canonicalImageCodeOfList L)
 
-theorem t1VersionDecoder_partrec
-    (c : Code) (cDesc cSparse : Nat) :
-    Partrec (t1VersionDecoder c cDesc cSparse) := by
+/-- The version list extracted from run parameters in encoded input and time `p.2`
+is computable. -/
+private theorem t1RunAt_versions_computable_input (c : Code) (cDesc cSparse : Nat) :
+    Computable (fun p : BitString × Nat =>
+      (t1RunAt c cDesc cSparse
+        (bitsToNat ((decodeListCode (decodeFirst p.1)).getD 0 []))
+        (bitsToNat ((decodeListCode (decodeFirst p.1)).getD 1 []))
+        (bitsToNat ((decodeListCode (decodeFirst p.1)).getD 2 []))
+        (2 ^ (bitsToNat
+          ((decodeListCode (decodeFirst p.1)).getD 1 []) -
+            bitsToNat
+              ((decodeListCode (decodeFirst p.1)).getD 2 [])))
+        p.2).versions) := by
   have hheader : Computable (fun input : BitString =>
       decodeListCode (decodeFirst input)) :=
     decodeListCode_computable.comp decodeFirst_computable
@@ -87,13 +117,10 @@ theorem t1VersionDecoder_partrec
       bitsToNat ((decodeListCode (decodeFirst input)).getD 2 [])) :=
     bitsToNat_primrec.to_comp.comp
       (hget.comp hheader (Computable.const 2))
-  have hversion : Computable (fun input : BitString =>
-      bitsToNat (decodeSecond input)) :=
-    bitsToNat_primrec.to_comp.comp decodeSecond_computable
   have hquota : Computable (fun input : BitString =>
       2 ^ (bitsToNat ((decodeListCode (decodeFirst input)).getD 1 []) -
         bitsToNat ((decodeListCode (decodeFirst input)).getD 2 []))) :=
-    twoPow_primrec.to_comp.comp
+    primrec_two_pow_aux.to_comp.comp
       (Primrec.nat_sub.to_comp.comp hk hepsilon)
   let Data :=
     ((Code × Nat) × (Nat × Nat)) ×
@@ -106,8 +133,8 @@ theorem t1VersionDecoder_partrec
        , k := p.2.1.1
        , epsilon := p.2.1.2
        , quota := p.2.2.1
-       , t := p.2.2.2 } : T1RunInput)) := by
-    exact Primrec.of_equiv_symm.to_comp
+       , t := p.2.2.2 } : T1RunInput)) :=
+    Primrec.of_equiv_symm.to_comp
   have hinput : Computable (fun p : BitString × Nat =>
       ({ c := c
        , cDesc := cDesc
@@ -122,26 +149,38 @@ theorem t1VersionDecoder_partrec
           ((decodeListCode (decodeFirst p.1)).getD 1 []) -
             bitsToNat
               ((decodeListCode (decodeFirst p.1)).getD 2 []))
-       , t := p.2 } : T1RunInput)) := by
-    exact hofData.comp
+       , t := p.2 } : T1RunInput)) :=
+    hofData.comp
       ((((Computable.const c).pair (Computable.const cDesc)).pair
           ((Computable.const cSparse).pair
             (hn.comp Computable.fst))).pair
         (((hk.comp Computable.fst).pair
             (hepsilon.comp Computable.fst)).pair
           ((hquota.comp Computable.fst).pair Computable.snd)))
-  have hruns : Computable (fun p : BitString × Nat =>
-      (t1RunAt c cDesc cSparse
-        (bitsToNat ((decodeListCode (decodeFirst p.1)).getD 0 []))
-        (bitsToNat ((decodeListCode (decodeFirst p.1)).getD 1 []))
-        (bitsToNat ((decodeListCode (decodeFirst p.1)).getD 2 []))
-        (2 ^ (bitsToNat
-          ((decodeListCode (decodeFirst p.1)).getD 1 []) -
-            bitsToNat
-              ((decodeListCode (decodeFirst p.1)).getD 2 [])))
-        p.2).versions) := by
-    exact (t1RunAt_versions_computable_uniform.comp hinput).of_eq
-      (fun p => by rfl)
+  exact (t1RunAt_versions_computable_uniform.comp hinput).of_eq
+    (fun _ => rfl)
+
+/-- Unbounded search for the first stage reaching the target version is partial recursive. -/
+private theorem t1VersionDecoder_find_partrec (c : Code) (cDesc cSparse : Nat) :
+    Partrec (fun input : BitString =>
+      Nat.rfind fun m =>
+        Part.some (decide (bitsToNat (decodeSecond input) <
+          (t1RunAt c cDesc cSparse
+            (bitsToNat
+              ((decodeListCode (decodeFirst input)).getD 0 []))
+            (bitsToNat
+              ((decodeListCode (decodeFirst input)).getD 1 []))
+            (bitsToNat
+              ((decodeListCode (decodeFirst input)).getD 2 []))
+            (2 ^ (bitsToNat
+              ((decodeListCode (decodeFirst input)).getD 1 []) -
+                bitsToNat
+                  ((decodeListCode (decodeFirst input)).getD 2 [])))
+            m).versions.length))) := by
+  have hversion : Computable (fun input : BitString =>
+      bitsToNat (decodeSecond input)) :=
+    bitsToNat_primrec.to_comp.comp decodeSecond_computable
+  have hruns := t1RunAt_versions_computable_input c cDesc cSparse
   have hversionR : Computable (fun p : BitString × Nat =>
       bitsToNat (decodeSecond p.1)) :=
     hversion.comp Computable.fst
@@ -175,10 +214,14 @@ theorem t1VersionDecoder_partrec
                   ((decodeListCode (decodeFirst input)).getD 2 [])))
             m).versions.length)) :=
     hlt.comp hversionR hlength
-  have hfind : Partrec (fun input : BitString =>
-      Nat.rfind fun m =>
-        Part.some (decide (bitsToNat (decodeSecond input) <
-          (t1RunAt c cDesc cSparse
+  exact Partrec.rfind hcheck.partrec₂
+
+/-- Extraction and encoding of the model for the version found at step `m` is computable. -/
+private theorem t1VersionDecoder_post_computable (c : Code) (cDesc cSparse : Nat) :
+    Computable₂
+      (fun (input : BitString) (m : Nat) =>
+        canonicalImageCodeOfList
+          ((t1RunAt c cDesc cSparse
             (bitsToNat
               ((decodeListCode (decodeFirst input)).getD 0 []))
             (bitsToNat
@@ -189,8 +232,15 @@ theorem t1VersionDecoder_partrec
               ((decodeListCode (decodeFirst input)).getD 1 []) -
                 bitsToNat
                   ((decodeListCode (decodeFirst input)).getD 2 [])))
-            m).versions.length))) :=
-    Partrec.rfind hcheck.partrec₂
+            m).versions.getD
+              (bitsToNat (decodeSecond input)) [])) := by
+  have hversion : Computable (fun input : BitString =>
+      bitsToNat (decodeSecond input)) :=
+    bitsToNat_primrec.to_comp.comp decodeSecond_computable
+  have hruns := t1RunAt_versions_computable_input c cDesc cSparse
+  have hversionR : Computable (fun p : BitString × Nat =>
+      bitsToNat (decodeSecond p.1)) :=
+    hversion.comp Computable.fst
   have hgetVersion : Computable₂
       (fun (l : List (List BitString)) (i : Nat) =>
         l.getD i []) :=
@@ -207,26 +257,19 @@ theorem t1VersionDecoder_partrec
         p.2).versions.getD
           (bitsToNat (decodeSecond p.1)) []) :=
     hgetVersion.comp hruns hversionR
-  have hpost : Computable₂
-      (fun (input : BitString) (m : Nat) =>
-        canonicalImageCodeOfList
-          ((t1RunAt c cDesc cSparse
-            (bitsToNat
-              ((decodeListCode (decodeFirst input)).getD 0 []))
-            (bitsToNat
-              ((decodeListCode (decodeFirst input)).getD 1 []))
-            (bitsToNat
-              ((decodeListCode (decodeFirst input)).getD 2 []))
-            (2 ^ (bitsToNat
-              ((decodeListCode (decodeFirst input)).getD 1 []) -
-                bitsToNat
-                  ((decodeListCode (decodeFirst input)).getD 2 [])))
-            m).versions.getD
-              (bitsToNat (decodeSecond input)) [])) :=
-    (canonicalImageCodeOfList_computable.comp hlist).to₂
+  exact (canonicalImageCodeOfList_computable.comp hlist).to₂
+
+/-- The version decoder is partial recursive. -/
+theorem t1VersionDecoder_partrec
+    (c : Code) (cDesc cSparse : Nat) :
+    Partrec (t1VersionDecoder c cDesc cSparse) := by
+  have hfind := t1VersionDecoder_find_partrec c cDesc cSparse
+  have hpost := t1VersionDecoder_post_computable c cDesc cSparse
   exact (Partrec.bind hfind hpost.partrec₂).of_eq
     (fun _ => rfl)
 
+/-- On the version program of a version index that is reached by time `t` and fits in the width
+budget, the version decoder outputs the code of that version's model. -/
 theorem t1VersionDecoder_eval
     (c : Code) (cDesc cSparse cWidth n k epsilon t version : Nat)
     (hseen : version <

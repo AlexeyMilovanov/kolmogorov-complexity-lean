@@ -6,38 +6,38 @@ import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.PlainSymmetry
 /-!
 # VS40 §7, Theorem `uppest` — the S9 upper bound on `#L(P, ε)`
 
-Theorem `uppest` (source): `log #L(P, ε) ≤ k_P − m_P(ε) + 2ε + O(log n_P)`.
+Theorem `uppest` (source): `log #L(P, ε) ≤ kP − mP(ε) + 2ε + O(log nP)`.
 
 ## Reduction to Lemma `omp`
 
 The public endpoint `thm_uppest : ThmUppestStatement V` is here reduced, in a
-single kernel-checked proof, to the frozen exact-`ε` `lemma_omp`
-(`LemmaOmpStatement V`, still an open leaf — the only genuine obstruction on this
-track; see `LemmaOmp.lean` for the exact-`ε` refutation of the profile-geometry
-route and the fully-proved `3ε` companion `lemma_omp_three_radius`).
+single kernel-checked proof, to `lemma_omp` (`LemmaOmpStatement V`), which is
+proved at the radius that statement fixes; see `LemmaOmp.lean` for the
+refutation of the profile-geometry route at the exact radius `ε` and for
+`lemma_omp_three_radius`, the form the interface now carries.
 
 The subtlety solved here is the shared-constant design of both frozen
 interfaces.  `LemmaOmpStatement` fixes *one* constant `c_omp` used both as the
-`m_P_eps` index and as its own logarithmic slack, while the symmetry-of-
+`mPEps` index and as its own logarithmic slack, while the symmetry-of-
 information reduction adds independent slacks (endpoint bound, Omega
-lower/upper, SOI).  A naive intermediate `K(x | Ω_{m_P_eps ... c}) ≤ …` at the
+lower/upper, SOI).  A naive intermediate `K(x | Ω_{mPEps ... c}) ≤ …` at the
 caller's constant `c` would require an Omega-index bridge to reconcile the two
 indices.  We avoid it entirely:
 
-* count with **lemma_omp's own index** `m_omp = m_P_eps P k_P ε c_omp`
-  (so `lemma_omp` applies verbatim: `K(Ω_{m_omp} | x) ≤ logSlack c_omp n_P`);
+* count with **lemma_omp's own index** `m_omp = mPEps P kP ε c_omp`
+  (so `lemma_omp` applies verbatim: `K(Ω_{m_omp} | x) ≤ logSlack c_omp nP`);
 * `condK_reverse_of_plain_complexity_gap` (SOI) then bounds
-  `K(x | Ω_{m_omp}) ≤ (k_P − m_omp) + 2ε + O(log n_P)`, using the endpoint bound
-  `C(x) ≤ k_P + 2ε + O(log n_P)` and `C(Ω_{m_omp}) ≥ m_omp − O(1)`;
+  `K(x | Ω_{m_omp}) ≤ (kP − m_omp) + 2ε + O(log nP)`, using the endpoint bound
+  `C(x) ≤ kP + 2ε + O(log nP)` and `C(Ω_{m_omp}) ≥ m_omp − O(1)`;
 * `finiteSetLogCard_le_condK_budget` turns this into
-  `log #S ≤ (k_P − m_omp) + 2ε + O(log n_P)`;
-* finally `m_omp ≥ mp_eps` (antitonicity of `m_P_eps` in the constant, once the
-  `uppest` constant is chosen `≥ c_omp`) gives `k_P − m_omp ≤ k_P − mp_eps`, so
-  the bound is `≤ k_P − mp_eps + 2ε + logSlack c n_P` — exactly the frozen
+  `log #S ≤ (kP − m_omp) + 2ε + O(log nP)`;
+* finally `m_omp ≥ mp_eps` (antitonicity of `mPEps` in the constant, once the
+  `uppest` constant is chosen `≥ c_omp`) gives `kP − m_omp ≤ kP − mp_eps`, so
+  the bound is `≤ kP − mp_eps + 2ε + logSlack c nP` — exactly the frozen
   conclusion.  No Omega-index bridge is needed because the loss from `m_omp`
   versus `mp_eps` only *tightens* the upper bound.
 
-The exact-`ε` neighbourhood radius inside `m_P_eps` is preserved throughout: the
+The exact-`ε` neighbourhood radius inside `mPEps` is preserved throughout: the
 frozen `ThmUppestStatement V` is proved unchanged, modulo the single frozen
 `lemma_omp` dependency.
 -/
@@ -69,14 +69,14 @@ theorem thm_uppest
   obtain ⟨c_up, h_up⟩ := plainK_omegaFixedCode_upper V hV q0
   -- Reverse symmetry of information for ordinary plain complexity.
   obtain ⟨c_soi, h_soi⟩ := condK_reverse_of_plain_complexity_gap V U hV hU
-  -- Fold the SOI budget (linear in `n_P`) back onto a single `logSlack _ n_P`.
+  -- Fold the SOI budget (linear in `nP`) back onto a single `logSlack _ nP`.
   obtain ⟨b_end, hb_end⟩ := logSlack_le_add_const c_end
   obtain ⟨b_omp, hb_omp⟩ := logSlack_le_add_const c_omp
   set B : Nat := b_end + c_up + b_omp with hB
   obtain ⟨C_fold, hC_fold⟩ := logSlack_linear_bound c_soi 6 B
   refine ⟨c_end + c_omp + C_fold + c_low + 1, ?_⟩
   intro P epsilon kp np mp_eps S hadm heps hkP hnP hmpeps hsubset
-  -- lemma_omp's own index `m_omp = m_P_eps P kp ε c_omp`.
+  -- lemma_omp's own index `m_omp = mPEps P kp ε c_omp`.
   obtain ⟨m_omp, hm_omp_eq⟩ :=
     exists_m_P_eps_eq_coe_of_k_P_eq P kp (3 * epsilon) c_omp hadm.isUpperSet hkP
   have hm_omp_le_kp : m_omp ≤ kp := by
@@ -97,7 +97,7 @@ theorem thm_uppest
   have hkW_up : kW ≤ m_omp + c_up := by rw [hkW] at hW_up; exact_mod_cast hW_up
   have hkW_low : m_omp ≤ kW + c_low := by
     have h := h_low m_omp; rw [hkW] at h; exact_mod_cast h
-  -- The SOI budget scale `N` and its linear bound in `n_P`.
+  -- The SOI budget scale `N` and its linear bound in `nP`.
   set N : Nat :=
     (kp + 2 * epsilon + logSlack c_end np) + (m_omp + c_up) + logSlack c_omp np with hN_def
   have hkpnp : kp ≤ np := by

@@ -24,7 +24,7 @@ necessity direction of the capacity criterion:
   its incident-code-pair count by the capacity;
 * `card_incidentCommonWitnessPairsLe_le_pow_mul_capacity` — the `2^{α+1}·capacity`
   cardinality bound on the incident common-witness pairs;
-* `pairPlainK_incidentCommonWitness_capacity_le` — the staged-selector pair
+* `pairPlainK_incidentCommonWitness_le` — the staged-selector pair
   complexity bound (identical to `pairPlainK_incidentCommonWitness_le`);
 * `incidence_region_capacity_necessary` — the packaged necessity direction (still
   open; see the comment above it for the remaining assembly).
@@ -43,6 +43,7 @@ def boundedIncidenceRectangles (n b c : Nat) :
     Finset (Finset (Point (ConcreteField n)) × Finset (Line (ConcreteField n))) :=
   Finset.univ.filter fun R => R.1.card ≤ b ∧ R.2.card ≤ c
 
+/-- The family of incidence rectangles bounded by `b` and `c` is nonempty. -/
 lemma boundedIncidenceRectangles_nonempty (n b c : Nat) :
     (boundedIncidenceRectangles n b c).Nonempty :=
   ⟨(∅, ∅), Finset.mem_filter.mpr ⟨Finset.mem_univ _, by simp⟩⟩
@@ -202,21 +203,6 @@ lemma card_incidentCommonWitnessPairsLe_le_pow_mul_capacity
     _ ≤ 2 ^ (α + 1) * K :=
       Nat.mul_le_mul_right K commonWitnessRectanglesLe_card_lt.le
 
-/-- **Staged-selector pair complexity bound.**  Every incident common-witness
-pair `(x, y)` at level `(α, β, γ)` whose enumeration has fewer than `2^s` members
-has plain pair complexity at most `s + 4·(bit lengths) + 9 + O(1)`.  This is the
-same statement as `pairPlainK_incidentCommonWitness_le`, restated in this file for
-the capacity necessity argument. -/
-lemma pairPlainK_incidentCommonWitness_capacity_le
-    (V : Map) (hV : isOptimalConditional V) :
-    ∃ C, ∀ n α β γ s x y,
-      (x, y) ∈ incidentCommonWitnessPairsLe V n α β γ →
-      (incidentCommonWitnessPairsLe V n α β γ).card < 2 ^ s →
-      pairPlainK V x y ≤
-        ((s + 4 * ((Nat.bits n).length + (Nat.bits α).length +
-                   (Nat.bits β).length + (Nat.bits γ).length) + 9 + C : Nat) : ENat) :=
-  pairPlainK_incidentCommonWitness_le V hV
-
 /-- **Conditional-budget clamp for incident common-witness pairs.**  A witness
 pair stays a witness pair when the two conditional budgets are capped at the
 universal bound `|x| + O(1)`, `|y| + O(1)` on the conditional complexity of the
@@ -228,8 +214,8 @@ lemma incidentCommonWitness_cond_clamp (V : Map) (hV : isOptimalConditional V) :
       (x, y) ∈ incidentCommonWitnessPairsLe V n a b c →
       (x, y) ∈ incidentCommonWitnessPairsLe V n a
         (min b (x.length + c₀)) (min c (y.length + c₀)) := by
-  obtain ⟨cL, hcL⟩ := plainKLeLength V hV
-  obtain ⟨cC, hcC⟩ := condKLePlainK V hV
+  obtain ⟨cL, hcL⟩ := plainK_le_length V hV
+  obtain ⟨cC, hcC⟩ := condK_le_plainK V hV
   refine ⟨cL + cC, ?_⟩
   intro n a b c x y hmem
   rw [incidentCommonWitnessPairsLe, Finset.mem_filter] at hmem ⊢
@@ -274,7 +260,7 @@ lemma incidence_region_capacity_necessary
         2 ^ (3 * n) ≤ 2 ^ (α + logSlack C n) *
           concreteIncidenceCapacity n (2 ^ β) (2 ^ γ) := by
   obtain ⟨c₀, hclamp⟩ := incidentCommonWitness_cond_clamp V hV
-  obtain ⟨cSel, hSel⟩ := pairPlainK_incidentCommonWitness_capacity_le V hV
+  obtain ⟨cSel, hSel⟩ := pairPlainK_incidentCommonWitness_le V hV
   refine ⟨66 + 8 * (Nat.bits c₀).length + cSel + d, 1, ?_⟩
   intro n _hn e kxy hkxy hhigh α β γ hregion
   set x := concretePointCode n e.1.1 with hx_def

@@ -98,12 +98,4 @@ theorem aprioriMeasure_eq_zero_of_forall_not_produces {M : Map} {x y : BitString
   refine (tsum_congr (fun p => ?_)).trans tsum_zero
   rw [if_neg (h p)]
 
-/-- Support hook for the (future) Kraft / normalization direction: every program
-contributing a *nonzero* term to `m_M(x | y)` lies in the halting domain of `M`
-at `y`. For a prefix machine this domain is prefix-free, which is the structure
-the Kraft inequality will exploit. -/
-theorem mem_domainAt_of_produces {M : Map} {p x y : BitString}
-    (h : produces M p y x) : p ∈ domainAt M y :=
-  produces_mem_domainAt h
-
 end Kolmogorov

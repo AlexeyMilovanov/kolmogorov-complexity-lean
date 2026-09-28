@@ -59,8 +59,8 @@ noncomputable def incidenceLine (b : Module.Basis (Fin 2) G F) (key : G × G × 
   (fh.1 • b 0 + key.1 • b 1, fh.2 • b 0 + (key.2.2 - fh.1 * key.2.1) • b 1)
 
 /-- The point `(x, y)` with `x = g • b 0 + t • b 1` and
-`y = v • b 0 + (g * r + s) • b 1 + (r * t) • b 1 ^ 2`, where `(r, t, s)` is the
-class key and `(g, v)` are the free parameters (`v = f * g + h`). -/
+`y = v • b 0 + (g * r + s) • b 1 + (r * t) • b 1 ^ 2`, where the class key is
+`(r, t, s)` and `(g, v)` are the free parameters (`v = f * g + h`). -/
 noncomputable def incidencePoint (b : Module.Basis (Fin 2) G F) (key : G × G × G)
     (gv : G × G) : Point F :=
   (gv.1 • b 0 + key.2.1 • b 1,
@@ -84,6 +84,7 @@ lemma line_apply_eq (b : Module.Basis (Fin 2) G F) (hb : b 0 = 1) (r t s f g h :
   simp only [hb, Algebra.smul_def, map_add, map_sub, map_mul, mul_one]
   ring
 
+/-- The point `(g, f g + h)` lies on the line with parameters `(f, h)`. -/
 lemma incident_incidencePoint_incidenceLine (b : Module.Basis (Fin 2) G F) (hb : b 0 = 1)
     (key : G × G × G) (f g h : G) :
     Incident (incidencePoint b key (g, f * g + h)) (incidenceLine b key (f, h)) := by
@@ -107,42 +108,40 @@ lemma incidenceClass_incident [Fintype G] [DecidableEq F]
   subst hfe
   exact incident_incidencePoint_incidenceLine b hb key f g h
 
-/-- The lines occurring in a class are parametrized by two elements of `G`. -/
-theorem incidenceClass_lines_card_le [Fintype G] [DecidableEq F]
-    (b : Module.Basis (Fin 2) G F) (key : G × G × G) :
-    ((incidenceClass b key).image Prod.snd).card ≤ Fintype.card G ^ 2 := by
-  classical
-  have hsub : (incidenceClass b key).image Prod.snd ⊆
-      Finset.image (incidenceLine b key) (Finset.univ : Finset (G × G)) := by
-    intro ℓ hℓ
-    simp only [Finset.mem_image, incidenceClass, Finset.mem_univ, true_and] at hℓ ⊢
-    obtain ⟨e, ⟨⟨f, g, h⟩, hfe⟩, hesnd⟩ := hℓ
-    exact ⟨(f, h), by rw [← hesnd, ← hfe]⟩
-  calc ((incidenceClass b key).image Prod.snd).card
-      ≤ (Finset.image (incidenceLine b key) (Finset.univ : Finset (G × G))).card :=
+omit [Field G] in
+/-- A finite set covered by a two-parameter family indexed by `G × G` has at most
+`Fintype.card G ^ 2` elements. This is the counting step shared by
+`incidenceClass_lines_card_le` and `incidenceClass_points_card_le`, which differ only in
+which projection of an incidence class is being counted. -/
+theorem card_le_sq_of_subset_image {β : Type*} [Fintype G] [DecidableEq β] {s : Finset β}
+    (param : G × G → β) (hsub : s ⊆ Finset.image param (Finset.univ : Finset (G × G))) :
+    s.card ≤ Fintype.card G ^ 2 :=
+  calc s.card ≤ (Finset.image param (Finset.univ : Finset (G × G))).card :=
         Finset.card_le_card hsub
     _ ≤ (Finset.univ : Finset (G × G)).card := Finset.card_image_le
     _ = Fintype.card G ^ 2 := by
         simp [Finset.card_univ, pow_two]
 
+/-- The lines occurring in a class are parametrized by two elements of `G`. -/
+theorem incidenceClass_lines_card_le [Fintype G] [DecidableEq F]
+    (b : Module.Basis (Fin 2) G F) (key : G × G × G) :
+    ((incidenceClass b key).image Prod.snd).card ≤ Fintype.card G ^ 2 :=
+  card_le_sq_of_subset_image (incidenceLine b key) (by
+    intro ℓ hℓ
+    simp only [Finset.mem_image, incidenceClass, Finset.mem_univ, true_and] at hℓ ⊢
+    obtain ⟨e, ⟨⟨f, g, h⟩, hfe⟩, hesnd⟩ := hℓ
+    exact ⟨(f, h), by rw [← hesnd, ← hfe]⟩)
+
 /-- The points occurring in a class are parametrized by two elements of `G`;
 this is the point of the reparametrization `v = f * g + h` in the hint. -/
 theorem incidenceClass_points_card_le [Fintype G] [DecidableEq F]
     (b : Module.Basis (Fin 2) G F) (key : G × G × G) :
-    ((incidenceClass b key).image Prod.fst).card ≤ Fintype.card G ^ 2 := by
-  classical
-  have hsub : (incidenceClass b key).image Prod.fst ⊆
-      Finset.image (incidencePoint b key) (Finset.univ : Finset (G × G)) := by
+    ((incidenceClass b key).image Prod.fst).card ≤ Fintype.card G ^ 2 :=
+  card_le_sq_of_subset_image (incidencePoint b key) (by
     intro p hp
     simp only [Finset.mem_image, incidenceClass, Finset.mem_univ, true_and] at hp ⊢
     obtain ⟨e, ⟨⟨f, g, h⟩, hfe⟩, hefst⟩ := hp
-    exact ⟨(g, f * g + h), by rw [← hefst, ← hfe]⟩
-  calc ((incidenceClass b key).image Prod.fst).card
-      ≤ (Finset.image (incidencePoint b key) (Finset.univ : Finset (G × G))).card :=
-        Finset.card_le_card hsub
-    _ ≤ (Finset.univ : Finset (G × G)).card := Finset.card_image_le
-    _ = Fintype.card G ^ 2 := by
-        simp [Finset.card_univ, pow_two]
+    exact ⟨(g, f * g + h), by rw [← hefst, ← hfe]⟩)
 
 /-- A class contains at most `q ^ 3` incident pairs. -/
 theorem incidenceClass_card_le [Fintype G] [DecidableEq F]
@@ -225,6 +224,7 @@ noncomputable def quadraticRectangleFamily [Fintype G] [DecidableEq F]
       ((incidenceClass b key).image Prod.fst, (incidenceClass b key).image Prod.snd))
     Finset.univ
 
+/-- The quadratic rectangle family has at most `|G|³` members. -/
 lemma quadraticRectangleFamily_card_le [Fintype G] [DecidableEq F]
     (b : Module.Basis (Fin 2) G F) :
     (quadraticRectangleFamily b).card ≤ Fintype.card G ^ 3 := by

@@ -4,7 +4,7 @@ import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.ModelsToSets2
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.Profile
 
 /-!
-# M2(a3): the explicit computable cover-search decoder
+# The explicit computable cover-search decoder
 
 This file provides the genuinely computable core behind
 `exists_coverSelector` (in `BasicProfile.lean`): an explicit partial-recursive
@@ -31,6 +31,7 @@ open Kolmogorov.CodedFiniteDistribution
 def decodeCoverCodeList (w : BitString) : List BitString :=
   (decodeDistributionData w).map CodedDistributionEntry.point
 
+/-- Decoding the canonical uniform code of a finite set returns its canonical list. -/
 theorem decodeCoverCodeList_code (S : Finset BitString) (hS : S.Nonempty) :
     decodeCoverCodeList (codedUniformOn S hS).code = canonicalFinsetList S := by
   unfold decodeCoverCodeList
@@ -98,11 +99,14 @@ theorem coverSearch_list_all_primrec {α β : Type} [Primcodable α] [Primcodabl
       (Primrec.snd.comp Primrec.snd)).to₂
   exact Primrec.list_foldr hf (Primrec.const true) hstep
 
+/-- Decoding a cover code into its list of points is primitive recursive. -/
 theorem decodeCoverCodeList_primrec : Primrec decodeCoverCodeList := by
   unfold decodeCoverCodeList
   exact Primrec.list_map decodeDistributionData_primrec
     (entry_point_primrec.comp Primrec.snd).to₂
 
+/-- Decoding a candidate number into a stage together with a list of cover codes is primitive
+recursive. -/
 theorem coverDecode_primrec : Primrec coverDecode := by
   unfold coverDecode
   exact Primrec.option_getD.comp Primrec.decode (Primrec.const (0, []))
@@ -155,7 +159,7 @@ theorem coverValidBool_computable (𝒜 : DescriptionFamily) :
             ( Primrec.snd ) );
     · convert Primrec.nat_mul.comp
         (Primrec.fst.comp (Primrec.snd.comp (Primrec.snd.comp Primrec.snd)))
-        (twoPow_primrec.comp
+        (primrec_two_pow_aux.comp
           (Primrec.succ.comp (Primrec.fst.comp (Primrec.snd.comp Primrec.snd)))) using 1
   have h_size : Computable
       (fun a : BitString × ℕ × ℕ × ℕ × ℕ =>
@@ -173,7 +177,7 @@ theorem coverValidBool_computable (𝒜 : DescriptionFamily) :
         convert Primrec.comp ( Primrec.list_length )
             ( dedup_primrec.comp ( decodeCoverCodeList_primrec.comp ( Primrec.fst ) ) ) using 1;
       convert Primrec.nat_max.comp ( Primrec.const 1 )
-          ( Primrec.nat_div.comp ( h_len_dedup ) ( twoPow_primrec.comp
+          ( Primrec.nat_div.comp ( h_len_dedup ) ( primrec_two_pow_aux.comp
                                                    ( Primrec.fst.comp
                                                        ( Primrec.snd.comp
                                                            ( Primrec.snd ) ) ) ) ) using 1;

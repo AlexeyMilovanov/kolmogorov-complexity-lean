@@ -160,9 +160,11 @@ theorem remAddNoise_forward_half
   have heps : epsilon ≤ (c + 1) * epsilon := Nat.le_mul_of_pos_left _ (by omega)
   omega
 
-/-- The full VS40 `rem:add-noise` profile stability theorem, assembled from
-the direct truncation/multiplicity reverse inclusion and the proved forward
-uniform-extension/half-plane inclusion. -/
+/-- `RemAddNoiseStatement V` holds: there is a constant `c` such that whenever
+`plainK V x = kx`, `plainK V (pairCode x y) = kxy` and `y` is conditionally random over `x` up to
+`epsilon` (`|y| ≤ condK V y x + epsilon`), the plain description profile set of `pairCode x y`
+and `AddNoiseProfileTransform (plainDescriptionProfileSet V x) kx kxy y.length` are within
+`c * epsilon + logSlack c (|x| + |y|)` of each other. -/
 theorem rem_add_noise
     (V U : Map) (hV : isOptimalConditional V)
     (hU : IsOptimalPrefixConditional U) :

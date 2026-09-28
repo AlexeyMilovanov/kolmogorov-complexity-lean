@@ -1,5 +1,7 @@
+import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.Separation.Statements
+import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.Realization.Antistochasticity
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.Separation
-import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.ProfileRealization
+import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.Realization
 
 /-!
 # Existence of antistochastic strings for the ordinary (plain) profile
@@ -37,10 +39,10 @@ value of the machine on the empty program and the empty condition. -/
 theorem eq_of_plainK_eq_zero (V : Map) {w w' : BitString}
     (h : plainK V w = 0) (h' : plainK V w' = 0) : w = w' := by
   have hw : ∃ p, programLength p ≤ 0 ∧ produces V p [] w := by
-    refine (condKLeIff V w [] 0).mp ?_
+    refine (condK_le_iff V w [] 0).mp ?_
     simpa [plainK] using h.le
   have hw' : ∃ p, programLength p ≤ 0 ∧ produces V p [] w' := by
-    refine (condKLeIff V w' [] 0).mp ?_
+    refine (condK_le_iff V w' [] 0).mp ?_
     simpa [plainK] using h'.le
   obtain ⟨p, hp, hprod⟩ := hw
   obtain ⟨p', hp', hprod'⟩ := hw'
@@ -113,10 +115,10 @@ theorem exists_antistochastic_plain (V : Map) (hV : isOptimalConditional V) :
   obtain ⟨U, hU⟩ := exists_isOptimalPrefixConditional
   obtain ⟨c0, h0⟩ := exists_antistochastic U hU
   obtain ⟨c3, h3⟩ := inDescriptionProfile_of_inPlainDescriptionProfile V U hV hU
-  obtain ⟨cpl, hpl⟩ := plainK_le_KPPlain V U hV hU.isPrefixDecompressor
+  obtain ⟨cpl, hpl⟩ := plain_le_prefix V U hV hU.isPrefixDecompressor
   obtain ⟨ckp, hkp⟩ := KPPlain_le_plainK_add_KPPlain_plainK U V hU hV
   obtain ⟨clen2, hlen2⟩ := KPPlain_le_two_mul_length U hU
-  obtain ⟨clen, hlen⟩ := plainKLeLength V hV
+  obtain ⟨clen, hlen⟩ := plainK_le_length V hV
   obtain ⟨C1, hC1⟩ := logSlack_linear_bound 2 1 clen
   refine ⟨c3 + 2 * c0 + C1 + (clen2 + ckp + cpl + clen + 1), ?_⟩
   set c := c3 + 2 * c0 + C1 + (clen2 + ckp + cpl + clen + 1) with hcdef

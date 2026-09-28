@@ -1,10 +1,10 @@
 import KolmogorovMathlib.Restricted.Family
 import KolmogorovMathlib.Restricted.CoverSearch
-import KolmogorovMathlib.Foundation.EnumerationComplexity
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.CurveRealization
+import KolmogorovMathlib.Foundation.EnumerationComplexity
 
 /-!
-# M2: basic properties of the restricted profile
+# Basic properties of the restricted profile
 
 This file records the restricted analogues of the elementary endpoint
 properties of the unrestricted description profile.  The cover/shift statement
@@ -14,7 +14,7 @@ properties of the unrestricted description profile.  The cover/shift statement
 
 namespace Kolmogorov
 
-/-- M2(a1): every restricted family contains the full cube, so every
+/-- Every restricted family contains the full cube, so every
 length-`n` string has an `𝒜`-description at `(O(log n), n)`. -/
 theorem inDescriptionProfileIn_fullCube_of_optimal
     (U : Map) (hU : IsOptimalPrefixConditional U) :
@@ -23,12 +23,12 @@ theorem inDescriptionProfileIn_fullCube_of_optimal
       InDescriptionProfileIn 𝒜 U x (logSlack c n) n := by
   obtain ⟨c, hc⟩ := fullSetComplexityGate U hU
   refine ⟨c, fun 𝒜 x n hxlen => ?_⟩
-  have hx : x ∈ stringsOfLength n := (memStringsOfLength n x).mpr hxlen
+  have hx : x ∈ stringsOfLength n := (mem_stringsOfLength n x).mpr hxlen
   have hcube_nonempty : (stringsOfLength n).Nonempty := ⟨x, hx⟩
   refine ⟨stringsOfLength n, hcube_nonempty, 𝒜.fullCube n, ?_⟩
-  exact ⟨hx, hc n hcube_nonempty, le_of_eq (cardStringsOfLength n)⟩
+  exact ⟨hx, hc n hcube_nonempty, le_of_eq (card_stringsOfLength n)⟩
 
-/-- M2(a2): condition (2)+(3) gives every singleton, so every length-`n`
+/-- Conditions (2)+(3) give every singleton, so every length-`n`
 string has an `𝒜`-description at `(K(x)+O(log n), 0)`.  The paper states
 `O(1)`; this gate-shaped version keeps the existing repository slack
 convention from `SingletonSetComplexityGate`. -/
@@ -43,7 +43,7 @@ theorem inDescriptionProfileIn_singleton_of_optimal
   refine ⟨{x}, Finset.singleton_nonempty x, 𝒜.singleton_mem x, ?_⟩
   exact ⟨by simp, hc x n kx hxlen hkx, by simp⟩
 
-/-- **Combinatorial half of M2(a3).**  From a family member `A` with
+/-- From a family member `A` with
 `A.card ≤ 2^j`, condition (3) applied with covering size `c = max 1 (A.card / 2^k)`
 produces a cover of the `n`-bit part of `A` by family members of card `≤ 2^(j-k)`,
 using at most `overhead n · 2^(k+1)` sets.
@@ -350,7 +350,7 @@ theorem exists_coverSelector (𝒜 : DescriptionFamily) :
           by simpa using Nat.find_min ‹∃ p,
               coverValidBool 𝒜 ( codedUniformOn A hA ).code n k ( 𝒜.overhead n ) p = true› mn;
 
-/-- **M2(a3): restricted description shift** (paper Prop. `prop:a-family`(a3);
+/-- **Restricted description shift** (paper Prop. `prop:a-family`(a3);
 analogue of `inDescriptionProfile_portion`).  If `(i, j) ∈ P_x^𝒜` and `k ≤ j`,
 then `(i + k + O(log(n + k + overhead n)), j - k) ∈ P_x^𝒜`.  The family is fixed
 before the slack constant, so the constant may depend on its enumeration, but is
@@ -426,7 +426,7 @@ theorem inDescriptionProfileIn_cover_shift
     length_natBits_mono (by omega)
   have hov_le : (Nat.bits (𝒜.overhead n)).length ≤ (Nat.bits M).length :=
     length_natBits_mono (by omega)
-  have hLM_le : (Nat.bits M).length ≤ M := length_natBits_le_self M
+  have hLM_le : (Nat.bits M).length ≤ M := length_natBits_le M
   -- `D := c₀·(...) ≤ logSlack (4 c₀) M`.
   have hD : c₀ * ((Nat.bits n).length + (Nat.bits k).length
         + (Nat.bits (𝒜.overhead n)).length + 1) ≤ logSlack (4 * c₀) M := by

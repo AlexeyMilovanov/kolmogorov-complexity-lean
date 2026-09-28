@@ -7,56 +7,54 @@ import KolmogorovMathlib.CommonInformation.Interfaces
 import Mathlib.Data.Finset.Basic
 import Mathlib.Data.List.Nodup
 
+/-!
+# Naming a witness pair by its rank
+
+`exists_incidence_muchnik_counterexample`: the incidence construction produces explicit
+Muchnik counterexamples — pairs of high mutual information admitting no short common witness.
+The obstruction is `highComplexity_incident_edge_muchnik_obstruction`, which says an incident
+pair of high pair complexity cannot have one.
+
+The mechanism is that the pairs *with* a witness are few, so each of them is cheap:
+`incidentCommonWitnessPairCodesLe` is that set, `incidentCommonWitnessPairsStage` its stage
+enumeration (duplicate-free, growing by appending, computable, and complete —
+`mem_incidentCommonWitnessPairsStage_eventually_iff`), and the rank selector reading
+`incidentCommonWitnessRankInput` names one by its position.
+`pairPlainK_incidentCommonWitness_le` and `…_source_bounds` are the resulting complexity
+bounds, which contradict the profile of `IncidenceProfile`.
+-/
+
 namespace Kolmogorov
 
 open Nat.Partrec (Code)
 
+/-- The pair codes of the incident point–line pairs whose complexity profile lies
+below the bounds `(α, β, γ)`, as a finite set of strings. -/
 noncomputable def incidentCommonWitnessPairCodesLe
     (V : Map) (n α β γ : Nat) : Finset BitString :=
   (incidentCommonWitnessPairsLe V n α β γ).image fun p => pairCode p.1 p.2
 
+/-- The enumeration, after `stage` steps, of those common-information witness pair
+codes that also code an incident point–line pair of the plane of order
+`concretePrime n`. -/
 def incidentCommonWitnessPairsStage
     (c : Code) (n α β γ : Nat) (stage : Nat) : List BitString :=
   (commonWitnessPairsStage c α β γ stage).filter
     (· ∈ concreteIncidentPairCodes n)
 
+/-- The stage enumeration lists each pair code at most once. -/
 lemma incidentCommonWitnessPairsStage_nodup (c : Code) (n α β γ stage : Nat) :
     (incidentCommonWitnessPairsStage c n α β γ stage).Nodup := by
   apply List.Nodup.filter
   exact commonWitnessPairsStage_nodup c α β γ stage
 
+/-- The stage enumerations grow by appending: stage `t` is a prefix of stage
+`t + 1`. -/
 lemma incidentCommonWitnessPairsStage_prefix (c : Code) (n α β γ stage : Nat) :
     incidentCommonWitnessPairsStage c n α β γ stage <+:
       incidentCommonWitnessPairsStage c n α β γ (stage + 1) := by
   apply List.IsPrefix.filter
   exact commonWitnessPairsStage_prefix c α β γ stage
-
-private lemma incidentBitStringMemDecide_primrec :
-    Primrec₂ (fun (w : BitString) (l : List BitString) => decide (w ∈ l)) := by
-  have key : ∀ (w : BitString) (l : List BitString),
-      decide (w ∈ l) =
-        l.foldr (fun x acc => if x = w then true else acc) false := by
-    intro w l
-    induction l with
-    | nil => simp
-    | cons x t ih =>
-        simp only [List.mem_cons, List.foldr_cons, ← ih]
-        by_cases h : x = w
-        · simp only [h, true_or, decide_true, ↓reduceIte]
-        · simp only [Bool.decide_or, h, ↓reduceIte, eq_comm,
-            Bool.eq_or_self, true_eq_decide_iff]
-          exact fun heq => absurd heq.symm h
-  have hcond : PrimrecPred
-      (fun a : (BitString × List BitString) × (BitString × Bool) =>
-        a.2.1 = a.1.1) :=
-    Primrec.eq.comp (Primrec.fst.comp Primrec.snd)
-      (Primrec.fst.comp Primrec.fst)
-  have hstep : Primrec₂
-      (fun (p : BitString × List BitString) (q : BitString × Bool) =>
-        if q.1 = p.1 then true else q.2) :=
-    Primrec.ite hcond (Primrec.const true) (Primrec.snd.comp Primrec.snd)
-  exact (Primrec.list_foldr Primrec.snd (Primrec.const false) hstep).of_eq
-    (fun p => (key p.1 p.2).symm)
 
 private lemma incidentListFilter_computable :
     Computable₂
@@ -64,7 +62,7 @@ private lemma incidentListFilter_computable :
   have hmem : PrimrecRel
       (fun (w : BitString) (l : List BitString) => w ∈ l) := by
     refine ⟨inferInstance, ?_⟩
-    exact incidentBitStringMemDecide_primrec
+    exact bitString_mem_primrec
   exact (PrimrecRel.listFilter hmem).to_comp
 
 private def incidentCommonWitnessStageInput
@@ -86,6 +84,7 @@ private lemma incidentCommonWitnessStageInput_computable :
   exact ((Primrec.pair (Primrec.pair hα (Primrec.pair hβ hγ))
     Primrec.snd).of_eq (fun _ => rfl)).to_comp
 
+/-- The stage enumeration is computable in the bounds and the stage. -/
 lemma incidentCommonWitnessPairsStage_computable (c : Code) :
     Computable (fun q : (Nat × Nat × Nat × Nat) × Nat =>
       incidentCommonWitnessPairsStage c q.1.1 q.1.2.1 q.1.2.2.1 q.1.2.2.2 q.2) := by
@@ -100,6 +99,8 @@ lemma incidentCommonWitnessPairsStage_computable (c : Code) :
   exact (incidentListFilter_computable.comp hCommon hAllowed).of_eq
     (fun _ => rfl)
 
+/-- A pair code appears at some stage of the enumeration exactly when it is the code
+of an incident pair with complexity profile below the bounds. -/
 lemma mem_incidentCommonWitnessPairsStage_eventually_iff
     {V : Map} {c : Code} (hc : IsCodeFor c V) (n α β γ : Nat) (w : BitString) :
     (∃ stage, w ∈ incidentCommonWitnessPairsStage c n α β γ stage) ↔
@@ -128,6 +129,8 @@ lemma mem_incidentCommonWitnessPairsStage_eventually_iff
     exact ⟨stage, List.mem_filter.mpr
       ⟨hstage, decide_eq_true hp.2⟩⟩
 
+/-- No stage enumerates more pairs than there are incident witness pairs below the
+bounds. -/
 lemma incidentCommonWitnessPairsStage_length_le
     {V : Map} {c : Code} (hc : IsCodeFor c V) (n α β γ stage : Nat) :
     (incidentCommonWitnessPairsStage c n α β γ stage).length ≤
@@ -149,9 +152,13 @@ lemma incidentCommonWitnessPairsStage_length_le
     _ ≤ (incidentCommonWitnessPairsLe V n α β γ).card :=
       Finset.card_image_le
 
+/-- The input string of the rank selector: the four parameters `n, α, β, γ` in
+binary, paired with the binary rank of the wanted pair in the enumeration. -/
 def incidentCommonWitnessRankInput (n α β γ : Nat) (rank : BitString) : BitString :=
   pairCode (listCode [Nat.bits n, Nat.bits α, Nat.bits β, Nat.bits γ]) rank
 
+/-- The length of the rank-selector input is the length of the rank plus four times
+the total length of the four parameters in binary, plus nine. -/
 lemma incidentCommonWitnessRankInput_length (n α β γ : Nat) (rank : BitString) :
     (incidentCommonWitnessRankInput n α β γ rank).length =
       rank.length + 4 * ((Nat.bits n).length + (Nat.bits α).length +
@@ -171,7 +178,7 @@ private lemma incidentCommonWitnessRankParameters_primrec :
     Primrec incidentCommonWitnessRankParameters := by
   have hpList : Primrec (fun input : BitString =>
       decodeListCode (decodeFirst input)) :=
-    decodeListCode_primrec.comp decodeFirst_primrec'
+    decodeListCode_primrec.comp CodedFiniteDistribution.decodeFirst_primrec
   have hget (i : Nat) : Primrec (fun input : BitString =>
       (decodeListCode (decodeFirst input)).getD i []) :=
     (Primrec.list_getD ([] : BitString)).comp hpList (Primrec.const i)
@@ -187,7 +194,7 @@ private def incidentCommonWitnessRankValue (input : BitString) : Nat :=
 
 private lemma incidentCommonWitnessRankValue_primrec :
     Primrec incidentCommonWitnessRankValue :=
-  (decodeFixedWidthNatCode_primrec.comp decodeSecond_primrec').of_eq
+  (decodeFixedWidthNatCode_primrec.comp CodedFiniteDistribution.decodeSecond_primrec).of_eq
     (fun _ => rfl)
 
 private def incidentCommonWitnessSelectorStageInput
@@ -250,11 +257,14 @@ private lemma incidentCommonWitnessSelectorPost_computable (c : Code) :
     incidentCommonWitnessRankValueOnPair_computable).of_eq
       (fun _ => rfl)).to₂
 
+/-- The rank selector for the machine `c`: it searches for the first stage at which
+the enumeration is long enough and returns the pair code of the requested rank. -/
 def incidentCommonWitnessRankSelector (c : Code) : BitString →. BitString := fun input =>
   Nat.rfind (fun t =>
     Part.some (incidentCommonWitnessSelectorCheck c input t)) >>= fun stage =>
   Part.some (incidentCommonWitnessSelectorPost c input stage)
 
+/-- The rank selector is a partial recursive function of its input. -/
 lemma incidentCommonWitnessRankSelector_partrec (c : Code) :
     Partrec (incidentCommonWitnessRankSelector c) := by
   exact (Partrec.bind
@@ -273,6 +283,8 @@ private lemma incidentCommonWitnessPairsStage_prefix_of_le
       exact List.IsPrefix.trans ih
         (incidentCommonWitnessPairsStage_prefix c n α β γ _)
 
+/-- If the requested rank is present in the enumeration at some stage and fits in
+`s` bits, the selector returns the pair code of that rank. -/
 lemma incidentCommonWitnessRankSelector_recovers
     (c : Code) (n α β γ s rank : Nat) (stage : Nat) :
     rank < (incidentCommonWitnessPairsStage c n α β γ stage).length →
@@ -316,6 +328,8 @@ lemma incidentCommonWitnessRankSelector_recovers
       hprefix rank [] ht₀
     exact Part.mem_some_iff.mpr hget
 
+/-- A pair of codes of an incident point–line pair whose common-information region
+contains `(α, β, γ)` is a witness pair for the bounds decreased by one. -/
 lemma mem_incidentCommonWitnessPairsLe_of_mem_region
     {V : Map} {n α β γ : Nat} {x y : BitString} :
     0 < α → 0 < β → 0 < γ →
@@ -330,6 +344,8 @@ lemma mem_incidentCommonWitnessPairsLe_of_mem_region
   · exact (enat_lt_coe_iff_le_pred hβ).mp hx
   · exact (enat_lt_coe_iff_le_pred hγ).mp hy
 
+/-- Two logarithmic slack terms together stay below `n / 8` for all large enough
+`n`. -/
 lemma logSlack_sum_lt_eighth_eventually (c₁ c₂ : Nat) :
     ∃ N, ∀ n, N ≤ n → logSlack c₁ n + logSlack c₂ n < n / 8 := by
   obtain ⟨M, hM⟩ :=
@@ -348,6 +364,9 @@ lemma logSlack_sum_lt_eighth_eventually (c₁ c₂ : Nat) :
   rw [hsum]
   omega
 
+/-- A witness pair is described by its rank in the enumeration: its plain pair
+complexity is at most the rank length `s` plus the cost of the four parameters,
+up to an additive constant. -/
 lemma pairPlainK_incidentCommonWitness_le
     (V : Map) (hV : isOptimalConditional V) :
     ∃ C, ∀ n α β γ s x y,
@@ -360,7 +379,7 @@ lemma pairPlainK_incidentCommonWitness_le
   obtain ⟨cSelector, hSelector⟩ :=
     plainK_partrec_map_le V hV (incidentCommonWitnessRankSelector code)
       (incidentCommonWitnessRankSelector_partrec code)
-  obtain ⟨cLength, hLength⟩ := plainKLeLength V hV
+  obtain ⟨cLength, hLength⟩ := plainK_le_length V hV
   refine ⟨cLength + cSelector, ?_⟩
   intro n α β γ s x y hmem hcard
   have hpairCode : pairCode x y ∈
@@ -412,6 +431,9 @@ lemma pairPlainK_incidentCommonWitness_le
       push_cast
       ac_rfl
 
+/-- The two counting bounds on a witness pair: its plain pair complexity is at most
+`α + γ/2 + max (γ/2) β`, and also at most `α + β/2 + max (β/2) γ`, plus the cost
+of the four parameters and an additive constant. -/
 lemma pairPlainK_incidentCommonWitness_source_bounds
     (V : Map) (hV : isOptimalConditional V) :
     ∃ C, ∀ n α β γ x y,
@@ -441,7 +463,11 @@ lemma pairPlainK_incidentCommonWitness_source_bounds
     norm_cast
     omega
 
-lemma exercise_310_every_highComplexity_incident_edge
+/-- For all large `n`, an incident point–line pair whose pair complexity is within
+logarithmic slack of `3n` has both components of complexity within logarithmic
+slack of `2n`, mutual information within logarithmic slack of `n`, and no common
+description meeting the threshold `muchnikThreshold n`. -/
+lemma highComplexity_incident_edge_muchnik_obstruction
     (V : Map) (hV : isOptimalConditional V) (d : Nat) :
     ∃ C N, ∀ n, N ≤ n →
       ∀ (e : ConcreteIncidentEdge n) (kxy : Nat),
@@ -460,7 +486,7 @@ lemma exercise_310_every_highComplexity_incident_edge
             CommonInformationRegion V
               (concretePointCode n e.1.1) (concreteLineCode n e.1.2) := by
   obtain ⟨Cprofile, hprofile⟩ :=
-    exercise_309_incident_edge_profile V hV d
+    incident_edge_profile V hV d
   obtain ⟨Ccoding, hcoding⟩ :=
     pairPlainK_incidentCommonWitness_le V hV
   let CoverC := 30 + Ccoding
@@ -555,7 +581,7 @@ lemma exists_incidence_muchnik_counterexample
         (muchnikThreshold n, muchnikThreshold n, muchnikThreshold n) ∉
           CommonInformationRegion V x y := by
   obtain ⟨C, N, hExercise⟩ :=
-    exercise_310_every_highComplexity_incident_edge V hV 0
+    highComplexity_incident_edge_muchnik_obstruction V hV 0
   refine ⟨C, max N 1, ?_⟩
   intro n hn
   have hN : N ≤ n := le_trans (Nat.le_max_left _ _) hn

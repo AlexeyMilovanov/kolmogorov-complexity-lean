@@ -5,14 +5,33 @@ import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.ProfileBridges
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.CylinderRealization
 import KolmogorovMathlib.Restricted.FamilyCurve
 
+/-!
+# Realizing a curve in the plain and the strong profile at once
+
+`stat_any_curve_1_of_joint_prefix_realization`: a string whose restricted profiles for the
+full family and for the cylinder family both follow a strictly decreasing curve realizes that
+curve jointly in the plain description profile and in the strong description profile, within
+a square-root error.
+
+`fullFamilyCurve_to_plainProfile` and `cylinderCurve_to_strongProfile_neighborhood` are the
+two transfers, `plainK_lower_of_curve_neighborhood` the complexity lower bound a curve
+neighbourhood forces, and `strongDescriptionProfileSet_neighborhood_mono` the enlargement
+lemma for strong profile neighbourhoods.
+
+Most of the module is the slack arithmetic that lets one error term absorb the others:
+`logSlack_le_sqrtSlack` and its linear and length-padded variants, and the additive bounds
+`sqrtSlack_add_logSlack_le`, `sqrtSlack_twice_add_const_le`,
+`sqrtSlack_sum_three_add_const_le`, with the constant computation
+`jointRealization_cOut_bounds`.
+-/
+
 namespace Kolmogorov
 
 open CodedFiniteDistribution
 
-lemma logSlack_le_sqrtSlack_linear :
-    ∃ C : ℕ → ℕ, (∀ c, C c ≤ 2 * c + 1) ∧ ∀ c n, logSlack c n ≤ sqrtSlack (C c) n := by
-  refine ⟨fun c => c, fun c => by dsimp; omega, ?_⟩
-  intro c n
+/-- A logarithmic slack term is dominated by the square-root slack term with the same
+constant: `logSlack c n ≤ sqrtSlack c n`. -/
+lemma logSlack_le_sqrtSlack (c n : ℕ) : logSlack c n ≤ sqrtSlack c n := by
   unfold logSlack sqrtSlack
   have hbits : (Nat.bits n).length ≤
       Nat.sqrt (n * (Nat.bits n).length) := by
@@ -21,6 +40,15 @@ lemma logSlack_le_sqrtSlack_linear :
     nlinarith
   nlinarith
 
+/-- Every logarithmic slack term is dominated by a square-root slack term with a constant that
+grows at most linearly in the original one. -/
+lemma logSlack_le_sqrtSlack_linear :
+    ∃ C : ℕ → ℕ, (∀ c, C c ≤ 2 * c + 1) ∧ ∀ c n, logSlack c n ≤ sqrtSlack (C c) n :=
+  ⟨fun c => c, fun c => by dsimp; omega, fun c n => logSlack_le_sqrtSlack c n⟩
+
+/-- For a string whose length exceeds `n` by at most `logSlack cRun n`, the logarithmic slack in
+its length is dominated by a square-root slack in `n`, with a constant bounded by
+`c * (cRun + 1) + c`. -/
 lemma logSlack_length_le_sqrtSlack_linear :
     ∃ C : ℕ → ℕ → ℕ, (∀ c cRun, C c cRun ≤ c * (cRun + 1) + c) ∧
       ∀ c cRun n xlen, xlen ≤ n + logSlack cRun n →
@@ -98,6 +126,9 @@ lemma logSlack_length_le_logSlack_linear :
             ring
   nlinarith [Nat.zero_le (c * cRun * (Nat.bits n).length)]
 
+/-- If the restricted profile of `x` for the full family follows the curve `t` within `Δ`, then
+the plain description profile of `x` lies within `Δ + logSlack c k` of the curve's target
+set. -/
 theorem fullFamilyCurve_to_plainProfile
     (V U : Map)
     (hV : isOptimalConditional V)
@@ -168,6 +199,8 @@ theorem fullFamilyCurve_to_plainProfile
     rw [hshift]
     omega
 
+/-- A string whose plain description profile follows a strictly decreasing curve of length `k`
+within `Δ` has plain complexity at least `k - (2 * Δ + c)`. -/
 theorem plainK_lower_of_curve_neighborhood
     (V : Map) (hV : isOptimalConditional V) :
   ∃ c : Nat, ∀ x k t Δ,
@@ -207,6 +240,9 @@ theorem plainK_lower_of_curve_neighborhood
     rw [hkx]
     exact_mod_cast (show k ≤ kx + (2 * Δ + c) by omega)
 
+/-- If the cylinder-family restricted profile of `x` follows the curve `t` within `Δ` and its
+plain profile follows the same curve within `δ`, then its strong description profile follows
+the curve within `δ + Δ + c`. -/
 theorem cylinderCurve_to_strongProfile_neighborhood
     (V U T : Map)
     (hV : isOptimalConditional V)
@@ -250,6 +286,105 @@ theorem cylinderCurve_to_strongProfile_neighborhood
     rw [hshift]
     omega
 
+/-- Monotonicity/enlargement lemma for strong description profile set neighborhoods:
+if the plain description profile set is within `δ1` of `S`, and the strong profile set with
+slack `ε1` is within `δ2` of `S`, then with larger slack `ε2` (`ε1 ≤ ε2`) and larger radius
+`δ'` (`δ1 ≤ δ'`, `δ2 ≤ δ'`), the strong profile set with slack `ε2` is within `δ'` of `S`. -/
+private lemma strongDescriptionProfileSet_neighborhood_mono
+    (V T : Map) (x : BitString) (S : Set (ℕ × ℕ))
+    (ε1 ε2 δ1 δ2 δ' : ℕ)
+    (hPlain : ProfileSetsWithinNeighborhood (plainDescriptionProfileSet V x) S δ1)
+    (hStrong : ProfileSetsWithinNeighborhood
+      (strongDescriptionProfileSet V T x ε1) S δ2)
+    (hε : ε1 ≤ ε2) (hδ1 : δ1 ≤ δ') (hδ2 : δ2 ≤ δ') :
+    ProfileSetsWithinNeighborhood
+      (strongDescriptionProfileSet V T x ε2) S δ' := by
+  constructor
+  · intro q hq
+    have hqPlain : q ∈ plainDescriptionProfileSet V x :=
+      strongDescriptionProfileSet_subset_plain V T x ε2 hq
+    obtain ⟨r, hr, hdr⟩ := hPlain.1 q hqPlain
+    exact ⟨r, hr, hdr.trans hδ1⟩
+  · intro q hq
+    obtain ⟨r, hr, hdr⟩ := hStrong.2 q hq
+    have hr' : r ∈ strongDescriptionProfileSet V T x ε2 :=
+      strongDescriptionProfileSet_mono_epsilon V T x hε hr
+    exact ⟨r, hr', hdr.trans hδ2⟩
+
+/-- Linear slack constant bounds for joint realization: computes output constant `cOut`
+from `cPost` and verifies all component inequalities needed for square-root slack bounds. -/
+private lemma jointRealization_cOut_bounds
+    (cPlainK cFull cLower cStrong cLog cRun : ℕ) :
+    let cPost := 2 * (cPlainK + cFull + cLower + cStrong + cLog + 1)
+    let cOut := cPost * (cRun + 1)
+    cRun + cPlainK ≤ cOut ∧
+    cRun + cLog ≤ cOut ∧
+    2 * cRun + 2 * cLog + cLower ≤ cOut ∧
+    2 * cRun + cLog + cStrong ≤ cOut ∧
+    2 * cStrong * (cRun + 1) ≤ cOut := by
+  intro cPost cOut
+  dsimp [cPost, cOut]
+  refine ⟨by nlinarith, by nlinarith, by nlinarith, by nlinarith, by nlinarith⟩
+
+/-- Bound on `logSlack` at `k ≤ n` by `sqrtSlack` at `n`. -/
+private lemma logSlack_le_sqrtSlack_of_le (c k n : ℕ) (hkn : k ≤ n) :
+    logSlack c k ≤ sqrtSlack c n :=
+  (logSlack_mono_right c hkn).trans (logSlack_le_sqrtSlack c n)
+
+/-- Bound on `sqrtSlack cRun n + logSlack cFull k` by `sqrtSlack cOut n`. -/
+private lemma sqrtSlack_add_logSlack_le
+    (cFull cRun cOut k n : ℕ) (hkn : k ≤ n)
+    (hOut : cRun + cFull ≤ cOut) :
+    sqrtSlack cRun n + logSlack cFull k ≤ sqrtSlack cOut n := by
+  calc
+    sqrtSlack cRun n + logSlack cFull k
+        ≤ sqrtSlack cRun n + sqrtSlack cFull n := by
+      gcongr
+      exact logSlack_le_sqrtSlack_of_le cFull k n hkn
+    _ = sqrtSlack (cRun + cFull) n := sqrtSlack_add cRun cFull n
+    _ ≤ sqrtSlack cOut n := sqrtSlack_mono_left hOut n
+
+/-- Bound on `2 * (sqrtSlack cRun n + logSlack cFull k) + cLower` by `sqrtSlack cOut n`. -/
+private lemma sqrtSlack_twice_add_const_le
+    (cFull cLower cRun cOut k n : ℕ) (hkn : k ≤ n)
+    (hOut : 2 * cRun + 2 * cFull + cLower ≤ cOut) :
+    2 * (sqrtSlack cRun n + logSlack cFull k) + cLower ≤ sqrtSlack cOut n := by
+  calc
+    2 * (sqrtSlack cRun n + logSlack cFull k) + cLower
+        ≤ 2 * (sqrtSlack cRun n + sqrtSlack cFull n) + cLower := by
+      have hlog := logSlack_le_sqrtSlack_of_le cFull k n hkn
+      nlinarith
+    _ = 2 * sqrtSlack (cRun + cFull) n + cLower := by rw [sqrtSlack_add]
+    _ = sqrtSlack (2 * cRun + 2 * cFull) n + cLower := by
+      unfold sqrtSlack; ring
+    _ ≤ sqrtSlack cOut n :=
+      sqrtSlack_add_const_le n (by simpa [Nat.add_assoc] using hOut)
+
+/-- Bound on `(sqrtSlack cRun n + logSlack cFull k) + sqrtSlack cRun n + cStrong`
+by `sqrtSlack cOut n`. -/
+private lemma sqrtSlack_sum_three_add_const_le
+    (cFull cStrong cRun cOut k n : ℕ) (hkn : k ≤ n)
+    (hOut : 2 * cRun + cFull + cStrong ≤ cOut) :
+    (sqrtSlack cRun n + logSlack cFull k) + sqrtSlack cRun n + cStrong ≤
+      sqrtSlack cOut n := by
+  calc
+    (sqrtSlack cRun n + logSlack cFull k) + sqrtSlack cRun n + cStrong
+        ≤ (sqrtSlack cRun n + sqrtSlack cFull n) +
+            sqrtSlack cRun n + cStrong := by
+      have hlog := logSlack_le_sqrtSlack_of_le cFull k n hkn
+      nlinarith
+    _ = sqrtSlack (2 * cRun + cFull) n + cStrong := by
+      rw [sqrtSlack_add, sqrtSlack_add]
+      congr 2
+      omega
+    _ ≤ sqrtSlack cOut n :=
+      sqrtSlack_add_const_le n (by simpa [Nat.add_assoc] using hOut)
+
+/-- Joint realization along a strictly decreasing curve: a string whose prefix complexity is
+`k` up to `sqrtSlack cRun n` and whose cylinder- and full-family restricted profiles both
+follow the curve `t` within `sqrtSlack cRun n` has plain complexity `k` up to
+`sqrtSlack cOut n`, and its plain description profile stays within that distance of the
+curve's target set; the output constant is at most `cPost * (cRun + 1)`. -/
 theorem stat_any_curve_1_of_joint_prefix_realization
     (V U T : Map)
     (hV : isOptimalConditional V)
@@ -281,18 +416,16 @@ theorem stat_any_curve_1_of_joint_prefix_realization
         {q | FamilyCurveTarget k t q.1 q.2}
         (sqrtSlack cOut n) := by
   obtain ⟨cPlainK, hPlainK⟩ :=
-    plainK_le_KPPlain V U hV hU.isPrefixDecompressor
+    plain_le_prefix V U hV hU.isPrefixDecompressor
   obtain ⟨cFull, hFull⟩ :=
     fullFamilyCurve_to_plainProfile V U hV hU
   obtain ⟨cLower, hLower⟩ :=
     plainK_lower_of_curve_neighborhood V hV
   obtain ⟨cStrong, hStrong⟩ :=
     cylinderCurve_to_strongProfile_neighborhood V U T hV hU hT
-  obtain ⟨CLog, _hCLogBound, hCLog⟩ :=
-    logSlack_le_sqrtSlack_linear
   obtain ⟨CLength, hCLengthBound, hCLength⟩ :=
     logSlack_length_le_logSlack_linear
-  let cLog := CLog cFull
+  let cLog := cFull
   let cPost :=
     2 * (cPlainK + cFull + cLower + cStrong + cLog + 1)
   refine ⟨cPost, ?_⟩
@@ -301,166 +434,52 @@ theorem stat_any_curve_1_of_joint_prefix_realization
   refine ⟨cOut, le_rfl, ?_⟩
   intro n k t x n' hkn _ht0 htk hstrict hxlen _hnlen hnlenUpper
     hKP hCylinder hFullCurve
+  have ⟨hOutUpper, hOutPlain, hOutLower, hOutStrong, hOutTwiceStrong⟩ :=
+    jointRealization_cOut_bounds cPlainK cFull cLower cStrong cLog cRun
   let Δ := sqrtSlack cRun n
   let δPlain := Δ + logSlack cFull k
-  have hcPostOne : 1 ≤ cPost := by
-    dsimp [cPost]
-    omega
-  have hcPostTwo : 2 ≤ cPost := by
-    dsimp [cPost]
-    omega
-  have hcPostPlainK : cPlainK ≤ cPost := by
-    dsimp [cPost]
-    omega
-  have hcPostLog : cLog ≤ cPost := by
-    dsimp [cPost]
-    omega
-  have hcPostLower : 2 * cLog + cLower ≤ cPost := by
-    dsimp [cPost]
-    omega
-  have hcPostStrong : cLog + cStrong ≤ cPost := by
-    dsimp [cPost]
-    omega
-  have hcPostTwiceStrong : 2 * cStrong ≤ cPost := by
-    dsimp [cPost]
-    omega
-  have hOutUpper : cRun + cPlainK ≤ cOut := by
-    calc
-      cRun + cPlainK
-          ≤ cPost * cRun + cPost :=
-        Nat.add_le_add
-          (by simpa using Nat.mul_le_mul_right cRun hcPostOne)
-          hcPostPlainK
-      _ = cOut := by dsimp [cOut]; ring
-  have hOutPlain : cRun + cLog ≤ cOut := by
-    calc
-      cRun + cLog
-          ≤ cPost * cRun + cPost :=
-        Nat.add_le_add
-          (by simpa using Nat.mul_le_mul_right cRun hcPostOne)
-          hcPostLog
-      _ = cOut := by dsimp [cOut]; ring
-  have hOutLower :
-      2 * cRun + (2 * cLog + cLower) ≤ cOut := by
-    calc
-      2 * cRun + (2 * cLog + cLower)
-          ≤ cPost * cRun + cPost :=
-        Nat.add_le_add (Nat.mul_le_mul_right cRun hcPostTwo) hcPostLower
-      _ = cOut := by dsimp [cOut]; ring
-  have hOutStrong :
-      2 * cRun + (cLog + cStrong) ≤ cOut := by
-    calc
-      2 * cRun + (cLog + cStrong)
-          ≤ cPost * cRun + cPost :=
-        Nat.add_le_add (Nat.mul_le_mul_right cRun hcPostTwo) hcPostStrong
-      _ = cOut := by dsimp [cOut]; ring
-  have hOutStrength : CLength cStrong cRun ≤ cOut := by
-    have hLength :
-        CLength cStrong cRun ≤ cStrong * (cRun + 1) + cStrong :=
-      hCLengthBound cStrong cRun
-    calc
-      CLength cStrong cRun
-          ≤ cStrong * (cRun + 1) + cStrong := hLength
-      _ ≤ 2 * cStrong * (cRun + 1) := by
-        nlinarith
-      _ ≤ cPost * (cRun + 1) :=
-        Nat.mul_le_mul_right (cRun + 1) hcPostTwiceStrong
-      _ = cOut := rfl
-  have hLog : logSlack cFull k ≤ sqrtSlack cLog n := by
-    exact (logSlack_mono_right cFull hkn).trans (by
-      simpa [cLog] using hCLog cFull n)
   have hPlain :
       ProfileSetsWithinNeighborhood
         (plainDescriptionProfileSet V x)
         {q | FamilyCurveTarget k t q.1 q.2}
         δPlain :=
     hFull x k t Δ htk hFullCurve
-  have hPlainRadius : δPlain ≤ sqrtSlack cOut n := by
-    calc
-      δPlain
-          ≤ sqrtSlack cRun n + sqrtSlack cLog n := by
-        dsimp [δPlain, Δ]
-        gcongr
-      _ = sqrtSlack (cRun + cLog) n := sqrtSlack_add cRun cLog n
-      _ ≤ sqrtSlack cOut n := sqrtSlack_mono_left hOutPlain n
+  have hPlainRadius : δPlain ≤ sqrtSlack cOut n :=
+    sqrtSlack_add_logSlack_le cFull cRun cOut k n hkn hOutPlain
   have hLowerRadius :
-      2 * δPlain + cLower ≤ sqrtSlack cOut n := by
-    calc
-      2 * δPlain + cLower
-          ≤ 2 * sqrtSlack (cRun + cLog) n + cLower := by
-        have hδ :
-            δPlain ≤ sqrtSlack (cRun + cLog) n := by
-          calc
-            δPlain
-                ≤ sqrtSlack cRun n + sqrtSlack cLog n := by
-              dsimp [δPlain, Δ]
-              gcongr
-            _ = sqrtSlack (cRun + cLog) n :=
-              sqrtSlack_add cRun cLog n
-        nlinarith
-      _ = sqrtSlack (2 * cRun + 2 * cLog) n + cLower := by
-        unfold sqrtSlack
-        ring
-      _ ≤ sqrtSlack cOut n :=
-        sqrtSlack_add_const_le n (by
-          simpa [Nat.add_assoc] using hOutLower)
+      2 * δPlain + cLower ≤ sqrtSlack cOut n :=
+    sqrtSlack_twice_add_const_le cFull cLower cRun cOut k n hkn hOutLower
   have hStrongRadius :
-      δPlain + Δ + cStrong ≤ sqrtSlack cOut n := by
-    calc
-      δPlain + Δ + cStrong
-          ≤ sqrtSlack (cRun + cLog) n +
-              sqrtSlack cRun n + cStrong := by
-        dsimp [δPlain, Δ]
-        have hδ :
-            sqrtSlack cRun n + logSlack cFull k ≤
-              sqrtSlack (cRun + cLog) n := by
-          calc
-            sqrtSlack cRun n + logSlack cFull k
-                ≤ sqrtSlack cRun n + sqrtSlack cLog n := by gcongr
-            _ = sqrtSlack (cRun + cLog) n :=
-              sqrtSlack_add cRun cLog n
-        omega
-      _ = sqrtSlack (2 * cRun + cLog) n + cStrong := by
-        rw [sqrtSlack_add]
-        congr 2
-        omega
-      _ ≤ sqrtSlack cOut n :=
-        sqrtSlack_add_const_le n (by
-          simpa [Nat.add_assoc] using hOutStrong)
-  have hUpperSlack :
-      sqrtSlack cRun n + cPlainK ≤ sqrtSlack cOut n :=
-    sqrtSlack_add_const_le n hOutUpper
+      δPlain + Δ + cStrong ≤ sqrtSlack cOut n :=
+    sqrtSlack_sum_three_add_const_le cFull cStrong cRun cOut k n hkn hOutStrong
   have hPlainUpper :
       plainK V x ≤ (k + sqrtSlack cOut n : ENat) := by
     calc
       plainK V x
           ≤ KPPlain U x + (cPlainK : ENat) := hPlainK x
-      _ ≤ (k + sqrtSlack cRun n : ENat) + (cPlainK : ENat) := by
-        gcongr
+      _ ≤ (k + sqrtSlack cRun n : ENat) + (cPlainK : ENat) := by gcongr
       _ ≤ (k + sqrtSlack cOut n : ENat) := by
-        exact_mod_cast (show
-          k + sqrtSlack cRun n + cPlainK ≤
-            k + sqrtSlack cOut n by omega)
+        exact_mod_cast (show k + sqrtSlack cRun n + cPlainK ≤ k + sqrtSlack cOut n by
+          have hUpperSlack : sqrtSlack cRun n + cPlainK ≤ sqrtSlack cOut n :=
+            sqrtSlack_add_const_le n hOutUpper
+          omega)
   have hPlainLower :
       (k : ENat) ≤ plainK V x + (sqrtSlack cOut n : ENat) := by
-    have hraw :=
-      hLower x k t δPlain htk hstrict hPlain
-    exact hraw.trans (by
-      gcongr)
+    have hraw := hLower x k t δPlain htk hstrict hPlain
+    exact hraw.trans (by gcongr)
   have hStrength :
       logSlack cStrong x.length ≤ logSlack cOut n := by
-    have hfold :
-        logSlack cStrong x.length ≤
-          logSlack (CLength cStrong cRun) n :=
-      hCLength cStrong cRun n x.length (by
-        rw [hxlen]
-        exact hnlenUpper)
-    exact hfold.trans
-      (logSlack_mono_left hOutStrength n)
+    have hfold : logSlack cStrong x.length ≤ logSlack (CLength cStrong cRun) n :=
+      hCLength cStrong cRun n x.length (by rw [hxlen]; exact hnlenUpper)
+    have hOutStrength : CLength cStrong cRun ≤ cOut := by
+      calc
+        CLength cStrong cRun ≤ cStrong * (cRun + 1) + cStrong := hCLengthBound cStrong cRun
+        _ ≤ 2 * cStrong * (cRun + 1) := by nlinarith
+        _ ≤ cOut := hOutTwiceStrong
+    exact hfold.trans (logSlack_mono_left hOutStrength n)
   have hStrongOld :
       ProfileSetsWithinNeighborhood
-        (strongDescriptionProfileSet V T x
-          (logSlack cStrong x.length))
+        (strongDescriptionProfileSet V T x (logSlack cStrong x.length))
         {q | FamilyCurveTarget k t q.1 q.2}
         (δPlain + Δ + cStrong) :=
     hStrong x k t Δ δPlain htk hCylinder hPlain
@@ -468,22 +487,9 @@ theorem stat_any_curve_1_of_joint_prefix_realization
       ProfileSetsWithinNeighborhood
         (strongDescriptionProfileSet V T x (logSlack cOut n))
         {q | FamilyCurveTarget k t q.1 q.2}
-        (sqrtSlack cOut n) := by
-    constructor
-    · intro q hq
-      have hqPlain :
-          q ∈ plainDescriptionProfileSet V x :=
-        strongDescriptionProfileSet_subset_plain V T x
-          (logSlack cOut n) hq
-      obtain ⟨r, hr, hdr⟩ := hPlain.1 q hqPlain
-      exact ⟨r, hr, hdr.trans (hPlainRadius.trans le_rfl)⟩
-    · intro q hq
-      obtain ⟨r, hr, hdr⟩ := hStrongOld.2 q hq
-      have hr' :
-          r ∈ strongDescriptionProfileSet V T x (logSlack cOut n) :=
-        strongDescriptionProfileSet_mono_epsilon V T x hStrength hr
-      exact ⟨r, hr', hdr.trans hStrongRadius⟩
-  exact ⟨hPlainUpper, hPlainLower,
-    hPlain.mono hPlainRadius, hStrongFinal⟩
+        (sqrtSlack cOut n) :=
+    strongDescriptionProfileSet_neighborhood_mono V T x _ _ _ _ _ _
+      hPlain hStrongOld hStrength hPlainRadius hStrongRadius
+  exact ⟨hPlainUpper, hPlainLower, hPlain.mono hPlainRadius, hStrongFinal⟩
 
 end Kolmogorov

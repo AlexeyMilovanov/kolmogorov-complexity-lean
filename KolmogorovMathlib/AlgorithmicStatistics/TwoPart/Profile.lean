@@ -8,11 +8,35 @@ import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.GapCounting
 import KolmogorovMathlib.AlgorithmicStatistics.NormalizedCodedFiniteDistribution
 import KolmogorovMathlib.AlgorithmicStatistics.Selector
 
+/-!
+# The description profile and the structure function
+
+`descriptionProfileSet x` is the set of pairs `(i, j)` for which `x` has an
+`(i, j)`-description, presented as an up-set in the plane
+(`descriptionProfileSet_isUpperSet`), and `structureFunction x i` is the least log-size of an
+`(i, ·)`-description; `descriptionProfileSet_eq_epigraph` identifies the two.
+
+The shape of the profile: it contains the singleton corner
+(`mem_descriptionProfileSet_singleton`) and the full-cube corner
+(`mem_descriptionProfileSet_full`), the structure function is antitone
+(`structureFunction_antitone`) and vanishes past the complexity of `x`
+(`structureFunction_eq_zero_of_ge_complexity`), its slope is bounded by
+`structureFunction_portion`, and `KPPlain_le_of_inDescriptionProfile` is the two-part upper
+bound `K(x) ≤ i + j + O(log)`.  `structureFunction_sufficiency` is the sufficiency line and
+`structureFunction_admissible` the corrected admissibility statement of VS40 §3, replacing an
+earlier reading of it that is false as stated.
+
+`SingletonSetComplexityGate` and `FullSetComplexityGate` name the two set-complexity facts the
+corners need, and `decodeElement` indexes into a coded finite set.
+-/
+
 namespace Kolmogorov
 
 open scoped ENNReal
 open Kolmogorov.CodedFiniteDistribution
 
+/-- Reads a pair of a finite-set code and an index and returns the element of the coded set at
+that index. -/
 def decodeElement (t : BitString) : BitString :=
   let S_code := decodeFirst t
   let z := decodeSecond t
@@ -20,6 +44,7 @@ def decodeElement (t : BitString) : BitString :=
   let L := (decodeDistributionData S_code).map CodedDistributionEntry.point
   (L.drop blockIdx).headI
 
+/-- Indexing into a coded finite set is computable. -/
 theorem decodeElement_computable : Computable decodeElement := by
   have hd : Primrec (fun t : BitString =>
       ((decodeDistributionData (decodeFirst t)).map CodedDistributionEntry.point).drop
@@ -40,6 +65,8 @@ theorem decodeElement_computable : Computable decodeElement := by
     exact h_drop.comp h_L h_idx
   exact ((Primrec.list_headI.comp hd).of_eq (fun _ => rfl)).to_comp
 
+/-- Given the code of the uniform distribution on `S` and the address of `x` in the canonical
+listing of `S`, indexing returns `x`. -/
 theorem decodeElement_eq (S : Finset BitString) (hS : S.Nonempty) (x : BitString)
     (hx : x ∈ S) (j : ℕ) :
     let blockIdx := (canonicalFinsetList S).findIdx (· == x)
@@ -77,51 +104,12 @@ def descriptionProfileSet (U : Map) (x : BitString) : Set (ℕ × ℕ) :=
 noncomputable def structureFunction (U : Map) (x : BitString) (i : ℕ) : ℕ∞ :=
   ⨅ j ∈ { j | InDescriptionProfile U x i j }, (j : ℕ∞)
 
-/-- Curve admissibility (A1)–(A5) in an inconsistent form.
+-- The inconsistent curve-admissibility packaging `AdmissibleCurve` and its refutation
+-- `AdmissibleCurve_unsatisfiable` live in `KolmogorovCounterexamples/AdmissibleCurve.lean`.
 
-**Warning (mathematically flawed – kept only to document the fix).**  This
-predicate is **unsatisfiable**: no `h : ℕ → ℕ` can meet all five fields at once, so
-any `∃ h, AdmissibleCurve n h` claim is false.  See
-`AdmissibleCurve_unsatisfiable`.
-
-The defect is the interaction of `antitone` + `bottom` + `sufficient`: `bottom`
-gives a zero `k₀`, `antitone` propagates it to `k₀ + 1`, and `sufficient` at
-`i := k₀`, `k := k₀ + 1` then demands `k₀ + 1 ≤ k₀`.  The intended `sufficient`
-(sufficiency line `i + h_x(i) ≥ K(x) - O(log)`) must be quantified at the *minimal*
-zero (or over `i ≤` that zero) and carry logarithmic slack, not universally over
-all zeros `k`.  Independently, `slope` ("the log-size drops by at most one per unit
-of complexity budget") is **not** a universal property of structure functions:
-non-stochastic strings (cf. `NonStochastic.lean`) have arbitrarily steep drops, so
-no slope-≤1 curve can stay within a fixed `logSlack` band of such a structure
-function.  The corrected, provable Section-3 statement is
-`structureFunction_admissible` below, phrased directly on `structureFunction`. -/
-structure AdmissibleCurve (n : ℕ) (h : ℕ → ℕ) : Prop where
-  antitone   : ∀ i, h (i + 1) ≤ h i                         -- (A1)
-  top        : h 0 ≤ n                                       -- (A2a)
-  bottom     : ∃ k ≤ n, h k = 0                              -- (A2b)
-  slope      : ∀ i, h i ≤ h (i + 1) + 1                      -- (A3)
-  sufficient : ∀ i k, h k = 0 → k ≤ i + h i                  -- (A4)
-
-/-- The `AdmissibleCurve` predicate above is unsatisfiable, so the earlier
-`profile_is_admissible` (which asserted such a curve exists) was false as stated.
-Proof: a zero of `h` (from `bottom`) is propagated one step by `antitone`, and
-`sufficient` applied to those two points forces `k₀ + 1 ≤ k₀`. -/
-theorem AdmissibleCurve_unsatisfiable (n : ℕ) : ¬ ∃ h : ℕ → ℕ, AdmissibleCurve n h := by
-  rintro ⟨h, hac⟩
-  obtain ⟨k0, _, hk0⟩ := hac.bottom
-  have h1 : h (k0 + 1) = 0 := Nat.le_zero.mp (hk0 ▸ hac.antitone k0)
-  have h2 := hac.sufficient k0 (k0 + 1) h1
-  omega
-
-/-- Gate A: Two-part description upper bound `KP(x) ≤ i + j + O(log n)`.
-
-Proof idea: unfold `InDescriptionProfile` to a witness set
-`S ∋ x` with `setComplexity U S ≤ i` and `S.card ≤ 2^j`.  A two-part description of
-`x` is the code of `S` (length `≤ i`) followed by the `⌈log |S|⌉ ≤ j`-bit index of
-`x` inside the canonical enumeration of `S`; decoding runs the set decoder and
-selects that index.  Hence `KP(x) ≤ i + j + O(log(i + j))`, and enlarging the slack
-argument to `n + i + j` only weakens the bound.  This is the standard
-two-part-code inequality, the upper companion of the profile lower bound
+/-- Two-part description upper bound: a string in the `(i, j)` description profile has prefix
+complexity at most `i + j + O(log (n + i + j))`, the code of the witness set followed by the
+index of `x` inside it.  This is the upper companion of the profile lower bound
 `i + h_x(i) ≥ KP(x) − O(log n)`. -/
 theorem KPPlain_le_of_inDescriptionProfile (U : Map) (hU : IsOptimalPrefixConditional U) :
     ∃ c : ℕ, ∀ (x : BitString) (n i j : ℕ),
@@ -175,14 +163,15 @@ theorem KPPlain_le_of_inDescriptionProfile (U : Map) (hU : IsOptimalPrefixCondit
           nlinarith
         exact_mod_cast h_le
 
-/-- Gate B1: The set complexity of a singleton `{x}` is bounded by its plain complexity. -/
+/-- The statement that the set complexity of a singleton `{x}` is bounded by the prefix
+complexity of `x` up to logarithmic slack. -/
 def SingletonSetComplexityGate (U : Map) : Prop :=
   ∃ c : ℕ, ∀ (x : BitString) (n kx : ℕ),
     x.length = n →
     KPPlain U x = (kx : ENat) →
     setComplexity U {x} (Finset.singleton_nonempty x) ≤ (kx + logSlack c n : ENat)
 
-/-- Gate B2: The set complexity of the full length-n cube is bounded by O(log n). -/
+/-- The statement that the set complexity of the full length-`n` cube is `O(log n)`. -/
 def FullSetComplexityGate (U : Map) : Prop :=
   ∃ c : ℕ, ∀ (n : ℕ) (hn : (stringsOfLength n).Nonempty),
     setComplexity U (stringsOfLength n) hn ≤ (logSlack c n : ENat)
@@ -190,11 +179,14 @@ def FullSetComplexityGate (U : Map) : Prop :=
 /- **Admissibility Note:** The corrected Section-3 statement, phrased directly
 on `structureFunction`, is `structureFunction_admissible` at the end of this file. -/
 
+/-- The description profile set is upward closed in both budgets. -/
 theorem descriptionProfileSet_isUpperSet (U : Map) (x : BitString) :
     IsUpperSet (descriptionProfileSet U x) := by
   rintro ⟨i, j⟩ ⟨i', j'⟩ hle h_in
   exact InDescriptionProfile.mono_j hle.2 (InDescriptionProfile.mono_i hle.1 h_in)
 
+/-- Taking the singleton `{x}` as model puts the point `(kx + logSlack c n, 0)` in the description
+profile, where `kx` is the prefix complexity of `x`. -/
 theorem mem_descriptionProfileSet_singleton (U : Map) (h_gate : SingletonSetComplexityGate U) :
     ∃ c : ℕ, ∀ (x : BitString) (n kx : ℕ), x.length = n → KPPlain U x = (kx : ENat) →
       (kx + logSlack c n, 0) ∈ descriptionProfileSet U x := by
@@ -206,6 +198,8 @@ theorem mem_descriptionProfileSet_singleton (U : Map) (h_gate : SingletonSetComp
   · exact hc x n kx hn hk
   · norm_num
 
+/-- Taking all strings of length `n` as model puts the point `(logSlack c n, n)` in the description
+profile. -/
 theorem mem_descriptionProfileSet_full (U : Map) (h_gate : FullSetComplexityGate U) :
     ∃ c : ℕ, ∀ (x : BitString) (n : ℕ), x.length = n →
       (logSlack c n, n) ∈ descriptionProfileSet U x := by
@@ -213,12 +207,13 @@ theorem mem_descriptionProfileSet_full (U : Map) (h_gate : FullSetComplexityGate
   refine ⟨c, fun x n hn => ?_⟩
   unfold descriptionProfileSet InDescriptionProfile
   simp only [Set.mem_setOf_eq]
-  have h_mem : x ∈ stringsOfLength n := (memStringsOfLength n x).mpr hn
+  have h_mem : x ∈ stringsOfLength n := (mem_stringsOfLength n x).mpr hn
   have hn_nonempty : (stringsOfLength n).Nonempty := ⟨x, h_mem⟩
   refine ⟨stringsOfLength n, hn_nonempty, h_mem, ?_, ?_⟩
   · exact hc n hn_nonempty
-  · exact le_of_eq (cardStringsOfLength n)
+  · exact le_of_eq (card_stringsOfLength n)
 
+/-- The structure function is antitone in the model-complexity budget. -/
 theorem structureFunction_antitone (U : Map) (x : BitString) :
     Antitone (structureFunction U x) := by
   -- Enlarging the complexity budget `i` can only enlarge the set of admissible
@@ -226,6 +221,8 @@ theorem structureFunction_antitone (U : Map) (x : BitString) :
   intro i i' hii
   exact biInf_mono (fun _ hj => InDescriptionProfile.mono_i hii hj)
 
+/-- The point `(i, j)` lies in the description profile exactly when the structure function at `i` is
+at most `j`. -/
 theorem inDescriptionProfile_iff_structureFunction_le (U : Map) (x : BitString) (i j : ℕ) :
     InDescriptionProfile U x i j ↔ structureFunction U x i ≤ j := by
   -- For fixed `i` the admissible log-sizes form an up-set in `j` (`mono_j`), so it
@@ -262,16 +259,12 @@ theorem descriptionProfileSet_eq_epigraph (U : Map) (x : BitString) :
   simp only [descriptionProfileSet, Set.mem_setOf_eq]
   exact inDescriptionProfile_iff_structureFunction_le U x i j
 
-/-- **Gate D1 (proved): structure-function portion / slope ≥ −1.**  The genuine
-slope content of the description profile.  If `(i, j)` is a profile point (i.e.
+/-- The slope content of the description profile.  If `(i, j)` is a profile point (i.e.
 `h_x(i) ≤ j`) and `s ≤ j`, then spending `s + 2·|bits s| + c` extra units of
 complexity budget buys a drop of almost `s` in log-size:
 `h_x(i + s + 2|bits s| + c) ≤ j − s + 1`.  Instantiating `j := h_x(i)` yields the
 article's "slope ≥ −1" property — the structure function decreases by at least
-`s − 1` when the budget grows by `s + O(log s)`.  Proof: convert `h_x(i) ≤ j` to a
-profile point via `inDescriptionProfile_iff_structureFunction_le`, apply the
-chunk-slicing move `inDescriptionProfile_portion`, and convert the resulting profile
-point back to a structure-function bound. -/
+`s − 1` when the budget grows by `s + O(log s)`. -/
 theorem structureFunction_portion (U : Map) (hU : IsOptimalPrefixConditional U) :
     ∃ c : ℕ, ∀ (x : BitString) (i j s : ℕ),
       structureFunction U x i ≤ (j : ℕ∞) → s ≤ j →
@@ -283,6 +276,8 @@ theorem structureFunction_portion (U : Map) (hU : IsOptimalPrefixConditional U) 
     (inDescriptionProfile_iff_structureFunction_le U x i j).mpr hij
   exact (inDescriptionProfile_iff_structureFunction_le U x _ _).mp (hc x i j s hprof hsj)
 
+/-- The structure function vanishes once the budget reaches the prefix complexity of `x` plus a
+logarithmic term, the singleton model being available there. -/
 theorem structureFunction_eq_zero_of_ge_complexity
     (U : Map) (h_gate : SingletonSetComplexityGate U) :
     ∃ c : ℕ, ∀ (x : BitString) (n kx : ℕ), x.length = n → KPPlain U x = (kx : ENat) →

@@ -1,10 +1,25 @@
 import KolmogorovMathlib.Prefix.TwoStage
 
+/-!
+# A conditional two-stage prefix decompressor
+
+The decompressor that reads a program in two stages — a self-delimiting first part decoded by a
+prefix machine `U`, then the remainder — presented first relationally and then explicitly.
+`condTwoStagePairSpec` is the intended graph, `condTwoStagePairBuilder` a noncomputable partial
+map realising it, and the lemmas identify its domain and outputs
+(`condTwoStagePairBuilder_dom_iff`, `condTwoStagePairSpec_unique`,
+`mem_condTwoStagePairBuilder_iff`) and show it is prefix-free. The explicit dovetailing
+implementation is then proved to agree with it
+(`condTwoStagePairBuilder_eq_condTwoStageMap`), giving the main results
+`condTwoStagePairBuilder_isDecompressor` and `condTwoStagePairBuilder_isPrefixDecompressor`: the
+two-stage builder is a genuine prefix decompressor.
+-/
+
 namespace Kolmogorov
 
 open Nat.Partrec (Code)
 
-def condTwoStagePairSpec (U : Map) (ctx : BitString → BitString → Nat → BitString)
+private def condTwoStagePairSpec (U : Map) (ctx : BitString → BitString → Nat → BitString)
     (w r z : BitString) : Prop :=
   ∃ p q x y : BitString,
     w = p ++ q ∧
@@ -154,7 +169,10 @@ def condTwoStageCheck (c : Code) (ctx : BitString → BitString → Nat → BitS
     (w r : BitString) (n : ℕ) : Bool :=
   decide (n.unpair.1 ≤ w.length) && (condTwoStagePairOut c ctx w r n).isSome
 
-/-- The explicit computable two-stage decompressor. -/
+/-- On input `(w, r)`, dovetail with `Nat.rfind` over the search index `n`, taking the least `n`
+with `condTwoStageCheck c ctx w r n = true` (the split index `n.unpair.1` is at most `w.length`
+and both stages have produced an output at fuel `n.unpair.2`), and return
+`condTwoStagePairOut c ctx w r n`, the pair code of the two stage outputs. -/
 def condTwoStageMap (c : Code) (ctx : BitString → BitString → Nat → BitString) : Map := fun pr =>
   (Nat.rfind (fun n => Part.some (condTwoStageCheck c ctx pr.1 pr.2 n))).bind
     (fun n => (↑(condTwoStagePairOut c ctx pr.1 pr.2 n) : Part BitString))
@@ -337,8 +355,8 @@ theorem condTwoStageMap_mem_imp_spec {U : Map} {ctx : BitString → BitString �
         exact of_decide_eq_true h_mem.1
     · exact hz_eq
 
-theorem condTwoStageMap_dom_of_spec {U : Map} {ctx : BitString → BitString → Nat → BitString}
-    {c : Code}
+private theorem condTwoStageMap_dom_of_spec {U : Map}
+    {ctx : BitString → BitString → Nat → BitString} {c : Code}
     (hc : c.eval = fun n =>
       (Part.ofOption (Encodable.decode (α := BitString × BitString) n)).bind
         (fun a => Part.map Encodable.encode (U a)))
@@ -402,7 +420,7 @@ theorem condTwoStageMap_dom_of_spec {U : Map} {ctx : BitString → BitString →
   unfold condTwoStageMap
   rw [Part.mem_bind_iff]
   exact ⟨n', hn', by rw [Part.mem_ofOption]; exact Option.mem_def.mpr hz''⟩
-theorem condTwoStagePairBuilder_eq_condTwoStageMap {U : Map}
+private theorem condTwoStagePairBuilder_eq_condTwoStageMap {U : Map}
     {ctx : BitString → BitString → Nat → BitString} (hU : IsPrefixMachine U) {c : Code}
     (hc : c.eval = fun n =>
       (Part.ofOption (Encodable.decode (α := BitString × BitString) n)).bind

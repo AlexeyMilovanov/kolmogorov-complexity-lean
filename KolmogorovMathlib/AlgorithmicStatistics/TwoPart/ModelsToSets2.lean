@@ -1,6 +1,7 @@
-import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.Basic
 import KolmogorovMathlib.AlgorithmicStatistics.FiniteSetModel
 import KolmogorovMathlib.AlgorithmicStatistics.Selector
+import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.Basic
+import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.DescriptionShift
 import KolmogorovMathlib.Prefix.TwoStage
 
 /-!
@@ -12,6 +13,7 @@ models with logarithmic slack in optimality deficiency (P-MS2).
 
 namespace Kolmogorov
 
+open CodedFiniteDistribution
 open scoped ENNReal
 open Kolmogorov.CodedFiniteDistribution
 
@@ -99,19 +101,6 @@ reusable `Primrec` facts about `List.orderedInsert`, `List.insertionSort` and
 /-
 A general `filter` combinator is primitive recursive.
 -/
-theorem list_filter_primrec {α β} [Primcodable α] [Primcodable β] {f : α → List β}
-    {p : α → β → Bool} (hf : Primrec f) (hp : Primrec₂ p) :
-    Primrec (fun a => (f a).filter (p a)) := by
-  convert Primrec.list_foldr hf ( Primrec.const List.nil ) _ using 1;
-  rotate_left;
-  · exact fun a b => if p a b.1 then b.1 :: b.2 else b.2;
-  · convert Primrec.ite _ _ _ using 1;
-    · exact Primrec.eq.comp ( hp.comp ( Primrec.fst ) ( Primrec.fst.comp ( Primrec.snd ) ) )
-        ( Primrec.const true );
-    · exact Primrec.list_cons.comp ( Primrec.fst.comp ( Primrec.snd ) )
-        ( Primrec.snd.comp ( Primrec.snd ) );
-    · exact Primrec.snd.comp Primrec.snd;
-  · exact funext fun a => by induction ( f a ) <;> aesop;
 
 /-
 Membership of a `BitString` in a `BitString` list is a primitive recursive
@@ -232,13 +221,6 @@ theorem canonicalFinsetList_toFinset_primrec :
 `codedDistributionDataCode` of the uniform map on a list, as a `foldr` that
 only ever builds `BitString`s (convenient for the computability proof).
 -/
-theorem codedUniform_data_foldr (l : List BitString) (n : ℕ) (hn : 0 < n) :
-    codedDistributionDataCode
-        (l.map (fun x => ({point := x, mass := ratMassInvNat n hn} : CodedDistributionEntry)))
-      = l.foldr (fun x acc =>
-          true :: pairCode (pairCode x (pairCode (natCode 1) (natCode n))) acc) [false] := by
-  induction l <;> simp +decide [ *, codedDistributionDataCode ];
-  congr
 
 /-
 The uniform-distribution encoder on a list of points is primitive recursive.
@@ -260,16 +242,19 @@ theorem codedUniformEncoder_primrec :
   · exact Primrec.id;
   · exact Primrec.const [ false ];
   · apply Primrec.list_cons.comp ( Primrec.const true )
-      ( pairCode_primrec.comp ( pairCode_primrec.comp ( Primrec.fst.comp ( Primrec.snd ) )
-                                ( pairCode_primrec.comp ( natCode_primrec.comp ( Primrec.const 1 )
-                                                          ) ( natCode_primrec.comp
+      ( pairCode_primrec.comp (
+        pairCode_primrec.comp ( Primrec.fst.comp ( Primrec.snd ) )
+                                ( pairCode_primrec.comp (
+                                  primrec_natCode.comp ( Primrec.const 1 )
+                                                          ) (
+                                                            primrec_natCode.comp
                                                               ( Primrec.nat_max.comp
                                                                   ( Primrec.const 1 )
                                                                       ( Primrec.list_length.comp
                                                                           ( Primrec.fst )
                                                                               ) ) ) ) )
           ( Primrec.snd.comp ( Primrec.snd ) ) );
-  · exact funext fun t => codedUniform_data_foldr t ( max 1 t.length ) ( by positivity )
+  · exact funext fun t => codedUniform_foldr t ( max 1 t.length ) ( by positivity )
 
 /-
 The remaining genuine computability content of P-MS2, isolated as a single local
@@ -324,23 +309,23 @@ theorem levelSetModel_setComplexity_le (U : Map) (hU : IsOptimalPrefixConditiona
   obtain ⟨f, hf_computable, hf_eq⟩ := exists_levelSetUniformCode_computable
   obtain ⟨c_map, h_map⟩ := KPPlain_map_le U hU f hf_computable
   obtain ⟨c_pair, h_pair⟩ := KPPair_le_KPPlain_add_KPPlain U hU
-  obtain ⟨c_nat, h_nat⟩ := KPPlain_natCode_le_log U hU
-  use c_nat + c_pair + c_map + 2
+  obtain ⟨cNat, h_nat⟩ := KPPlain_natCode_le_log U hU
+  use cNat + c_pair + c_map + 2
   intro P k h_nonempty
   have hpair_eq : KPPlain U (pairCode P.code (natCode k)) = KPPair U P.code (natCode k) := by
     rw [KPPair_eq_KP_pairCode, KPPlain_eq_KP]
   have h_complexity : KPPlain U (f (pairCode P.code (natCode k))) ≤
-      KPPlain U P.code + 2 * (Nat.bits k).length + c_nat + c_pair + c_map := by
+      KPPlain U P.code + 2 * (Nat.bits k).length + cNat + c_pair + c_map := by
     refine le_trans (h_map _) ?_
     rw [hpair_eq]
     calc KPPair U P.code (natCode k) + (c_map : ENat)
         ≤ (KPPlain U P.code + KPPlain U (natCode k) + c_pair) + c_map := by
           gcongr
           exact h_pair P.code (natCode k)
-      _ ≤ (KPPlain U P.code + (2 * (Nat.bits k).length + c_nat) + c_pair) + c_map := by
+      _ ≤ (KPPlain U P.code + (2 * (Nat.bits k).length + cNat) + c_pair) + c_map := by
           gcongr
           exact h_nat k
-      _ = KPPlain U P.code + 2 * (Nat.bits k).length + c_nat + c_pair + c_map := by abel
+      _ = KPPlain U P.code + 2 * (Nat.bits k).length + cNat + c_pair + c_map := by abel
   convert h_complexity.trans ?_ using 1
   · exact hf_eq P k h_nonempty ▸ rfl
   · unfold logSlack

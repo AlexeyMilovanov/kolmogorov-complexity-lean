@@ -1,5 +1,10 @@
 import KolmogorovMathlib.CommonInformation.ConditionalIndependenceChains
+import KolmogorovMathlib.CommonInformation.ConditionalIndependenceChains.ChainDist
+import KolmogorovMathlib.CommonInformation.ConditionalIndependenceChains.Extension
 import KolmogorovMathlib.CommonInformation.TypeBounds
+import KolmogorovMathlib.Restricted.FamilyCurve.VersionClose
+import Mathlib.Algebra.CharP.Defs
+import Mathlib.Analysis.Normed.Ring.Lemmas
 import Mathlib.Data.Nat.Size
 
 /-!
@@ -14,18 +19,6 @@ Exercise 316.
 
 namespace Kolmogorov
 open Finset
-
-private lemma size_mul_le (a b : ℕ) :
-    Nat.size (a * b) ≤ Nat.size a + Nat.size b := by
-  rcases Nat.eq_zero_or_pos a with rfl | ha
-  · simp
-  rcases Nat.eq_zero_or_pos b with rfl | hb
-  · simp
-  apply Nat.size_le.mpr
-  calc a * b < 2 ^ Nat.size a * 2 ^ Nat.size b :=
-        Nat.mul_lt_mul_of_lt_of_le (Nat.lt_size_self a)
-          (Nat.le_of_lt (Nat.lt_size_self b)) (by positivity)
-    _ = 2 ^ (Nat.size a + Nat.size b) := (pow_add 2 _ _).symm
 
 private lemma size_add_size_le_size_mul_add_one {a b : ℕ} (ha : 0 < a) (hb : 0 < b) :
     Nat.size a + Nat.size b ≤ Nat.size (a * b) + 1 := by
@@ -162,26 +155,33 @@ theorem chainHistogram_total {k : ℕ} (D : ChainDist k) {Q : ℕ}
 def histogramTypeLog {α} [Fintype α] [DecidableEq α] (f : α → ℕ) : ℕ :=
   Nat.size (Nat.multinomial Finset.univ f)
 
+/-- The number of sample positions of a size-`N` sample falling in the event `S`, computed from
+the rational atoms of the chain distribution. -/
 noncomputable def chainMarginal {k : ℕ} (D : ChainDist k) {Q : ℕ}
     (hQ : D.RationalAtoms Q) (N : ℕ)
     (S : (Fin (2 * k + 2) → Bool) → Bool) : ℕ :=
   ∑ v, if S v then chainHistogram D hQ N v else 0
 
+/-- The joint histogram of three coordinates of a size-`N` chain sample. -/
 noncomputable def chainHistogram3 {k : ℕ} (D : ChainDist k) {Q : ℕ}
     (hQ : D.RationalAtoms Q) (N : ℕ)
     (j1 j2 j3 : Fin (2 * k + 2)) (v1 v2 v3 : Bool) : ℕ :=
   chainMarginal D hQ N (fun w => (w j1 == v1) && (w j2 == v2) && (w j3 == v3))
 
+/-- The joint histogram of two coordinates of a size-`N` chain sample. -/
 noncomputable def chainHistogram2 {k : ℕ} (D : ChainDist k) {Q : ℕ}
     (hQ : D.RationalAtoms Q) (N : ℕ)
     (j1 j2 : Fin (2 * k + 2)) (v1 v2 : Bool) : ℕ :=
   chainMarginal D hQ N (fun w => (w j1 == v1) && (w j2 == v2))
 
+/-- The histogram of a single coordinate of a size-`N` chain sample. -/
 noncomputable def chainHistogram1 {k : ℕ} (D : ChainDist k) {Q : ℕ}
     (hQ : D.RationalAtoms Q) (N : ℕ)
     (j1 : Fin (2 * k + 2)) (v1 : Bool) : ℕ :=
   chainMarginal D hQ N (fun w => w j1 == v1)
 
+/-- When the sample size is a multiple of the atom denominator, the count of an event is exactly
+`N` times its probability. -/
 theorem chainMarginal_eq_pr {k : ℕ} (D : ChainDist k) {Q : ℕ}
     (hQ : D.RationalAtoms Q) (N : ℕ) (hdiv : Q ∣ N)
     (S : (Fin (2 * k + 2) → Bool) → Bool) :
@@ -208,6 +208,8 @@ theorem chainMarginal_eq_pr {k : ℕ} (D : ChainDist k) {Q : ℕ}
       _ = N * D.w v := by rw [hNQ]
   · simp
 
+/-- An event of probability `m / q` is realised exactly `(N / q) m` times in a sample of size
+`N`. -/
 theorem chainMarginal_eq_nat_of_pr {k Q q m N : ℕ} (D : ChainDist k)
     (hQ : D.RationalAtoms Q) (S : (Fin (2 * k + 2) → Bool) → Bool)
     (hq : 0 < q) (hdiv : Q ∣ N) (hqN : q ∣ N)
@@ -288,6 +290,8 @@ theorem chainHistogram_indep_product_form {k : ℕ} (D : ChainDist k)
       _ = (N : ℝ) * D.pr (fun w => w j1 == v1) * ((N : ℝ) * D.pr (fun w => w j2 == v2)) := by ring
   exact_mod_cast h_cast
 
+/-- Summing the three-coordinate histogram over the second coordinate gives the two-coordinate
+histogram of the first and third. -/
 theorem chainHistogram_marginal_3_2_A {k : ℕ} (D : ChainDist k)
     {Q : ℕ} (hQ : D.RationalAtoms Q) (N : ℕ) (A B W : Fin (2 * k + 2)) :
     ∀ a w : Bool, chainHistogram2 D hQ N A W a w =
@@ -300,6 +304,8 @@ theorem chainHistogram_marginal_3_2_A {k : ℕ} (D : ChainDist k)
   rw [sum_bool]
   cases h1 : (v A == a) <;> cases h2 : (v B) <;> cases h3 : (v W == w) <;> simp_all
 
+/-- Summing the three-coordinate histogram over the first coordinate gives the two-coordinate
+histogram of the second and third. -/
 theorem chainHistogram_marginal_3_2_B {k : ℕ} (D : ChainDist k)
     {Q : ℕ} (hQ : D.RationalAtoms Q) (N : ℕ) (A B W : Fin (2 * k + 2)) :
     ∀ b w : Bool, chainHistogram2 D hQ N B W b w =
@@ -312,6 +318,7 @@ theorem chainHistogram_marginal_3_2_B {k : ℕ} (D : ChainDist k)
   rw [sum_bool]
   cases h1 : (v B == b) <;> cases h2 : (v A) <;> cases h3 : (v W == w) <;> simp_all
 
+/-- Summing a two-coordinate histogram over one coordinate gives the histogram of the other. -/
 theorem chainHistogram_marginal_2_1_W {k : ℕ} (D : ChainDist k)
     {Q : ℕ} (hQ : D.RationalAtoms Q) (N : ℕ) (A W : Fin (2 * k + 2)) :
     ∀ w : Bool, chainHistogram1 D hQ N W w = ∑ a : Bool, chainHistogram2 D hQ N A W a w := by
@@ -323,6 +330,8 @@ theorem chainHistogram_marginal_2_1_W {k : ℕ} (D : ChainDist k)
   rw [sum_bool]
   cases h1 : (v W == w) <;> cases h2 : (v A) <;> simp_all
 
+/-- Summing the three-coordinate histogram over two coordinates gives the histogram of the
+third. -/
 theorem chainHistogram_marginal_3_1_W {k : ℕ} (D : ChainDist k)
     {Q : ℕ} (hQ : D.RationalAtoms Q) (N : ℕ) (A B W : Fin (2 * k + 2)) :
     ∀ w : Bool, chainHistogram1 D hQ N W w =
@@ -342,6 +351,7 @@ theorem chainHistogram_marginal_3_1_W {k : ℕ} (D : ChainDist k)
   rw [H2]
   exact chainHistogram_marginal_2_1_W D hQ N A W w
 
+/-- The histogram of the first coordinate is the sum of the joint histogram over the second. -/
 theorem chainHistogram_marginal_1_2_left {k : ℕ} (D : ChainDist k)
     {Q : ℕ} (hQ : D.RationalAtoms Q) (N : ℕ) (j1 j2 : Fin (2 * k + 2)) :
     ∀ v1 : Bool, chainHistogram1 D hQ N j1 v1 =
@@ -354,18 +364,8 @@ theorem chainHistogram_marginal_1_2_left {k : ℕ} (D : ChainDist k)
   rw [sum_bool]
   cases h1 : (w j1 == v1) <;> cases h2 : (w j2) <;> simp_all
 
-theorem chainHistogram_marginal_1_2_right {k : ℕ} (D : ChainDist k)
-    {Q : ℕ} (hQ : D.RationalAtoms Q) (N : ℕ) (j1 j2 : Fin (2 * k + 2)) :
-    ∀ v2 : Bool, chainHistogram1 D hQ N j2 v2 =
-      ∑ v1 : Bool, chainHistogram2 D hQ N j1 j2 v1 v2 := by
-  intro v2
-  unfold chainHistogram1 chainHistogram2 chainMarginal
-  rw [sum_comm]
-  apply sum_congr rfl
-  intro w _
-  rw [sum_bool]
-  cases h1 : (w j2 == v2) <;> cases h2 : (w j1) <;> simp_all
-
+/-- Conditional independence of two coordinates given a third takes the product form on the
+histograms of a sample. -/
 theorem chainHistogram_condIndep_product_form_cond {k : ℕ} (D : ChainDist k)
     {Q : ℕ} (hQ : D.RationalAtoms Q) (N : ℕ) (hdiv : Q ∣ N)
     (A B W : Fin (2 * k + 2)) (h_cond : D.CondIndepCoords A B W) :
@@ -417,6 +417,7 @@ private lemma size_pow_eight (n : ℕ) : Nat.size (n ^ 8) ≤ 8 * Nat.size n := 
     _ ≤ 4 * Nat.size n + 4 * Nat.size n := Nat.add_le_add h4 h4
     _ = 8 * Nat.size n := by ring
 
+/-- The histogram of one coordinate of a size-`N` sample sums to `N`. -/
 lemma sum_chainHistogram1 {k : ℕ} (D : ChainDist k)
     {Q : ℕ} (hQ : D.RationalAtoms Q) (N : ℕ) (hdiv : Q ∣ N)
     (W : Fin (2 * k + 2)) :
@@ -433,6 +434,7 @@ lemma sum_chainHistogram1 {k : ℕ} (D : ChainDist k)
   rw [H]
   exact chainHistogram_total D hQ N hdiv
 
+/-- Each entry of a one-coordinate histogram is at most the sample size. -/
 lemma chainHistogram1_le_N {k : ℕ} (D : ChainDist k)
     {Q : ℕ} (hQ : D.RationalAtoms Q) (N : ℕ) (hdiv : Q ∣ N)
     (W : Fin (2 * k + 2)) (w : Bool) : chainHistogram1 D hQ N W w ≤ N := by
@@ -441,6 +443,8 @@ lemma chainHistogram1_le_N {k : ℕ} (D : ChainDist k)
     apply single_le_sum (fun i _ => Nat.zero_le _) (mem_univ w)
   omega
 
+/-- Under conditional independence the product of the two conditional type-class sizes is, up to
+a polynomial factor, at most the joint type-class size. -/
 lemma chainHistogram_marg_W {k : ℕ} (D : ChainDist k)
     {Q : ℕ} (hQ : D.RationalAtoms Q) (N : ℕ) (hdiv : Q ∣ N)
     (A B W : Fin (2 * k + 2)) (h_cond : D.CondIndepCoords A B W) (w : Bool) :
@@ -498,6 +502,135 @@ lemma chainHistogram_marg_W {k : ℕ} (D : ChainDist k)
           (fun x : Bool × Bool => chainHistogram3 D hQ N A B W x.1 x.2 w) :=
         Nat.mul_le_mul_right _ H_pow
 
+/-- Fiber factorization of 2-coordinate chain histogram multinomial coefficient into
+1-coordinate multinomial and slice multinomials. -/
+private lemma chainHistogram_multinomial_fiber_factor_2 {k : ℕ} (D : ChainDist k)
+    {Q : ℕ} (hQ : D.RationalAtoms Q) (N : ℕ) (A W : Fin (2 * k + 2)) :
+    Nat.multinomial univ (fun (a, w) => chainHistogram2 D hQ N A W a w) =
+      Nat.multinomial univ (fun w => chainHistogram1 D hQ N W w) *
+        (Nat.multinomial univ (fun a => chainHistogram2 D hQ N A W a true) *
+          Nat.multinomial univ (fun a => chainHistogram2 D hQ N A W a false)) := by
+  have H := multinomial_fiber_factorization
+    (fun (a, w) => chainHistogram2 D hQ N A W a w)
+  have h_sum : (fun w => ∑ a, chainHistogram2 D hQ N A W a w) =
+      (fun w => chainHistogram1 D hQ N W w) := by
+    ext w
+    exact (chainHistogram_marginal_2_1_W D hQ N A W w).symm
+  rw [h_sum] at H
+  have h_prod : ∏ w ∈ univ, Nat.multinomial univ
+      (fun a => chainHistogram2 D hQ N A W a w) =
+        Nat.multinomial univ (fun a => chainHistogram2 D hQ N A W a true) *
+        Nat.multinomial univ (fun a => chainHistogram2 D hQ N A W a false) := prod_bool _
+  rw [h_prod] at H
+  exact H
+
+/-- Fiber factorization of 3-coordinate chain histogram multinomial coefficient into
+1-coordinate multinomial and slice multinomials. -/
+private lemma chainHistogram_multinomial_fiber_factor_3 {k : ℕ} (D : ChainDist k)
+    {Q : ℕ} (hQ : D.RationalAtoms Q) (N : ℕ) (A B W : Fin (2 * k + 2)) :
+    Nat.multinomial univ (fun x : (Bool × Bool) × Bool =>
+      match x with | (ab, w) => chainHistogram3 D hQ N A B W ab.1 ab.2 w) =
+      Nat.multinomial univ (fun w => chainHistogram1 D hQ N W w) *
+        (Nat.multinomial univ (fun ab : Bool × Bool =>
+          chainHistogram3 D hQ N A B W ab.1 ab.2 true) *
+          Nat.multinomial univ (fun ab : Bool × Bool =>
+            chainHistogram3 D hQ N A B W ab.1 ab.2 false)) := by
+  have H := multinomial_fiber_factorization
+    (fun x : (Bool × Bool) × Bool =>
+      match x with | (ab, w) => chainHistogram3 D hQ N A B W ab.1 ab.2 w)
+  have h_sumAB : (fun w => ∑ ab : Bool × Bool,
+      chainHistogram3 D hQ N A B W ab.1 ab.2 w) =
+        (fun w => chainHistogram1 D hQ N W w) := by
+    ext w
+    exact (chainHistogram_marginal_3_1_W D hQ N A B W w).symm
+  have h_sumAB2 : (fun w => ∑ a : Bool × Bool,
+      match (a, w) with | (ab, w_1) => chainHistogram3 D hQ N A B W ab.1 ab.2 w_1) =
+        (fun w => chainHistogram1 D hQ N W w) := by
+    ext w
+    have H_eq : (∑ a : Bool × Bool,
+        match (a, w) with | (ab, w_1) => chainHistogram3 D hQ N A B W ab.1 ab.2 w_1) =
+          ∑ ab : Bool × Bool, chainHistogram3 D hQ N A B W ab.1 ab.2 w := by
+      apply sum_congr rfl
+      intro a _
+      rfl
+    have H_val := congrFun h_sumAB w
+    rw [H_eq]
+    exact H_val
+  rw [h_sumAB2] at H
+  have h_prod_ABW : ∏ w ∈ univ, Nat.multinomial univ (fun a : Bool × Bool =>
+      match (a, w) with | (ab, w_1) => chainHistogram3 D hQ N A B W ab.1 ab.2 w_1) =
+        Nat.multinomial univ (fun ab : Bool × Bool =>
+          chainHistogram3 D hQ N A B W ab.1 ab.2 true) *
+        Nat.multinomial univ (fun ab : Bool × Bool =>
+          chainHistogram3 D hQ N A B W ab.1 ab.2 false) := by
+    have H_eq : ∏ w ∈ univ, Nat.multinomial univ (fun a : Bool × Bool =>
+        match (a, w) with | (ab, w_1) => chainHistogram3 D hQ N A B W ab.1 ab.2 w_1) =
+          ∏ w ∈ univ, Nat.multinomial univ (fun ab : Bool × Bool =>
+            chainHistogram3 D hQ N A B W ab.1 ab.2 w) := by
+      apply prod_congr rfl
+      intro w _
+      rfl
+    rw [H_eq]
+    exact prod_bool _
+  rw [h_prod_ABW] at H
+  exact H
+
+/-- Upper bound on the product of 2-coordinate multinomial coefficients by 1-coordinate and
+3-coordinate multinomial coefficients for a conditionally independent chain link. -/
+private lemma chainHistogram_multinomial_product_le {k : ℕ} (D : ChainDist k)
+    {Q : ℕ} (hQ : D.RationalAtoms Q) (N : ℕ) (hdiv : Q ∣ N)
+    (A B W : Fin (2 * k + 2)) (h_cond : D.CondIndepCoords A B W) :
+    Nat.multinomial univ (fun (a, w) => chainHistogram2 D hQ N A W a w) *
+      Nat.multinomial univ (fun (b, w) => chainHistogram2 D hQ N B W b w) ≤
+      (N + 1) ^ 8 *
+        (Nat.multinomial univ (fun w => chainHistogram1 D hQ N W w) *
+          Nat.multinomial univ (fun x : (Bool × Bool) × Bool =>
+            match x with
+            | (ab, w) => chainHistogram3 D hQ N A B W ab.1 ab.2 w)) := by
+  let mA (w : Bool) := Nat.multinomial univ
+    (fun a => chainHistogram2 D hQ N A W a w)
+  let mB (w : Bool) := Nat.multinomial univ
+    (fun b => chainHistogram2 D hQ N B W b w)
+  let mAB (w : Bool) := Nat.multinomial univ
+    (fun ab : Bool × Bool => chainHistogram3 D hQ N A B W ab.1 ab.2 w)
+  let mW := Nat.multinomial univ (fun w => chainHistogram1 D hQ N W w)
+  let mAW := Nat.multinomial univ
+    (fun (a, w) => chainHistogram2 D hQ N A W a w)
+  let mBW := Nat.multinomial univ
+    (fun (b, w) => chainHistogram2 D hQ N B W b w)
+  let mABW := Nat.multinomial univ (fun x : (Bool × Bool) × Bool =>
+    match x with
+    | (ab, w) => chainHistogram3 D hQ N A B W ab.1 ab.2 w)
+  have hAW_factor : mAW = mW * (mA true * mA false) :=
+    chainHistogram_multinomial_fiber_factor_2 D hQ N A W
+  have hBW_factor : mBW = mW * (mB true * mB false) :=
+    chainHistogram_multinomial_fiber_factor_2 D hQ N B W
+  have hABW_factor : mABW = mW * (mAB true * mAB false) :=
+    chainHistogram_multinomial_fiber_factor_3 D hQ N A B W
+  have h_marg_T : mA true * mB true ≤ (N + 1) ^ 4 * mAB true :=
+    chainHistogram_marg_W D hQ N hdiv A B W h_cond true
+  have h_marg_F : mA false * mB false ≤ (N + 1) ^ 4 * mAB false :=
+    chainHistogram_marg_W D hQ N hdiv A B W h_cond false
+  have H_mul_T_F :
+      (mA true * mA false) * (mB true * mB false) ≤
+        ((N + 1) ^ 4 * mAB true) * ((N + 1) ^ 4 * mAB false) := by
+    calc
+      (mA true * mA false) * (mB true * mB false) =
+          (mA true * mB true) * (mA false * mB false) := by ring
+      _ ≤ _ := Nat.mul_le_mul h_marg_T h_marg_F
+  calc
+    mAW * mBW =
+        (mW * (mA true * mA false)) * (mW * (mB true * mB false)) := by
+      rw [hAW_factor, hBW_factor]
+    _ = mW * (mW * ((mA true * mA false) * (mB true * mB false))) := by
+      ring
+    _ ≤ mW * (mW *
+        (((N + 1) ^ 4 * mAB true) * ((N + 1) ^ 4 * mAB false))) :=
+      Nat.mul_le_mul_left _ (Nat.mul_le_mul_left _ H_mul_T_F)
+    _ = (N + 1) ^ 8 * (mW * (mW * (mAB true * mAB false))) := by
+      ring
+    _ = (N + 1) ^ 8 * (mW * mABW) := by rw [hABW_factor]
+
 /-- A conditionally independent link has only logarithmic multinomial type-log defect. -/
 theorem chain_link_mutualInformation_defect {k : ℕ} (D : ChainDist k)
     {Q : ℕ} (hQ : D.RationalAtoms Q) (N : ℕ) (hdiv : Q ∣ N)
@@ -513,158 +646,18 @@ theorem chain_link_mutualInformation_defect {k : ℕ} (D : ChainDist k)
   have hAW_pos := multinomial_pos univ (fun (a, w) => chainHistogram2 D hQ N A W a w)
   have hBW_pos := multinomial_pos univ (fun (b, w) => chainHistogram2 D hQ N B W b w)
   have H1 := size_add_size_le_size_mul_add_one hAW_pos hBW_pos
-  rcases Nat.eq_zero_or_pos N with rfl | hN_pos
-  · have h_zeroAW :
-        ∀ aw : Bool × Bool, chainHistogram2 D hQ 0 A W aw.1 aw.2 = 0 := fun _ => by
-      unfold chainHistogram2 chainMarginal chainHistogram
-      simp
-    have h_zeroBW :
-        ∀ bw : Bool × Bool, chainHistogram2 D hQ 0 B W bw.1 bw.2 = 0 := fun _ => by
-      unfold chainHistogram2 chainMarginal chainHistogram
-      simp
-    have h_zeroW : ∀ w, chainHistogram1 D hQ 0 W w = 0 := fun _ => by
-      unfold chainHistogram1 chainMarginal chainHistogram
-      simp
-    have h_zeroABW : ∀ abw : (Bool × Bool) × Bool,
-        chainHistogram3 D hQ 0 A B W abw.1.1 abw.1.2 abw.2 = 0 := fun _ => by
-      unfold chainHistogram3 chainMarginal chainHistogram
-      simp
-    rw [multinomial_zero _ h_zeroAW, multinomial_zero _ h_zeroBW,
-      multinomial_zero _ h_zeroW, multinomial_zero _ h_zeroABW]
-    simp
-  · have H2_AW := multinomial_fiber_factorization (fun (a, w) => chainHistogram2 D hQ N A W a w)
-    have H2_BW := multinomial_fiber_factorization (fun (b, w) => chainHistogram2 D hQ N B W b w)
-    have H2_ABW := multinomial_fiber_factorization
-      (fun x : (Bool × Bool) × Bool =>
-        match x with
-        | (ab, w) => chainHistogram3 D hQ N A B W ab.1 ab.2 w)
-    have h_sumA :
-        (fun w => ∑ a, chainHistogram2 D hQ N A W a w) =
-          (fun w => chainHistogram1 D hQ N W w) := by
-      ext w
-      exact (chainHistogram_marginal_2_1_W D hQ N A W w).symm
-    have h_sumB :
-        (fun w => ∑ b, chainHistogram2 D hQ N B W b w) =
-          (fun w => chainHistogram1 D hQ N W w) := by
-      ext w
-      exact (chainHistogram_marginal_2_1_W D hQ N B W w).symm
-    have h_sumAB :
-        (fun w => ∑ ab : Bool × Bool,
-          chainHistogram3 D hQ N A B W ab.1 ab.2 w) =
-            (fun w => chainHistogram1 D hQ N W w) := by
-      ext w
-      exact (chainHistogram_marginal_3_1_W D hQ N A B W w).symm
-    rw [h_sumA] at H2_AW
-    rw [h_sumB] at H2_BW
-    
-    have h_sumAB2 :
-        (fun w => ∑ a : Bool × Bool,
-          match (a, w) with
-          | (ab, w_1) => chainHistogram3 D hQ N A B W ab.1 ab.2 w_1) =
-            (fun w => chainHistogram1 D hQ N W w) := by
-      ext w
-      have H_eq :
-          (∑ a : Bool × Bool,
-            match (a, w) with
-            | (ab, w_1) => chainHistogram3 D hQ N A B W ab.1 ab.2 w_1) =
-              ∑ ab : Bool × Bool,
-                chainHistogram3 D hQ N A B W ab.1 ab.2 w := by
-        apply sum_congr rfl
-        intro a _
-        rfl
-      have H_val := congrFun h_sumAB w
-      rw [H_eq]
-      exact H_val
-    rw [h_sumAB2] at H2_ABW
-    have h_prod_AW :
-        ∏ w ∈ univ, Nat.multinomial univ
-          (fun a => chainHistogram2 D hQ N A W a w) =
-            Nat.multinomial univ (fun a => chainHistogram2 D hQ N A W a true) *
-              Nat.multinomial univ
-                (fun a => chainHistogram2 D hQ N A W a false) := prod_bool _
-    have h_prod_BW :
-        ∏ w ∈ univ, Nat.multinomial univ
-          (fun b => chainHistogram2 D hQ N B W b w) =
-            Nat.multinomial univ (fun b => chainHistogram2 D hQ N B W b true) *
-              Nat.multinomial univ
-                (fun b => chainHistogram2 D hQ N B W b false) := prod_bool _
-    have h_prod_ABW :
-        ∏ w ∈ univ, Nat.multinomial univ (fun a : Bool × Bool =>
-          match (a, w) with
-          | (ab, w_1) => chainHistogram3 D hQ N A B W ab.1 ab.2 w_1) =
-            Nat.multinomial univ (fun ab : Bool × Bool =>
-              chainHistogram3 D hQ N A B W ab.1 ab.2 true) *
-            Nat.multinomial univ (fun ab : Bool × Bool =>
-              chainHistogram3 D hQ N A B W ab.1 ab.2 false) := by
-      have H_eq :
-          ∏ w ∈ univ, Nat.multinomial univ (fun a : Bool × Bool =>
-            match (a, w) with
-            | (ab, w_1) => chainHistogram3 D hQ N A B W ab.1 ab.2 w_1) =
-              ∏ w ∈ univ, Nat.multinomial univ (fun ab : Bool × Bool =>
-                chainHistogram3 D hQ N A B W ab.1 ab.2 w) := by
-        apply prod_congr rfl
-        intro w _
-        rfl
-      rw [H_eq]
-      exact prod_bool _
-    rw [h_prod_AW] at H2_AW
-    rw [h_prod_BW] at H2_BW
-    rw [h_prod_ABW] at H2_ABW
-    
-    let mA (w : Bool) := Nat.multinomial univ
-      (fun a => chainHistogram2 D hQ N A W a w)
-    let mB (w : Bool) := Nat.multinomial univ
-      (fun b => chainHistogram2 D hQ N B W b w)
-    let mAB (w : Bool) := Nat.multinomial univ
-      (fun ab : Bool × Bool => chainHistogram3 D hQ N A B W ab.1 ab.2 w)
-    let mW := Nat.multinomial univ (fun w => chainHistogram1 D hQ N W w)
-    let mAW := Nat.multinomial univ
-      (fun (a, w) => chainHistogram2 D hQ N A W a w)
-    let mBW := Nat.multinomial univ
-      (fun (b, w) => chainHistogram2 D hQ N B W b w)
-    let mABW := Nat.multinomial univ (fun x : (Bool × Bool) × Bool =>
-      match x with
-      | (ab, w) => chainHistogram3 D hQ N A B W ab.1 ab.2 w)
-    have hAW_factor : mAW = mW * (mA true * mA false) := by
-      simpa [mAW, mW, mA] using H2_AW
-    have hBW_factor : mBW = mW * (mB true * mB false) := by
-      simpa [mBW, mW, mB] using H2_BW
-    have hABW_factor : mABW = mW * (mAB true * mAB false) := by
-      simpa [mABW, mW, mAB] using H2_ABW
-    have h_marg_T : mA true * mB true ≤ (N + 1) ^ 4 * mAB true := by
-      simpa [mA, mB, mAB] using
-        chainHistogram_marg_W D hQ N hdiv A B W h_cond true
-    have h_marg_F : mA false * mB false ≤ (N + 1) ^ 4 * mAB false := by
-      simpa [mA, mB, mAB] using
-        chainHistogram_marg_W D hQ N hdiv A B W h_cond false
-    have H_mul_T_F :
-        (mA true * mA false) * (mB true * mB false) ≤
-          ((N + 1) ^ 4 * mAB true) * ((N + 1) ^ 4 * mAB false) := by
-      calc
-        (mA true * mA false) * (mB true * mB false) =
-            (mA true * mB true) * (mA false * mB false) := by ring
-        _ ≤ _ := Nat.mul_le_mul h_marg_T h_marg_F
-    have H_bound : mAW * mBW ≤ (N + 1) ^ 8 * (mW * mABW) := by
-      calc
-        mAW * mBW =
-            (mW * (mA true * mA false)) * (mW * (mB true * mB false)) := by
-          rw [hAW_factor, hBW_factor]
-        _ = mW * (mW * ((mA true * mA false) * (mB true * mB false))) := by
-          ring
-        _ ≤ mW * (mW *
-            (((N + 1) ^ 4 * mAB true) * ((N + 1) ^ 4 * mAB false))) :=
-          Nat.mul_le_mul_left _ (Nat.mul_le_mul_left _ H_mul_T_F)
-        _ = (N + 1) ^ 8 * (mW * (mW * (mAB true * mAB false))) := by
-          ring
-        _ = (N + 1) ^ 8 * (mW * mABW) := by rw [hABW_factor]
-    have H_size := Nat.size_le_size H_bound
-    have H_size2 := size_mul_le ((N + 1) ^ 8) (mW * mABW)
-    have H_size3 := size_mul_le mW mABW
-    have H_size4 := size_pow_eight (N + 1)
-    change Nat.size mAW + Nat.size mBW ≤ Nat.size (mAW * mBW) + 1 at H1
-    change Nat.size mAW + Nat.size mBW ≤
-      Nat.size mW + Nat.size mABW + 8 * Nat.size (N + 1) + 1
-    omega
+  have H_bound := chainHistogram_multinomial_product_le D hQ N hdiv A B W h_cond
+  have H_size := Nat.size_le_size H_bound
+  have H_size2 := size_mul_le ((N + 1) ^ 8)
+    (Nat.multinomial univ (fun w => chainHistogram1 D hQ N W w) *
+      Nat.multinomial univ (fun x : (Bool × Bool) × Bool =>
+        match x with | (ab, w) => chainHistogram3 D hQ N A B W ab.1 ab.2 w))
+  have H_size3 := size_mul_le
+    (Nat.multinomial univ (fun w => chainHistogram1 D hQ N W w))
+    (Nat.multinomial univ (fun x : (Bool × Bool) × Bool =>
+      match x with | (ab, w) => chainHistogram3 D hQ N A B W ab.1 ab.2 w))
+  have H_size4 := size_pow_eight (N + 1)
+  omega
 
 /-- An independent top pair has only logarithmic multinomial type-log defect. -/
 theorem chain_top_mutualInformation_defect {k : ℕ} (D : ChainDist k)
@@ -698,7 +691,7 @@ theorem chain_top_mutualInformation_defect {k : ℕ} (D : ChainDist k)
       apply multinomial_marginals_le_of_product_form
       · exact hN_pos
       · intro a; exact chainHistogram_marginal_1_2_left D hQ N A B a
-      · intro b; exact chainHistogram_marginal_1_2_right D hQ N A B b
+      · intro b; exact chainHistogram_marginal_2_1_W D hQ N A B b
       · intro a b; exact chainHistogram_indep_product_form D hQ N hdiv A B h_cond a b
     have H3 := Nat.size_le_size H2
     have H4 := size_mul_le

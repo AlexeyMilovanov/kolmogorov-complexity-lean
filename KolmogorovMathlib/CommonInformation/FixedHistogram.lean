@@ -150,10 +150,12 @@ theorem length_eq_sum_count {m : ℕ} (w : List (Fin m)) : w.length = ∑ i, w.c
     rw [Finset.sum_add_distrib]
     simp
 
+/-- Prepending a letter increases its own count by one and leaves the others unchanged. -/
 theorem count_cons_fin {m : ℕ} (j i : Fin m) (w : List (Fin m)) :
     List.count j (i :: w) = List.count j w + (if i = j then 1 else 0) := by
   simp [List.count_cons]
 
+/-- Decreasing one positive entry of a histogram by one decreases its total by one. -/
 theorem sum_update_pred {m : ℕ} (f : Fin m → ℕ) (i : Fin m) (h : 0 < f i) :
     ∑ j, Function.update f i (f i - 1) j = (∑ j, f j) - 1 := by
   rw [Finset.sum_update_of_mem (Finset.mem_univ i), Finset.sdiff_singleton_eq_erase]
@@ -167,6 +169,8 @@ def histWords {m : ℕ} : ℕ → (Fin m → ℕ) → List (List (Fin m))
   | n + 1, f => (List.finRange m).flatMap (fun i =>
       if f i = 0 then [] else (histWords n (Function.update f i (f i - 1))).map (i :: ·))
 
+/-- The listed words of a histogram are exactly those whose letter counts are the prescribed
+ones. -/
 theorem mem_histWords {m : ℕ} : ∀ (n : ℕ) (f : Fin m → ℕ), (∑ i, f i) = n →
     ∀ w : List (Fin m), w ∈ histWords n f ↔ ∀ i, w.count i = f i := by
   intro n
@@ -236,6 +240,7 @@ theorem mem_histWords {m : ℕ} : ∀ (n : ℕ) (f : Fin m → ℕ), (∑ i, f i
       · rw [Function.update_of_ne hji, if_neg (Ne.symm hji)] at *
         omega
 
+/-- The list of words of a given histogram has no repetitions. -/
 theorem histWords_nodup {m : ℕ} : ∀ (n : ℕ) (f : Fin m → ℕ), (histWords n f).Nodup := by
   intro n
   induction n with
@@ -263,6 +268,8 @@ theorem histWords_nodup {m : ℕ} : ∀ (n : ℕ) (f : Fin m → ℕ), (histWord
       have : j = i := by injection hb
       exact hij this.symm
 
+/-- The number of words of a histogram of total `n + 1` is the sum over the letters of the numbers
+of words of the histograms obtained by removing one occurrence of that letter. -/
 theorem length_histWords_succ {m : ℕ} (n : ℕ) (f : Fin m → ℕ) :
     (histWords (n + 1) f).length =
       ∑ i, (if f i = 0 then 0 else (histWords n (Function.update f i (f i - 1))).length) := by
@@ -309,6 +316,7 @@ theorem mem_fixedHistogramWords {m : ℕ} (f : Fin m → ℕ) (w : List (Fin m))
   rw [List.mem_filter, mem_allWords]
   simp
 
+/-- The list of all words with a prescribed histogram has no repetitions. -/
 theorem fixedHistogramWords_nodup {m : ℕ} (f : Fin m → ℕ) :
     (fixedHistogramWords f).Nodup :=
   (allWords_nodup m (∑ i, f i)).filter _

@@ -78,6 +78,125 @@ theorem multinomial_eq_of_zero_off_range {A B : Type*} [Fintype A] [Fintype B]
     exact Finset.prod_congr rfl (fun a _ => congrArg Nat.factorial (hF a))
   rw [hsum, hprod]
 
+/-- The sum of a fibre-extending distribution `f` along the second coordinate equals
+the pushforward histogram `hist a`. -/
+private theorem sum_fibre_ext_eq_pushforward_hist {A : Type*} [Fintype A]
+    (m n : ℕ) (pi : A → Fin m) (eA : A ≃ Fin n) (g : A → ℕ)
+    (f : Fin m × Fin n → ℕ) (hfpsi : ∀ v, f (pi v, eA v) = g v)
+    (hf0 : ∀ ab, (∀ v, (pi v, eA v) ≠ ab) → f ab = 0) (a : Fin m) :
+    ∑ b, f (a, b) = ∑ v ∈ Finset.univ.filter (fun v => pi v = a), g v := by
+  classical
+  have hre : ∑ b : Fin n, f (a, b) = ∑ v : A, f (a, eA v) :=
+    (Equiv.sum_comp eA (fun b => f (a, b))).symm
+  have hfil : ∑ v ∈ Finset.univ.filter (fun v => pi v = a), g v =
+      ∑ v : A, if pi v = a then g v else 0 := by
+    simp only [Finset.sum_filter]
+  rw [hre, hfil]
+  refine Finset.sum_congr rfl (fun v _ => ?_)
+  by_cases hv : pi v = a
+  · have : (a, eA v) = (pi v, eA v) := by rw [hv]
+    rw [this, hfpsi v]
+    simp [hv]
+  · have hzero : f (a, eA v) = 0 := by
+      refine hf0 _ (fun v' hv' => ?_)
+      have h1 : eA v' = eA v := congrArg Prod.snd hv'
+      have h2 : v' = v := eA.injective h1
+      subst h2
+      exact hv (congrArg Prod.fst hv')
+    rw [hzero]
+    simp [hv]
+
+/-- Sum of bit sizes of frequencies in a zero-extended histogram is bounded by
+`n * Nat.size N`. -/
+private theorem sum_size_f_le {A B : Type*} [Fintype A] [Fintype B]
+    (psi : A → B) (hpsi : Function.Injective psi)
+    (g : A → ℕ) (f : B → ℕ) (N : ℕ) (hgle : ∀ v, g v ≤ N)
+    (hfpsi : ∀ v, f (psi v) = g v)
+    (hf0 : ∀ b : B, (∀ v, psi v ≠ b) → f b = 0) :
+    ∑ b, Nat.size (f b) ≤ Fintype.card A * Nat.size N := by
+  classical
+  have hzero : ∀ b : B, (∀ v, psi v ≠ b) → Nat.size (f b) = 0 := by
+    intro b hab
+    rw [hf0 b hab, Nat.size_zero]
+  calc ∑ b, Nat.size (f b) = ∑ v, Nat.size (f (psi v)) :=
+        sum_eq_sum_comp_of_zero_off_range psi hpsi _ hzero
+    _ = ∑ v, Nat.size (g v) := Finset.sum_congr rfl (fun v _ => by rw [hfpsi v])
+    _ ≤ ∑ _v : A, Nat.size N :=
+        Finset.sum_le_sum (fun v _ => Nat.size_le_size (hgle v))
+    _ = Fintype.card A * Nat.size N := by simp
+
+/-- Linear upper bound on pair complexity `kxy + 1` in terms of `N + 1`. -/
+private theorem kxy_plus_one_le_gamma_mul (c₂ c₃ kW kxy N : ℕ)
+    (hkxy_le : kxy ≤ kW + c₂)
+    (hkW_up : kW ≤ c₃ * N + c₃ * Nat.size (N + 1) + c₃) :
+    kxy + 1 ≤ (3 * c₃ + c₂ + 1) * (N + 1) := by
+  set gamma := 3 * c₃ + c₂ + 1
+  set S := Nat.size (N + 1)
+  have hSN : S ≤ N + 1 := size_le_self (N + 1)
+  have hexp : gamma * (N + 1) = 3 * c₃ * (N + 1) + (c₂ + 1) * (N + 1) := by ring
+  have h1' : c₃ * N ≤ c₃ * (N + 1) := Nat.mul_le_mul_left _ (Nat.le_succ N)
+  have h2' : c₃ * S ≤ c₃ * (N + 1) := Nat.mul_le_mul_left _ hSN
+  have h3' : c₃ ≤ c₃ * (N + 1) := Nat.le_mul_of_pos_right _ (by omega)
+  have h4' : c₂ + 1 ≤ (c₂ + 1) * (N + 1) := Nat.le_mul_of_pos_right _ (by omega)
+  have h5' : 3 * c₃ * (N + 1) = 3 * (c₃ * (N + 1)) := by ring
+  omega
+
+/-- Upper bound on the logSlack of `kxy + 1` in terms of `Nat.size gamma` and
+`Nat.size (N + 1)`. -/
+private theorem logSlack_kxy_succ_le (cChain gamma N kxy : ℕ)
+    (hkxy1 : kxy + 1 ≤ gamma * (N + 1)) :
+    logSlack cChain (kxy + 1) ≤ cChain * (Nat.size gamma + Nat.size (N + 1)) + cChain := by
+  have hsize1 : Nat.size (kxy + 1) ≤ Nat.size gamma + Nat.size (N + 1) := by
+    calc Nat.size (kxy + 1) ≤ Nat.size (gamma * (N + 1)) := Nat.size_le_size hkxy1
+      _ ≤ Nat.size gamma + Nat.size (N + 1) := size_mul_le _ _
+  unfold logSlack
+  rw [Nat.size_eq_bits_len]
+  have := Nat.mul_le_mul_left cChain hsize1
+  omega
+
+/-- Twice the total fibre size is at most `2 * n * S`: the sizes sum to at most `n * |N|`, and
+`|N| ≤ S`. -/
+private theorem two_mul_sum_sizes_le (n sum_sizes N S : ℕ)
+    (hsum_sizes : sum_sizes ≤ n * Nat.size N)
+    (hsizeN : Nat.size N ≤ S) :
+    2 * sum_sizes ≤ 2 * n * S := by
+  calc 2 * sum_sizes ≤ 2 * (n * Nat.size N) := by omega
+    _ ≤ 2 * n * S := by
+        rw [mul_assoc]
+        exact Nat.mul_le_mul_left 2 (Nat.mul_le_mul_left n hsizeN)
+
+/-- **The pushforward histogram is the coarse factor of the multinomial.**
+
+A letter code `psi` that is injective and vanishes off its range carries the
+histogram `g` to the two-index histogram `f`, whose multinomial factors as the
+multinomial of the pushforward `hist a = ∑ b, f (a, b)` times the product of the
+fibre multinomials.  Binary sizes are additive across a product up to one bit, so
+the type-log of the pushforward and the joint type-log of the fibres together
+cost at most one bit more than the type-log of `g`. -/
+private theorem size_multinomial_pushforward_add_le
+    {A : Type*} [Fintype A] {m n : ℕ}
+    (psi : A → Fin m × Fin n) (hpsiInj : Function.Injective psi)
+    (g : A → ℕ) (f : Fin m × Fin n → ℕ)
+    (hfpsi : ∀ v, f (psi v) = g v)
+    (hf0 : ∀ ab, (∀ v, psi v ≠ ab) → f ab = 0)
+    (hist : Fin m → ℕ) (hmarg : ∀ a, ∑ b, f (a, b) = hist a) :
+    Nat.size (Nat.multinomial univ hist) +
+        Nat.size (∏ a, Nat.multinomial univ (fun b => f (a, b))) ≤
+      Nat.size (Nat.multinomial univ g) + 1 := by
+  have hmultf : Nat.multinomial univ f = Nat.multinomial univ g :=
+    multinomial_eq_of_zero_off_range psi hpsiInj g f hfpsi hf0
+  have hsplit : Nat.multinomial univ g =
+      Nat.multinomial univ hist *
+        ∏ a, Nat.multinomial univ (fun b => f (a, b)) := by
+    rw [← hmultf, multinomial_fiber_factorization_left f]
+    exact congrArg (fun t => t * ∏ a, Nat.multinomial univ (fun b => f (a, b)))
+      (congrArg (Nat.multinomial univ) (funext hmarg))
+  have hbinpos : 1 ≤ Nat.multinomial univ hist := Nat.multinomial_pos _ _
+  have hprodpos : 1 ≤ ∏ a, Nat.multinomial univ (fun b => f (a, b)) :=
+    Finset.prod_pos (fun a _ => Nat.multinomial_pos _ _)
+  have hsizes := size_add_size_le_size_mul_succ hbinpos hprodpos
+  rwa [← hsplit] at hsizes
+
 /-! ### The abstract fibre-incompressibility bound -/
 
 /-- **Fibre incompressibility of a maximal sample.**
@@ -117,13 +236,9 @@ theorem maximalSample_projection_typeLog_le
   set n := Fintype.card A with hn
   set eA : A ≃ Fin n := Fintype.equivFin A with heA
   set psi : A → Fin m × Fin n := fun v => (pi v, eA v) with hpsi
-  have hpsiInj : Function.Injective psi := by
-    intro a b hab
-    exact eA.injective (congrArg Prod.snd hab)
-  have hcodeInj : Function.Injective
-      (fun v : A => FiniteLetterCode.encode (psi v)) := by
-    intro a b hab
-    exact hpsiInj (FiniteLetterCode.injective hab)
+  have hpsiInj : Function.Injective psi := fun a b hab => eA.injective (congrArg Prod.snd hab)
+  have hcodeInj : Function.Injective (fun v : A => FiniteLetterCode.encode (psi v)) :=
+    fun a b hab => hpsiInj (FiniteLetterCode.injective hab)
   obtain ⟨cOut, hOut⟩ := condK_numericWord_recode_le V hV
     (fun v : A => FiniteLetterCode.encode (psi v))
     (FiniteLetterCode.encode : A → ℕ) hcodeInj
@@ -140,70 +255,27 @@ theorem maximalSample_projection_typeLog_le
   set w : List (Fin m × Fin n) := W.map psi with hw
   set f : Fin m × Fin n → ℕ := fun ab => w.count ab with hf
   have hwcount : ∀ ab, w.count ab = f ab := fun _ => rfl
-  have hfpsi : ∀ v, f (psi v) = g v := by
-    intro v
-    have h := List.count_map_of_injective W psi hpsiInj v
-    change w.count (psi v) = g v
-    rw [hw, h, hcounts v]
+  have hfpsi : ∀ v, f (psi v) = g v :=
+    fun v => (List.count_map_of_injective W psi hpsiInj v).trans (hcounts v)
   have hf0 : ∀ ab, (∀ v, psi v ≠ ab) → f ab = 0 := by
     intro ab hab
-    change w.count ab = 0
-    refine List.count_eq_zero.mpr ?_
-    intro hmem
-    rw [hw, List.mem_map] at hmem
-    obtain ⟨v, _, hv⟩ := hmem
+    refine List.count_eq_zero.mpr (fun hmem => ?_)
+    obtain ⟨v, _, hv⟩ := List.mem_map.mp hmem
     exact hab v hv
   set hist : Fin m → ℕ :=
     fun a => ∑ v ∈ Finset.univ.filter (fun v => pi v = a), g v with hhist
-  have hmarg : ∀ a, ∑ b, f (a, b) = hist a := by
-    intro a
-    have hre : ∑ b : Fin n, f (a, b) = ∑ v : A, f (a, eA v) :=
-      (Equiv.sum_comp eA (fun b => f (a, b))).symm
-    have hfil : hist a = ∑ v : A, if pi v = a then g v else 0 := by
-      rw [hhist]
-      simp only [Finset.sum_filter]
-    rw [hre, hfil]
-    refine Finset.sum_congr rfl (fun v _ => ?_)
-    by_cases hv : pi v = a
-    · have : (a, eA v) = psi v := by rw [hpsi, ← hv]
-      rw [this, hfpsi v]
-      simp [hv]
-    · have hzero : f (a, eA v) = 0 := by
-        refine hf0 _ (fun v' hv' => ?_)
-        have h1 : eA v' = eA v := congrArg Prod.snd hv'
-        have h2 : v' = v := eA.injective h1
-        subst h2
-        exact hv (congrArg Prod.fst hv')
-      rw [hzero]
-      simp [hv]
-  have hmultf : Nat.multinomial univ f = Nat.multinomial univ g :=
-    multinomial_eq_of_zero_off_range psi hpsiInj g f hfpsi hf0
-  have hsplit : Nat.multinomial univ g =
-      Nat.multinomial univ hist *
-        ∏ a, Nat.multinomial univ (fun b => f (a, b)) := by
-    rw [← hmultf, multinomial_fiber_factorization_left f]
-    exact congrArg (fun t => t * ∏ a, Nat.multinomial univ (fun b => f (a, b)))
-      (congrArg (Nat.multinomial univ) (funext hmarg))
+  have hmarg : ∀ a, ∑ b, f (a, b) = hist a :=
+    sum_fibre_ext_eq_pushforward_hist m n pi eA g f hfpsi hf0
   -- counting parameters
   set SP := Nat.size (∏ a, Nat.multinomial univ (fun b => f (a, b))) with hSP
   set PARAM := 2 * Nat.size m + 2 * Nat.size n +
     2 * (∑ ab, Nat.size (f ab)) + m * n + cProj with hPARAM
   set S := Nat.size (N + 1) with hS
-  have hgle : ∀ v, g v ≤ N := by
-    intro v
+  have hgle : ∀ v, g v ≤ N := fun v =>
     calc g v ≤ ∑ u, g u := Finset.single_le_sum (fun _ _ => Nat.zero_le _) (Finset.mem_univ v)
       _ = N := hsumg
-  have hsumsize : ∑ ab, Nat.size (f ab) ≤ n * Nat.size N := by
-    have hzero : ∀ ab, (∀ v, psi v ≠ ab) → Nat.size (f ab) = 0 := by
-      intro ab hab
-      rw [hf0 ab hab]
-      simp
-    calc ∑ ab, Nat.size (f ab) = ∑ v, Nat.size (f (psi v)) :=
-          sum_eq_sum_comp_of_zero_off_range psi hpsiInj _ hzero
-      _ = ∑ v, Nat.size (g v) := Finset.sum_congr rfl (fun v _ => by rw [hfpsi v])
-      _ ≤ ∑ _v : A, Nat.size N :=
-          Finset.sum_le_sum (fun v _ => Nat.size_le_size (hgle v))
-      _ = n * Nat.size N := by rw [hn]; simp
+  have hsumsize : ∑ ab, Nat.size (f ab) ≤ n * Nat.size N :=
+    sum_size_f_le psi hpsiInj g f N hgle hfpsi hf0
   -- complexity chain
   have hfst : w.map Prod.fst = W.map pi := by
     rw [hw, List.map_map]
@@ -218,17 +290,19 @@ theorem maximalSample_projection_typeLog_le
   have h1 := hProj m n f w hwcount
   have h2 := hOut W (finiteWordCode (w.map Prod.fst))
   rw [← hww, ← hyy] at h2
+  have h1_le : condK V (finiteWordCode w) (finiteWordCode (w.map Prod.fst)) ≤
+      ((SP + PARAM : ℕ) : ENat) := by
+    refine le_trans h1 (le_of_eq ?_)
+    norm_cast
+    rw [hPARAM, hSP]
+    ring
   have hcondy : condK V y x ≤ ((SP + PARAM + cOut + c₁ : ℕ) : ENat) := by
-    calc condK V y x ≤ condK V y (finiteWordCode (W.map pi)) + (c₁ : ENat) := h₁ W y
+    rw [hx]
+    calc condK V y (proj W) ≤ condK V y (finiteWordCode (W.map pi)) + (c₁ : ENat) := h₁ W y
       _ = condK V y (finiteWordCode (w.map Prod.fst)) + (c₁ : ENat) := by rw [hfst]
       _ ≤ (condK V (finiteWordCode w) (finiteWordCode (w.map Prod.fst)) +
             (cOut : ENat)) + (c₁ : ENat) := by gcongr
-      _ ≤ (((SP + PARAM : ℕ) : ENat) + (cOut : ENat)) + (c₁ : ENat) := by
-            gcongr
-            refine le_trans h1 (le_of_eq ?_)
-            norm_cast
-            rw [hPARAM, hSP]
-            ring
+      _ ≤ (((SP + PARAM : ℕ) : ENat) + (cOut : ENat)) + (c₁ : ENat) := by gcongr
       _ = ((SP + PARAM + cOut + c₁ : ℕ) : ENat) := by push_cast; ring
   obtain ⟨kx, hkx⟩ := exists_plainComplexityValue V hV x
   obtain ⟨kyx, hkyx⟩ := exists_plainConditionalComplexityValue V hV y x
@@ -253,64 +327,29 @@ theorem maximalSample_projection_typeLog_le
   have hmax : Nat.size (Nat.multinomial univ g) ≤ kW + 1 := by
     unfold histogramTypeLog at hmaximal
     exact_mod_cast hmaximal
-  have hbinpos : 1 ≤ Nat.multinomial univ hist := Nat.multinomial_pos _ _
-  have hprodpos : 1 ≤ ∏ a, Nat.multinomial univ (fun b => f (a, b)) :=
-    Finset.prod_pos (fun a _ => Nat.multinomial_pos _ _)
-  have hsizes : Nat.size (Nat.multinomial univ hist) + SP ≤
-      Nat.size (Nat.multinomial univ hist *
-        ∏ a, Nat.multinomial univ (fun b => f (a, b))) + 1 :=
-    size_add_size_le_size_mul_succ hbinpos hprodpos
-  rw [← hsplit] at hsizes
+  have hsizes := size_multinomial_pushforward_add_le psi hpsiInj g f hfpsi hf0 hist hmarg
   have hkey : Nat.size (Nat.multinomial univ hist) + SP ≤ kW + 2 := by omega
-  -- the logarithmic slack of the chain rule
-  have hkxy1 : kxy + 1 ≤ gamma * (N + 1) := by
-    have hSN : S ≤ N + 1 := by
-      rw [hS]
-      exact size_le_self (N + 1)
-    have hexp : gamma * (N + 1) = 3 * c₃ * (N + 1) + (c₂ + 1) * (N + 1) := by
-      rw [hgamma]; ring
-    have h1' : c₃ * N ≤ c₃ * (N + 1) := Nat.mul_le_mul_left _ (Nat.le_succ N)
-    have h2' : c₃ * S ≤ c₃ * (N + 1) := Nat.mul_le_mul_left _ hSN
-    have h3' : c₃ ≤ c₃ * (N + 1) := Nat.le_mul_of_pos_right _ (by omega)
-    have h4' : c₂ + 1 ≤ (c₂ + 1) * (N + 1) := Nat.le_mul_of_pos_right _ (by omega)
-    have h5' : 3 * c₃ * (N + 1) = 3 * (c₃ * (N + 1)) := by ring
-    omega
-  have hlogb : logSlack cChain (kxy + 1) ≤ cChain * (Nat.size gamma + S) + cChain := by
-    have hsize1 : Nat.size (kxy + 1) ≤ Nat.size gamma + S := by
-      calc Nat.size (kxy + 1) ≤ Nat.size (gamma * (N + 1)) := Nat.size_le_size hkxy1
-        _ ≤ Nat.size gamma + Nat.size (N + 1) := size_mul_le _ _
-        _ = Nat.size gamma + S := by rw [hS]
-    unfold logSlack
-    rw [Nat.size_eq_bits_len]
-    have := Nat.mul_le_mul_left cChain hsize1
-    omega
-  have hsizeN : Nat.size N ≤ S := by
-    rw [hS]
-    exact Nat.size_le_size (Nat.le_succ N)
-  have hPARAMb : PARAM ≤ 2 * n * S +
-      (2 * Nat.size m + 2 * Nat.size n + m * n + cProj) := by
-    have h1' : 2 * (∑ ab, Nat.size (f ab)) ≤ 2 * n * S := by
-      calc 2 * (∑ ab, Nat.size (f ab)) ≤ 2 * (n * Nat.size N) := by omega
-        _ ≤ 2 * n * S := by
-            rw [mul_assoc]
-            exact Nat.mul_le_mul_left 2 (Nat.mul_le_mul_left n hsizeN)
+  -- logarithmic slack of chain rule
+  have hkxy1 : kxy + 1 ≤ gamma * (N + 1) :=
+    kxy_plus_one_le_gamma_mul c₂ c₃ kW kxy N hkxy_le hkW_up'
+  have hlogb : logSlack cChain (kxy + 1) ≤ cChain * (Nat.size gamma + S) + cChain :=
+    logSlack_kxy_succ_le cChain gamma N kxy hkxy1
+  have hsizeN : Nat.size N ≤ S := Nat.size_le_size (Nat.le_succ N)
+  have hPARAMb : PARAM ≤ 2 * n * S + (2 * Nat.size m + 2 * Nat.size n + m * n + cProj) := by
+    have hsizes := two_mul_sum_sizes_le n (∑ ab, Nat.size (f ab)) N S hsumsize hsizeN
     rw [hPARAM]
     omega
   have hgoalNat : Nat.size (Nat.multinomial univ hist) ≤ kx + logSlack C (N + 1) := by
     have hlog : logSlack C (N + 1) = C * S + C := by
       unfold logSlack
       rw [hS, Nat.size_eq_bits_len]
-    have hCbig : 2 * n * S + (2 * Nat.size m + 2 * Nat.size n + m * n + cProj) +
-        cOut + c₁ + (cChain * (Nat.size gamma + S) + cChain) + cRight + 2 ≤ C * S + C := by
-      have hA : (2 * n + cChain) * S ≤ C * S :=
-        Nat.mul_le_mul_right _ (by rw [hC]; omega)
-      have hB : 2 * Nat.size m + 2 * Nat.size n + m * n + cProj + cOut + c₁ +
-          cRight + 2 + cChain * Nat.size gamma + cChain ≤ C := by
-        rw [hC]; omega
-      have hdist : (2 * n + cChain) * S = 2 * n * S + cChain * S := by ring
-      have hdist2 : cChain * (Nat.size gamma + S) =
-          cChain * Nat.size gamma + cChain * S := by ring
-      omega
+    have hA : (2 * n + cChain) * S ≤ C * S :=
+      Nat.mul_le_mul_right _ (by rw [hC]; omega)
+    have hB : 2 * Nat.size m + 2 * Nat.size n + m * n + cProj + cOut + c₁ +
+        cRight + 2 + cChain * Nat.size gamma + cChain ≤ C := by rw [hC]; omega
+    have hdist : (2 * n + cChain) * S = 2 * n * S + cChain * S := by ring
+    have hdist2 : cChain * (Nat.size gamma + S) =
+        cChain * Nat.size gamma + cChain * S := by ring
     rw [hlog]
     omega
   rw [hkx]

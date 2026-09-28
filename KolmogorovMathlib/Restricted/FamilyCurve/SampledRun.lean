@@ -1,5 +1,5 @@
-import KolmogorovMathlib.Restricted.Family
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.Basic
+import KolmogorovMathlib.Restricted.Family
 
 /-!
 # Finite sampled-run combinatorics

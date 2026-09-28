@@ -1,0 +1,21 @@
+# Documentation build, kept in its own package so that the main build never
+# needs `doc-gen4`.
+#
+#     cd docbuild
+#     lake update doc-gen4          # once, needs network access
+#     lake build KolmogorovMathlib:docs KolmogorovCounterexamples:docs
+#
+# The HTML lands in `docbuild/.lake/build/doc`.
+name = "docbuild"
+reservoir = false
+version = "0.1.0"
+packagesDir = "../.lake/packages"
+
+[[require]]
+name = "kolmogorov_complexity"
+path = "../"
+
+[[require]]
+name = "doc-gen4"
+scope = "leanprover"
+rev = "v4.28.0"

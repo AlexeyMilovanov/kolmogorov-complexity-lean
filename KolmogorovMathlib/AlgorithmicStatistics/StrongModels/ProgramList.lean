@@ -38,10 +38,13 @@ def totalProgramMapList
   fun input =>
     totalProgramMapListAux D input.1 input.2 input.2.length
 
+/-- Mapping a program over the first zero entries of a list yields the empty list. -/
 @[simp] lemma totalProgramMapListAux_zero
     (D : Map) (p : BitString) (xs : List BitString) :
     totalProgramMapListAux D p xs 0 = Part.some [] := rfl
 
+/-- Mapping a program over the first `r + 1` entries of a list appends the value on the `r`-th
+entry to the result on the first `r` entries. -/
 lemma totalProgramMapListAux_succ
     (D : Map) (p : BitString) (xs : List BitString) (r : Nat) :
     totalProgramMapListAux D p xs (r + 1) =

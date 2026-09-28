@@ -14,10 +14,11 @@ The exact-`epsilon` profile-to-polygon direction remains available in
 
 namespace Kolmogorov
 
-/-- VS40 Section 7, Theorem `t1`, with the logarithmic increase in the
-strongness budget made explicit.  The ordinary profile is compared at the
-original `epsilon`, while the complete strong profile is realized at
-`epsilon + O(log n)`. -/
+/-- There are constants `cStrength` and `cProfile` such that for every string `x` of length `n`,
+every `epsilon ≥ cStrength` and every `i ≤ n`, the point `(i + logSlack cProfile n, n - i)` lies
+in `strongDescriptionProfileSet V T x (epsilon + logSlack cStrength n)`.  Both the complexity
+coordinate and the strength budget carry an explicit `O(log n)` loss: the membership point is
+`i + logSlack cProfile n`, not `i`, and the strength is `epsilon + logSlack cStrength n`. -/
 theorem t1_shifted_fullCube_strong_profile
     (V T : Map) (hV : isOptimalConditional V)
     (hT : IsOptimalTotalConditional T) :
@@ -39,14 +40,14 @@ theorem t1_shifted_fullCube_strong_profile
   intro x n epsilon i hxlen hcStrength hin
   let S := stringsOfLength n
   have hS : x ∈ S := by
-    rw [memStringsOfLength]
+    rw [mem_stringsOfLength]
     exact hxlen
   have hBase_x : IsStrongSetModel T x S ⟨x, hS⟩ cBase := by
     have h1 := hBase x
     revert h1
     rw [hxlen]
     exact id
-  have hS_card : S.card = 2^n := cardStringsOfLength n
+  have hS_card : S.card = 2^n := card_stringsOfLength n
   have hi_le : 2^i ≤ S.card := by
     rw [hS_card]
     exact Nat.pow_le_pow_right (by omega) hin
@@ -100,9 +101,8 @@ theorem t1_shifted_fullCube_strong_profile
       exact this
     exact hS'strong.mono h1
 
-/-- Interior (`k + 4 ≤ n`) assembly of Theorem `t1`.  The same avoiding
-string supplies the ordinary profile and the enlarged-strength strong
-profile. -/
+/-- On the interior range `k + 4 ≤ n`, a single string realizes both the ordinary profile and
+the strong profile at any prescribed strength floor (SUV Theorem `t1`). -/
 theorem t1_strange_string_interior_with_strength_floor
     (V T : Map) (hV : isOptimalConditional V)
     (hT : IsOptimalTotalConditional T) (cStrengthFloor : Nat) :
@@ -241,8 +241,12 @@ theorem t1_strange_string_interior_with_strength_floor
         refine ⟨(q.1 + logSlack cProfile n, q.2), hprofile, ?_⟩
         simp [natPairLInfDistance]
 
-/-- Interior (`k + 4 ≤ n`) form with its internally selected strength
-constant. -/
+/-- There are constants `c0`, `cStrength`, `cProfile` such that for all `n`, `k`, `epsilon` with
+`c0 ≤ epsilon ≤ k` and `k + 4 ≤ n` there is a string `x` of length `n` with
+`k ≤ plainK V x ≤ k + logSlack cProfile n` whose plain description profile set lies within
+`logSlack cProfile n` of `t1PlainPolygon n k epsilon`, and whose strong description profile set
+at strength `epsilon + logSlack cStrength n` lies within `logSlack cProfile n` of
+`t1StrongPolygon n k`. -/
 theorem t1_strange_string_interior
     (V T : Map) (hV : isOptimalConditional V)
     (hT : IsOptimalTotalConditional T) :
@@ -268,6 +272,179 @@ theorem t1_strange_string_interior
   exact ⟨c0, cStrength, cProfile,
     fun n k epsilon hc0 hepsilon hkn =>
       h n k epsilon hc0 hepsilon hkn⟩
+
+/-- Every plain description profile point for an unmarked boundary string lies near
+the plain polygon. -/
+private theorem t1_plain_profile_subset_plain_polygon_boundary
+    (V : Map) (cD : Nat)
+    (hD : ∀ (n k : Nat) (x : BitString) (a b : Nat),
+      x.length = n → k ≤ n → ¬ T1DMarked V n k x →
+      InPlainDescriptionProfile V x a b → k ≤ a + b + logSlack cD n)
+    {n k epsilon : Nat} {x : BitString} (hxlen : x.length = n) (hkn : k ≤ n)
+    (hboundary : n < k + 4)
+    (hnotD : ¬ T1DMarked V n k x) {q : Nat × Nat}
+    (hq : q ∈ plainDescriptionProfileSet V x) :
+    ∃ q' ∈ t1PlainPolygon n k epsilon, natPairLInfDistance q q' ≤ logSlack cD n + 3 := by
+  by_cases hpolygon : q ∈ t1PlainPolygon n k epsilon
+  · exact ⟨q, hpolygon, by simp [natPairLInfDistance]⟩
+  · have hline := hD n k x q.1 q.2 hxlen hkn hnotD hq
+    by_cases hqepsilon : q.1 < epsilon
+    · have hsum : q.1 + q.2 < n := by
+        unfold t1PlainPolygon at hpolygon
+        simpa [hqepsilon] using hpolygon
+      let q' : Nat × Nat := (q.1, n - q.1)
+      refine ⟨q', ?_, ?_⟩
+      · unfold t1PlainPolygon
+        simp only [Set.mem_setOf_eq, q', if_pos hqepsilon]
+        omega
+      · unfold natPairLInfDistance
+        simp only [q', Nat.sub_self, zero_add]
+        have hqle : q.2 ≤ n - q.1 := by omega
+        have hgap : (n - q.1) - q.2 = n - (q.1 + q.2) := by omega
+        rw [Nat.sub_eq_zero_of_le hqle, zero_add, hgap]
+        omega
+    · have hsum : q.1 + q.2 < k := by
+        unfold t1PlainPolygon at hpolygon
+        simp only [Set.mem_setOf_eq, if_neg hqepsilon, not_le] at hpolygon
+        exact hpolygon
+      let q' : Nat × Nat := (q.1, k - q.1)
+      refine ⟨q', ?_, ?_⟩
+      · unfold t1PlainPolygon
+        simp only [Set.mem_setOf_eq, q', if_neg hqepsilon]
+        omega
+      · unfold natPairLInfDistance
+        simp only [q', Nat.sub_self, zero_add]
+        have hqle : q.2 ≤ k - q.1 := by omega
+        have hgap : (k - q.1) - q.2 = k - (q.1 + q.2) := by omega
+        rw [Nat.sub_eq_zero_of_le hqle, zero_add, hgap]
+        omega
+
+/-- Every strong description profile point for an unmarked boundary string lies near
+the strong polygon. -/
+private theorem t1_strong_profile_subset_strong_polygon_boundary
+    (V T : Map) (cD : Nat)
+    (hD : ∀ (n k : Nat) (x : BitString) (a b : Nat),
+      x.length = n → k ≤ n → ¬ T1DMarked V n k x →
+      InPlainDescriptionProfile V x a b → k ≤ a + b + logSlack cD n)
+    {n k epsilon : Nat} {x : BitString} (hxlen : x.length = n) (hkn : k ≤ n)
+    (hboundary : n < k + 4)
+    (hnotD : ¬ T1DMarked V n k x) {q : Nat × Nat}
+    (hq : q ∈ strongDescriptionProfileSet V T x epsilon) :
+    ∃ q' ∈ t1StrongPolygon n k, natPairLInfDistance q q' ≤ logSlack cD n + 3 := by
+  by_cases hpolygon : q ∈ t1StrongPolygon n k
+  · exact ⟨q, hpolygon, by simp [natPairLInfDistance]⟩
+  · have hplain : q ∈ plainDescriptionProfileSet V x :=
+      strongDescriptionProfileSet_subset_plain V T x _ hq
+    have hline := hD n k x q.1 q.2 hxlen hkn hnotD hplain
+    have hqsum : q.1 + q.2 < n := by
+      unfold t1StrongPolygon at hpolygon
+      simp only [Set.mem_setOf_eq, not_or, not_le] at hpolygon
+      exact hpolygon.2
+    let q' : Nat × Nat := (q.1, n - q.1)
+    refine ⟨q', ?_, ?_⟩
+    · unfold t1StrongPolygon
+      simp only [Set.mem_setOf_eq, q']
+      exact Or.inr (by omega)
+    · unfold natPairLInfDistance
+      simp only [q', Nat.sub_self, zero_add]
+      have hqle : q.2 ≤ n - q.1 := by omega
+      have hgap : (n - q.1) - q.2 = n - (q.1 + q.2) := by omega
+      rw [Nat.sub_eq_zero_of_le hqle, zero_add, hgap]
+      omega
+
+/-- For a boundary string, every point in the plain polygon lies near the plain profile set. -/
+private theorem t1_plain_polygon_subset_plain_profile_boundary
+    (V : Map) (cPlainSingleton cA cProfile : Nat)
+    (hPlainSingleton : ∀ x, plainSetComplexity V {x} (Finset.singleton_nonempty x) ≤
+      plainK V x + (cPlainSingleton : ENat))
+    {cCube cPlainShift : Nat}
+    (hPlainShift : ∀ (x : BitString) (a b i : Nat),
+      InPlainDescriptionProfile V x a b →
+      InPlainDescriptionProfile V x (a + i + logSlack cPlainShift i) (b - i))
+    {n k epsilon : Nat} {x : BitString} (hkn : k ≤ n)
+    (hboundary : n < k + 4)
+    (hKupper : plainK V x ≤ (k + logSlack cA n : ENat))
+    (hASingletonSlack : logSlack cA n + cPlainSingleton ≤ logSlack cProfile n)
+    (hCubeShiftSlack : logSlack cCube n + logSlack cPlainShift n ≤ logSlack cProfile n)
+    (hThree : 3 ≤ logSlack cProfile n)
+    (hFullPlain : (logSlack cCube n, n) ∈ plainDescriptionProfileSet V x)
+    {q : Nat × Nat} (hq : q ∈ t1PlainPolygon n k epsilon) :
+    ∃ q' ∈ plainDescriptionProfileSet V x, natPairLInfDistance q q' ≤ logSlack cProfile n := by
+  by_cases hqk : k ≤ q.1
+  · have hsingletonComplexity :
+        plainSetComplexity V {x} (Finset.singleton_nonempty x) ≤
+          (q.1 + logSlack cProfile n : Nat) := by
+      calc
+        plainSetComplexity V {x} (Finset.singleton_nonempty x)
+            ≤ plainK V x + (cPlainSingleton : ENat) := hPlainSingleton x
+        _ ≤ (k + logSlack cA n : ENat) + (cPlainSingleton : ENat) := by gcongr
+        _ ≤ (q.1 + logSlack cProfile n : Nat) := by
+          exact_mod_cast (show k + logSlack cA n + cPlainSingleton ≤
+            q.1 + logSlack cProfile n by omega)
+    have hprofile : (q.1 + logSlack cProfile n, q.2) ∈ plainDescriptionProfileSet V x := by
+      refine ⟨{x}, Finset.singleton_nonempty x, Finset.mem_singleton.mpr rfl,
+        hsingletonComplexity, ?_⟩
+      simpa using Nat.one_le_two_pow
+    refine ⟨(q.1 + logSlack cProfile n, q.2), hprofile, ?_⟩
+    simp [natPairLInfDistance]
+  · have hqi : q.1 ≤ n := by omega
+    have hshifted := hPlainShift x (logSlack cCube n) n q.1 hFullPlain
+    have hshifted' : (q.1 + logSlack cProfile n, q.2 + 3) ∈ plainDescriptionProfileSet V x := by
+      refine (hshifted.mono_i ?_).mono_j ?_
+      · have hshiftSlack : logSlack cPlainShift q.1 ≤ logSlack cPlainShift n :=
+          logSlack_mono_right cPlainShift hqi
+        omega
+      · unfold t1PlainPolygon at hq
+        by_cases hqepsilon : q.1 < epsilon
+        · simp only [Set.mem_setOf_eq, if_pos hqepsilon] at hq; omega
+        · simp only [Set.mem_setOf_eq, if_neg hqepsilon] at hq; omega
+    refine ⟨(q.1 + logSlack cProfile n, q.2 + 3), hshifted', ?_⟩
+    unfold natPairLInfDistance
+    rw [Nat.sub_eq_zero_of_le (Nat.le_add_right _ _), Nat.add_sub_cancel_left,
+      Nat.sub_eq_zero_of_le (Nat.le_add_right _ _), Nat.add_sub_cancel_left]
+    simp only [zero_add]
+    exact max_le (le_refl _) hThree
+
+/-- For a boundary string, every point in the strong polygon lies near the strong profile set. -/
+private theorem t1_strong_polygon_subset_strong_profile_boundary
+    (V T : Map) {cShiftStrength cShiftProfile cProfile cStrength : Nat}
+    (hStrongShift : ∀ (x : BitString) (n epsilon i : Nat),
+      x.length = n → cShiftStrength ≤ epsilon → i ≤ n →
+      (i + logSlack cShiftProfile n, n - i) ∈
+        strongDescriptionProfileSet V T x (epsilon + logSlack cShiftStrength n))
+    {n k epsilon : Nat} {x : BitString} (hxlen : x.length = n) (hkn : k ≤ n)
+    (hboundary : n < k + 4)
+    {cStrongSingletonProfile : Nat}
+    (hStrongSingletonFinal : (k + logSlack cStrongSingletonProfile n, 0) ∈
+      strongDescriptionProfileSet V T x (epsilon + logSlack cStrength n))
+    (hShiftProfileSlack : logSlack cShiftProfile n ≤ logSlack cProfile n)
+    (hStrongSingletonSlack : logSlack cStrongSingletonProfile n ≤ logSlack cProfile n)
+    (hShiftStrength0 : cShiftStrength ≤ epsilon)
+    (hShiftBudget : epsilon + logSlack cShiftStrength n ≤ epsilon + logSlack cStrength n)
+    {q : Nat × Nat} (hq : q ∈ t1StrongPolygon n k) :
+    ∃ q' ∈ strongDescriptionProfileSet V T x (epsilon + logSlack cStrength n),
+      natPairLInfDistance q q' ≤ logSlack cProfile n := by
+  by_cases hqk : k ≤ q.1
+  · have hprofile : (q.1 + logSlack cProfile n, q.2) ∈
+        strongDescriptionProfileSet V T x (epsilon + logSlack cStrength n) :=
+      (hStrongSingletonFinal.mono_i (by omega)).mono_j (Nat.zero_le _)
+    refine ⟨(q.1 + logSlack cProfile n, q.2), hprofile, ?_⟩
+    simp [natPairLInfDistance]
+  · have hqsum : n ≤ q.1 + q.2 := by
+      unfold t1StrongPolygon at hq
+      rcases hq with hq | hq
+      · exact False.elim (hqk hq)
+      · exact hq
+    have hqi : q.1 ≤ n := by omega
+    have hbase := hStrongShift x n epsilon q.1 hxlen hShiftStrength0 hqi
+    have hbase' : (q.1 + logSlack cShiftProfile n, n - q.1) ∈
+        strongDescriptionProfileSet V T x (epsilon + logSlack cStrength n) :=
+      hbase.mono_epsilon hShiftBudget
+    have hprofile : (q.1 + logSlack cProfile n, q.2) ∈
+        strongDescriptionProfileSet V T x (epsilon + logSlack cStrength n) :=
+      (hbase'.mono_i (by omega)).mono_j (by omega)
+    refine ⟨(q.1 + logSlack cProfile n, q.2), hprofile, ?_⟩
+    simp [natPairLInfDistance]
 
 /-- Pointwise profile bounds for a nonexceptional member of a finite-width boundary
 model. -/
@@ -378,8 +555,8 @@ theorem t1_boundary_pointwise_profile
       (logSlack cCube n, n) ∈
         plainDescriptionProfileSet V x := by
     refine ⟨stringsOfLength n, codedStringsOfLength_nonempty n,
-      (memStringsOfLength n x).mpr hxlen, hCube n, ?_⟩
-    rw [cardStringsOfLength]
+      (mem_stringsOfLength n x).mpr hxlen, hCube n, ?_⟩
+    rw [card_stringsOfLength]
   have hStrongSingletonBase :=
     hStrongSingletonEndpoint x n k epsilon hKupper
       hSingletonStrength0
@@ -394,160 +571,24 @@ theorem t1_boundary_pointwise_profile
   constructor
   · constructor
     · intro q hq
-      by_cases hpolygon : q ∈ t1PlainPolygon n k epsilon
-      · exact ⟨q, hpolygon, by simp [natPairLInfDistance]⟩
-      · have hline :=
-          hD n k x q.1 q.2 hxlen hkn hnotD hq
-        by_cases hqepsilon : q.1 < epsilon
-        · have hsum : q.1 + q.2 < n := by
-            unfold t1PlainPolygon at hpolygon
-            simpa [hqepsilon] using hpolygon
-          let q' : Nat × Nat := (q.1, n - q.1)
-          refine ⟨q', ?_, ?_⟩
-          · unfold t1PlainPolygon
-            simp only [Set.mem_setOf_eq, q', if_pos hqepsilon]
-            omega
-          · unfold natPairLInfDistance
-            simp only [q', Nat.sub_self, zero_add]
-            have hqle : q.2 ≤ n - q.1 := by
-              omega
-            have hgap :
-                (n - q.1) - q.2 = n - (q.1 + q.2) := by
-              omega
-            rw [Nat.sub_eq_zero_of_le hqle, zero_add, hgap]
-            omega
-        · have hsum : q.1 + q.2 < k := by
-            unfold t1PlainPolygon at hpolygon
-            simp only [Set.mem_setOf_eq, if_neg hqepsilon,
-              not_le] at hpolygon
-            exact hpolygon
-          let q' : Nat × Nat := (q.1, k - q.1)
-          refine ⟨q', ?_, ?_⟩
-          · unfold t1PlainPolygon
-            simp only [Set.mem_setOf_eq, q', if_neg hqepsilon]
-            omega
-          · unfold natPairLInfDistance
-            simp only [q', Nat.sub_self, zero_add]
-            have hqle : q.2 ≤ k - q.1 := by
-              omega
-            have hgap :
-                (k - q.1) - q.2 = k - (q.1 + q.2) := by
-              omega
-            rw [Nat.sub_eq_zero_of_le hqle, zero_add, hgap]
-            omega
+      obtain ⟨q', hq', hdist⟩ :=
+        t1_plain_profile_subset_plain_polygon_boundary V cD hD hxlen hkn
+          hboundary hnotD hq
+      exact ⟨q', hq', hdist.trans hDThreeSlack⟩
     · intro q hq
-      by_cases hqk : k ≤ q.1
-      · have hsingletonComplexity :
-            plainSetComplexity V {x}
-              (Finset.singleton_nonempty x) ≤
-                (q.1 + logSlack cProfile n : Nat) := by
-          calc
-            plainSetComplexity V {x}
-                (Finset.singleton_nonempty x)
-                ≤ plainK V x + (cPlainSingleton : ENat) :=
-              hPlainSingleton x
-            _ ≤ (k + logSlack cA n : ENat) +
-                  (cPlainSingleton : ENat) := by
-              gcongr
-            _ ≤ (q.1 + logSlack cProfile n : Nat) := by
-              exact_mod_cast (show
-                k + logSlack cA n + cPlainSingleton ≤
-                  q.1 + logSlack cProfile n by
-                omega)
-        have hprofile :
-            (q.1 + logSlack cProfile n, q.2) ∈
-              plainDescriptionProfileSet V x := by
-          refine ⟨{x}, Finset.singleton_nonempty x,
-            Finset.mem_singleton.mpr rfl, hsingletonComplexity, ?_⟩
-          simpa using Nat.one_le_two_pow
-        refine ⟨(q.1 + logSlack cProfile n, q.2), hprofile, ?_⟩
-        simp [natPairLInfDistance]
-      · have hqi : q.1 ≤ n := by
-          omega
-        have hshifted :=
-          hPlainShift x (logSlack cCube n) n q.1 hFullPlain
-        have hshifted' :
-            (q.1 + logSlack cProfile n, q.2 + 3) ∈
-              plainDescriptionProfileSet V x := by
-          refine (hshifted.mono_i ?_).mono_j ?_
-          · have hshiftSlack :
-                logSlack cPlainShift q.1 ≤
-                  logSlack cPlainShift n :=
-              logSlack_mono_right cPlainShift hqi
-            omega
-          · unfold t1PlainPolygon at hq
-            by_cases hqepsilon : q.1 < epsilon
-            · simp only [Set.mem_setOf_eq, if_pos hqepsilon] at hq
-              omega
-            · simp only [Set.mem_setOf_eq, if_neg hqepsilon] at hq
-              omega
-        refine ⟨(q.1 + logSlack cProfile n, q.2 + 3),
-          hshifted', ?_⟩
-        unfold natPairLInfDistance
-        rw [Nat.sub_eq_zero_of_le (Nat.le_add_right _ _),
-          Nat.add_sub_cancel_left,
-          Nat.sub_eq_zero_of_le (Nat.le_add_right _ _),
-          Nat.add_sub_cancel_left]
-        simp only [zero_add]
-        exact max_le (le_refl _) hThree
+      exact t1_plain_polygon_subset_plain_profile_boundary V cPlainSingleton cA cProfile
+        hPlainSingleton hPlainShift hkn hboundary hKupper hASingletonSlack
+        hCubeShiftSlack hThree hFullPlain hq
   · constructor
     · intro q hq
-      by_cases hpolygon : q ∈ t1StrongPolygon n k
-      · exact ⟨q, hpolygon, by simp [natPairLInfDistance]⟩
-      · have hplain : q ∈ plainDescriptionProfileSet V x :=
-          strongDescriptionProfileSet_subset_plain V T x _ hq
-        have hline :=
-          hD n k x q.1 q.2 hxlen hkn hnotD hplain
-        have hqsum : q.1 + q.2 < n := by
-          unfold t1StrongPolygon at hpolygon
-          simp only [Set.mem_setOf_eq, not_or, not_le] at hpolygon
-          exact hpolygon.2
-        let q' : Nat × Nat := (q.1, n - q.1)
-        refine ⟨q', ?_, ?_⟩
-        · unfold t1StrongPolygon
-          simp only [Set.mem_setOf_eq, q']
-          exact Or.inr (by omega)
-        · unfold natPairLInfDistance
-          simp only [q', Nat.sub_self, zero_add]
-          have hqle : q.2 ≤ n - q.1 := by
-            omega
-          have hgap :
-              (n - q.1) - q.2 = n - (q.1 + q.2) := by
-            omega
-          rw [Nat.sub_eq_zero_of_le hqle, zero_add, hgap]
-          omega
+      obtain ⟨q', hq', hdist⟩ :=
+        t1_strong_profile_subset_strong_polygon_boundary V T cD hD hxlen hkn
+          hboundary hnotD hq
+      exact ⟨q', hq', hdist.trans hDThreeSlack⟩
     · intro q hq
-      by_cases hqk : k ≤ q.1
-      · have hprofile :
-            (q.1 + logSlack cProfile n, q.2) ∈
-              strongDescriptionProfileSet V T x
-                (epsilon + logSlack cStrength n) :=
-          (hStrongSingletonFinal.mono_i (by omega)).mono_j
-            (Nat.zero_le _)
-        refine ⟨(q.1 + logSlack cProfile n, q.2), hprofile, ?_⟩
-        simp [natPairLInfDistance]
-      · have hqsum : n ≤ q.1 + q.2 := by
-          unfold t1StrongPolygon at hq
-          rcases hq with hq | hq
-          · exact False.elim (hqk hq)
-          · exact hq
-        have hqi : q.1 ≤ n := by
-          omega
-        have hbase :=
-          hStrongShift x n epsilon q.1 hxlen
-            hShiftStrength0 hqi
-        have hbase' :
-            (q.1 + logSlack cShiftProfile n, n - q.1) ∈
-              strongDescriptionProfileSet V T x
-                (epsilon + logSlack cStrength n) :=
-          hbase.mono_epsilon hShiftBudget
-        have hprofile :
-            (q.1 + logSlack cProfile n, q.2) ∈
-              strongDescriptionProfileSet V T x
-                (epsilon + logSlack cStrength n) :=
-          (hbase'.mono_i (by omega)).mono_j (by omega)
-        refine ⟨(q.1 + logSlack cProfile n, q.2), hprofile, ?_⟩
-        simp [natPairLInfDistance]
+      exact t1_strong_polygon_subset_strong_profile_boundary V T hStrongShift hxlen hkn
+        hboundary hStrongSingletonFinal hShiftProfileSlack hStrongSingletonSlack hShiftStrength0
+        hShiftBudget hq
 
 /-- The finite-width boundary case `k ≤ n < k + 4`, proved from a
 length-`n` incompressible string and the fact that the two Figure 6 polygons
@@ -573,30 +614,16 @@ theorem t1_strange_string_boundary_case
             (epsilon + logSlack cStrength n))
           (t1StrongPolygon n k)
           (logSlack cProfile n) := by
-  obtain ⟨cD, hD⟩ :=
-    t1_not_dMarked_plain_profile_lower V hV
-  obtain ⟨cCube, hCube⟩ :=
-    plainSetComplexity_fullCube_le_logSlack V hV
-  obtain ⟨cPlainShift, hPlainShift⟩ :=
-    inPlainDescriptionProfile_shift V hV
-  obtain ⟨cPlainSingleton, hPlainSingleton⟩ :=
-    plainSetComplexity_singleton_le_plainK V hV
-  obtain ⟨cLen, hLen⟩ :=
-    plainKLeLength V hV
+  obtain ⟨cLen, hLen⟩ := plainK_le_length V hV
   let cK := cLen + 4
-  obtain ⟨cShiftStrength, cShiftProfile, hStrongShift⟩ :=
-    t1_shifted_fullCube_strong_profile V T hV hT
-  obtain ⟨cSingletonStrength, hStrongSingleton⟩ :=
-    t1_singleton_strong_profile_endpoint V T hV hT
-  obtain ⟨cStrongSingletonProfile, hStrongSingletonEndpoint⟩ :=
-    hStrongSingleton cK
-  let cStrength := max cShiftStrength cSingletonStrength
-  let cProfile := cD + cCube + cPlainShift + cPlainSingleton +
-    cK + cShiftProfile + cStrongSingletonProfile + 10
-  refine ⟨cStrength, cStrength, cProfile, ?_⟩
+  obtain ⟨c0, cStrengthMin, hBoundaryPointwise⟩ :=
+    t1_boundary_pointwise_profile V T hV hT
+  obtain ⟨cProfile, hcAProfile, hPointwise⟩ :=
+    hBoundaryPointwise cK
+  refine ⟨c0, cStrengthMin, cProfile, ?_⟩
   intro n k epsilon hc0 hepsilon hkn hboundary
   obtain ⟨x, hxlen, hKlowerN⟩ :=
-    existsIncompressibleString V [] n
+    exists_incompressible_string V [] n
   have hKlower : (k : ENat) ≤ plainK V x := by
     have hkn' : (k : ENat) ≤ (n : ENat) := by
       exact_mod_cast hkn
@@ -611,237 +638,12 @@ theorem t1_strange_string_boundary_case
           dsimp [cK]
           unfold logSlack
           omega)
-  have hnotD : ¬ T1DMarked V n k x := by
-    unfold T1DMarked
-    push_neg
-    intro _
-    exact hKlower
-  have hDSlack :
-      logSlack cD n ≤ logSlack cProfile n := by
-    dsimp [cProfile]
-    exact logSlack_mono_left (by omega) n
-  have hDThreeSlack :
-      logSlack cD n + 3 ≤ logSlack cProfile n := by
-    dsimp [cProfile]
-    unfold logSlack
-    nlinarith [Nat.zero_le (Nat.bits n).length]
-  have hCubeShiftSlack :
-      logSlack cCube n + logSlack cPlainShift n ≤
-        logSlack cProfile n := by
-    rw [logSlack_add_const]
-    dsimp [cProfile]
-    exact logSlack_mono_left (by omega) n
-  have hKSingletonSlack :
-      logSlack cK n + cPlainSingleton ≤
-        logSlack cProfile n := by
-    calc
-      logSlack cK n + cPlainSingleton
-          ≤ logSlack cK n + logSlack cPlainSingleton n := by
-        gcongr
-        simp [logSlack]
-      _ = logSlack (cK + cPlainSingleton) n :=
-        logSlack_add_const cK cPlainSingleton n
-      _ ≤ logSlack cProfile n := by
-        dsimp [cProfile]
-        exact logSlack_mono_left (by omega) n
-  have hShiftProfileSlack :
-      logSlack cShiftProfile n ≤ logSlack cProfile n := by
-    dsimp [cProfile]
-    exact logSlack_mono_left (by omega) n
-  have hStrongSingletonSlack :
-      logSlack cStrongSingletonProfile n ≤
-        logSlack cProfile n := by
-    dsimp [cProfile]
-    exact logSlack_mono_left (by omega) n
-  have hThree : 3 ≤ logSlack cProfile n := by
-    dsimp [cProfile]
-    unfold logSlack
-    omega
-  have hShiftStrength0 : cShiftStrength ≤ epsilon :=
-    (Nat.le_max_left _ _).trans hc0
-  have hSingletonStrength0 : cSingletonStrength ≤ epsilon :=
-    (Nat.le_max_right _ _).trans hc0
-  have hShiftBudget :
-      epsilon + logSlack cShiftStrength n ≤
-        epsilon + logSlack cStrength n := by
-    exact Nat.add_le_add_left
-      (logSlack_mono_left (Nat.le_max_left _ _) n) epsilon
-  have hFullPlain :
-      (logSlack cCube n, n) ∈
-        plainDescriptionProfileSet V x := by
-    refine ⟨stringsOfLength n, codedStringsOfLength_nonempty n,
-      (memStringsOfLength n x).mpr hxlen, hCube n, ?_⟩
-    rw [cardStringsOfLength]
-  have hStrongSingletonBase :=
-    hStrongSingletonEndpoint x n k epsilon hKupper
-      hSingletonStrength0
-  have hStrongSingletonFinal :
-      (k + logSlack cStrongSingletonProfile n, 0) ∈
-        strongDescriptionProfileSet V T x
-          (epsilon + logSlack cStrength n) :=
-    hStrongSingletonBase.mono_epsilon (Nat.le_add_right _ _)
-  refine ⟨x, hxlen, hKlower,
-    hKupper.trans (by
-      exact_mod_cast (Nat.add_le_add_left
-        (logSlack_mono_left (by
-          dsimp [cProfile, cK]
-          omega) n) k)), ?_, ?_⟩
-  · constructor
-    · intro q hq
-      by_cases hpolygon : q ∈ t1PlainPolygon n k epsilon
-      · exact ⟨q, hpolygon, by simp [natPairLInfDistance]⟩
-      · have hline :=
-          hD n k x q.1 q.2 hxlen hkn hnotD hq
-        by_cases hqepsilon : q.1 < epsilon
-        · have hsum : q.1 + q.2 < n := by
-            unfold t1PlainPolygon at hpolygon
-            simpa [hqepsilon] using hpolygon
-          let q' : Nat × Nat := (q.1, n - q.1)
-          refine ⟨q', ?_, ?_⟩
-          · unfold t1PlainPolygon
-            simp only [Set.mem_setOf_eq, q', if_pos hqepsilon]
-            omega
-          · unfold natPairLInfDistance
-            simp only [q', Nat.sub_self, zero_add]
-            have hqle : q.2 ≤ n - q.1 := by
-              omega
-            have hgap :
-                (n - q.1) - q.2 = n - (q.1 + q.2) := by
-              omega
-            rw [Nat.sub_eq_zero_of_le hqle, zero_add, hgap]
-            omega
-        · have hsum : q.1 + q.2 < k := by
-            unfold t1PlainPolygon at hpolygon
-            simp only [Set.mem_setOf_eq, if_neg hqepsilon,
-              not_le] at hpolygon
-            exact hpolygon
-          let q' : Nat × Nat := (q.1, k - q.1)
-          refine ⟨q', ?_, ?_⟩
-          · unfold t1PlainPolygon
-            simp only [Set.mem_setOf_eq, q', if_neg hqepsilon]
-            omega
-          · unfold natPairLInfDistance
-            simp only [q', Nat.sub_self, zero_add]
-            have hqle : q.2 ≤ k - q.1 := by
-              omega
-            have hgap :
-                (k - q.1) - q.2 = k - (q.1 + q.2) := by
-              omega
-            rw [Nat.sub_eq_zero_of_le hqle, zero_add, hgap]
-            omega
-    · intro q hq
-      by_cases hqk : k ≤ q.1
-      · have hsingletonComplexity :
-            plainSetComplexity V {x}
-              (Finset.singleton_nonempty x) ≤
-                (q.1 + logSlack cProfile n : Nat) := by
-          calc
-            plainSetComplexity V {x}
-                (Finset.singleton_nonempty x)
-                ≤ plainK V x + (cPlainSingleton : ENat) :=
-              hPlainSingleton x
-            _ ≤ (k + logSlack cK n : ENat) +
-                  (cPlainSingleton : ENat) := by
-              gcongr
-            _ ≤ (q.1 + logSlack cProfile n : Nat) := by
-              exact_mod_cast (show
-                k + logSlack cK n + cPlainSingleton ≤
-                  q.1 + logSlack cProfile n by
-                omega)
-        have hprofile :
-            (q.1 + logSlack cProfile n, q.2) ∈
-              plainDescriptionProfileSet V x := by
-          refine ⟨{x}, Finset.singleton_nonempty x,
-            Finset.mem_singleton.mpr rfl, hsingletonComplexity, ?_⟩
-          simpa using Nat.one_le_two_pow
-        refine ⟨(q.1 + logSlack cProfile n, q.2), hprofile, ?_⟩
-        simp [natPairLInfDistance]
-      · have hqi : q.1 ≤ n := by
-          omega
-        have hshifted :=
-          hPlainShift x (logSlack cCube n) n q.1 hFullPlain
-        have hshifted' :
-            (q.1 + logSlack cProfile n, q.2 + 3) ∈
-              plainDescriptionProfileSet V x := by
-          refine (hshifted.mono_i ?_).mono_j ?_
-          · have hshiftSlack :
-                logSlack cPlainShift q.1 ≤
-                  logSlack cPlainShift n :=
-              logSlack_mono_right cPlainShift hqi
-            omega
-          · unfold t1PlainPolygon at hq
-            by_cases hqepsilon : q.1 < epsilon
-            · simp only [Set.mem_setOf_eq, if_pos hqepsilon] at hq
-              omega
-            · simp only [Set.mem_setOf_eq, if_neg hqepsilon] at hq
-              omega
-        refine ⟨(q.1 + logSlack cProfile n, q.2 + 3),
-          hshifted', ?_⟩
-        unfold natPairLInfDistance
-        rw [Nat.sub_eq_zero_of_le (Nat.le_add_right _ _),
-          Nat.add_sub_cancel_left,
-          Nat.sub_eq_zero_of_le (Nat.le_add_right _ _),
-          Nat.add_sub_cancel_left]
-        simp only [zero_add]
-        exact max_le (le_refl _) hThree
-  · constructor
-    · intro q hq
-      by_cases hpolygon : q ∈ t1StrongPolygon n k
-      · exact ⟨q, hpolygon, by simp [natPairLInfDistance]⟩
-      · have hplain : q ∈ plainDescriptionProfileSet V x :=
-          strongDescriptionProfileSet_subset_plain V T x _ hq
-        have hline :=
-          hD n k x q.1 q.2 hxlen hkn hnotD hplain
-        have hqsum : q.1 + q.2 < n := by
-          unfold t1StrongPolygon at hpolygon
-          simp only [Set.mem_setOf_eq, not_or, not_le] at hpolygon
-          exact hpolygon.2
-        let q' : Nat × Nat := (q.1, n - q.1)
-        refine ⟨q', ?_, ?_⟩
-        · unfold t1StrongPolygon
-          simp only [Set.mem_setOf_eq, q']
-          exact Or.inr (by omega)
-        · unfold natPairLInfDistance
-          simp only [q', Nat.sub_self, zero_add]
-          have hqle : q.2 ≤ n - q.1 := by
-            omega
-          have hgap :
-              (n - q.1) - q.2 = n - (q.1 + q.2) := by
-            omega
-          rw [Nat.sub_eq_zero_of_le hqle, zero_add, hgap]
-          omega
-    · intro q hq
-      by_cases hqk : k ≤ q.1
-      · have hprofile :
-            (q.1 + logSlack cProfile n, q.2) ∈
-              strongDescriptionProfileSet V T x
-                (epsilon + logSlack cStrength n) :=
-          (hStrongSingletonFinal.mono_i (by omega)).mono_j
-            (Nat.zero_le _)
-        refine ⟨(q.1 + logSlack cProfile n, q.2), hprofile, ?_⟩
-        simp [natPairLInfDistance]
-      · have hqsum : n ≤ q.1 + q.2 := by
-          unfold t1StrongPolygon at hq
-          rcases hq with hq | hq
-          · exact False.elim (hqk hq)
-          · exact hq
-        have hqi : q.1 ≤ n := by
-          omega
-        have hbase :=
-          hStrongShift x n epsilon q.1 hxlen
-            hShiftStrength0 hqi
-        have hbase' :
-            (q.1 + logSlack cShiftProfile n, n - q.1) ∈
-              strongDescriptionProfileSet V T x
-                (epsilon + logSlack cStrength n) :=
-          hbase.mono_epsilon hShiftBudget
-        have hprofile :
-            (q.1 + logSlack cProfile n, q.2) ∈
-              strongDescriptionProfileSet V T x
-                (epsilon + logSlack cStrength n) :=
-          (hbase'.mono_i (by omega)).mono_j (by omega)
-        refine ⟨(q.1 + logSlack cProfile n, q.2), hprofile, ?_⟩
-        simp [natPairLInfDistance]
+  obtain ⟨hPlain, hStrong⟩ :=
+    hPointwise cStrengthMin n k epsilon x (by omega)
+      hc0 hepsilon hkn hboundary hxlen hKlower hKupper
+  have hSlack : (k + logSlack cK n : ENat) ≤ (k + logSlack cProfile n : ENat) := by
+    exact_mod_cast Nat.add_le_add_left (logSlack_mono_left hcAProfile n) k
+  exact ⟨x, hxlen, hKlower, hKupper.trans hSlack, hPlain, hStrong⟩
 
 /-- In the finite-width boundary regime, the dashed Figure 6 polygon lies
 within three cells of the solid polygon. -/

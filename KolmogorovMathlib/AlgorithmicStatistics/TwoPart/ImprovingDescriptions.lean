@@ -126,6 +126,8 @@ noncomputable def descriptionsWithComplexityLeAndSizeLe (U : Map) (i j : ℕ) : 
     (Finset BitString) :=
   (descriptionsWithComplexityLe U i).filter (fun S => S.card ≤ 2 ^ j)
 
+/-- There are at most `2 ^ (i + 1)` descriptions of complexity at most `i` and size at most
+`2 ^ j`. -/
 theorem card_descriptionsWithComplexityLeAndSizeLe (U : Map) (i j : ℕ) :
     (descriptionsWithComplexityLeAndSizeLe U i j).card ≤ 2 ^ (i + 1) := by
   unfold descriptionsWithComplexityLeAndSizeLe
@@ -163,10 +165,23 @@ theorem descriptionsWithComplexityLeAndSizeLe_subset_of_le_right (U : Map) (i : 
   rw [Finset.mem_filter] at hS ⊢
   exact ⟨hS.1, hS.2.trans (Nat.pow_le_pow_right (by decide) h)⟩
 
-/-- `ManyIJDescriptions U x i j k` means that `x` is contained in at least `2^k` distinct
-`finset` models from the valid universe of `(i*j)`-descriptions. -/
+/-- `ManyIJDescriptions U x i j k` means that `x` is contained in at least `2 ^ k` distinct
+finite models of set complexity at most `i` and at most `2 ^ j` elements. -/
 noncomputable def ManyIJDescriptions (U : Map) (x : BitString) (i j k : ℕ) : Prop :=
   2 ^ k ≤ ((descriptionsWithComplexityLeAndSizeLe U i j).filter (fun S => x ∈ S)).card
+
+/-- A single `(i, j)`-description of `x` already witnesses `ManyIJDescriptions U x i j 0`. -/
+theorem manyIJDescriptions_zero_of_mem {U : Map} {x : BitString} {S : Finset BitString}
+    (hS : S.Nonempty) (hxS : x ∈ S) {i j : ℕ} (hcomp : setComplexity U S hS ≤ (i : ENat))
+    (hcard : S.card ≤ 2 ^ j) :
+    ManyIJDescriptions U x i j 0 := by
+  have hmem : S ∈ (descriptionsWithComplexityLeAndSizeLe U i j).filter (fun T => x ∈ T) := by
+    rw [Finset.mem_filter]
+    refine ⟨?_, hxS⟩
+    rw [descriptionsWithComplexityLeAndSizeLe, Finset.mem_filter]
+    exact ⟨mem_descriptionsWithComplexityLe_of_complexity hS hcomp, hcard⟩
+  have hpos := Finset.card_pos.mpr ⟨S, hmem⟩
+  simpa [ManyIJDescriptions] using hpos
 
 /-- Parameter-log-slack form of the size-improvement half of the
 improving-descriptions proposition.  The explicit length parameter records the
@@ -357,9 +372,12 @@ theorem mem_descriptionsContaining_of_complexity {U : Map} {A : Finset BitString
   exact ⟨mem_descriptionsWithComplexityLe_of_complexity hA hcomp, hsize⟩
 
 -- Combinatorial core for the half-rich trick (size half)
+/-- The elements occurring in at least `2 ^ t` of the sets of the list. -/
 def appearsAtLeast (L : List (Finset BitString)) (t : ℕ) : Finset BitString :=
   (L.toFinset.biUnion id).filter (fun x => 2 ^ t ≤ L.countP (fun S => x ∈ S))
 
+/-- Counting incidences: if every set of the list has at most `2 ^ j` elements, the elements
+occurring at least `2 ^ t` times number at most `|L| * 2 ^ j / 2 ^ t`. -/
 theorem halfRich_card_le (L : List (Finset BitString)) (t j : ℕ)
     (h_size : ∀ S ∈ L, S.card ≤ 2 ^ j) :
     (appearsAtLeast L t).card * 2 ^ t ≤ L.length * 2 ^ j := by
@@ -385,6 +403,7 @@ theorem halfRich_card_le (L : List (Finset BitString)) (t j : ℕ)
     rw [ ← Finset.sum_mul _ _ _, List.sum_toFinset_count_eq_length ];
   exact le_trans ( by simpa using Finset.sum_le_sum h_indicator_x ) ( by linarith )
 
+/-- The half-rich elements fill at most `|L| / 2 ^ (k - 1)` blocks of size `2 ^ j`. -/
 theorem halfRich_portion_count_le (L : List (Finset BitString)) (k j : ℕ)
     (h_size : ∀ S ∈ L, S.card ≤ 2 ^ j) :
     (appearsAtLeast L (k - 1)).card / 2 ^ j ≤ L.length / 2 ^ (k - 1) := by

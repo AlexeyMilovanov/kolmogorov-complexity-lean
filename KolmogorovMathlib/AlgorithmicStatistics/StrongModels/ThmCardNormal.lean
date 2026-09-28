@@ -6,18 +6,13 @@ import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.AnyCurve
 
 Realizing the auxiliary boundary by a *normal* string (square-root precision,
 `stat-any-curve-1`) and appending a conditionally random tail produces
-`2 ^ (k_P - m_P)`-many normal strings whose plain description profiles are all
+`2 ^ (kP - mP)`-many normal strings whose plain description profiles are all
 `O(sqrt (n log n))`-close to the target profile.
 -/
 
 namespace Kolmogorov
 
 open Kolmogorov.CodedFiniteDistribution
-
-/-- Square-root slacks at the same budget combine by adding their constants. -/
-theorem sqrtSlack_add_const (c c' n : ℕ) :
-    sqrtSlack c n + sqrtSlack c' n = sqrtSlack (c + c') n := by
-  unfold sqrtSlack; ring
 
 /-- Scaling a square-root slack multiplies its constant. -/
 theorem sqrtSlack_mul (m c n : ℕ) : m * sqrtSlack c n = sqrtSlack (m * c) n := by
@@ -37,7 +32,7 @@ theorem logSlack_shifted_arg (a c n : ℕ) :
     logSlack_add_le a _ _
   have h2 : logSlack a (logSlack c n) ≤ a * logSlack c n + a := by
     unfold logSlack
-    have := length_natBits_le_self (c * (Nat.bits n).length + c)
+    have := length_natBits_le (c * (Nat.bits n).length + c)
     have h : a * (Nat.bits (c * (Nat.bits n).length + c)).length ≤
         a * (c * (Nat.bits n).length + c) := Nat.mul_le_mul_left _ this
     omega
@@ -54,12 +49,12 @@ theorem logSlack_shifted_arg (a c n : ℕ) :
 /-- The epigraph of a profile boundary is the family-curve target of its
 height function. -/
 theorem profileSet_eq_familyCurveTarget {V : Map} (b : ProfileBoundary V) :
-    {q : ℕ × ℕ | FamilyCurveTarget b.k_P b.height q.1 q.2} = profileSet V b := by
+    {q : ℕ × ℕ | FamilyCurveTarget b.kP b.height q.1 q.2} = profileSet V b := by
   ext ⟨i, j⟩
   simp only [Set.mem_setOf_eq, FamilyCurveTarget, profileSet]
   constructor
   · intro h
-    rcases Nat.lt_or_ge i b.k_P with hi | hi
+    rcases Nat.lt_or_ge i b.kP with hi | hi
     · exact h hi.le
     · rw [b.height_zero_of_ge i hi]
       exact Nat.zero_le _
@@ -67,7 +62,7 @@ theorem profileSet_eq_familyCurveTarget {V : Map} (b : ProfileBoundary V) :
     exact h
 
 /-- **Normal-string half of Theorem `card`.**  For every admissible profile with
-a boundary `b` there are `2 ^ (k_P - m_P)`-many normal strings whose plain
+a boundary `b` there are `2 ^ (kP - mP)`-many normal strings whose plain
 description profiles are `O(b.KP + sqrt (n log n))`-close to the profile. -/
 theorem thm_card_normal_branch
     (V U T : Map) (hV : isOptimalConditional V)
@@ -76,9 +71,9 @@ theorem thm_card_normal_branch
     ∃ c : ℕ, ∀ (P : Set (Nat × Nat)) (kp mp np : ℕ) (b : ProfileBoundary V),
       IsAdmissibleProfileSet P →
       profileSet V b = P →
-      k_P P = (kp : ENat) →
-      m_P P kp = (mp : ENat) →
-      n_P P = (np : ENat) →
+      kP P = (kp : ENat) →
+      mP P kp = (mp : ENat) →
+      nP P = (np : ENat) →
       ∃ S : Finset BitString,
         S.Nonempty ∧
         (S : Set BitString) ⊆
@@ -111,13 +106,13 @@ theorem thm_card_normal_branch
   set d := kp - mp with hd
   -- The auxiliary boundary.
   obtain ⟨bt, hbtk, hbtn, hbtP, -⟩ := hAux P kp mp np b hadm hbP hkP hmP hnP
-  have hntnp : bt.n_P ≤ np := by omega
-  have hmpnt : mp ≤ bt.n_P := by omega
+  have hntnp : bt.nP ≤ np := by omega
+  have hmpnt : mp ≤ bt.nP := by omega
   -- Realize the auxiliary boundary by a normal string.
-  have hcurve0 : bt.height 0 ≤ bt.n_P := le_of_eq bt.height_zero
+  have hcurve0 : bt.height 0 ≤ bt.nP := le_of_eq bt.height_zero
   have hcurvek : bt.height mp = 0 := by
     rw [← hbtk]
-    exact bt.height_zero_of_ge bt.k_P le_rfl
+    exact bt.height_zero_of_ge bt.kP le_rfl
   have hstrict : ∀ i : ℕ, i < mp → bt.height (i + 1) < bt.height i := by
     intro i hi
     have hpos : 0 < bt.height i := bt.height_pos_of_lt i (by omega)
@@ -125,7 +120,7 @@ theorem thm_card_normal_branch
     · omega
     · exact hlt
   obtain ⟨y, n', hylen, hn'low, hn'up, hkyUp, hkyLow, hyprofile, hynormal⟩ :=
-    hCurve bt.n_P mp bt.height hmpnt hcurve0 hcurvek hstrict
+    hCurve bt.nP mp bt.height hmpnt hcurve0 hcurvek hstrict
   have htarget : {q : ℕ × ℕ | FamilyCurveTarget mp bt.height q.1 q.2} =
       auxiliaryProfile P mp kp := by
     rw [← hbtP, ← hbtk]
@@ -135,7 +130,7 @@ theorem thm_card_normal_branch
   have hyFinite : plainK V y ≠ ⊤ := condK_ne_top_of_optimal V hV y []
   set ky := (plainK V y).toNat with hky
   have hkyval : plainK V y = (ky : ENat) := (ENat.coe_toNat hyFinite).symm
-  set e := sqrtSlack C5 bt.n_P with he
+  set e := sqrtSlack C5 bt.nP with he
   have hkyup : ky ≤ mp + e := by
     rw [hkyval] at hkyUp
     exact_mod_cast hkyUp
@@ -148,9 +143,9 @@ theorem thm_card_normal_branch
   -- Slack bookkeeping.
   have hlensum : y.length + (kp - mp) ≤ np + logSlack C5 np := by
     have h1 : y.length = n' := hylen
-    have h2 : n' ≤ bt.n_P + logSlack C5 bt.n_P := hn'up
-    have h3 : logSlack C5 bt.n_P ≤ logSlack C5 np := logSlack_mono_right C5 hntnp
-    have h4 : bt.n_P + (kp - mp) ≤ np := by omega
+    have h2 : n' ≤ bt.nP + logSlack C5 bt.nP := hn'up
+    have h3 : logSlack C5 bt.nP ≤ logSlack C5 np := logSlack_mono_right C5 hntnp
+    have h4 : bt.nP + (kp - mp) ≤ np := by omega
     omega
   have hlogsum : logSlack Cn (y.length + (kp - mp)) ≤
       logSlack (Cn + Cn * C5 + Cn) np :=
@@ -166,17 +161,17 @@ theorem thm_card_normal_branch
     obtain ⟨hzlen, hzrand, hznb⟩ := hRmem z hz
     constructor
     · -- Normality of the pair.
-      have hpair := hNormalPair y z (kp - mp) (logSlack C5 bt.n_P)
-        (2 * sqrtSlack C5 bt.n_P) C4
+      have hpair := hNormalPair y z (kp - mp) (logSlack C5 bt.nP)
+        (2 * sqrtSlack C5 bt.nP) C4
         hynormal hzlen hzrand
       refine (hpair.mono_delta ?_).mono_epsilon ?_
       · -- Deficiency bound.
-        have h1 : Cn * (2 * sqrtSlack C5 bt.n_P + C4) =
-            sqrtSlack (2 * Cn * C5) bt.n_P + Cn * C4 := by
-          have : Cn * (2 * sqrtSlack C5 bt.n_P + C4) =
-              (2 * Cn) * sqrtSlack C5 bt.n_P + Cn * C4 := by ring
+        have h1 : Cn * (2 * sqrtSlack C5 bt.nP + C4) =
+            sqrtSlack (2 * Cn * C5) bt.nP + Cn * C4 := by
+          have : Cn * (2 * sqrtSlack C5 bt.nP + C4) =
+              (2 * Cn) * sqrtSlack C5 bt.nP + Cn * C4 := by ring
           rw [this, sqrtSlack_mul]
-        have h2 : sqrtSlack (2 * Cn * C5) bt.n_P ≤ sqrtSlack (2 * Cn * C5) np :=
+        have h2 : sqrtSlack (2 * Cn * C5) bt.nP ≤ sqrtSlack (2 * Cn * C5) np :=
           sqrtSlack_mono_right _ hntnp
         have h3 : Cn * C4 ≤ sqrtSlack (Cn * C4) np := le_sqrtSlack _ _
         have h4 : logSlack (Cn + Cn * C5 + Cn) np ≤
@@ -184,14 +179,14 @@ theorem thm_card_normal_branch
         have h5 : sqrtSlack (2 * Cn * C5) np + sqrtSlack (Cn * C4) np +
             sqrtSlack (Cls (Cn + Cn * C5 + Cn)) np =
             sqrtSlack (2 * Cn * C5 + Cn * C4 + Cls (Cn + Cn * C5 + Cn)) np := by
-          rw [sqrtSlack_add_const, sqrtSlack_add_const]
+          rw [sqrtSlack_add, sqrtSlack_add]
         have h6 : sqrtSlack (2 * Cn * C5 + Cn * C4 + Cls (Cn + Cn * C5 + Cn)) np ≤
             sqrtSlack c np := by
           apply sqrtSlack_mono_left
           rw [hc, haSqrt]; omega
         omega
       · -- Strength bound.
-        have h1 : logSlack C5 bt.n_P ≤ logSlack C5 np := logSlack_mono_right C5 hntnp
+        have h1 : logSlack C5 bt.nP ≤ logSlack C5 np := logSlack_mono_right C5 hntnp
         have h2 : logSlack C5 np + logSlack (Cn + Cn * C5 + Cn) np =
             logSlack aLog np := by
           rw [haLog]; exact logSlack_add_const _ _ _
@@ -201,14 +196,14 @@ theorem thm_card_normal_branch
     · -- Profile of the pair.
       refine hznb.mono ?_
       have h1 : C4 * (e + e) ≤ sqrtSlack (2 * C4 * C5) np := by
-        have h : C4 * (e + e) = (2 * C4) * sqrtSlack C5 bt.n_P := by rw [he]; ring
+        have h : C4 * (e + e) = (2 * C4) * sqrtSlack C5 bt.nP := by rw [he]; ring
         rw [h, sqrtSlack_mul]
         exact sqrtSlack_mono_right _ hntnp
       have h2 : logSlack (C4 + C4 * C5 + C4) np ≤
           sqrtSlack (Cls (C4 + C4 * C5 + C4)) np := hCls _ _
       have h3 : sqrtSlack (2 * C4 * C5) np + sqrtSlack (Cls (C4 + C4 * C5 + C4)) np =
           sqrtSlack (2 * C4 * C5 + Cls (C4 + C4 * C5 + C4)) np :=
-        sqrtSlack_add_const _ _ _
+        sqrtSlack_add _ _ _
       have h4 : sqrtSlack (2 * C4 * C5 + Cls (C4 + C4 * C5 + C4)) np ≤
           sqrtSlack c np := by
         apply sqrtSlack_mono_left

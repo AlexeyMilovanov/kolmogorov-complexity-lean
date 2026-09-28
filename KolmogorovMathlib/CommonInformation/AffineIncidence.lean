@@ -7,14 +7,36 @@ import Mathlib.Tactic.LinearCombination
 import KolmogorovMathlib.CommonInformation.RectangleCover
 import KolmogorovMathlib.Restricted.GreedyCover
 
+/-!
+# The affine incidence graph and its shear covers
+
+The point–line incidence graph of the affine plane over a finite field `F`: `Point`, `Line`
+(nonvertical, given by slope and intercept), `Incident` and the edge set `incidentEdges`, with
+the counting facts that make it useful — `|F| ^ 2` points, each line carrying `|F|` of them
+(`incidentPointEquiv`, `incidentEdgeEquiv`, `point_card`), and two distinct points lying on at
+most one common line.
+
+The subject of the module is SUV Exercise 312: how economically the incidence relation can be
+covered by combinatorial rectangles.  `shearRectangle_cover_multiplicity` computes exactly how
+many shear images cover a given edge, `exists_polynomial_shear_cover` builds the shear cover of
+a rectangle, and `exists_shear_cover_card_between` and `exists_shear_cover_card_le_mul_log`
+are the two-sided estimate: the shear cover is optimal up to a logarithmic factor.
+
+This is the combinatorial source of the obstructions to extracting common information.
+-/
+
 namespace Kolmogorov
 namespace AffineIncidence
 
 variable {F : Type*} [Field F] [Fintype F] [DecidableEq F]
 
+/-- A point of the affine plane over `F`, a pair of coordinates. -/
 abbrev Point (F : Type*) := F × F
+/-- A nonvertical line of the affine plane over `F`, given by its slope and its
+intercept. -/
 abbrev Line (F : Type*) := F × F
 
+/-- The point `p` lies on the line `ℓ`, that is, `p.2 = ℓ.1 * p.1 + ℓ.2`. -/
 def Incident [Field F] (p : Point F) (ℓ : Line F) : Prop :=
   p.2 = ℓ.1 * p.1 + ℓ.2
 
@@ -27,6 +49,7 @@ def incidentEdges (F : Type*) [Field F] [Fintype F] [DecidableEq F] :
     Finset (Point F × Line F) :=
   Rel.interedges Incident Finset.univ Finset.univ
 
+/-- A pair belongs to the edge set exactly when its point lies on its line. -/
 @[simp]
 lemma mem_incidentEdges_iff {e : Point F × Line F} :
     e ∈ incidentEdges F ↔ Incident e.1 e.2 := by
@@ -35,11 +58,13 @@ lemma mem_incidentEdges_iff {e : Point F × Line F} :
   simp
 
 omit [Fintype F] [DecidableEq F] in
+/-- Incidence unfolded: `p` lies on `ℓ` iff its ordinate equals `ℓ.1 * p.1 + ℓ.2`. -/
 lemma incident_iff {p : Point F} {ℓ : Line F} :
   Incident p ℓ ↔ p.2 = ℓ.1 * p.1 + ℓ.2 := by
   rfl
 
 omit [Fintype F] [DecidableEq F] in
+/-- Two distinct points lie on at most one common line. -/
 lemma line_eq_of_two_distinct_incident_points {p₁ p₂ : Point F} {ℓ₁ ℓ₂ : Line F} :
   p₁ ≠ p₂ →
   Incident p₁ ℓ₁ →
@@ -67,6 +92,7 @@ lemma line_eq_of_two_distinct_incident_points {p₁ p₂ : Point F} {ℓ₁ ℓ�
     exact add_left_cancel (h₁₁.symm.trans h₁₂)
   exact Prod.ext rfl hb
 
+/-- The points of a fixed line are in bijection with the field, by their abscissa. -/
 def incidentPointEquiv (ℓ : Line F) :
   {p : Point F // Incident p ℓ} ≃ F :=
   { toFun := fun p => p.1.1
@@ -79,6 +105,8 @@ def incidentPointEquiv (ℓ : Line F) :
       · exact hy.symm
     right_inv := fun _ => rfl }
 
+/-- Incident point–line pairs are in bijection with pairs consisting of a line and a
+field element, the abscissa of the point. -/
 def incidentEdgeEquiv :
   {e : Point F × Line F // Incident e.1 e.2} ≃ Line F × F :=
   { toFun := fun e => (e.1.2, e.1.1.1)
@@ -97,16 +125,19 @@ def incidentEdgeEquiv :
       rfl }
 
 omit [Field F] [DecidableEq F] in
+/-- The affine plane over `F` has `|F| ^ 2` points. -/
 lemma point_card :
   Fintype.card (Point F) = (Fintype.card F) ^ 2 := by
   simp [Point, pow_two]
 
 omit [Field F] [DecidableEq F] in
+/-- There are `|F| ^ 2` nonvertical lines over `F`. -/
 lemma line_card :
   Fintype.card (Line F) = (Fintype.card F) ^ 2 := by
   simp [Line, pow_two]
 
 open Classical in
+/-- Each line carries exactly `|F|` points. -/
 lemma incident_points_card (ℓ : Line F) :
   (Rel.interedges Incident Finset.univ {ℓ}).card = Fintype.card F := by
   let edgeEquiv :
@@ -139,6 +170,7 @@ lemma incident_points_card (ℓ : Line F) :
     _ = Fintype.card F := Fintype.card_congr (incidentPointEquiv ℓ)
 
 open Classical in
+/-- The incidence graph over `F` has `|F| ^ 3` edges. -/
 lemma incidentEdges_card :
   (incidentEdges F).card = (Fintype.card F) ^ 3 := by
   let edgeEquiv :
@@ -161,7 +193,9 @@ lemma incidentEdges_card :
       simp [Line, pow_succ]
 
 omit [Fintype F] [DecidableEq F] in
-lemma noFourCycle :
+/-- The incidence relation contains no four-cycle: two distinct points lie on at
+most one common line, and two distinct lines meet in at most one point. -/
+lemma no_four_cycle :
   NoFourCycle (Incident (F := F)) := by
   classical
   intro p₁ p₂ ℓ₁ ℓ₂ h₁₁ h₁₂ h₂₁ h₂₂
@@ -171,6 +205,8 @@ lemma noFourCycle :
       (line_eq_of_two_distinct_incident_points hp h₁₁ h₂₁ h₁₂ h₂₂)
 
 omit [Fintype F] [DecidableEq F] in
+/-- The action of the shear with parameters `(A, s, B)` on points,
+`(x, y) ↦ (x + A, y + s * x + B)`. -/
 def pointShearEquiv (A s B : F) : Point F ≃ Point F where
   toFun p := (p.1 + A, p.2 + s * p.1 + B)
   invFun p := (p.1 - A, p.2 - s * (p.1 - A) - B)
@@ -178,6 +214,8 @@ def pointShearEquiv (A s B : F) : Point F ≃ Point F where
   right_inv := by intro p; dsimp; ext <;> ring
 
 omit [Fintype F] [DecidableEq F] in
+/-- The action of the shear with parameters `(A, s, B)` on lines, the one matching
+`pointShearEquiv` on the coordinates of a line. -/
 def lineShearEquiv (A s B : F) : Line F ≃ Line F where
   toFun ell := (ell.1 + s, ell.2 + B - (ell.1 + s) * A)
   invFun ell := (ell.1 - s, ell.2 - B + ell.1 * A)
@@ -185,6 +223,8 @@ def lineShearEquiv (A s B : F) : Line F ≃ Line F where
   right_inv := by intro ell; dsimp; ext <;> ring
 
 omit [Fintype F] [DecidableEq F] in
+/-- Shears preserve incidence: `p` lies on `ell` iff the sheared point lies on the
+sheared line. -/
 theorem pointShear_lineShear_incident_iff
     (A s B : F) (p : Point F) (ell : Line F) :
   Incident p ell ↔
@@ -198,6 +238,8 @@ theorem pointShear_lineShear_incident_iff
     linear_combination h
 
 omit [Field F] [Fintype F] in
+/-- Transporting a combinatorial rectangle along bijections of points and of lines
+leaves the cardinalities of its two sides unchanged. -/
 lemma rectangle_image_side_cards
     (fp : Point F ≃ Point F) (fl : Line F ≃ Line F)
     (R : CombinatorialRectangle (Point F) (Line F)) :
@@ -208,6 +250,8 @@ lemma rectangle_image_side_cards
   · exact Finset.card_image_of_injective R.2 fl.injective
 
 omit [Fintype F] [DecidableEq F] in
+/-- The shears act transitively on incident point–line pairs: some shear carries a
+given incident pair to any other. -/
 theorem incidentEdge_shear_transitive
     (e₁ e₂ : {e : Point F × Line F // Incident e.1 e.2}) :
   ∃ A s B : F,
@@ -228,6 +272,8 @@ theorem incidentEdge_shear_transitive
     · linear_combination h₂ - h₁
 
 omit [Fintype F] [DecidableEq F] in
+/-- Any incident point–line pair is carried to any other by a pair of bijections of
+points and lines that preserves incidence. -/
 theorem incidentEdge_transitive
     (e₁ e₂ : {e : Point F × Line F // Incident e.1 e.2}) :
   ∃ fp : Point F ≃ Point F, ∃ fl : Line F ≃ Line F,
@@ -282,6 +328,8 @@ theorem interedges_image_card_eq
       (hinc p ell).mp hI⟩
 
 omit [Fintype F] [DecidableEq F] in
+/-- The set of edges between two finsets does not depend on the decidability
+instance used for incidence. -/
 lemma interedges_decidable_congr (A : Finset (Point F)) (B : Finset (Line F))
     (d1 d2 : DecidableRel (Incident (F := F))) :
   @Rel.interedges _ _ (Incident (F := F)) d1 A B =
@@ -290,6 +338,8 @@ lemma interedges_decidable_congr (A : Finset (Point F)) (B : Finset (Line F))
   simp [Rel.mem_interedges_iff]
 
 open Classical in
+/-- If a family of rectangles covers the incidence graph and each of its rectangles
+carries at most `M` edges, then the graph has at most `𝓡.card * M` edges. -/
 theorem incidentEdges_card_le_family_card_mul
     (𝓡 : Finset (CombinatorialRectangle (Point F) (Line F))) (M : ℕ) :
   (∀ R ∈ 𝓡, (Rel.interedges (Incident (F := F)) R.1 R.2).card ≤ M) →
@@ -313,6 +363,9 @@ theorem incidentEdges_card_le_family_card_mul
 
 open Classical in
 omit [Fintype F] in
+/-- A rectangle containing one incident pair can be moved to a rectangle containing
+any prescribed incident pair, with the same number of edges and the same side
+cardinalities. -/
 theorem exists_image_rectangle_covering_edge
     (e₁ e₂ : {e : Point F × Line F // Incident e.1 e.2})
     (R : CombinatorialRectangle (Point F) (Line F))
@@ -346,6 +399,8 @@ def shearRectangle (g : F × F × F)
     R.2.image (lineShearEquiv g.1 g.2.1 g.2.2))
 
 omit [Fintype F] in
+/-- Membership in the edges of a sheared rectangle: an edge qualifies exactly when
+its point and line come from the original rectangle and it is incident. -/
 lemma mem_shearRectangle_interedges_iff (g : F × F × F)
     (R : CombinatorialRectangle (Point F) (Line F)) (e : Point F × Line F) :
     e ∈ Rel.interedges Incident (shearRectangle g R).1 (shearRectangle g R).2 ↔
@@ -488,7 +543,7 @@ lemma mem_interedges_iff_of_decidable {α β : Type*} (r : α → β → Prop)
     (d : (a : α) → DecidablePred (r a))
     (A : Finset α) (B : Finset β) (x : α × β) :
     x ∈ @Rel.interedges _ _ r d A B ↔ x.1 ∈ A ∧ x.2 ∈ B ∧ r x.1 x.2 := by
-  simp [Rel.interedges, Finset.mem_filter, Finset.mem_product, and_assoc]
+  exact Rel.mem_interedges_iff
 
 /-- **Polynomial shear-image cover.**  Any rectangle `R` with at least one
 incident edge can be translated by finitely many shears so that the resulting

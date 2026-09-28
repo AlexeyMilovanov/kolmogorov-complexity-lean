@@ -1,6 +1,22 @@
+import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.SlackArith
+import KolmogorovMathlib.Restricted.FamilyCurve.Basic.Part01
+import KolmogorovMathlib.Restricted.Improving.RestrictedDescriptions
+import KolmogorovMathlib.Restricted.Improving.UniformComputability
 import KolmogorovMathlib.Restricted.FamilyCurve.Basic
 import KolmogorovMathlib.Restricted.Improving
-import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.SlackArith
+
+/-!
+# The sampled stream of bad restricted models
+
+Given an encoded curve grid and a staged description family, this module enumerates the model
+codes that violate the sampled profile bounds. The lists
+`restrictedSampledBadCodesRaw`, `restrictedSampledBadCodesUpToTime`, and
+`restrictedSampledBadCodeStream` form a computable, duplicate-free monotone stream.
+
+The soundness lemmas identify every emitted code with a genuine profile violation, while
+`restrictedSampledBadCodeStream_catches_violation` proves that every visible violation
+eventually enters the stream.
+-/
 
 namespace Kolmogorov
 
@@ -9,7 +25,7 @@ open Nat.Partrec (Code)
 open CodedFiniteDistribution
 
 /-- Extracts the parameters `(i_s, j_s)` from the encoded sampled grid. -/
-def decode_restrictedCurveGridCode_sample (code : BitString) (s : ℕ) : ℕ × ℕ :=
+def decodeRestrictedCurveGridCodeSample (code : BitString) (s : ℕ) : ℕ × ℕ :=
   let pair := (decodeListCode code).getD s []
   (bitsToNat (decodeFirst pair), bitsToNat (decodeSecond pair))
 
@@ -17,7 +33,7 @@ def decode_restrictedCurveGridCode_sample (code : BitString) (s : ℕ) : ℕ × 
 the sample index. -/
 lemma decode_restrictedCurveGridCode_sample_computable :
     Computable (fun p : BitString × ℕ =>
-      decode_restrictedCurveGridCode_sample p.1 p.2) := by
+      decodeRestrictedCurveGridCodeSample p.1 p.2) := by
   have hpair : Primrec (fun p : BitString × ℕ =>
       (decodeListCode p.1).getD p.2 []) :=
     (Primrec.list_getD []).comp
@@ -31,9 +47,9 @@ lemma decode_restrictedCurveGridCode_sample_computable :
     {n k gridSteps : ℕ} {t_func : ℕ → ℕ}
     (grid : RestrictedCurveGrid n k gridSteps t_func) {s : ℕ}
     (hs : s ≤ gridSteps) :
-    decode_restrictedCurveGridCode_sample (restrictedCurveGridCode grid) s =
+    decodeRestrictedCurveGridCodeSample (restrictedCurveGridCode grid) s =
       (grid.i s, grid.j s) := by
-  unfold decode_restrictedCurveGridCode_sample restrictedCurveGridCode
+  unfold decodeRestrictedCurveGridCodeSample restrictedCurveGridCode
   rw [decodeListCode_listCode]
   have hslen : s < (List.map
       (fun r => pairCode (Nat.bits (grid.i r)) (Nat.bits (grid.j r)))
@@ -55,8 +71,8 @@ the sampled intervals. -/
 def restrictedSampledBadCodesRaw (c : Code) (gridCode : BitString)
     (𝒜 : PreDescriptionFamily) (gridSteps Δ : ℕ) (t : ℕ) : List BitString :=
   (List.range gridSteps).flatMap (fun s =>
-    let sample := decode_restrictedCurveGridCode_sample gridCode s
-    let next_sample := decode_restrictedCurveGridCode_sample gridCode (s + 1)
+    let sample := decodeRestrictedCurveGridCodeSample gridCode s
+    let next_sample := decodeRestrictedCurveGridCodeSample gridCode (s + 1)
     familyStageModelCodesList c next_sample.1 𝒜 (sample.2 - (Δ + 1)) t)
 
 /-- Collects the distinct family descriptions visible up to time `t` across
@@ -98,13 +114,13 @@ lemma restrictedSampledBadCodesRaw_sound (c : Code) (gridCode : BitString)
     (hw : w ∈ restrictedSampledBadCodesRaw c gridCode 𝒜 gridSteps Δ t) :
     ∃ s < gridSteps,
       IsFamilyModelCode 𝒜
-        ((decode_restrictedCurveGridCode_sample gridCode s).2 - (Δ + 1)) w := by
+        ((decodeRestrictedCurveGridCodeSample gridCode s).2 - (Δ + 1)) w := by
   rw [restrictedSampledBadCodesRaw, List.mem_flatMap] at hw
   obtain ⟨s, hs, hw⟩ := hw
   refine ⟨s, List.mem_range.mp hs, ?_⟩
   exact familyStageModelCodesList_sound c
-    (decode_restrictedCurveGridCode_sample gridCode (s + 1)).1 𝒜
-    ((decode_restrictedCurveGridCode_sample gridCode s).2 - (Δ + 1)) t w hw
+    (decodeRestrictedCurveGridCodeSample gridCode (s + 1)).1 𝒜
+    ((decodeRestrictedCurveGridCodeSample gridCode s).2 - (Δ + 1)) t w hw
 
 /-- Every stage code arises from a genuine stage description. -/
 lemma restrictedSampledBadCodesUpToTime_sound (c : Code) (gridCode : BitString)
@@ -112,7 +128,7 @@ lemma restrictedSampledBadCodesUpToTime_sound (c : Code) (gridCode : BitString)
     (hw : w ∈ restrictedSampledBadCodesUpToTime c gridCode 𝒜 gridSteps Δ t) :
     ∃ s < gridSteps,
       IsFamilyModelCode 𝒜
-        ((decode_restrictedCurveGridCode_sample gridCode s).2 - (Δ + 1)) w := by
+        ((decodeRestrictedCurveGridCodeSample gridCode s).2 - (Δ + 1)) w := by
   exact restrictedSampledBadCodesRaw_sound c gridCode 𝒜 gridSteps Δ t
     (mem_eraseDups_bitString.mp hw)
 
@@ -123,7 +139,7 @@ lemma restrictedSampledBadCodeStream_sound (c : Code) (gridCode : BitString)
     (hw : w ∈ restrictedSampledBadCodeStream c gridCode 𝒜 gridSteps Δ t) :
     ∃ s < gridSteps,
       IsFamilyModelCode 𝒜
-        ((decode_restrictedCurveGridCode_sample gridCode s).2 - (Δ + 1)) w := by
+        ((decodeRestrictedCurveGridCodeSample gridCode s).2 - (Δ + 1)) w := by
   induction t with
   | zero =>
       exact restrictedSampledBadCodesUpToTime_sound c gridCode 𝒜 gridSteps Δ 0 hw
@@ -144,8 +160,8 @@ lemma restrictedSampledBadCodesRaw_computable (c : Code) (gridCode : BitString)
       simpa [restrictedSampledBadCodesRaw] using
         (Computable.const ([] : List BitString))
   | succ gridSteps ih =>
-      let sample := decode_restrictedCurveGridCode_sample gridCode gridSteps
-      let nextSample := decode_restrictedCurveGridCode_sample gridCode (gridSteps + 1)
+      let sample := decodeRestrictedCurveGridCodeSample gridCode gridSteps
+      let nextSample := decodeRestrictedCurveGridCodeSample gridCode (gridSteps + 1)
       have hlast : Computable (fun t =>
           familyStageModelCodesList c nextSample.1 𝒜 (sample.2 - (Δ + 1)) t) :=
         familyStageModelCodesList_computable c nextSample.1 𝒜 (sample.2 - (Δ + 1))
@@ -158,7 +174,7 @@ lemma restrictedSampledBadCodesRaw_computable (c : Code) (gridCode : BitString)
       simp [restrictedSampledBadCodesRaw, List.range_succ,
         List.flatMap_append, sample, nextSample]
 
-attribute [local irreducible] decode_restrictedCurveGridCode_sample
+attribute [local irreducible] decodeRestrictedCurveGridCodeSample
   familyStageModelCodesList restrictedSampledBadCodesRaw
 
 /-- Uniform form: the encoded grid is an input to the enumeration algorithm,
@@ -173,32 +189,32 @@ lemma restrictedSampledBadCodesRaw_computable_uniform (c : Code)
         (Computable.const ([] : List BitString))
   | succ gridSteps ih =>
       have hsample : Computable (fun p : BitString × ℕ =>
-          decode_restrictedCurveGridCode_sample p.1 gridSteps) :=
+          decodeRestrictedCurveGridCodeSample p.1 gridSteps) :=
         decode_restrictedCurveGridCode_sample_computable.comp
           (Computable.pair Computable.fst (Computable.const gridSteps))
       have hnext : Computable (fun p : BitString × ℕ =>
-          decode_restrictedCurveGridCode_sample p.1 (gridSteps + 1)) :=
+          decodeRestrictedCurveGridCodeSample p.1 (gridSteps + 1)) :=
         decode_restrictedCurveGridCode_sample_computable.comp
           (Computable.pair Computable.fst (Computable.const (gridSteps + 1)))
       have hj : Computable (fun p : BitString × ℕ =>
-          (decode_restrictedCurveGridCode_sample p.1 gridSteps).2 - (Δ + 1)) :=
+          (decodeRestrictedCurveGridCodeSample p.1 gridSteps).2 - (Δ + 1)) :=
         (Primrec.nat_sub.to_comp.comp (Computable.snd.comp hsample)
           (Computable.const (Δ + 1)))
       have hinput : Computable (fun p : BitString × ℕ =>
-          ((decode_restrictedCurveGridCode_sample p.1 (gridSteps + 1)).1,
-            (decode_restrictedCurveGridCode_sample p.1 gridSteps).2 - (Δ + 1), p.2)) :=
+          ((decodeRestrictedCurveGridCodeSample p.1 (gridSteps + 1)).1,
+            (decodeRestrictedCurveGridCodeSample p.1 gridSteps).2 - (Δ + 1), p.2)) :=
         Computable.pair (Computable.fst.comp hnext)
           (Computable.pair hj Computable.snd)
       have hlast : Computable (fun p : BitString × ℕ =>
           familyStageModelCodesList c
-            (decode_restrictedCurveGridCode_sample p.1 (gridSteps + 1)).1 𝒜
-            ((decode_restrictedCurveGridCode_sample p.1 gridSteps).2 - (Δ + 1)) p.2) :=
+            (decodeRestrictedCurveGridCodeSample p.1 (gridSteps + 1)).1 𝒜
+            ((decodeRestrictedCurveGridCodeSample p.1 gridSteps).2 - (Δ + 1)) p.2) :=
         (familyStageModelCodesList_computable_uniform c 𝒜).comp hinput
       have happ : Computable (fun p : BitString × ℕ =>
           restrictedSampledBadCodesRaw c p.1 𝒜 gridSteps Δ p.2 ++
             familyStageModelCodesList c
-              (decode_restrictedCurveGridCode_sample p.1 (gridSteps + 1)).1 𝒜
-              ((decode_restrictedCurveGridCode_sample p.1 gridSteps).2 - (Δ + 1)) p.2) :=
+              (decodeRestrictedCurveGridCodeSample p.1 (gridSteps + 1)).1 𝒜
+              ((decodeRestrictedCurveGridCodeSample p.1 gridSteps).2 - (Δ + 1)) p.2) :=
         Computable.list_append.comp ih hlast
       refine happ.of_eq (fun p => ?_)
       simp [restrictedSampledBadCodesRaw, List.range_succ, List.flatMap_append]

@@ -2,25 +2,49 @@ import KolmogorovMathlib.CommonInformation.Counting
 import KolmogorovMathlib.CommonInformation.IncidenceCoding
 import KolmogorovMathlib.CommonInformation.RectangleCover
 import KolmogorovMathlib.CommonInformation.NoFourCycleDensity
+import KolmogorovMathlib.CommonInformation.WorstCaseCounting
 import KolmogorovMathlib.CommonInformation.WorstCaseRegionBounds
+
+/-!
+# Common witnesses are rectangle covers
+
+A common witness `z` for a pair makes both coordinates cheap given `z`, so the pairs it serves
+form a combinatorial rectangle.  `commonWitnessRectanglesLe` is the family of those
+rectangles, `incidentCommonWitnessPairsLe` the incident pairs they cover
+(`rectangleFamilyEdges_commonWitnessRectanglesLe`), and the family is small:
+`commonWitnessRectanglesLe_card_lt` and `commonWitnessRectanglesLe_side_card_lt` bound its
+size and its sides.
+
+Since the coded incidence relation has no four-cycle
+(`concreteIncidentCodeRel_noFourCycle`), such a family cannot cover many edges:
+`card_incidentCommonWitnessPairsLe_bound1` and its exchanged and source-facing forms give the
+covering bounds, and `muchnikThreshold_incidentCommonWitness_card_lt_gap` is the gap — at the
+Muchnik thresholds fewer than `2 ^ (3n - n/8)` incident pairs admit a common witness.
+-/
 
 open Kolmogorov
 
 namespace Kolmogorov
 
+/-- The incidence relation of the concrete plane, transported to the codes of points and
+lines. -/
 def concreteIncidentCodeRel (n : Nat) (x y : BitString) : Prop :=
   pairCode x y ∈ concreteIncidentPairCodes n
 
+/-- For each witness `z` of complexity at most `α`, the rectangle of the strings cheap given `z`;
+these rectangles cover the pairs admitting a common witness. -/
 noncomputable def commonWitnessRectanglesLe
     (V : Map) (α β γ : Nat) :
     Finset (Finset BitString × Finset BitString) :=
   (compressibleWords V [] α).image fun z =>
     (compressibleWords V z β, compressibleWords V z γ)
 
+/-- The incident code pairs admitting a common witness within the thresholds. -/
 noncomputable def incidentCommonWitnessPairsLe
     (V : Map) (n α β γ : Nat) : Finset (BitString × BitString) :=
   (commonWitnessPairsLe V α β γ).filter fun p => pairCode p.1 p.2 ∈ concreteIncidentPairCodes n
 
+/-- Two codes are related exactly when they are the point and line codes of an incident edge. -/
 lemma concreteIncidentCodeRel_iff_exists_edge {n : Nat} {x y : BitString} :
     concreteIncidentCodeRel n x y ↔
       ∃ e : ConcreteIncidentEdge n,
@@ -35,6 +59,8 @@ lemma concreteIncidentCodeRel_iff_exists_edge {n : Nat} {x y : BitString} :
   · rintro ⟨e, rfl, rfl⟩
     exact ⟨e, rfl⟩
 
+/-- The coded incidence relation of the plane is four-cycle-free: two points lie on at most one
+common line. -/
 lemma concreteIncidentCodeRel_noFourCycle {n : Nat} :
     NoFourCycle (concreteIncidentCodeRel n) := by
   intro x₁ x₂ y₁ y₂ h₁₁ h₁₂ h₂₁ h₂₂
@@ -61,11 +87,13 @@ lemma concreteIncidentCodeRel_noFourCycle {n : Nat} :
   · right
     rw [hy₁₁, hy₁₂, hlines]
 
+/-- There are fewer than `2^{α+1}` witness rectangles. -/
 lemma commonWitnessRectanglesLe_card_lt {V : Map} {α β γ : Nat} :
     (commonWitnessRectanglesLe V α β γ).card < 2 ^ (α + 1) := by
   classical
-  exact (Finset.card_image_le.trans_lt (cardCompressibleWordsLt V [] α))
+  exact (Finset.card_image_le.trans_lt (card_compressibleWordsLt V [] α))
 
+/-- Each witness rectangle has sides of size below `2^{β+1}` and `2^{γ+1}`. -/
 lemma commonWitnessRectanglesLe_side_card_lt
     {V : Map} {α β γ : Nat}
     {R : Finset BitString × Finset BitString} :
@@ -74,8 +102,9 @@ lemma commonWitnessRectanglesLe_side_card_lt
   classical
   rw [commonWitnessRectanglesLe, Finset.mem_image]
   rintro ⟨z, _hz, rfl⟩
-  exact ⟨cardCompressibleWordsLt V z β, cardCompressibleWordsLt V z γ⟩
+  exact ⟨card_compressibleWordsLt V z β, card_compressibleWordsLt V z γ⟩
 
+/-- The witness rectangles cover exactly the incident pairs admitting a common witness. -/
 lemma rectangleFamilyEdges_commonWitnessRectanglesLe {V : Map} {n α β γ : Nat} :
     rectangleFamilyEdges (concreteIncidentCodeRel n) (commonWitnessRectanglesLe V α β γ) =
       incidentCommonWitnessPairsLe V n α β γ := by
@@ -95,6 +124,8 @@ lemma rectangleFamilyEdges_commonWitnessRectanglesLe {V : Map} {n α β γ : Nat
     exact ⟨_, ⟨z, hz, rfl⟩, hxy.1, hxy.2,
       show concreteIncidentCodeRel n x y from hinc⟩
 
+/-- The exponent bookkeeping behind the gap: at the Muchnik threshold the covering bound stays
+below `3n - n/8`. -/
 lemma muchnikThreshold_gap_exponents {n : Nat} :
     64 ≤ n →
     let t := muchnikThreshold n - 1
@@ -106,6 +137,7 @@ lemma muchnikThreshold_gap_exponents {n : Nat} :
   unfold muchnikThreshold
   omega
 
+/-- The four-cycle-free covering bound on the number of incident pairs with a common witness. -/
 lemma card_incidentCommonWitnessPairsLe_bound1 {V : Map} {n α β γ : Nat} :
     (incidentCommonWitnessPairsLe V n α β γ).card ≤
       2 ^ ((α + 1) + (γ + 1) + 1) +
@@ -118,6 +150,8 @@ lemma card_incidentCommonWitnessPairsLe_bound1 {V : Map} {n α β γ : Nat} :
     exact ⟨(commonWitnessRectanglesLe_side_card_lt hR).1.le,
       (commonWitnessRectanglesLe_side_card_lt hR).2.le⟩
 
+/-- The covering bound in the form used by the source: fewer than
+`2^{α + γ/2 + max(γ/2, β) + 6}` pairs. -/
 lemma card_incidentCommonWitnessPairsLe_lt_source_bound1
     {V : Map} {n α β γ : Nat} :
     (incidentCommonWitnessPairsLe V n α β γ).card <
@@ -148,6 +182,7 @@ lemma card_incidentCommonWitnessPairsLe_lt_source_bound1
     _ < 2 ^ E := Nat.pow_lt_pow_right (by norm_num) (by omega)
     _ = 2 ^ (α + γ / 2 + max (γ / 2) β + 6) := by rfl
 
+/-- The covering bound with the roles of the two sides exchanged. -/
 lemma card_incidentCommonWitnessPairsLe_bound2 {V : Map} {n α β γ : Nat} :
     (incidentCommonWitnessPairsLe V n α β γ).card ≤
       2 ^ ((α + 1) + (β + 1) + 1) +
@@ -192,6 +227,7 @@ lemma card_incidentCommonWitnessPairsLe_bound2 {V : Map} {n α β γ : Nat} :
             congr 1
             omega
 
+/-- The exchanged covering bound in the form used by the source. -/
 lemma card_incidentCommonWitnessPairsLe_lt_source_bound2
     {V : Map} {n α β γ : Nat} :
     (incidentCommonWitnessPairsLe V n α β γ).card <
@@ -222,6 +258,8 @@ lemma card_incidentCommonWitnessPairsLe_lt_source_bound2
     _ < 2 ^ E := Nat.pow_lt_pow_right (by norm_num) (by omega)
     _ = 2 ^ (α + β / 2 + max (β / 2) γ + 6) := by rfl
 
+/-- At the Muchnik thresholds fewer than `2^{3n - n/8}` incident pairs admit a common witness, so
+most incident edges are uncovered. -/
 lemma muchnikThreshold_incidentCommonWitness_card_lt_gap {V : Map} {n : Nat} (h : 64 ≤ n) :
     (incidentCommonWitnessPairsLe V n (muchnikThreshold n - 1)
         (muchnikThreshold n - 1) (muchnikThreshold n - 1)).card <

@@ -1,6 +1,20 @@
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.AddNoiseGain
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.AddNoiseCandidates
 
+/-!
+# Many descriptions from an information gain
+
+The multiplicity step of `prop_add_noise`.  If conditioning on the uniform model over the
+noise candidates gains information about `y`, then `x` has many `(i, j)`-descriptions:
+`manyIJDescriptions_of_noise_information_gain` composes the cardinality bound for the
+truncated candidate family with the gain hypothesis,
+`manyIJDescriptions_clamped_of_noise_information_gain` clamps the resulting multiplicity
+exponent to the visible budget, and `inDescriptionProfile_of_noise_information_gain` reads the
+conclusion back as a point of the description profile.
+
+Uses `AddNoiseGain` for the information gain and `AddNoiseCandidates` for the candidate family.
+-/
+
 namespace Kolmogorov
 
 open Kolmogorov.CodedFiniteDistribution
@@ -65,6 +79,9 @@ theorem manyIJDescriptions_clamped_of_noise_information_gain
   exact ⟨hmany.mono_k (Nat.min_le_left gain (i + c0)),
     Nat.min_le_right gain (i + c0)⟩
 
+/-- If `y` is nearly incompressible given `x` yet conditioning on the uniform model of the first
+coordinates of `B` saves `k` bits, then the pair `(x, y)` lies in the description profile of
+`x` at a point determined by that information gain. -/
 theorem inDescriptionProfile_of_noise_information_gain
     (V U : Map) (hV : isOptimalConditional V)
     (hU : IsOptimalPrefixConditional U) :

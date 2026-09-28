@@ -23,6 +23,8 @@ noncomputable def finiteSetFstTruncationCode (w : BitString) : BitString :=
   canonicalImageCodeOfList
     ((canonicalPointListOfCode w).map decodeFirst)
 
+/-- If a pair `pairCode x y` belongs to `B`, its first coordinate `x` belongs to the first
+coordinate truncation of `B`. -/
 theorem finiteSetFstTruncation_mem
     {B : Finset BitString} {x y : BitString}
     (hxy : pairCode x y ∈ B) :
@@ -30,21 +32,26 @@ theorem finiteSetFstTruncation_mem
   rw [finiteSetFstTruncation, Finset.mem_image]
   exact ⟨pairCode x y, hxy, decodeFirst_pairCode x y⟩
 
+/-- The first coordinate truncation of a nonempty finite set is nonempty. -/
 theorem finiteSetFstTruncation_nonempty
     {B : Finset BitString} (hB : B.Nonempty) :
     (finiteSetFstTruncation B).Nonempty := by
   obtain ⟨z, hz⟩ := hB
   exact ⟨decodeFirst z, Finset.mem_image.mpr ⟨z, hz, rfl⟩⟩
 
+/-- Projecting to first coordinates does not increase cardinality. -/
 theorem finiteSetFstTruncation_card_le (B : Finset BitString) :
     (finiteSetFstTruncation B).card ≤ B.card := by
   exact Finset.card_image_le
 
+/-- Projecting to first coordinates does not increase the log-cardinality parameter of a set
+model. -/
 theorem finiteSetFstTruncation_logCard_le (B : Finset BitString) :
     finiteSetLogCard (finiteSetFstTruncation B) ≤
       finiteSetLogCard B :=
   finiteSetLogCard_mono (finiteSetFstTruncation_card_le B)
 
+/-- The code transformer implementing the first coordinate truncation is computable. -/
 theorem finiteSetFstTruncationCode_computable :
     Computable finiteSetFstTruncationCode := by
   unfold finiteSetFstTruncationCode
@@ -59,6 +66,8 @@ private theorem finiteSetFstTruncation_list_toFinset
   ext x
   simp [finiteSetFstTruncation]
 
+/-- On the code of the uniform distribution on `B`, the truncation transformer returns the code
+of the uniform distribution on the set of first coordinates of `B`. -/
 theorem finiteSetFstTruncationCode_codedUniformOn
     (B : Finset BitString) (hB : B.Nonempty) :
     finiteSetFstTruncationCode (codedUniformOn B hB).code =
@@ -86,7 +95,7 @@ theorem finiteSetFstTruncation_plainSetComplexity_le
           (finiteSetFstTruncation_nonempty hB) ≤
         plainSetComplexity V B hB + (c : ENat) := by
   obtain ⟨c, hc⟩ :=
-    plainKMapLe V hV finiteSetFstTruncationCode
+    plainK_map_le V hV finiteSetFstTruncationCode
       finiteSetFstTruncationCode_computable
   refine ⟨c, fun B hB => ?_⟩
   unfold plainSetComplexity

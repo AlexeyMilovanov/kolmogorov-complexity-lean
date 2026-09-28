@@ -14,7 +14,7 @@ incidence graph over a finite field of size about `2 ^ n`.
   `3n ≤ α + γ/2 + max (γ/2) β` and `3n ≤ α + β/2 + max (β/2) γ`
   (the source's piecewise `β ≤ γ` / `γ ≤ β` split is equivalent to holding both
   simultaneously).
-* `theorem_227_incidence_region_containment` shows that, after the uniform
+* `incidence_region_containment` shows that, after the uniform
   logarithmic inflation, every triple of `CommonInformationRegion V x y` for such
   an edge lands in `IncidenceRegionEnvelope n`.
 
@@ -33,6 +33,7 @@ def IncidenceRegionEnvelope (n : Nat) :
     3 * n ≤ t.1 + t.2.2 / 2 + max (t.2.2 / 2) t.2.1 ∧
     3 * n ≤ t.1 + t.2.1 / 2 + max (t.2.1 / 2) t.2.2}
 
+/-- The envelope of the incidence region is upward closed in each of the three coordinates. -/
 theorem incidenceRegionEnvelope_upward_closed
     (n : Nat) {s t : CommonInformationTriple} :
   s ∈ IncidenceRegionEnvelope n →
@@ -135,16 +136,13 @@ lemma pairPlainK_incident_region_source_bounds
       max_le_max hd (by omega)
     omega
 
-/-- **SUV Theorem 227, region containment.** For every high-complexity incident
-edge (its joint plain complexity within `logSlack d n` of `3n`), the entire
-common-information region of the edge lands, after the uniform inflation
-`logSlack C (n + α + β + γ + 1)`, inside the Figure-37 envelope
-`IncidenceRegionEnvelope n`.
-
-This is the geometric heart of Theorem 227: it combines the two Figure-37
-pair-complexity legs with the high-complexity hypothesis `3n ≤ kxy + logSlack d n`
-and folds both logarithmic error terms into a single inflation. -/
-theorem theorem_227_incidence_region_containment
+/-- For every high-complexity incident edge (its joint plain complexity within `logSlack d n` of
+`3n`), the entire common-information region of the edge lands, after the uniform inflation
+`logSlack C (n + α + β + γ + 1)`, inside the Figure-37 envelope `IncidenceRegionEnvelope n`.
+This is the geometric heart of Theorem 227: it combines the two Figure-37 pair-complexity
+legs with the high-complexity hypothesis `3n ≤ kxy + logSlack d n` and folds both
+logarithmic error terms into a single inflation.  SUV Theorem 227, region containment. -/
+theorem incidence_region_containment
     (V : Map) (hV : isOptimalConditional V) :
   ∀ d, ∃ C, ∀ n (e : ConcreteIncidentEdge n) kxy,
     HasPlainComplexityValue V

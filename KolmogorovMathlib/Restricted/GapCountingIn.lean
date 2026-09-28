@@ -1,5 +1,7 @@
-import KolmogorovMathlib.Restricted.Improving
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.GapCounting
+import KolmogorovMathlib.Restricted.Improving.RestrictedDescriptions
+import KolmogorovMathlib.Restricted.Improving.UniformComputability
+import KolmogorovMathlib.Restricted.Improving
 
 /-!
 # Restricted gap counting: the family description-count leaf
@@ -91,6 +93,7 @@ theorem familyAppearanceListCodes_computable (c : Code) (𝒜 : PreDescriptionFa
     | zero => simp_all +decide [ familyAppearanceListCodes ]
     | succ t ih => simp_all +decide [ familyAppearanceListCodes ]
 
+/-- Every stage-`t` candidate code appears in the stage-`t` appearance list. -/
 theorem mem_familyAppearanceListCodes_of_mem_familyCandidateCodes
     {c : Code} {i : ℕ} {𝒜 : PreDescriptionFamily} {j : ℕ} {x : BitString} {t : ℕ}
     {w : BitString} :
@@ -100,6 +103,7 @@ theorem mem_familyAppearanceListCodes_of_mem_familyCandidateCodes
   | succ t ih =>
     exact fun hw => mem_eraseDups_bitString.mpr (List.mem_append_right _ hw)
 
+/-- Every code in the appearance list was a candidate at some stage. -/
 theorem exists_familyCandidate_of_mem_familyAppearanceListCodes
     {c : Code} {i : ℕ} {𝒜 : PreDescriptionFamily} {j : ℕ} {x : BitString} {t : ℕ}
     {w : BitString} (hw : w ∈ familyAppearanceListCodes c i 𝒜 j x t) :
@@ -113,6 +117,7 @@ theorem exists_familyCandidate_of_mem_familyAppearanceListCodes
     rw [ mem_eraseDups_bitString ] ; simp +decide only [List.mem_append, hw, or_false];
     exact fun h => by obtain ⟨ t', ht' ⟩ := ih h; exact hw t' ht';
 
+/-- The appearance list of family descriptions has no repetitions. -/
 theorem familyAppearanceListCodes_nodup (c : Code) (i : ℕ) (𝒜 : PreDescriptionFamily)
     (j : ℕ) (x : BitString) (t : ℕ) :
     (familyAppearanceListCodes c i 𝒜 j x t).Nodup := by
@@ -120,6 +125,7 @@ theorem familyAppearanceListCodes_nodup (c : Code) (i : ℕ) (𝒜 : PreDescript
   | zero => exact nodup_eraseDups_bitString _
   | succ t ih => exact nodup_eraseDups_bitString _
 
+/-- The appearance list at an earlier stage is a prefix of the one at a later stage. -/
 theorem prefix_of_le_familyAppearanceListCodes (c : Code) (i : ℕ) (𝒜 : PreDescriptionFamily)
     (j : ℕ) (x : BitString) {t1 t2 : ℕ} (hle : t1 ≤ t2) :
     familyAppearanceListCodes c i 𝒜 j x t1 <+: familyAppearanceListCodes c i 𝒜 j x t2 := by
@@ -253,6 +259,8 @@ theorem familyAppearanceListCodes_length_le {U : Map} {c : Code}
     exact h_card.trans ( Finset.card_le_card <| Finset.image_subset_iff.mpr fun w hw => by aesop );
   rwa [ List.toFinset_card_of_nodup ( familyAppearanceListCodes_nodup c i 𝒜 j x t ) ] at h_card
 
+/-- If `x` does not have `2 ^ m` restricted `(i, j)`-descriptions, the appearance list stays
+shorter than `2 ^ m` at every stage. -/
 theorem familyAppearanceListCodes_length_lt_of_not_manyIJIn {U : Map} {c : Code}
     (hc : IsCodeFor c U) {𝒜 : PreDescriptionFamily} {x : BitString} {i j m : ℕ}
     (hnm : ¬ ManyIJDescriptionsIn 𝒜 U x i j m) (t : ℕ) :
@@ -260,6 +268,7 @@ theorem familyAppearanceListCodes_length_lt_of_not_manyIJIn {U : Map} {c : Code}
   rw [ManyIJDescriptionsIn, not_le] at hnm
   exact lt_of_le_of_lt (familyAppearanceListCodes_length_le hc 𝒜 i j x t) hnm
 
+/-- The appearance list has at most `2 ^ (i + 1)` entries, one per program of length at most `i`. -/
 theorem familyAppearanceListCodes_length_le_two_pow_i {U : Map} {c : Code}
     (hc : IsCodeFor c U) (𝒜 : PreDescriptionFamily) (i j : ℕ) (x : BitString) (t : ℕ) :
     (familyAppearanceListCodes c i 𝒜 j x t).length ≤ 2 ^ (i + 1) := by
@@ -287,6 +296,8 @@ def familyIndexSelectorFn (c : Code) (𝒜 : PreDescriptionFamily) :
       | [] => []
       | a :: _ => a))
 
+/-- The selector returning the description of a given index in the appearance list is partial
+computable. -/
 theorem partrec_familyIndexSelectorFn (c : Code) (𝒜 : PreDescriptionFamily) :
     Partrec (fun p : BitString × BitString => familyIndexSelectorFn c 𝒜 p.2 p.1) := by
   convert Partrec.bind ( Partrec.rfind _ ) _ using 1;
@@ -354,6 +365,8 @@ theorem partrec_familyIndexSelectorFn (c : Code) (𝒜 : PreDescriptionFamily) :
         ( familyAppearanceListCodes c ( selNat p.1 ) 𝒜 ( selAlpha p.1 )
           ( decodeFirst p.2 ) ‹_› ) <;> aesop
 
+/-- Every code in the appearance list has an index at which the selector returns it, for any
+input carrying `x`, `i`, `j` and that index. -/
 theorem familyIndexSelectorFn_eq_code (c : Code) (i : ℕ) (𝒜 : PreDescriptionFamily) (j : ℕ)
     (x : BitString) (code : BitString) (t0 : ℕ)
     (h_mem : code ∈ familyAppearanceListCodes c i 𝒜 j x t0) :
@@ -387,7 +400,10 @@ theorem familyIndexSelectorFn_eq_code (c : Code) (i : ℕ) (𝒜 : PreDescriptio
           r < ( familyAppearanceListCodes c i 𝒜 j x t ).length ) ) ) <;> simp_all +decide;
     grind
 
-/-- The M5 leaf content: the restricted description-count bound. -/
+/-- Restricted description-count bound: if `x` does *not* have `2 ^ m` many `𝒜`-descriptions at
+`(i, j)`, then every `𝒜`-description `A ∋ x` of set complexity at most `i` and size at most
+`2 ^ j` is itself describable, given `x` together with its prefix complexity, within
+`m + logSlack c (n + i + j)` bits. -/
 theorem restricted_description_count_of_conditional_complexity_gap_aux
     (U : Map) (hU : IsOptimalPrefixConditional U) (𝒜 : PreDescriptionFamily) :
     ∃ c : ℕ, ∀ (A : Finset BitString) (hA : A.Nonempty) (x : BitString)
@@ -439,8 +455,8 @@ theorem restricted_description_count_of_conditional_complexity_gap_aux
     lt_of_lt_of_le hr_lt (familyAppearanceListCodes_length_le_two_pow_i hc_opt 𝒜 i j x t₀)
   let M := n + i + j
   have h_w_len_M : w.length ≤ 3 * M + 7 := by
-    have hi_len : (Nat.bits i).length ≤ i := length_natBits_le_self i
-    have hj_len : (Nat.bits j).length ≤ j := length_natBits_le_self j
+    have hi_len : (Nat.bits i).length ≤ i := length_natBits_le i
+    have hj_len : (Nat.bits j).length ≤ j := length_natBits_le j
     have hr_len : (Nat.bits r).length ≤ i + 1 := by
       rw [Nat.size_eq_bits_len]
       exact Nat.size_le.mpr hr_lt_2i

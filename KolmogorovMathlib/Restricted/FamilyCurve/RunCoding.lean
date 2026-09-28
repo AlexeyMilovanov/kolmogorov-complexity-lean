@@ -1,5 +1,18 @@
 import KolmogorovMathlib.Restricted.FamilyCurve.CoupledRun
 
+/-!
+# Coding and survivor bounds for the sampled run
+
+The coupled sampled run repeatedly rebuilds a suffix of its live model sequence. This module
+bounds the number of rebuilds and the prefix complexity of its version code, and proves that the
+root live set decreases monotonically and eventually stabilizes.
+
+Disjointness of processed bad batches yields a model that persists through the stabilized run.
+`restrictedSampledRun_exists_persistent_survivor` extracts it, and
+`restrictedSampledRun_exists_survivor_avoiding_stream` makes its avoidance property explicit.
+These are the coding and compactness facts used by the anchored construction.
+-/
+
 namespace Kolmogorov
 
 /-- Concrete charging bridge for one sampled scale.  Large rebuilds are

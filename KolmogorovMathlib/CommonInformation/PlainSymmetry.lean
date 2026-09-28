@@ -2,6 +2,23 @@ import KolmogorovMathlib.CommonInformation.PlainCoding
 import KolmogorovMathlib.Prefix.ConditionalSymmetry
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.SlackArith
 
+/-!
+# Symmetry of information for plain complexity
+
+`pairPlainK_symmetryOfInformation_values`: `K(x, y) = K(x) + K(y | x)` up to a logarithmic
+slack, in the exact-value form the common-information arguments need.  The two halves are
+`pairPlainK_chain_lower_values` and `pairPlainK_chain_upper_values`, with
+`chain_lower_close_conditional` closing the arithmetic afterwards.
+
+The bridge to prefix complexity, where the symmetry is proved, goes through
+`conditionalProgramLengthContextDecompressor`, a machine that receives the program length in
+its condition and is therefore a prefix machine
+(`conditionalProgramLengthContextDecompressor_isPrefixMachine`); it gives
+`KP_le_condK_value_given_value_code` and `KP_le_condK_add_log_of_value`.
+`exists_prefixComplexityValue`, `overhead_le_logSlack` and `logSlack_two_values_le_pair`
+supply the exact prefix values and absorb the length codes into one slack term.
+-/
+
 namespace Kolmogorov
 
 /-- Run a plain conditional decompressor only on programs whose length is
@@ -12,6 +29,8 @@ def conditionalProgramLengthContextDecompressor (V : Map) : Map := fun pr =>
   else
     Part.none
 
+/-- The decompressor that receives the condition together with the length of the program is a
+decompressor. -/
 lemma conditionalProgramLengthContextDecompressor_isDecompressor
     (V : Map) (hV : isDecompressor V) :
     isDecompressor (conditionalProgramLengthContextDecompressor V) := by
@@ -21,7 +40,7 @@ lemma conditionalProgramLengthContextDecompressor_isDecompressor
       Computable
         (fun pr : BitString × BitString =>
           decodeBits (decodeSecond pr.2)) :=
-    decodeBitsComputable.comp
+    decodeBits_computable.comp
       (decodeSecond_computable.comp Computable.snd)
   have hGuard :
       Computable
@@ -40,6 +59,7 @@ lemma conditionalProgramLengthContextDecompressor_isDecompressor
     unfold conditionalProgramLengthContextDecompressor
     cases h : (pr.1.length == decodeBits (decodeSecond pr.2)) <;> rfl
 
+/-- The decompressor that receives the program length in its condition is a prefix machine. -/
 lemma conditionalProgramLengthContextDecompressor_isPrefixMachine
     (V : Map) :
     IsPrefixMachine (conditionalProgramLengthContextDecompressor V) := by
@@ -59,6 +79,8 @@ lemma conditionalProgramLengthContextDecompressor_isPrefixMachine
     beq_iff_eq.mp hqEq
   exact hpre.eq_of_length (by rw [hpLen, hqLen])
 
+/-- A program of the original machine also works for the length-annotated one, with the length
+appended to the condition. -/
 lemma conditionalProgramLengthContextDecompressor_produces
     {V : Map} {p x y : BitString} {k : Nat}
     (hp : produces V p y x) (hlen : p.length = k) :
@@ -203,6 +225,47 @@ theorem exists_prefixComplexityValue
   obtain ⟨k, hk⟩ := ENat.ne_top_iff_exists.mp hfinite
   exact ⟨k, hk⟩
 
+/-- The two length codes of the chain rule fit, together with the fixed constants, inside a
+single logarithmic slack in the pair complexity. -/
+private lemma overhead_le_logSlack {kpx kxy cNatCode cBits bPrefix cNatFold cFixed : Nat}
+    (hkpxLinear : kpx ≤ 4 * (kxy + 1) + bPrefix)
+    (hNatFold : ∀ M : Nat,
+      logSlack (2 + cNatCode) (4 * M + (4 + bPrefix)) ≤ logSlack cNatFold M) :
+    (2 * (Nat.bits kpx).length + cNatCode) + (2 * (Nat.bits kxy).length + cBits) + cFixed ≤
+      logSlack (cNatFold + (2 + cBits) + cFixed) (kxy + 1) := by
+  have hNatRaw : 2 * (Nat.bits kpx).length + cNatCode ≤ logSlack (2 + cNatCode) kpx := by
+    unfold logSlack
+    nlinarith [Nat.zero_le (cNatCode * (Nat.bits kpx).length)]
+  have hNatFolded : 2 * (Nat.bits kpx).length + cNatCode ≤ logSlack cNatFold (kxy + 1) := by
+    calc
+      2 * (Nat.bits kpx).length + cNatCode ≤ logSlack (2 + cNatCode) kpx := hNatRaw
+      _ ≤ logSlack (2 + cNatCode) (4 * (kxy + 1) + bPrefix) :=
+        logSlack_mono_right (2 + cNatCode) hkpxLinear
+      _ ≤ logSlack (2 + cNatCode) (4 * (kxy + 1) + (4 + bPrefix)) :=
+        logSlack_mono_right (2 + cNatCode) (by omega)
+      _ ≤ logSlack cNatFold (kxy + 1) := hNatFold (kxy + 1)
+  have hPairRaw : 2 * (Nat.bits kxy).length + cBits ≤ logSlack (2 + cBits) (kxy + 1) := by
+    have hmono : (Nat.bits kxy).length ≤ (Nat.bits (kxy + 1)).length :=
+      length_natBits_mono (Nat.le_succ kxy)
+    unfold logSlack
+    nlinarith [Nat.zero_le (cBits * (Nat.bits (kxy + 1)).length)]
+  have hLogs :
+      (2 * (Nat.bits kpx).length + cNatCode) + (2 * (Nat.bits kxy).length + cBits) ≤
+        logSlack (cNatFold + (2 + cBits)) (kxy + 1) := by
+    calc
+      (2 * (Nat.bits kpx).length + cNatCode) + (2 * (Nat.bits kxy).length + cBits)
+          ≤ logSlack cNatFold (kxy + 1) + logSlack (2 + cBits) (kxy + 1) :=
+        Nat.add_le_add hNatFolded hPairRaw
+      _ = logSlack (cNatFold + (2 + cBits)) (kxy + 1) :=
+        logSlack_add_const cNatFold (2 + cBits) (kxy + 1)
+  calc
+    (2 * (Nat.bits kpx).length + cNatCode) + (2 * (Nat.bits kxy).length + cBits) + cFixed
+        ≤ logSlack (cNatFold + (2 + cBits)) (kxy + 1) + cFixed := by omega
+    _ ≤ logSlack (cNatFold + (2 + cBits) + cFixed) (kxy + 1) :=
+      logSlack_add_nat_le (cNatFold + (2 + cBits)) cFixed (kxy + 1)
+
+/-- One half of symmetry of information for plain complexity: `K(x) + K(y|x) ≤ K(x, y)` up to a
+logarithmic slack. -/
 theorem pairPlainK_chain_lower_values
     (V : Map) (hV : isOptimalConditional V) :
     ∃ c : Nat, ∀ x y : BitString, ∀ kx kyx kxy : Nat,
@@ -212,7 +275,7 @@ theorem pairPlainK_chain_lower_values
       kx + kyx ≤ kxy + logSlack c (kxy + 1) := by
   obtain ⟨U, hU⟩ := exists_isOptimalPrefixConditional
   obtain ⟨cPlain, hPlain⟩ :=
-    plainK_le_KPPlain V U hV hU.isPrefixDecompressor
+    plain_le_prefix V U hV hU.isPrefixDecompressor
   obtain ⟨cCond, hCond⟩ :=
     condK_le_KP V U hV hU.isPrefixDecompressor
   obtain ⟨cRemove, hRemove⟩ := KP_cond_remove_short_info U hU
@@ -258,58 +321,11 @@ theorem pairPlainK_chain_lower_values
       kpx ≤ 4 * (kxy + 1) + bPrefix := by
     have hlen := length_natBits_le kxy
     omega
-  have hNatRaw :
-      2 * (Nat.bits kpx).length + cNatCode ≤
-        logSlack cNatRaw kpx := by
-    dsimp [cNatRaw]
-    unfold logSlack
-    nlinarith [Nat.zero_le (cNatCode * (Nat.bits kpx).length)]
-  have hNatFolded :
-      2 * (Nat.bits kpx).length + cNatCode ≤
-        logSlack cNatFold (kxy + 1) := by
-    calc
-      2 * (Nat.bits kpx).length + cNatCode
-          ≤ logSlack cNatRaw kpx := hNatRaw
-      _ ≤ logSlack cNatRaw (4 * (kxy + 1) + bPrefix) :=
-        logSlack_mono_right cNatRaw hkpxLinear
-      _ ≤ logSlack cNatRaw
-            (4 * (kxy + 1) + (4 + bPrefix)) :=
-        logSlack_mono_right cNatRaw (by omega)
-      _ ≤ logSlack cNatFold (kxy + 1) :=
-        hNatFold (kxy + 1)
-  have hPairRaw :
-      2 * (Nat.bits kxy).length + cBits ≤
-        logSlack cPairRaw (kxy + 1) := by
-    have hmono :
-        (Nat.bits kxy).length ≤ (Nat.bits (kxy + 1)).length :=
-      length_natBits_mono (Nat.le_succ kxy)
-    dsimp [cPairRaw]
-    unfold logSlack
-    nlinarith [Nat.zero_le (cBits * (Nat.bits (kxy + 1)).length)]
-  have hLogs :
-      (2 * (Nat.bits kpx).length + cNatCode) +
-          (2 * (Nat.bits kxy).length + cBits) ≤
-        logSlack (cNatFold + cPairRaw) (kxy + 1) := by
-    calc
-      (2 * (Nat.bits kpx).length + cNatCode) +
-            (2 * (Nat.bits kxy).length + cBits)
-          ≤ logSlack cNatFold (kxy + 1) +
-              logSlack cPairRaw (kxy + 1) :=
-        Nat.add_le_add hNatFolded hPairRaw
-      _ = logSlack (cNatFold + cPairRaw) (kxy + 1) :=
-        logSlack_add_const cNatFold cPairRaw (kxy + 1)
   have hOverhead :
       (2 * (Nat.bits kpx).length + cNatCode) +
           (2 * (Nat.bits kxy).length + cBits) + cFixed ≤
-        logSlack C (kxy + 1) := by
-    calc
-      (2 * (Nat.bits kpx).length + cNatCode) +
-            (2 * (Nat.bits kxy).length + cBits) + cFixed
-          ≤ logSlack (cNatFold + cPairRaw) (kxy + 1) + cFixed := by
-        omega
-      _ ≤ logSlack C (kxy + 1) := by
-        simpa [C] using
-          logSlack_add_nat_le (cNatFold + cPairRaw) cFixed (kxy + 1)
+        logSlack C (kxy + 1) :=
+    overhead_le_logSlack hkpxLinear hNatFold
   have hMain :
       ((kx + kyx : Nat) : ENat) ≤
         ((kxy + logSlack C (kxy + 1) : Nat) : ENat) := by
@@ -372,6 +388,8 @@ theorem pairPlainK_chain_lower_values
         exact_mod_cast Nat.add_le_add_left hOverhead kxy
   exact_mod_cast hMain
 
+/-- The other half of symmetry of information: `K(x, y) ≤ K(x) + K(y|x)` up to a logarithmic
+slack. -/
 theorem pairPlainK_chain_upper_values
     (V : Map) (hV : isOptimalConditional V) :
     ∃ c : Nat, ∀ x y : BitString, ∀ kx kyx kxy : Nat,
@@ -506,6 +524,8 @@ theorem chain_lower_close_conditional
         _ = (cChain + A) * (Nat.bits (k + 1)).length +
               (cChain + A) := by ring
 
+/-- Symmetry of information for plain complexity: `K(x, y) = K(x) + K(y|x)` up to a logarithmic
+slack. -/
 theorem pairPlainK_symmetryOfInformation_values
     (V : Map) (hV : isOptimalConditional V) :
     ∃ c : Nat, ∀ x y : BitString, ∀ kx kyx kxy : Nat,

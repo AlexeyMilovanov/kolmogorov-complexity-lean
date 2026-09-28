@@ -101,7 +101,7 @@ marginal at `x` is bounded by `2^{-k}` (the marginal coding bound at `k = K(x)`)
 then the scaled section `y ↦ m_M(⟨x,y⟩) · 2^{k}` has total mass `≤ 1`, i.e. it is
 a conditional subsemimeasure in `y`. This is the precondition the conditional
 coding theorem requires of the section. -/
-theorem pairSection_tsum_le_one_of_marginal (M : Map) (x : BitString) (k : ℕ)
+theorem pairSection_tsum_le_one_of_marginal {z : BitString} (M : Map) (x : BitString) (k : ℕ)
     (h : pairMarginal M x z ≤ (2 : ℝ≥0∞)⁻¹ ^ k) :
     ∑' y : BitString, (aprioriMeasure M (pairCode x y) z * (2 : ℝ≥0∞) ^ k) ≤ 1 := by
   rw [pairSection_tsum]

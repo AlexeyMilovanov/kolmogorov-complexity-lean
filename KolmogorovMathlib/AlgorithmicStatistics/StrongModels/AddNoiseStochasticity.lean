@@ -4,22 +4,43 @@ import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.FullCube
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.RemAddNoise
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.PlainPairSymmetry
 import KolmogorovMathlib.Prefix.TwoStage
-import KolmogorovMathlib.AlgorithmicStatistics.BoundedComplexityLists.NonStochasticRevisited
+import KolmogorovMathlib.AlgorithmicStatistics.BoundedLists.NonStochasticFinal
+
+/-!
+# Stochasticity from a plain description, and the add-noise corner
+
+The stochasticity side of `prop_add_noise`.
+
+`isStochastic_of_plainProfile_twoPartSum` is the sharp conversion: an ordinary plain
+`(i, j)`-description of `x` makes `x` stochastic at the parameters the two-part sum dictates.
+`isStochastic_fullCube_length` and `isStochastic_beta_le_length` are the two normalisations
+around it — every string is stochastic at `(logSlack c |x|, |x|)` through the full cube, and
+the size parameter may always be capped at the length — and
+`stochasticity_has_length_bounded_representative` says every profile point has a
+representative with both coordinates bounded by the length.
+
+`stochasticity_pair_of_plain_random_noise` is the corner of `prop_add_noise` these give: a
+plain-random noise string paired with `x` is stochastic at the expected parameters.
+`stochasticity_slack_absorption` is the arithmetic that absorbs the slack constants.
+-/
 
 namespace Kolmogorov
 
+open CodedFiniteDistribution
 open Nat
 
+/-- Every string is stochastic at parameters `(logSlack c x.length, x.length)`, witnessed by the
+uniform model on the full cube of its own length. -/
 theorem isStochastic_fullCube_length (U : Map) (hU : IsOptimalPrefixConditional U) :
     ∃ c : Nat, ∀ x : BitString, IsStochastic U x (logSlack c x.length) x.length := by
   obtain ⟨cS, hcS⟩ := isStochastic_of_inDescriptionProfile U hU
   obtain ⟨cF, hcF⟩ := fullSetComplexityGate U hU
   refine ⟨cS + cF, fun x => ?_⟩
-  have h_ne : (stringsOfLength x.length).Nonempty := ⟨x, (memStringsOfLength x.length x).mpr rfl⟩
+  have h_ne : (stringsOfLength x.length).Nonempty := ⟨x, (mem_stringsOfLength x.length x).mpr rfl⟩
   have h_prof : InDescriptionProfile U x (logSlack cF x.length) x.length := by
-    refine ⟨stringsOfLength x.length, h_ne, (memStringsOfLength x.length x).mpr rfl,
+    refine ⟨stringsOfLength x.length, h_ne, (mem_stringsOfLength x.length x).mpr rfl,
       hcF x.length h_ne, ?_⟩
-    rw [cardStringsOfLength]
+    rw [card_stringsOfLength]
   have h_stoch := hcS x (logSlack cF x.length) x.length h_prof
   apply isStochastic_mono ?_ ?_ h_stoch
   · unfold logSlack
@@ -27,6 +48,8 @@ theorem isStochastic_fullCube_length (U : Map) (hU : IsOptimalPrefixConditional 
     omega
   · rfl
 
+/-- The size parameter of stochasticity may be capped at the length of the string, at the price
+of `logSlack c x.length` in both parameters. -/
 theorem isStochastic_beta_le_length (U : Map) (hU : IsOptimalPrefixConditional U) :
     ∃ c : Nat, ∀ (x : BitString) (alpha beta : Nat),
       IsStochastic U x alpha beta →
@@ -51,7 +74,7 @@ log-cardinality `j` (which is what `isStochastic_of_inDescriptionProfile` /
 for the add-noise transport).  The proof bridges the plain description to a
 prefix description (`inDescriptionProfile_of_inPlainDescriptionProfile`),
 converts the exact plain complexity `C(z)` to prefix complexity
-(`plainK_le_KPPlain`), applies the sharp two-part optimality-deficiency bound
+(`plain_le_prefix`), applies the sharp two-part optimality-deficiency bound
 `setOptimalityDeficiencyLe_of_profile`, and finally passes through
 `randomness_optimality` and `isStochastic_of_model`. -/
 theorem isStochastic_of_plainProfile_twoPartSum
@@ -63,7 +86,7 @@ theorem isStochastic_of_plainProfile_twoPartSum
       i + j ≤ kz + beta →
       IsStochastic U z (i + logSlack c N) (beta + logSlack c N) := by
   obtain ⟨cB, hB⟩ := inDescriptionProfile_of_inPlainDescriptionProfile V U hV hU
-  obtain ⟨cP, hP⟩ := plainK_le_KPPlain V U hV hU.isPrefixDecompressor
+  obtain ⟨cP, hP⟩ := plain_le_prefix V U hV hU.isPrefixDecompressor
   obtain ⟨cR, hR⟩ := randomness_optimality U hU
   refine ⟨cB + cP + cR, fun z N kz i j beta hi _hj _hbeta _hkzN hkz hprof hsum => ?_⟩
   -- Bridge the plain profile to a prefix `(i + logSlack cB i, j)`-description.
@@ -135,7 +158,7 @@ theorem stochasticity_slack_absorption (cBeta cC cE cP cS cLen : Nat) :
     rw [hbase]
     dsimp [a]
     unfold logSlack
-    nlinarith [length_natBits_le_self x]
+    nlinarith [length_natBits_le x]
   have hbaseSlack : logSlack cC baseBudget ≤ logSlack cBase x := by
     exact (logSlack_mono_right cC hbaseLinear).trans (hBase x)
   have hnLinear : nBound ≤ A * (x + y + e) + B := by
@@ -146,15 +169,15 @@ theorem stochasticity_slack_absorption (cBeta cC cE cP cS cLen : Nat) :
     have hPLog : logSlack cP (x + y) ≤ cP * (x + y) + cP := by
       unfold logSlack
       exact Nat.add_le_add_right
-        (Nat.mul_le_mul_left cP (length_natBits_le_self (x + y))) cP
+        (Nat.mul_le_mul_left cP (length_natBits_le (x + y))) cP
     have hCLog : logSlack cC baseBudget ≤ cC * baseBudget + cC := by
       unfold logSlack
       exact Nat.add_le_add_right
-        (Nat.mul_le_mul_left cC (length_natBits_le_self baseBudget)) cC
+        (Nat.mul_le_mul_left cC (length_natBits_le baseBudget)) cC
     have hELog : logSlack cE y ≤ cE * y + cE := by
       unfold logSlack
       exact Nat.add_le_add_right
-        (Nat.mul_le_mul_left cE (length_natBits_le_self y)) cE
+        (Nat.mul_le_mul_left cE (length_natBits_le y)) cE
     have hbaseD : baseBudget ≤ D := hbaseLinear
     have hCbaseD : cC * baseBudget ≤ cC * D :=
       Nat.mul_le_mul_left cC hbaseD
@@ -209,12 +232,12 @@ theorem stochasticity_slack_absorption (cBeta cC cE cP cS cLen : Nat) :
   refine hlogs.trans ?_
   unfold logSlack
   dsimp [C, cx, cy]
-  nlinarith [length_natBits_le_self e]
+  nlinarith [length_natBits_le e]
 
 /-- A helper to extract exactly the natural number plain complexity. -/
 theorem exists_plainK_eq_nat (V : Map) (hV : isOptimalConditional V) (z : BitString) :
     ∃ k : Nat, plainK V z = (k : ENat) := by
-  obtain ⟨c, hc⟩ := plainKLeLength V hV
+  obtain ⟨c, hc⟩ := plainK_le_length V hV
   have h := hc z
   cases hz : plainK V z with
   | top =>
@@ -238,7 +261,7 @@ theorem stochasticity_pair_of_plain_random_noise
   obtain ⟨cE, hE⟩ := inPlainDescriptionProfile_pair_of_base V hV
   obtain ⟨cP, hP⟩ := plainK_pair_ge_plainK_add_length_of_random V U hV hU
   obtain ⟨cS, hS⟩ := isStochastic_of_plainProfile_twoPartSum V U hV hU
-  obtain ⟨cLen, hLen⟩ := plainKLeLength V hV
+  obtain ⟨cLen, hLen⟩ := plainK_le_length V hV
   obtain ⟨C, hC_abs⟩ := stochasticity_slack_absorption cBeta cC cE cP cS cLen
   refine ⟨C, fun x y epsilon alpha beta h_eps h_stoch => ?_⟩
   set beta1 := min beta (x.length + logSlack cBeta x.length) with hbeta1

@@ -1,7 +1,7 @@
 import KolmogorovMathlib.Restricted.FamilyCurve.CoupledRun
 
 /-!
-# M7: event-indexed run chains and the version-count bound
+# Event-indexed run chains and the version-count bound
 
 This module proves the survey's bound on the number of model rebuilds
 (VS40 §6, proof of `thm:family-curve`) at the level of an abstract chain of
@@ -337,6 +337,94 @@ lemma windowDrain_dead
   obtain ⟨a, ⟨_ha1, ha2⟩, hxa⟩ := chain.windowDrain_source hmM ha₀ hx
   exact chain.deleted_not_in_root (by omega) hm'M hxa
 
+/-- The S-charged steps of one edge drain pairwise disjoint fresh volume out of the S-events,
+so their number is controlled by the total S-volume. -/
+private lemma sCharged_card_mul_two_pow_le
+    (hroot : ∀ m' ≤ M, 2 ^ t 0 ≤ 2 * ((chain.states m').live 0).card)
+    {q : ℕ} (hqN : q < N) (isL : ℕ → Bool) {VS : ℕ}
+    (hS : ∑ a ∈ (Finset.range M).filter (fun a => isL a = false),
+        (chain.bads a).card ≤ VS)
+    {TS : Finset ℕ}
+    (hTS_T : ∀ m ∈ TS, m < M ∧ chain.edges m = q)
+    (hstart' : ∀ m ∈ TS, ∃ a, chain.edges a ≤ q ∧ a < m)
+    (hnoL : ∀ m ∈ TS, ¬ ∃ a, chain.windowStart q m < a ∧ a ≤ m ∧ isL a = true) :
+    TS.card * 2 ^ t (q + 1) ≤ 2 * overheadBound ^ (q + 1) * VS := by
+  classical
+  set SBad := ((Finset.range M).filter (fun a => isL a = false)).biUnion
+    chain.bads with hSBad
+  -- each drain sits inside the S-events
+  have hdrainS : ∀ m ∈ TS, chain.windowDrain q m ⊆ SBad := by
+    intro m hm x hx
+    obtain ⟨a, ⟨ha1, ha2⟩, hxa⟩ := chain.windowDrain_source
+      (hTS_T m hm).1 (hstart' m hm).choose_spec hx
+    have haS : isL a = false := by
+      by_contra hL'
+      exact hnoL m hm ⟨a, ha1, ha2, by
+        cases h : isL a
+        · exact absurd h hL'
+        · rfl⟩
+    exact Finset.mem_biUnion.mpr
+      ⟨a, Finset.mem_filter.mpr
+        ⟨Finset.mem_range.mpr (by have := (hTS_T m hm).1; omega), haS⟩, hxa⟩
+  -- drains of distinct S-charged steps are disjoint
+  have hdisj : ∀ m ∈ TS, ∀ m' ∈ TS, m ≠ m' →
+      Disjoint (chain.windowDrain q m) (chain.windowDrain q m') := by
+    have key : ∀ m ∈ TS, ∀ m' ∈ TS, m < m' →
+        Disjoint (chain.windowDrain q m) (chain.windowDrain q m') := by
+      intro m hm m' hm' hlt
+      rw [Finset.disjoint_left]
+      intro x hxm hxm'
+      have hwsm' : m ≤ chain.windowStart q m' :=
+        Nat.le_findGreatest
+          (P := fun a => chain.edges a ≤ q ∧ a < m') (by omega)
+          ⟨(hTS_T m hm).2.le, hlt⟩
+      have hM' : chain.windowStart q m' + 1 ≤ M := by
+        obtain ⟨⟨_, hlt'⟩, _⟩ := windowStart_spec (chain := chain)
+          (hstart' m' hm').choose_spec
+        have := (hTS_T m' hm').1
+        omega
+      have hdead : x ∉ (chain.states (chain.windowStart q m' + 1)).live 0 :=
+        chain.windowDrain_dead (hTS_T m hm).1
+          (hstart' m hm).choose_spec hxm (by omega) hM'
+      have hlive : x ∈ (chain.states (chain.windowStart q m' + 1)).live 0 := by
+        have hxA : x ∈ (chain.states
+            (chain.windowStart q m' + 1)).live (q + 1) := by
+          rw [windowDrain, Finset.mem_sdiff] at hxm'
+          exact hxm'.1
+        exact (chain.states (chain.windowStart q m' + 1)).live_subset_root
+          (by omega : q + 1 ≤ N) hxA
+      exact hdead hlive
+    intro m hm m' hm' hne
+    rcases Nat.lt_or_ge m m' with h | h
+    · exact key m hm m' hm' h
+    · exact (key m' hm' m hm (by omega)).symm
+  -- assemble the volume bound
+  have hlower : ∀ m ∈ TS,
+      2 ^ t (q + 1) ≤
+        2 * overheadBound ^ (q + 1) * (chain.windowDrain q m).card := by
+    intro m hm
+    exact chain.window_drain_card hroot hqN (hTS_T m hm).1
+      (hTS_T m hm).2 (hstart' m hm).choose_spec
+  calc TS.card * 2 ^ t (q + 1)
+      = TS.card • 2 ^ t (q + 1) := (smul_eq_mul _ _).symm
+    _ ≤ ∑ m ∈ TS, 2 * overheadBound ^ (q + 1) *
+          (chain.windowDrain q m).card :=
+        Finset.card_nsmul_le_sum _ _ _ hlower
+    _ = 2 * overheadBound ^ (q + 1) *
+          ∑ m ∈ TS, (chain.windowDrain q m).card := by
+        rw [Finset.mul_sum]
+    _ = 2 * overheadBound ^ (q + 1) *
+          (TS.biUnion (chain.windowDrain q)).card := by
+        rw [Finset.card_biUnion
+          (fun m hm m' hm' hne => hdisj m hm m' hm' hne)]
+    _ ≤ 2 * overheadBound ^ (q + 1) * SBad.card := by
+        apply Nat.mul_le_mul_left
+        apply Finset.card_le_card
+        exact Finset.biUnion_subset.mpr hdrainS
+    _ ≤ 2 * overheadBound ^ (q + 1) * VS := by
+        apply Nat.mul_le_mul_left
+        exact Finset.card_biUnion_le.trans hS
+
 /-- Per-edge counting: the steps failing exactly at edge `q` split into at
 most `CL + 1` L-charged steps and an S-charged remainder whose count is
 controlled by the total S-volume. -/
@@ -425,90 +513,17 @@ theorem edgeSteps_card_le_of_charges
             ⟨(hTmem m' hmT').2.le, h'⟩
         omega
   -- S-charged steps drain disjoint fresh volume from the S-events
-  have hTSvol : TS.card * 2 ^ t (q + 1) ≤ 2 * overheadBound ^ (q + 1) * VS := by
-    set SBad := ((Finset.range M).filter (fun a => isL a = false)).biUnion
-      chain.bads with hSBad
-    have hstart' : ∀ m ∈ TS, ∃ a, chain.edges a ≤ q ∧ a < m := by
-      intro m hm
-      exact (Finset.mem_filter.mp hm).2.1
-    have hnoL : ∀ m ∈ TS, ¬ hasL m := by
-      intro m hm
-      exact (Finset.mem_filter.mp hm).2.2
-    have hTS_T : ∀ m ∈ TS, m < M ∧ chain.edges m = q := by
-      intro m hm
-      exact hTmem m (Finset.mem_filter.mp hm).1
-    -- each drain sits inside the S-events
-    have hdrainS : ∀ m ∈ TS, chain.windowDrain q m ⊆ SBad := by
-      intro m hm x hx
-      obtain ⟨a, ⟨ha1, ha2⟩, hxa⟩ := chain.windowDrain_source
-        (hTS_T m hm).1 (hstart' m hm).choose_spec hx
-      have haS : isL a = false := by
-        by_contra hL'
-        exact hnoL m hm ⟨a, ha1, ha2, by
-          cases h : isL a
-          · exact absurd h hL'
-          · rfl⟩
-      exact Finset.mem_biUnion.mpr
-        ⟨a, Finset.mem_filter.mpr
-          ⟨Finset.mem_range.mpr (by have := (hTS_T m hm).1; omega), haS⟩, hxa⟩
-    -- drains of distinct S-charged steps are disjoint
-    have hdisj : ∀ m ∈ TS, ∀ m' ∈ TS, m ≠ m' →
-        Disjoint (chain.windowDrain q m) (chain.windowDrain q m') := by
-      have key : ∀ m ∈ TS, ∀ m' ∈ TS, m < m' →
-          Disjoint (chain.windowDrain q m) (chain.windowDrain q m') := by
-        intro m hm m' hm' hlt
-        rw [Finset.disjoint_left]
-        intro x hxm hxm'
-        have hwsm' : m ≤ chain.windowStart q m' :=
-          Nat.le_findGreatest
-            (P := fun a => chain.edges a ≤ q ∧ a < m') (by omega)
-            ⟨(hTS_T m hm).2.le, hlt⟩
-        have hM' : chain.windowStart q m' + 1 ≤ M := by
-          obtain ⟨⟨_, hlt'⟩, _⟩ := windowStart_spec (chain := chain)
-            (hstart' m' hm').choose_spec
-          have := (hTS_T m' hm').1
-          omega
-        have hdead : x ∉ (chain.states (chain.windowStart q m' + 1)).live 0 :=
-          chain.windowDrain_dead (hTS_T m hm).1
-            (hstart' m hm).choose_spec hxm (by omega) hM'
-        have hlive : x ∈ (chain.states (chain.windowStart q m' + 1)).live 0 := by
-          have hxA : x ∈ (chain.states
-              (chain.windowStart q m' + 1)).live (q + 1) := by
-            rw [windowDrain, Finset.mem_sdiff] at hxm'
-            exact hxm'.1
-          exact (chain.states (chain.windowStart q m' + 1)).live_subset_root
-            (by omega : q + 1 ≤ N) hxA
-        exact hdead hlive
-      intro m hm m' hm' hne
-      rcases Nat.lt_or_ge m m' with h | h
-      · exact key m hm m' hm' h
-      · exact (key m' hm' m hm (by omega)).symm
-    -- assemble the volume bound
-    have hlower : ∀ m ∈ TS,
-        2 ^ t (q + 1) ≤
-          2 * overheadBound ^ (q + 1) * (chain.windowDrain q m).card := by
-      intro m hm
-      exact chain.window_drain_card hroot hqN (hTS_T m hm).1
-        (hTS_T m hm).2 (hstart' m hm).choose_spec
-    calc TS.card * 2 ^ t (q + 1)
-        = TS.card • 2 ^ t (q + 1) := (smul_eq_mul _ _).symm
-      _ ≤ ∑ m ∈ TS, 2 * overheadBound ^ (q + 1) *
-            (chain.windowDrain q m).card :=
-          Finset.card_nsmul_le_sum _ _ _ hlower
-      _ = 2 * overheadBound ^ (q + 1) *
-            ∑ m ∈ TS, (chain.windowDrain q m).card := by
-          rw [Finset.mul_sum]
-      _ = 2 * overheadBound ^ (q + 1) *
-            (TS.biUnion (chain.windowDrain q)).card := by
-          rw [Finset.card_biUnion
-            (fun m hm m' hm' hne => hdisj m hm m' hm' hne)]
-      _ ≤ 2 * overheadBound ^ (q + 1) * SBad.card := by
-          apply Nat.mul_le_mul_left
-          apply Finset.card_le_card
-          exact Finset.biUnion_subset.mpr hdrainS
-      _ ≤ 2 * overheadBound ^ (q + 1) * VS := by
-          apply Nat.mul_le_mul_left
-          exact Finset.card_biUnion_le.trans hS
+  have hstart' : ∀ m ∈ TS, ∃ a, chain.edges a ≤ q ∧ a < m := by
+    intro m hm
+    exact (Finset.mem_filter.mp hm).2.1
+  have hnoL : ∀ m ∈ TS, ¬ hasL m := by
+    intro m hm
+    exact (Finset.mem_filter.mp hm).2.2
+  have hTS_T : ∀ m ∈ TS, m < M ∧ chain.edges m = q := by
+    intro m hm
+    exact hTmem m (Finset.mem_filter.mp hm).1
+  have hTSvol : TS.card * 2 ^ t (q + 1) ≤ 2 * overheadBound ^ (q + 1) * VS :=
+    chain.sCharged_card_mul_two_pow_le hroot hqN isL hS hTS_T hstart' hnoL
   exact ⟨TS.card, by omega, hTSvol⟩
 
 /-- Antitone transport for the target exponents. -/

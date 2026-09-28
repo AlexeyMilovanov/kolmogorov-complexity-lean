@@ -17,7 +17,7 @@ namespace Kolmogorov
 /-- If `C(z)` is a sufficiently large linear multiple of the endpoint profile
 scale, symmetry of information alone absorbs the marginal complexities and its
 logarithmic errors into the two reverse conditional complexities. -/
-theorem theorem_227_large_z_case
+theorem incidence_nonextractability_large_z
     (V : Map) (hV : isOptimalConditional V) :
   ∀ A, ∃ C L, ∀ n : Nat, ∀ x y : BitString, ∀ kx ky : Nat, ∀ z : BitString, ∀ kz kzx kzy : Nat,
     HasPlainComplexityValue V x kx → HasPlainComplexityValue V y ky →
@@ -29,7 +29,7 @@ theorem theorem_227_large_z_case
     kz ≤ 2 * kzx + 2 * kzy + logSlack C n := by
   intro A
   obtain ⟨cBal, hBal⟩ := plainK_conditional_balance_values V hV
-  obtain ⟨cCond, hCond⟩ := condKLePlainK V hV
+  obtain ⟨cCond, hCond⟩ := condK_le_plainK V hV
   let a := 2 * A + 6
   let b_const := 2 * A + 2 * cCond + 1
   obtain ⟨cFold, hFold⟩ := logSlack_linear_bound cBal a b_const
@@ -128,9 +128,73 @@ theorem theorem_227_large_z_case
   
   exact h_goal
 
+/-- The three standing bounds of the weighted profile argument for `V`: the conditional balance
+of a pair with constant `cBal`, the constant `cCond` by which conditioning is cheaper than
+plain description, and the absorption of the balance slack into `logSlack cFold`. -/
+private def WeightedProfileBounds (V : Map) (d cBal cCond cFold : Nat) : Prop :=
+  (∀ (x z : BitString) (kx kz kzx kxz : ℕ),
+      HasPlainComplexityValue V x kx →
+        HasPlainComplexityValue V z kz →
+          HasPlainConditionalComplexityValue V z x kzx →
+            HasPlainConditionalComplexityValue V x z kxz →
+              kz + kxz ≤ kx + kzx + logSlack cBal (kx + kz + kzx + kxz + 1)) ∧
+  (∀ x y, condK V x y ≤ plainK V x + (cCond : ENat)) ∧
+  ∀ M, logSlack cBal ((2 * d + 6) * M + (2 * d + 2 * cCond + 1)) ≤ logSlack cFold M
+
+/-- `2 * n ≤ α + β` follows from the conditional balance of the pair and the logarithmic
+closeness of the individual complexities. -/
+private theorem incidence_weighted_profile_marginal_bound
+    (V : Map) (d cBal cCond cFold C : Nat)
+    (hbounds : WeightedProfileBounds V d cBal cCond cFold)
+    (hC : cFold + d ≤ C)
+    (n : Nat) (w z : BitString) (kw kz kwz kzw : Nat)
+    (hw : HasPlainComplexityValue V w kw)
+    (hz : HasPlainComplexityValue V z kz)
+    (hkwz : HasPlainConditionalComplexityValue V w z kwz)
+    (hkzw : HasPlainConditionalComplexityValue V z w kzw)
+    (hwClose : 2 * n ≤ kw + logSlack d n)
+    (hwUpper : kw ≤ 2 * n + logSlack d n) :
+    2 * n ≤ (kz + 1 + logSlack C (n + kz + 1)) + (kwz + 1 + logSlack C (n + kz + 1)) := by
+  obtain ⟨hBal, hCond, hFold⟩ := hbounds
+  let a := 2 * d + 6
+  let b_const := 2 * d + 2 * cCond + 1
+  let M := n + kz + 1
+  have h_kwz : kwz ≤ kw + cCond := by
+    have h := hCond w z
+    rw [hkwz, hw] at h
+    exact_mod_cast h
+  have h_kzw : kzw ≤ kz + cCond := by
+    have h := hCond z w
+    rw [hkzw, hz] at h
+    exact_mod_cast h
+  have hBits : (Nat.bits n).length ≤ n := length_natBits_le n
+  have hdLinear : logSlack d n ≤ d * n + d := by
+    unfold logSlack
+    nlinarith [Nat.mul_le_mul_left d hBits]
+  let ex := logSlack cBal (kz + kw + kwz + kzw + 1)
+  have hBalW : kw + kzw ≤ kz + kwz + ex := hBal z w kz kw kwz kzw hz hw hkwz hkzw
+  have hwArg : kz + kw + kwz + kzw + 1 ≤ a * M + b_const := by
+    dsimp [a, b_const, M]
+    nlinarith [h_kwz, h_kzw, hwUpper, hdLinear]
+  have hex_bound : ex ≤ logSlack cFold M := (logSlack_mono_right cBal hwArg).trans (hFold M)
+  have hC1 : logSlack (cFold + d) M ≤ logSlack C M := logSlack_mono_left hC M
+  have h_d_mono : logSlack d n ≤ logSlack d M := logSlack_mono_right d (by dsimp [M]; omega)
+  have h_sum : logSlack cFold M + logSlack d M = logSlack (cFold + d) M := by
+    unfold logSlack
+    ring
+  calc
+    2 * n ≤ kw + logSlack d n := hwClose
+    _ ≤ (kw + kzw) + logSlack d n := by omega
+    _ ≤ (kz + kwz + ex) + logSlack d n := by omega
+    _ ≤ kz + kwz + logSlack cFold M + logSlack d n := by omega
+    _ ≤ kz + kwz + logSlack cFold M + logSlack d M := by omega
+    _ ≤ kz + kwz + logSlack (cFold + d) M := by omega
+    _ ≤ kz + kwz + logSlack C M := by omega
+    _ ≤ (kz + 1 + logSlack C M) + (kwz + 1 + logSlack C M) := by omega
+
 /-- Every exact common-information witness profile for the incident edge obeys
 the weighted `8n` lower bound, with one slack depending only on `n + C(z)`. -/
-theorem theorem_227_weighted_profile_values
+theorem incidence_weighted_profile_values
     (V : Map) (hV : isOptimalConditional V) :
   ∀ d, ∃ C, ∀ n (e : ConcreteIncidentEdge n)
       kxy kx ky z kz kxz kyz,
@@ -151,9 +215,9 @@ theorem theorem_227_weighted_profile_values
       2 * (kxz + 1 + δ) +
       2 * (kyz + 1 + δ) := by
   intro d
-  obtain ⟨C_env, hEnv⟩ := theorem_227_incidence_region_containment V hV d
+  obtain ⟨C_env, hEnv⟩ := incidence_region_containment V hV d
   obtain ⟨cBal, hBal⟩ := plainK_conditional_balance_values V hV
-  obtain ⟨cCond, hCond⟩ := condKLePlainK V hV
+  obtain ⟨cCond, hCond⟩ := condK_le_plainK V hV
   let a := 2 * d + 6
   let b_const := 2 * d + 2 * cCond + 1
   obtain ⟨cFold, hFold⟩ := logSlack_linear_bound cBal a b_const
@@ -165,139 +229,62 @@ theorem theorem_227_weighted_profile_values
   intro n e kxy kx ky z kz kxz kyz hkxy hkx hky hz hkxz hkyz hHigh hxClose hyClose
   obtain ⟨kzx, hkzx⟩ := exists_plainConditionalComplexityValue V hV z (concretePointCode n e.1.1)
   obtain ⟨kzy, hkzy⟩ := exists_plainConditionalComplexityValue V hV z (concreteLineCode n e.1.2)
-  have ht_in_region :
-      (kz + 1, kxz + 1, kyz + 1) ∈ CommonInformationRegion V
-        (concretePointCode n e.1.1) (concreteLineCode n e.1.2) := by
-    dsimp [CommonInformationRegion]
-    use z
-    refine ⟨?_, ?_, ?_⟩
-    · rw [hz]; exact_mod_cast Nat.lt_succ_self _
-    · rw [hkxz]; exact_mod_cast Nat.lt_succ_self _
-    · rw [hkyz]; exact_mod_cast Nat.lt_succ_self _
-  have hEnv_app := hEnv n e kxy hkxy hHigh (kz + 1, kxz + 1, kyz + 1) ht_in_region
-  
-  have h_kxz : kxz ≤ kx + cCond := by
-    have h := hCond (concretePointCode n e.1.1) z
-    rw [hkxz, hkx] at h
-    exact_mod_cast h
-  have h_kyz : kyz ≤ ky + cCond := by
-    have h := hCond (concreteLineCode n e.1.2) z
-    rw [hkyz, hky] at h
-    exact_mod_cast h
-  have h_kzx : kzx ≤ kz + cCond := by
-    have h := hCond z (concretePointCode n e.1.1)
-    rw [hkzx, hz] at h
-    exact_mod_cast h
-  have h_kzy : kzy ≤ kz + cCond := by
-    have h := hCond z (concreteLineCode n e.1.2)
-    rw [hkzy, hz] at h
-    exact_mod_cast h
-    
-  have h_kx_bound : kx ≤ 2 * n + logSlack d n := hxClose.left
-  have h_ky_bound : ky ≤ 2 * n + logSlack d n := hyClose.left
-  
-  have hBits : (Nat.bits n).length ≤ n := length_natBits_le n
-  have hdLinear : logSlack d n ≤ d * n + d := by
-    unfold logSlack
-    nlinarith [Nat.mul_le_mul_left d hBits]
-    
-  let M := n + kz + 1
-  have hM_arg_env : n + kz + 1 + kxz + 1 + kyz + 1 + 1 ≤ a_env * M + b_env := by
-    dsimp [a_env, b_env, M]
-    nlinarith [h_kxz, h_kyz, h_kx_bound, h_ky_bound, hdLinear]
-    
-  have hxLog_env : logSlack C_env (n + kz + 1 + kxz + 1 + kyz + 1 + 1) ≤ logSlack cFold_env M :=
-    (logSlack_mono_right C_env hM_arg_env).trans (hFold_env M)
-  have hxLog_C : logSlack C_env (n + kz + 1 + kxz + 1 + kyz + 1 + 1) ≤ logSlack C (n + kz + 1) := by
-    calc
-      logSlack C_env (n + kz + 1 + kxz + 1 + kyz + 1 + 1) ≤
-          logSlack cFold_env (n + kz + 1) := hxLog_env
-      _ ≤ logSlack C (n + kz + 1) := by
-        apply logSlack_mono_left
-        dsimp [C]
-        omega
-        
+  have h_env_up :
+      (kz + 1 + logSlack C (n + kz + 1),
+       kxz + 1 + logSlack C (n + kz + 1),
+       kyz + 1 + logSlack C (n + kz + 1)) ∈ IncidenceRegionEnvelope n := by
+    have ht_in_region :
+        (kz + 1, kxz + 1, kyz + 1) ∈ CommonInformationRegion V
+          (concretePointCode n e.1.1) (concreteLineCode n e.1.2) := by
+      dsimp [CommonInformationRegion]
+      use z
+      refine ⟨?_, ?_, ?_⟩
+      · rw [hz]; exact_mod_cast Nat.lt_succ_self _
+      · rw [hkxz]; exact_mod_cast Nat.lt_succ_self _
+      · rw [hkyz]; exact_mod_cast Nat.lt_succ_self _
+    have hEnv_app := hEnv n e kxy hkxy hHigh (kz + 1, kxz + 1, kyz + 1) ht_in_region
+    have h_kxz : kxz ≤ kx + cCond := by
+      have h := hCond (concretePointCode n e.1.1) z
+      rw [hkxz, hkx] at h
+      exact_mod_cast h
+    have h_kyz : kyz ≤ ky + cCond := by
+      have h := hCond (concreteLineCode n e.1.2) z
+      rw [hkyz, hky] at h
+      exact_mod_cast h
+    have hM_arg_env : n + kz + 1 + kxz + 1 + kyz + 1 + 1 ≤ a_env * (n + kz + 1) + b_env := by
+      change n + kz + 1 + kxz + 1 + kyz + 1 + 1 ≤
+        (2 * d + 6) * (n + kz + 1) + (2 * d + 2 * cCond + 1)
+      have hBits : (Nat.bits n).length ≤ n := length_natBits_le n
+      have hdLinear : logSlack d n ≤ d * n + d := by
+        unfold logSlack
+        nlinarith [Nat.mul_le_mul_left d hBits]
+      nlinarith [h_kxz, h_kyz, hxClose.left, hyClose.left, hdLinear]
+    have hxLog_C : logSlack C_env (n + kz + 1 + kxz + 1 + kyz + 1 + 1) ≤
+        logSlack C (n + kz + 1) :=
+      ((logSlack_mono_right C_env hM_arg_env).trans (hFold_env (n + kz + 1))).trans
+        (logSlack_mono_left (by dsimp [C]; omega) _)
+    exact incidenceRegionEnvelope_upward_closed n hEnv_app
+      (Nat.add_le_add_left hxLog_C _) (Nat.add_le_add_left hxLog_C _)
+      (Nat.add_le_add_left hxLog_C _)
+  have h2x := incidence_weighted_profile_marginal_bound V d cBal cCond cFold C ⟨hBal, hCond, hFold⟩
+    (by dsimp [C]; omega) n (concretePointCode n e.1.1) z kx kz kxz kzx
+    hkx hz hkxz hkzx hxClose.2 hxClose.1
+  have h2y := incidence_weighted_profile_marginal_bound V d cBal cCond cFold C ⟨hBal, hCond, hFold⟩
+    (by dsimp [C]; omega) n (concreteLineCode n e.1.2) z ky kz kyz kzy
+    hky hz hkyz hkzy hyClose.2 hyClose.1
   let α := kz + 1 + logSlack C (n + kz + 1)
   let β := kxz + 1 + logSlack C (n + kz + 1)
   let γ := kyz + 1 + logSlack C (n + kz + 1)
-  
-  have h_env_up : (α, β, γ) ∈ IncidenceRegionEnvelope n := by
-    apply incidenceRegionEnvelope_upward_closed n hEnv_app
-    · dsimp [α]; exact Nat.add_le_add_left hxLog_C _
-    · dsimp [β]; exact Nat.add_le_add_left hxLog_C _
-    · dsimp [γ]; exact Nat.add_le_add_left hxLog_C _
-    
-  let ex := logSlack cBal (kz + kx + kxz + kzx + 1)
-  have hBalX : kx + kzx ≤ kz + kxz + ex :=
-    hBal z (concretePointCode n e.1.1) kz kx kxz kzx hz hkx hkxz hkzx
-  have hxArg : kz + kx + kxz + kzx + 1 ≤ a * M + b_const := by
-    dsimp [a, b_const, M]
-    nlinarith [h_kxz, h_kzx, h_kx_bound, hdLinear]
-  have hex_bound : ex ≤ logSlack cFold M := (logSlack_mono_right cBal hxArg).trans (hFold M)
-  
-  have h2x : 2 * n ≤ α + β := by
-    have hC1 : logSlack (cFold + d) M ≤ logSlack C M := by
-      apply logSlack_mono_left
-      dsimp [C]
-      omega
-    have h_d_mono : logSlack d n ≤ logSlack d M := logSlack_mono_right d (by dsimp [M]; omega)
-    have h_sum :
-        logSlack cFold M + logSlack d M = logSlack (cFold + d) M := by
-      unfold logSlack
-      ring
-    calc
-      2 * n ≤ kx + logSlack d n := hxClose.right
-      _ ≤ (kx + kzx) + logSlack d n := by omega
-      _ ≤ (kz + kxz + ex) + logSlack d n := by omega
-      _ ≤ kz + kxz + logSlack cFold M + logSlack d n := by omega
-      _ ≤ kz + kxz + logSlack cFold M + logSlack d M := by omega
-      _ ≤ kz + kxz + logSlack (cFold + d) M := by omega
-      _ ≤ kz + kxz + logSlack C M := by omega
-      _ ≤ α + β := by
-        dsimp [α, β, M]
-        omega
-  
-  let ey := logSlack cBal (kz + ky + kyz + kzy + 1)
-  have hBalY : ky + kzy ≤ kz + kyz + ey :=
-    hBal z (concreteLineCode n e.1.2) kz ky kyz kzy hz hky hkyz hkzy
-  have hyArg : kz + ky + kyz + kzy + 1 ≤ a * M + b_const := by
-    dsimp [a, b_const, M]
-    nlinarith [h_kyz, h_kzy, h_ky_bound, hdLinear]
-  have hey_bound : ey ≤ logSlack cFold M := (logSlack_mono_right cBal hyArg).trans (hFold M)
-  
-  have h2y : 2 * n ≤ α + γ := by
-    have hC1 : logSlack (cFold + d) M ≤ logSlack C M := by
-      apply logSlack_mono_left
-      dsimp [C]
-      omega
-    have h_d_mono : logSlack d n ≤ logSlack d M := logSlack_mono_right d (by dsimp [M]; omega)
-    have h_sum :
-        logSlack cFold M + logSlack d M = logSlack (cFold + d) M := by
-      unfold logSlack
-      ring
-    calc
-      2 * n ≤ ky + logSlack d n := hyClose.right
-      _ ≤ (ky + kzy) + logSlack d n := by omega
-      _ ≤ (kz + kyz + ey) + logSlack d n := by omega
-      _ ≤ kz + kyz + logSlack cFold M + logSlack d n := by omega
-      _ ≤ kz + kyz + logSlack cFold M + logSlack d M := by omega
-      _ ≤ kz + kyz + logSlack (cFold + d) M := by omega
-      _ ≤ kz + kyz + logSlack C M := by omega
-      _ ≤ α + γ := by
-        dsimp [α, γ, M]
-        omega
-        
   have h3xy : 3 * n ≤ α + β + γ := by
     have hS1 : 3 * n ≤ α + γ / 2 + max (γ / 2) β := h_env_up.1
     have h_max1 : max (γ / 2) β ≤ γ / 2 + β := by omega
     omega
-          
   exact incidence_weighted_bound (fun _ => h_env_up.1) (fun _ => h_env_up.2) h2x h2y h3xy
 
 /-- Theorem 227 with the intermediate `O(log (n + C(z)))` slack, obtained by
 combining the weighted profile with conditional balance and
-`theorem_227_arithmetic`. -/
-theorem theorem_227_incidence_nonextractability_core
+`incidence_nonextractability_arithmetic`. -/
+theorem incidence_nonextractability_core
     (V : Map) (hV : isOptimalConditional V) :
   ∀ d, ∃ C, ∀ n (e : ConcreteIncidentEdge n) kxy kx ky,
     HasPlainComplexityValue V
@@ -314,9 +301,9 @@ theorem theorem_227_incidence_nonextractability_core
       HasPlainConditionalComplexityValue V z (concreteLineCode n e.1.2) kzy →
       kz ≤ 2 * kzx + 2 * kzy + logSlack C (n + kz + 1) := by
   intro d
-  obtain ⟨C_w, hW⟩ := theorem_227_weighted_profile_values V hV d
+  obtain ⟨C_w, hW⟩ := incidence_weighted_profile_values V hV d
   obtain ⟨cBal, hBal⟩ := plainK_conditional_balance_values V hV
-  obtain ⟨cCond, hCond⟩ := condKLePlainK V hV
+  obtain ⟨cCond, hCond⟩ := condK_le_plainK V hV
   let a := 2 * d + 6
   let b_const := 2 * d + 2 * cCond + 1
   obtain ⟨cFold, hFold⟩ := logSlack_linear_bound cBal a b_const
@@ -389,7 +376,7 @@ theorem theorem_227_incidence_nonextractability_core
   have hKy : ky ≤ 2 * n + D := by
     dsimp [D]
     omega
-  have hArith := theorem_227_arithmetic n kz kxz kyz D kx kzx eps ky kzy
+  have hArith := incidence_nonextractability_arithmetic n kz kxz kyz D kx kzx eps ky kzy
     hEnvelope hBalX' hBalY' hKx hKy
   have hSlack : 4 * eps + 11 * D + 7 ≤ logSlack C M := by
     calc
@@ -408,7 +395,7 @@ theorem theorem_227_incidence_nonextractability_core
 
 /-- Value-level Theorem 227 once the incident edge's two marginal complexities
 have been fixed and shown logarithmically close to `2 * n`. -/
-theorem theorem_227_incidence_nonextractability_of_profile_values
+theorem incidence_nonextractability_of_profile_values
     (V : Map) (hV : isOptimalConditional V) :
   ∀ d, ∃ C, ∀ n (e : ConcreteIncidentEdge n) kxy kx ky,
     HasPlainComplexityValue V
@@ -425,8 +412,8 @@ theorem theorem_227_incidence_nonextractability_of_profile_values
       HasPlainConditionalComplexityValue V z (concreteLineCode n e.1.2) kzy →
       kz ≤ 2 * kzx + 2 * kzy + logSlack C n := by
   intro d
-  obtain ⟨Ccore, hcore⟩ := theorem_227_incidence_nonextractability_core V hV d
-  obtain ⟨Clarge, L, hlarge⟩ := theorem_227_large_z_case V hV d
+  obtain ⟨Ccore, hcore⟩ := incidence_nonextractability_core V hV d
+  obtain ⟨Clarge, L, hlarge⟩ := incidence_nonextractability_large_z V hV d
   obtain ⟨b, hb⟩ := logSlack_le_add_const Clarge
   obtain ⟨Csmall, hsmall⟩ :=
     logSlack_linear_bound Ccore (L + 2) (b + 1)
@@ -458,14 +445,12 @@ theorem theorem_227_incidence_nonextractability_of_profile_values
       omega
     omega
 
-/-- **SUV Theorem 227.** Every sufficiently incompressible incident point/line
-pair over the concrete field has no extractable common information: uniformly
-for every string `z`, its plain complexity is bounded by twice each of its two
-conditional complexities, up to `O(log n)`.
-
-The marginal `2 * n + O(log n)` profile is derived here from Exercise 309; it
-is not an extra hypothesis of the public theorem. -/
-theorem theorem_227_incidence_nonextractability
+/-- Every sufficiently incompressible incident point/line pair over the concrete field has no
+extractable common information: uniformly for every string `z`, its plain complexity is
+bounded by twice each of its two conditional complexities, up to `O(log n)`. The marginal `2
+* n + O(log n)` profile is derived here from Exercise 309; it is not an extra hypothesis of
+the public theorem.  SUV Theorem 227. -/
+theorem incidence_nonextractability
     (V : Map) (hV : isOptimalConditional V) :
   ∀ d, ∃ C, ∀ n (e : ConcreteIncidentEdge n) kxy,
     HasPlainComplexityValue V
@@ -480,10 +465,10 @@ theorem theorem_227_incidence_nonextractability
         (concreteLineCode n e.1.2) kzy →
       kz ≤ 2 * kzx + 2 * kzy + logSlack C n := by
   intro d
-  obtain ⟨Cprofile, hprofile⟩ := exercise_309_incident_edge_profile V hV d
+  obtain ⟨Cprofile, hprofile⟩ := incident_edge_profile V hV d
   let A := d + Cprofile
   obtain ⟨C, hC⟩ :=
-    theorem_227_incidence_nonextractability_of_profile_values V hV A
+    incidence_nonextractability_of_profile_values V hV A
   refine ⟨C, ?_⟩
   intro n e kxy hkxy hHigh z kz kzx kzy hz hkzx hkzy
   obtain ⟨kx, ky, hkx, hky, hxClose, hyClose, _, _⟩ :=

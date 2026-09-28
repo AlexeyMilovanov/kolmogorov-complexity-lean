@@ -4,10 +4,29 @@ import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.T3RunComplexity
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.T1MarkingStreams
 import Mathlib.Tactic
 
+/-!
+# Replaying the boundary run of Theorem T3
+
+The boundary case of Theorem T3 is driven by a `D`-only run whose current block is rebuilt
+whenever it is hit.  `T3BoundaryDRunInput` packages its parameters `(n, k, epsilon, delta, t)`
+with the encodings (`toProd`, `ofProd`, `toData`, `ofData` and the corresponding equivalences)
+that make the run computable, and `T3BoundaryDRunInput.run` is the state after `t` steps.
+
+`t3BoundaryDRun_current_eq_of_rebuilds_eq` says the block only changes when the rebuild
+counter does, and `T3BoundaryDRunInput.run_computable` makes the whole run computable in its
+parameters.  `t3BoundaryVersionDecoder` then names a block by its rebuild index, and
+`t3BoundaryVersionDecoder_eval` and
+`plainSetComplexity_of_t3BoundaryVersionDecoder_eval` give
+`plainSetComplexity_t3BoundaryDRun_current_le`: the current model at any stage has plain set
+complexity within the budget, as long as the rebuild count stays below `2 ^ (epsilon + delta)`.
+-/
+
 namespace Kolmogorov
 
 open Kolmogorov.CodedFiniteDistribution
 
+/-- The parameter tuple `(n, k, epsilon, delta, t)` driving a T3 boundary run, packaged so that it
+carries a `Primcodable` instance. -/
 structure T3BoundaryDRunInput where
   n : Nat
   k : Nat
@@ -15,10 +34,12 @@ structure T3BoundaryDRunInput where
   delta : Nat
   t : Nat
 
+/-- Views a T3 boundary run input as the nested tuple of its five parameters. -/
 def T3BoundaryDRunInput.toProd (input : T3BoundaryDRunInput) :
     Nat × Nat × Nat × Nat × Nat :=
   (input.n, input.k, input.epsilon, input.delta, input.t)
 
+/-- Builds a T3 boundary run input from the nested tuple of its five parameters. -/
 def T3BoundaryDRunInput.ofProd
     (p : Nat × Nat × Nat × Nat × Nat) :
     T3BoundaryDRunInput :=
@@ -28,6 +49,7 @@ def T3BoundaryDRunInput.ofProd
   , delta := p.2.2.2.1
   , t := p.2.2.2.2 }
 
+/-- The equivalence between T3 boundary run inputs and nested five-tuples of naturals. -/
 def t3BoundaryDRunInputEquiv :
     T3BoundaryDRunInput ≃ Nat × Nat × Nat × Nat × Nat where
   toFun := T3BoundaryDRunInput.toProd
@@ -60,6 +82,8 @@ private def t3BoundaryDRunInputDataEquiv :
 instance : Primcodable T3BoundaryDRunInput :=
   Primcodable.ofEquiv _ t3BoundaryDRunInputDataEquiv
 
+/-- The equivalence between T3 boundary run states and triples (current block, discarded strings,
+rebuild count). -/
 def t3BoundaryDRunStateEquiv : T3BoundaryDRunState ≃ List BitString × List BitString × Nat where
   toFun s := (s.current, s.dSeen, s.rebuilds)
   invFun p := ⟨p.1, p.2.1, p.2.2⟩
@@ -69,10 +93,14 @@ def t3BoundaryDRunStateEquiv : T3BoundaryDRunState ≃ List BitString × List Bi
 instance : Primcodable T3BoundaryDRunState :=
   Primcodable.ofEquiv _ t3BoundaryDRunStateEquiv
 
+/-- The T3 boundary state reached from the parameters of `input` after `input.t` steps of the run
+driven by the code `q`. -/
 def T3BoundaryDRunInput.run (input : T3BoundaryDRunInput) (q : Nat.Partrec.Code) :
     T3BoundaryDRunState :=
   t3BoundaryDRun q input.n input.k input.epsilon input.delta input.t
 
+/-- Between two stages with the same rebuild count the current block is unchanged, so the rebuild
+count identifies the version of the block. -/
 theorem t3BoundaryDRun_current_eq_of_rebuilds_eq
     (q : Nat.Partrec.Code) (n k epsilon delta : Nat) {s t : Nat}
     (hst : s ≤ t)
@@ -163,7 +191,7 @@ private theorem t3BoundaryDInitial_primrec :
     ((Primrec.list_take.comp
         (canonicalFinsetList_toFinset_primrec.comp
           (allStrings_primrec.comp (Primrec.fst.comp Primrec.fst)))
-        (twoPow_primrec.comp
+        (primrec_two_pow_aux.comp
           (Primrec.nat_sub.comp (Primrec.snd.comp Primrec.fst) Primrec.snd))).pair
       ((Primrec.const ([] : List BitString)).pair (Primrec.const 0)))
 
@@ -187,7 +215,7 @@ private theorem t3BoundaryDQuotaReached_primrec (q : Nat.Partrec.Code) :
         decide (x ∈ t1DStage q w.1.1 w.1.2.1 w.1.2.2.2.2)) :=
     bitString_mem_primrec.comp Primrec.snd (hdStage.comp Primrec.fst)
   have hmarked := list_filter_primrec (t3BoundaryDRunState_current_primrec.comp hs) hmarkedPred
-  have hquotaVal := twoPow_primrec.comp
+  have hquotaVal := primrec_two_pow_aux.comp
     (Primrec.nat_sub.comp (Primrec.nat_sub.comp hk heps) hdelta)
   exact (PrimrecPred.decide (Primrec.nat_le.comp hquotaVal
     (Primrec.list_length.comp hmarked))).of_eq
@@ -221,7 +249,7 @@ private theorem t3BoundaryDRebuild_primrec (q : Nat.Partrec.Code) :
           (fun y => decide (y ∈ t1DStage q w.1.1 w.1.2.1 w.1.2.2.2.2))).eraseDups)) :=
     Primrec.not.comp (bitString_mem_primrec.comp Primrec.snd (hnewDSeen.comp Primrec.fst))
   have havailable := list_filter_primrec hS havailPred
-  have htwoKE := twoPow_primrec.comp (Primrec.nat_sub.comp hk heps)
+  have htwoKE := primrec_two_pow_aux.comp (Primrec.nat_sub.comp hk heps)
   exact (Primrec.of_equiv_symm.comp
     ((Primrec.list_take.comp havailable htwoKE).pair
       (hnewDSeen.pair (Primrec.succ.comp (t3BoundaryDRunState_rebuilds_primrec.comp hs))))).of_eq
@@ -235,6 +263,7 @@ private theorem t3BoundaryDStep_primrec (q : Nat.Partrec.Code) :
     (fun w => (t3BoundaryDStep_eq q w.1.1 w.1.2.1 w.1.2.2.1 w.1.2.2.2.1
       w.1.2.2.2.2 w.2).symm)
 
+/-- The T3 boundary run state is computable in its parameter tuple. -/
 theorem T3BoundaryDRunInput.run_computable
     (q : Nat.Partrec.Code) :
     Computable (fun input : T3BoundaryDRunInput => input.run q) := by
@@ -282,6 +311,8 @@ theorem T3BoundaryDRunInput.run_computable
       (fun input => (hrec input.n input.k input.epsilon input.delta input.t).symm)
   exact hprimrec.to_comp
 
+/-- Given the run parameters and a rebuild index, searches for the first stage reaching that many
+rebuilds and outputs the code of the block current at that stage. -/
 noncomputable def t3BoundaryVersionDecoder (q : Nat.Partrec.Code) (input : BitString) :
     Part BitString :=
   Nat.rfind (fun m => Part.some (decide (bitsToNat (decodeSecond input) ≤
@@ -299,6 +330,7 @@ noncomputable def t3BoundaryVersionDecoder (q : Nat.Partrec.Code) (input : BitSt
         (bitsToNat ((decodeListCode (decodeFirst input)).getD 3 []))
         m).current)
 
+/-- The T3 boundary version decoder is partial recursive. -/
 theorem t3BoundaryVersionDecoder_partrec
     (q : Nat.Partrec.Code) :
     Partrec (t3BoundaryVersionDecoder q) := by
@@ -399,6 +431,8 @@ theorem t3BoundaryVersionDecoder_partrec
     (canonicalImageCodeOfList_computable.comp hcurrentRun).to₂
   exact (Partrec.bind hfind hpost.partrec₂).of_eq (fun _ => rfl)
 
+/-- As long as the rebuild count stays below `2 ^ (epsilon + delta)`, the version decoder run on the
+version program of the current rebuild count outputs the code of the current block. -/
 theorem t3BoundaryVersionDecoder_eval
     (q : Nat.Partrec.Code) (n k epsilon delta t : Nat)
     (hwidth :
@@ -493,7 +527,7 @@ theorem plainSetComplexity_of_t3BoundaryVersionDecoder_eval
   obtain ⟨cMap, hMap⟩ :=
     plainK_partrec_map_le V hV (t3BoundaryVersionDecoder q)
       (t3BoundaryVersionDecoder_partrec q)
-  obtain ⟨cLiteral, hLiteral⟩ := plainKLeLength V hV
+  obtain ⟨cLiteral, hLiteral⟩ := plainK_le_length V hV
   refine ⟨cLiteral + cMap, ?_⟩
   intro p L hL hEval
   unfold plainSetComplexity

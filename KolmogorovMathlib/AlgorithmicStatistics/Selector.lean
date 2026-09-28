@@ -22,6 +22,7 @@ The correctness rests on the already-proved counting core
 
 namespace Kolmogorov
 
+open CodedFiniteDistribution
 open Kolmogorov.CodedFiniteDistribution
 open Nat.Partrec (Code)
 
@@ -32,6 +33,7 @@ open Nat.Partrec (Code)
 def bitsToNat (l : List Bool) : ℕ :=
   l.foldr (fun b acc => 2 * acc + (if b then 1 else 0)) 0
 
+/-- Reading the binary expansion of `n` back as a number returns `n`. -/
 theorem bitsToNat_bits (n : ℕ) : bitsToNat (Nat.bits n) = n := by
   induction n using Nat.binaryRec with
   | zero => rfl
@@ -44,6 +46,7 @@ theorem bitsToNat_bits (n : ℕ) : bitsToNat (Nat.bits n) = n := by
             = bitsToNat (Nat.bits m) from rfl, ih, Nat.bit_val]
       cases b <;> simp
 
+/-- Reading a bit string as a binary numeral is primitive recursive. -/
 theorem bitsToNat_primrec : Primrec bitsToNat := by
   unfold bitsToNat
   have hstep : Primrec₂
@@ -54,6 +57,7 @@ theorem bitsToNat_primrec : Primrec bitsToNat := by
         (Primrec.const 1) (Primrec.const 0)).to₂
   exact Primrec.list_foldr Primrec.id (Primrec.const 0) hstep
 
+/-- Reading a bit string as a binary numeral is computable. -/
 theorem bitsToNat_computable : Computable bitsToNat := bitsToNat_primrec.to_comp
 
 /-! ### Parsing the selector input -/
@@ -67,39 +71,51 @@ def selMaxK (s : BitString) : ℕ := bitsToNat (decodeFirst (decodeSecond (decod
 /-- The fourth packed component: the halting count `h`. -/
 def selH (s : BitString) : ℕ := bitsToNat (decodeSecond (decodeSecond (decodeSecond s)))
 
+/-- The first parameter is read back from the selector input. -/
 @[simp] theorem selNat_selectorInput (n alpha max_k h : ℕ) :
     selNat (selectorInput n alpha max_k h) = n := by
   simp [selNat, selectorInput, pack4, decodeFirst_pairCode, bitsToNat_bits]
 
+/-- The complexity bound is read back from the selector input. -/
 @[simp] theorem selAlpha_selectorInput (n alpha max_k h : ℕ) :
     selAlpha (selectorInput n alpha max_k h) = alpha := by
   simp [selAlpha, selectorInput, pack4, decodeFirst_pairCode, decodeSecond_pairCode, bitsToNat_bits]
 
+/-- The level bound is read back from the selector input. -/
 @[simp] theorem selMaxK_selectorInput (n alpha max_k h : ℕ) :
     selMaxK (selectorInput n alpha max_k h) = max_k := by
   simp [selMaxK, selectorInput, pack4, decodeFirst_pairCode, decodeSecond_pairCode, bitsToNat_bits]
 
+/-- The halting-count advice is read back from the selector input. -/
 @[simp] theorem selH_selectorInput (n alpha max_k h : ℕ) :
     selH (selectorInput n alpha max_k h) = h := by
   simp [selH, selectorInput, pack4, decodeSecond_pairCode, bitsToNat_bits]
 
+/-- Reading the first parameter off the selector input is computable. -/
 theorem selNat_computable : Computable selNat :=
   bitsToNat_computable.comp decodeFirst_computable
+/-- Reading the complexity bound off the selector input is computable. -/
 theorem selAlpha_computable : Computable selAlpha :=
   bitsToNat_computable.comp (decodeFirst_computable.comp decodeSecond_computable)
+/-- Reading the level bound off the selector input is computable. -/
 theorem selMaxK_computable : Computable selMaxK :=
   bitsToNat_computable.comp
     (decodeFirst_computable.comp (decodeSecond_computable.comp decodeSecond_computable))
+/-- Reading the halting-count advice off the selector input is computable. -/
 theorem selH_computable : Computable selH :=
   bitsToNat_computable.comp
     (decodeSecond_computable.comp (decodeSecond_computable.comp decodeSecond_computable))
 
+/-- Reading the first parameter off the selector input is primitive recursive. -/
 theorem selNat_primrec : Primrec selNat :=
   bitsToNat_primrec.comp decodeFirst_primrec
+/-- Reading the complexity bound off the selector input is primitive recursive. -/
 theorem selAlpha_primrec : Primrec selAlpha :=
   bitsToNat_primrec.comp (decodeFirst_primrec.comp decodeSecond_primrec)
+/-- Reading the level bound off the selector input is primitive recursive. -/
 theorem selMaxK_primrec : Primrec selMaxK :=
   bitsToNat_primrec.comp (decodeFirst_primrec.comp (decodeSecond_primrec.comp decodeSecond_primrec))
+/-- Reading the halting-count advice off the selector input is primitive recursive. -/
 theorem selH_primrec : Primrec selH :=
   bitsToNat_primrec.comp
     (decodeSecond_primrec.comp (decodeSecond_primrec.comp decodeSecond_primrec))
@@ -108,7 +124,7 @@ theorem selH_primrec : Primrec selH :=
 
 /-- Computable test of `x ∈ levelSet (decode w) k`, on the raw code `w`. -/
 def levelSetMemBool (w : BitString) (k : ℕ) (x : BitString) : Bool :=
-  RatMass.ge_invPow2 (combinePointMass x (decodeDistributionData w)) k
+  RatMass.geInvPow2 (combinePointMass x (decodeDistributionData w)) k
 
 /-- Total rational mass of a coded distribution's data. -/
 def totalMassRat (data : List CodedDistributionEntry) : RatMass :=
@@ -129,10 +145,12 @@ def coveredBool (codes : List BitString) (max_k : ℕ) (x : BitString) : Bool :=
   codes.any (fun w => isValidCodeBool w && isProbBool w &&
     (List.range (max_k + 1)).any (fun k => levelSetMemBool w k x))
 
+/-- The Boolean level-set test succeeds exactly when the string lies in the `k`-th
+level set of the distribution coded by `w`. -/
 theorem levelSetMemBool_iff (w : BitString) (k : ℕ) (x : BitString) :
     levelSetMemBool w k x = true ↔ x ∈ levelSet (decodeCodedFiniteDistribution w) k := by
   convert RatMass.ge_invPow2_iff ( combinePointMass x ( decodeDistributionData w ) ) k using 1;
-  · unfold levelSetMemBool RatMass.ge_invPow2;
+  · unfold levelSetMemBool RatMass.geInvPow2;
     rw [ RatMass.ge_invPow2_iff ];
     grind;
   · unfold levelSet
@@ -170,6 +188,8 @@ theorem mass_total (Q : CodedFiniteDistribution) :
       lia;
     exact h_foldr_zero h
 
+/-- The Boolean probability test succeeds exactly when the coded distribution has
+total mass one. -/
 theorem isProbBool_iff (w : BitString) :
     isProbBool w = true ↔ (decodeCodedFiniteDistribution w).IsProbability := by
   rw [ isProbBool, CodedFiniteDistribution.IsProbability ];
@@ -178,17 +198,21 @@ theorem isProbBool_iff (w : BitString) :
   · exact Nat.ne_of_gt ( RatMass.den_pos _ );
   · exact ENNReal.coe_ne_top
 
+/-- The code of a coded finite distribution passes the validity test. -/
 theorem isValidCodeBool_code (P : CodedFiniteDistribution) : isValidCodeBool P.code = true := by
   simp only [isValidCodeBool, decide_eq_true_eq, CodedFiniteDistribution.code,
     decodeDistributionData_code]
 
+/-- The code of a probability distribution passes the probability test. -/
 theorem isProbBool_code (P : CodedFiniteDistribution) (hP : P.IsProbability) :
     isProbBool P.code = true := by
   rw [isProbBool_iff, decodeCodedFiniteDistribution_code]; exact hP
 
+/-- The Boolean level-set test is primitive recursive in the code, the level and the
+string. -/
 theorem levelSetMemBool_primrec :
     Primrec (fun p : (BitString × ℕ) × BitString => levelSetMemBool p.1.1 p.1.2 p.2) := by
-  have h_ge_invPow2_primrec : Primrec₂ (fun (q : RatMass) (k : ℕ) => q.ge_invPow2 k) :=
+  have h_ge_invPow2_primrec : Primrec₂ (fun (q : RatMass) (k : ℕ) => q.geInvPow2 k) :=
     ratMass_ge_invPow2_primrec
   convert h_ge_invPow2_primrec.comp _ _ using 1;
   · convert combinePointMass_primrec.comp _ _ using 1;
@@ -196,6 +220,7 @@ theorem levelSetMemBool_primrec :
     · exact decodeDistributionData_primrec.comp ( Primrec.fst.comp ( Primrec.fst ) );
   · exact Primrec.snd.comp ( Primrec.fst )
 
+/-- The validity test on distribution codes is primitive recursive. -/
 theorem isValidCodeBool_primrec : Primrec isValidCodeBool := by
   have h_decide_eq : Primrec₂
       (fun w v : BitString =>
@@ -211,6 +236,7 @@ theorem isValidCodeBool_primrec : Primrec isValidCodeBool := by
     · grind;
   convert h_decide_eq.comp ( Primrec.id ) ( Primrec.id ) using 1
 
+/-- The probability test on distribution codes is primitive recursive. -/
 theorem isProbBool_primrec : Primrec isProbBool := by
   -- The function `totalMassRat` is primitive recursive.
   have totalMassRat_primrec : Primrec totalMassRat := by
@@ -244,20 +270,8 @@ theorem isProbBool_primrec : Primrec isProbBool := by
   convert h_eq.comp ( totalMassRat_primrec.comp ( decodeDistributionData_primrec ) )
     ( totalMassRat_primrec.comp ( decodeDistributionData_primrec ) ) using 1
 
-/-- `List.any` with a primrec list and primrec predicate is primrec. -/
-theorem list_any_primrec {α β} [Primcodable α] [Primcodable β] {f : α → List β} {p : α → β → Bool}
-    (hf : Primrec f) (hp : Primrec₂ p) : Primrec (fun a => (f a).any (p a)) := by
-  have heq : (fun a => (f a).any (p a))
-      = (fun a => (f a).foldr (fun b acc => p a b || acc) false) := by
-    funext a; induction f a with
-    | nil => rfl
-    | cons b t ih => simp [List.any_cons, ih]
-  rw [heq]
-  have hstep : Primrec₂ (fun (a : α) (q : β × Bool) => p a q.1 || q.2) :=
-    (Primrec.cond (hp.comp Primrec.fst (Primrec.fst.comp Primrec.snd)) (Primrec.const true)
-      (Primrec.snd.comp Primrec.snd)).to₂
-  exact Primrec.list_foldr hf (Primrec.const false) hstep
-
+/-- The test whether a string is covered by one of a list of coded distributions at
+level `k` is primitive recursive. -/
 theorem coveredBool_primrec :
     Primrec (fun p : (List BitString × ℕ) × BitString => coveredBool p.1.1 p.1.2 p.2) := by
   apply list_any_primrec (Primrec.fst.comp Primrec.fst);
@@ -323,6 +337,8 @@ theorem evaln_primrec (c : Code) : Primrec₂ (fun (t : ℕ) (x : ℕ) => Code.e
     (Primrec.pair (Primrec.pair Primrec.fst (Primrec.const c)) Primrec.snd) :
     Primrec (fun p : ℕ × ℕ => Code.evaln p.1 c p.2))
 
+/-- The number of bounded programs that halt within `t` steps is primitive recursive
+in the bound and the step count. -/
 theorem countHalts_primrec (c : Code) :
     Primrec (fun p : ℕ × ℕ => countHalts c p.1 p.2) := by
   apply_rules [ list_countP_primrec, primrec_boundedPrograms.comp ( Primrec.fst ) ];
@@ -330,9 +346,12 @@ theorem countHalts_primrec (c : Code) :
     ( evaln_primrec c |> Primrec.comp <| Primrec.snd.comp Primrec.fst |> Primrec.pair
       <| Primrec.encode.comp <| Primrec.pair Primrec.snd <| Primrec.const [] ) using 1
 
+/-- The number of bounded programs that halt within `t` steps is computable. -/
 theorem countHalts_computable (c : Code) :
     Computable (fun p : ℕ × ℕ => countHalts c p.1 p.2) := (countHalts_primrec c).to_comp
 
+/-- The list of outputs produced within `t` steps by the bounded programs is
+primitive recursive in the two parameters. -/
 theorem snapshotCodes_primrec (c : Code) :
     Primrec (fun p : ℕ × ℕ => snapshotCodes c p.1 p.2) := by
   apply Primrec.listFilterMap (primrec_boundedPrograms.comp Primrec.fst);
@@ -341,6 +360,8 @@ theorem snapshotCodes_primrec (c : Code) :
       (Primrec.encode.comp (Primrec.pair Primrec.snd (Primrec.const [])));
   · exact Primrec.decode.comp Primrec.snd
 
+/-- The list of outputs produced within `t` steps by the bounded programs is
+computable. -/
 theorem snapshotCodes_computable (c : Code) :
     Computable (fun p : ℕ × ℕ => snapshotCodes c p.1 p.2) := (snapshotCodes_primrec c).to_comp
 
@@ -356,20 +377,24 @@ theorem length_boundedPrograms_succ_eq (n : ℕ) :
     rw [Nat.pow_succ] at ih ⊢
     omega
 
+/-- There are fewer than `2 ^ (n + 1)` programs of length at most `n`. -/
 theorem length_boundedPrograms_lt (n : ℕ) : (boundedPrograms n).length < 2 ^ (n + 1) := by
   have := length_boundedPrograms_succ_eq n; omega
 
+/-- Halting within `t` steps implies halting within any larger number of steps. -/
 theorem haltsWithin_mono (c : Code) {t t' : ℕ} (h : t ≤ t') (p : BitString) :
     haltsWithin c t p = true → haltsWithin c t' p = true := by
   intro h';
   obtain ⟨ x, hx ⟩ := Option.isSome_iff_exists.mp h';
   exact Option.isSome_iff_exists.mpr ⟨ x, by exact Nat.Partrec.Code.evaln_mono h hx ⟩
 
+/-- The number of halting programs is nondecreasing in the number of steps. -/
 theorem countHalts_mono (c : Code) (alpha : ℕ) {t t' : ℕ} (h : t ≤ t') :
     countHalts c alpha t ≤ countHalts c alpha t' := by
   unfold countHalts
   exact List.countP_mono_left fun p _ => haltsWithin_mono c h p
 
+/-- No more programs halt than there are bounded programs. -/
 theorem countHalts_le_length (c : Code) (alpha t : ℕ) :
     countHalts c alpha t ≤ (boundedPrograms alpha).length :=
   List.countP_le_length
@@ -386,6 +411,8 @@ theorem exists_max_countHalts (c : Code) (alpha : ℕ) :
       ⟨_, ⟨0, rfl⟩⟩
   exact ⟨t0, fun t' => hmax _ ⟨t', rfl⟩⟩
 
+/-- An output produced by the bounded run of a code for `U` is genuinely produced by
+`U` on that program with empty context. -/
 theorem runOut_sound {c : Code} {U : Map} (hc : IsCodeFor c U) {t : ℕ} {p w : BitString}
     (h : runOut c t p = some w) : produces U p [] w := by
   unfold runOut at h;
@@ -394,6 +421,8 @@ theorem runOut_sound {c : Code} {U : Map} (hc : IsCodeFor c U) {t : ℕ} {p w : 
   have := Nat.Partrec.Code.evaln_sound ha₁;
   unfold IsCodeFor at hc; aesop;
 
+/-- Every output that `U` produces on a program with empty context appears in a
+bounded run of a code for `U`. -/
 theorem runOut_complete {c : Code} {U : Map} (hc : IsCodeFor c U) {p out : BitString}
     (h : produces U p [] out) : ∃ t, runOut c t p = some out := by
   obtain ⟨t, ht⟩ : ∃ t, Encodable.encode out ∈ Code.evaln t c
@@ -519,6 +548,7 @@ theorem list_find?_primrec {α β} [Primcodable α] [Primcodable β] {f : α →
       (Primrec.option_some.comp (Primrec.fst.comp Primrec.snd)) (Primrec.snd.comp Primrec.snd)).to₂
   exact Primrec.list_foldr hf (Primrec.const none) hstep
 
+/-- The dovetailing selector is a partial recursive function of its input. -/
 theorem partrec_selectorFn (c : Code) : Partrec (selectorFn c) := by
   have h_check : Computable
       (fun st : BitString × ℕ => decide (countHalts c (selAlpha st.1) st.2 = selH st.1)) := by
@@ -576,6 +606,11 @@ theorem complexity_decode_of_mem_snapshot {c : Code} {U : Map} (hc : IsCodeFor c
 
 /-! ### Main constructive theorem -/
 
+/-- There is a partial recursive selector which, given `(n, alpha, max_k)` and the
+right halting-count advice `h < 2 ^ (alpha + 1)`, outputs a string of length `n`
+outside every level set up to `max_k` of every probability distribution of
+prefix complexity at most `alpha`, provided
+`2 ^ (alpha + 1) * (max_k + 1) * 2 ^ max_k < 2 ^ n`. SUV Theorem 248. -/
 theorem exists_partrec_uncovered_selector (U : Map) (hU : IsOptimalPrefixConditional U) :
     ∃ f : BitString →. BitString, Partrec f ∧
       ∀ n alpha max_k : ℕ,
@@ -654,6 +689,10 @@ theorem exists_partrec_uncovered_selector (U : Map) (hU : IsOptimalPrefixConditi
     exact absurd hPpred (by
     have := List.find?_some hy; aesop;)
 
+/-- Under the same counting hypothesis there is a string of length `n` outside every
+level set up to `max_k` of every probability distribution of prefix complexity
+at most `alpha`, whose own prefix complexity is at most `alpha` plus `O(log n)`.
+SUV Theorem 248. -/
 theorem KPPlain_uncovered_string (U : Map) (hU : IsOptimalPrefixConditional U) :
     ∃ c : ℕ, ∀ n alpha max_k : ℕ,
       2 ^ (alpha + 1) * (max_k + 1) * 2 ^ max_k < 2 ^ n →

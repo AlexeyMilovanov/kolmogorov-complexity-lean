@@ -10,35 +10,35 @@ for every `ProfileCurve`, a string whose *prefix* description profile follows th
 curve up to `m + O(log n)`, where `m` bounds the complexity of the curve code.
 Combining it with `profileBoundary_profileCurve` and the plain/prefix profile
 bridges yields the Section 7 statement used by Theorem `card`: every profile
-boundary is realized by a string of length `n_P` whose *plain* description
-profile is within `O(KP + log n_P)` of the boundary epigraph.
+boundary is realized by a string of length `nP` whose *plain* description
+profile is within `O(KP + log nP)` of the boundary epigraph.
 -/
 
 namespace Kolmogorov
 
 open Kolmogorov.CodedFiniteDistribution
 
-/-- Every profile boundary is realized, up to radius `O(KP + log n_P)`, by the
-plain description profile of some string of length `n_P`. -/
+/-- Every profile boundary is realized, up to radius `O(KP + log nP)`, by the
+plain description profile of some string of length `nP`. -/
 theorem exists_string_realizing_profileBoundary
     (V U : Map) (hV : isOptimalConditional V)
     (hU : IsOptimalPrefixConditional U) :
     ∃ C : ℕ, ∀ b : ProfileBoundary V,
-      ∃ y : BitString, y.length = b.n_P ∧
+      ∃ y : BitString, y.length = b.nP ∧
         ProfileSetsWithinNeighborhood (plainDescriptionProfileSet V y)
-          (profileSet V b) (C * b.KP + logSlack C b.n_P) := by
+          (profileSet V b) (C * b.KP + logSlack C b.nP) := by
   obtain ⟨C1, hcurve⟩ := profileBoundary_profileCurve V U hV hU
   obtain ⟨cReal, hreal⟩ := exists_string_with_profile U hU
   obtain ⟨c1, hbridge1⟩ := inDescriptionProfile_of_inPlainDescriptionProfile V U hV hU
   obtain ⟨c2, hbridge2⟩ := inPlainDescriptionProfile_of_inDescriptionProfile V U hV hU
   refine ⟨C1 + cReal + c1 + c2 + 1, ?_⟩
   intro b
-  set n := b.n_P with hn
+  set n := b.nP with hn
   set m := C1 * b.KP + C1 with hm
   set L := logSlack cReal n with hL
   set C := C1 + cReal + c1 + c2 + 1 with hC
   obtain ⟨curve⟩ := hcurve b
-  obtain ⟨y, hylen, hupper, hlower⟩ := hreal 0 n b.k_P m b.height curve
+  obtain ⟨y, hylen, hupper, hlower⟩ := hreal 0 n b.kP m b.height curve
   -- The final radius.
   set E := m + L + c2 + logSlack c1 n with hE
   have hslackC : logSlack cReal n + logSlack c1 n + logSlack (C1 + c2 + 1) n =
@@ -58,13 +58,13 @@ theorem exists_string_realizing_profileBoundary
     rintro ⟨i, j⟩ hq
     by_cases hin : b.height i ≤ j
     · exact ⟨(i, j), hin, by unfold natPairLInfDistance; simp⟩
-    · -- `(i,j)` lies strictly below the curve, so `i` is left of `k_P ≤ n`.
+    · -- `(i,j)` lies strictly below the curve, so `i` is left of `kP ≤ n`.
       have hpos : 0 < b.height i := by omega
-      have hik : i < b.k_P := by
+      have hik : i < b.kP := by
         by_contra hcon
         have := b.height_zero_of_ge i (by omega)
         omega
-      have hkn : b.k_P ≤ n := by
+      have hkn : b.kP ≤ n := by
         have h := b.k_P_le_add_height 0
         rw [b.height_zero] at h
         simpa [hn] using h
@@ -108,41 +108,41 @@ theorem exists_string_realizing_profileBoundary
 
 /-- The plain complexity of a string whose plain profile is `E`-close to a
 boundary epigraph is within `2 * E` (plus logarithmic slack) of the boundary
-endpoint `k_P`. -/
+endpoint `kP`. -/
 theorem plainK_close_of_profileBoundary_neighborhood
     (V : Map) (hV : isOptimalConditional V) :
     ∃ C : ℕ, ∀ (b : ProfileBoundary V) (y : BitString) (E ky : ℕ),
       ProfileSetsWithinNeighborhood (plainDescriptionProfileSet V y)
         (profileSet V b) E →
       plainK V y = (ky : ENat) →
-      ky ≤ b.k_P + C * (E + 1) + logSlack C b.n_P ∧
-        b.k_P ≤ ky + 2 * E + C := by
+      ky ≤ b.kP + C * (E + 1) + logSlack C b.nP ∧
+        b.kP ≤ ky + 2 * E + C := by
   obtain ⟨cUp, hUp⟩ := plainK_upper_of_profileNeighborhood_endpoint_sharp V hV
   obtain ⟨cSingle, hSingle⟩ := plainSetComplexity_singleton_le_plainK V hV
   refine ⟨2 * cUp + 2 * cSingle + 2, ?_⟩
   intro b y E ky hnbhd hky
-  have hkP : k_P (profileSet V b) = (b.k_P : ENat) := b.k_P_profileSet
+  have hkP : kP (profileSet V b) = (b.kP : ENat) := b.k_P_profileSet
   constructor
   · have hmem : y ∈ profileNeighborhood V (profileSet V b) E := hnbhd
-    have h := hUp (profileSet V b) b.k_P E y hkP hmem
+    have h := hUp (profileSet V b) b.kP E y hkP hmem
     rw [hky] at h
-    have hcast : ky ≤ b.k_P + 2 * E + logSlack cUp (b.k_P + 2 * E) := by
+    have hcast : ky ≤ b.kP + 2 * E + logSlack cUp (b.kP + 2 * E) := by
       exact_mod_cast h
     -- Fold the slack at the endpoint scale into a slack at the length scale.
-    have hkn : b.k_P ≤ b.n_P := by
+    have hkn : b.kP ≤ b.nP := by
       have hk := b.k_P_le_add_height 0
       rw [b.height_zero] at hk
       omega
-    have hsplit : logSlack cUp (b.k_P + 2 * E) ≤
-        logSlack cUp b.k_P + logSlack cUp (2 * E) :=
+    have hsplit : logSlack cUp (b.kP + 2 * E) ≤
+        logSlack cUp b.kP + logSlack cUp (2 * E) :=
       logSlack_add_le cUp _ _
-    have hmono : logSlack cUp b.k_P ≤ logSlack cUp b.n_P :=
+    have hmono : logSlack cUp b.kP ≤ logSlack cUp b.nP :=
       logSlack_mono_right cUp hkn
     have hsmall : logSlack cUp (2 * E) ≤ cUp * (2 * E) + cUp := by
       unfold logSlack
-      have := length_natBits_le_self (2 * E)
+      have := length_natBits_le (2 * E)
       nlinarith [Nat.zero_le cUp]
-    have hmono' : logSlack cUp b.n_P ≤ logSlack (2 * cUp + 2 * cSingle + 2) b.n_P :=
+    have hmono' : logSlack cUp b.nP ≤ logSlack (2 * cUp + 2 * cSingle + 2) b.nP :=
       logSlack_mono_left (by omega) _
     have hlin : 2 * E + (cUp * (2 * E) + cUp) ≤
         (2 * cUp + 2 * cSingle + 2) * (E + 1) := by
@@ -157,7 +157,7 @@ theorem plainK_close_of_profileBoundary_neighborhood
       · simp
     obtain ⟨⟨a, c⟩, hmem, hdist⟩ := hnbhd.1 (ky + cSingle, 0) hsingle
     have hheight : b.height a ≤ c := hmem
-    have hsuff : b.k_P ≤ a + b.height a := b.k_P_le_add_height a
+    have hsuff : b.kP ≤ a + b.height a := b.k_P_le_add_height a
     unfold natPairLInfDistance at hdist
     simp only at hdist
     have h1 : a ≤ ky + cSingle + E := by

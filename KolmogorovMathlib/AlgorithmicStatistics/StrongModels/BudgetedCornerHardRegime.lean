@@ -36,6 +36,7 @@ statement of the alternative research direction.  No frozen interface is edited.
 
 namespace Kolmogorov
 
+open CodedFiniteDistribution
 /-- **The budgeted plain corner reduces to its single open regime.**  Given the
 corner for the regime `alpha < kx ≤ baseBudget < beta`, the full
 `BudgetedPlainProfileCornerStatement V U` follows by a case split: the regime
@@ -84,6 +85,7 @@ theorem budgetedPlainCorner_of_hard_regime
       obtain ⟨i, j, hprof, hi, hij⟩ := hH x kx baseBudget alpha beta hkx hkxN hka hbb hstoch
       exact ⟨i, j, hprof, by omega, by omega⟩
 
+/-- The binary size of `m ^ k` is at most `k * m.size + 1`. -/
 lemma size_pow_le (m k : ℕ) : (m^k).size ≤ k * m.size + 1 := by
   by_cases hk : k = 0
   · subst hk; simp
@@ -136,9 +138,9 @@ theorem budgeted_stochasticity_to_plain_corner_of_beta_le_pow
 
 /-- The plain prefix complexity of the code of an index `b` that is bounded by a
 fixed power `m ^ k` of the visible budget is itself budget-scale: it is at most
-`logSlack c m` for a uniform `c`.  This is the "cheap index" leaf shared by both
-open S4 routes (the level-precision charge for `prop:upward` and the pooled
-enumeration index for the direct `prop:add-noise` multiplicity argument).
+`logSlack c m` for a uniform `c`.  This is the "cheap index" bound used both for
+the level-precision charge of `prop:upward` and for the enumeration index of the
+`prop:add-noise` multiplicity argument.
 
 It is a pure composition of the logarithmic `natCode` bound
 `KPPlain_natCode_le_log` (`Prefix/Properties.lean`) with the polynomial-argument

@@ -38,6 +38,8 @@ def quadLineFromPointCode (pointCode program : BitString) : BitString :=
           concretePrime (pointCode.length / 4 - 1))
         (pointCode.length / 4))
 
+/-- From the code of a point on a line and the slope of that line, the decoder recovers the code
+of the line. -/
 lemma quadLineFromPointCode_incident {m : Nat} {p : Point (ConcreteQuadraticField m)}
     {ell : Line (ConcreteQuadraticField m)} (hinc : Incident p ell) :
     quadLineFromPointCode (quadraticPointCode m p) (quadraticFieldCode m ell.1) =
@@ -72,6 +74,7 @@ lemma quadLineFromPointCode_incident {m : Nat} {p : Point (ConcreteQuadraticFiel
     ha0, ha1, hval0, hval1]
   rfl
 
+/-- The decoder recovering a line from a point and a slope is primitive recursive. -/
 lemma quadLineFromPointCode_primrec : Primrec₂ quadLineFromPointCode := by
   have hwidth : Primrec (fun q : BitString × BitString => q.1.length / 4) :=
     Primrec.nat_div.comp (Primrec.list_length.comp Primrec.fst) (Primrec.const 4)
@@ -120,6 +123,7 @@ noncomputable def quadraticIncidentEdgeCode (m : Nat) (p : Point (ConcreteQuadra
     (ell : Line (ConcreteQuadraticField m)) : BitString :=
   quadraticLineCode m ell ++ quadraticFieldCode m p.1
 
+/-- The code of an incident edge has length `6(m + 1)`. -/
 @[simp]
 lemma quadraticIncidentEdgeCode_length (m : Nat) (p : Point (ConcreteQuadraticField m))
     (ell : Line (ConcreteQuadraticField m)) :
@@ -133,6 +137,7 @@ def quadIncidentPairFromEdgeCode (s : BitString) : BitString :=
     (quadPointFromLineCode (s.take (4 * (s.length / 6))) (s.drop (4 * (s.length / 6))))
     (s.take (4 * (s.length / 6)))
 
+/-- Decoding an incident edge code returns the pair code of its point and its line. -/
 lemma quadIncidentPairFromEdgeCode_edge {m : Nat} {p : Point (ConcreteQuadraticField m)}
     {ell : Line (ConcreteQuadraticField m)} (hinc : Incident p ell) :
     quadIncidentPairFromEdgeCode (quadraticIncidentEdgeCode m p ell) =
@@ -150,6 +155,7 @@ lemma quadIncidentPairFromEdgeCode_edge {m : Nat} {p : Point (ConcreteQuadraticF
   simp only [quadIncidentPairFromEdgeCode, hwidth, htake, hdrop,
     quadPointFromLineCode_incident hinc]
 
+/-- The decoder turning an edge code into a pair code is primitive recursive. -/
 lemma quadIncidentPairFromEdgeCode_primrec : Primrec quadIncidentPairFromEdgeCode := by
   have hwidth : Primrec (fun s : BitString => 4 * (s.length / 6)) :=
     Primrec.nat_mul.comp (Primrec.const 4)
@@ -161,10 +167,12 @@ lemma quadIncidentPairFromEdgeCode_primrec : Primrec quadIncidentPairFromEdgeCod
   have hpoint : Primrec (fun s : BitString =>
       quadPointFromLineCode (s.take (4 * (s.length / 6))) (s.drop (4 * (s.length / 6)))) :=
     quadPointFromLineCode_primrec.comp htake hdrop
-  exact (pairCode_primrec.comp hpoint htake).of_eq (fun _ => rfl)
+  exact (CodedFiniteDistribution.pairCode_primrec.comp hpoint htake).of_eq (fun _ => rfl)
 
 /-! ### The resulting complexity bounds -/
 
+/-- An incident point-line pair of the quadratic structure has plain complexity at most
+`6(m + 1)` up to a constant. -/
 theorem pairPlainK_quadraticIncident_le (V : Map) (hV : isOptimalConditional V) :
     ∃ c, ∀ (m : Nat) (p : Point (ConcreteQuadraticField m))
       (ell : Line (ConcreteQuadraticField m)), Incident p ell →
@@ -173,7 +181,7 @@ theorem pairPlainK_quadraticIncident_le (V : Map) (hV : isOptimalConditional V) 
   let f : BitString →. BitString := fun w => Part.some (quadIncidentPairFromEdgeCode w)
   have hf : Partrec f := quadIncidentPairFromEdgeCode_primrec.to_comp.partrec
   obtain ⟨cMap, hMap⟩ := plainK_partrec_map_le V hV f hf
-  obtain ⟨cLength, hLength⟩ := plainKLeLength V hV
+  obtain ⟨cLength, hLength⟩ := plainK_le_length V hV
   refine ⟨cLength + cMap, fun m p ell hinc => ?_⟩
   have hrec : pairCode (quadraticPointCode m p) (quadraticLineCode m ell) ∈
       f (quadraticIncidentEdgeCode m p ell) := by
@@ -193,6 +201,7 @@ theorem pairPlainK_quadraticIncident_le (V : Map) (hV : isOptimalConditional V) 
         push_cast
         ring
 
+/-- A point on a given line is described by `2(m + 1)` further bits, up to a constant. -/
 theorem condK_quadraticPoint_given_line_le (V : Map) (hV : isOptimalConditional V) :
     ∃ c, ∀ (m : Nat) (p : Point (ConcreteQuadraticField m))
       (ell : Line (ConcreteQuadraticField m)), Incident p ell →
@@ -218,6 +227,7 @@ theorem condK_quadraticPoint_given_line_le (V : Map) (hV : isOptimalConditional 
         push_cast
         ring
 
+/-- A line through a given point is described by `2(m + 1)` further bits, up to a constant. -/
 theorem condK_quadraticLine_given_point_le (V : Map) (hV : isOptimalConditional V) :
     ∃ c, ∀ (m : Nat) (p : Point (ConcreteQuadraticField m))
       (ell : Line (ConcreteQuadraticField m)), Incident p ell →

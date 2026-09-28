@@ -4,8 +4,9 @@ import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.TotalMaps
 /-!
 # Strong description profiles
 
-This file starts S3 of VS40 Section 7.  It keeps the ordinary plain-complexity
-machine `V` separate from the optimal total-conditional machine `T`.
+Strong description profiles of VS40 Section 7.  They keep the ordinary
+plain-complexity machine `V` separate from the optimal total-conditional
+machine `T`.
 -/
 
 namespace Kolmogorov
@@ -31,6 +32,7 @@ def strongDescriptionProfileSet
     Set (Nat × Nat) :=
   {q | InStrongDescriptionProfile V T x epsilon q.1 q.2}
 
+/-- Being a strong plain `(i, j)`-description is preserved when the slack `epsilon` is enlarged. -/
 theorem IsStrongPlainIJDescription.mono_epsilon
     {V T : Map} {x : BitString} {S : Finset BitString}
     {hS : S.Nonempty} {epsilon epsilon' i j : Nat}
@@ -39,6 +41,8 @@ theorem IsStrongPlainIJDescription.mono_epsilon
     IsStrongPlainIJDescription V T x S hS epsilon' i j :=
   ⟨h.1, h.2.mono hε⟩
 
+/-- Being a strong plain `(i, j)`-description is preserved when the model-complexity budget `i` is
+enlarged. -/
 theorem IsStrongPlainIJDescription.mono_i
     {V T : Map} {x : BitString} {S : Finset BitString}
     {hS : S.Nonempty} {epsilon i i' j : Nat}
@@ -47,6 +51,8 @@ theorem IsStrongPlainIJDescription.mono_i
     IsStrongPlainIJDescription V T x S hS epsilon i' j :=
   ⟨h.1.mono_i hii, h.2⟩
 
+/-- Being a strong plain `(i, j)`-description is preserved when the log-cardinality budget `j` is
+enlarged. -/
 theorem IsStrongPlainIJDescription.mono_j
     {V T : Map} {x : BitString} {S : Finset BitString}
     {hS : S.Nonempty} {epsilon i j j' : Nat}
@@ -55,6 +61,8 @@ theorem IsStrongPlainIJDescription.mono_j
     IsStrongPlainIJDescription V T x S hS epsilon i j' :=
   ⟨h.1.mono_j hjj, h.2⟩
 
+/-- Membership in the strong description profile is preserved when the slack `epsilon` is enlarged.
+Membership in the strong description profile is preserved when the slack `epsilon` is enlarged. -/
 theorem InStrongDescriptionProfile.mono_epsilon
     {V T : Map} {x : BitString} {epsilon epsilon' i j : Nat}
     (hε : epsilon ≤ epsilon')
@@ -63,6 +71,8 @@ theorem InStrongDescriptionProfile.mono_epsilon
   obtain ⟨S, hS, hdesc⟩ := h
   exact ⟨S, hS, hdesc.mono_epsilon hε⟩
 
+/-- Membership in the strong description profile is preserved when the model-complexity budget `i`
+is enlarged. -/
 theorem InStrongDescriptionProfile.mono_i
     {V T : Map} {x : BitString} {epsilon i i' j : Nat}
     (hii : i ≤ i')
@@ -71,6 +81,8 @@ theorem InStrongDescriptionProfile.mono_i
   obtain ⟨S, hS, hdesc⟩ := h
   exact ⟨S, hS, hdesc.mono_i hii⟩
 
+/-- Membership in the strong description profile is preserved when the log-cardinality budget `j` is
+enlarged. -/
 theorem InStrongDescriptionProfile.mono_j
     {V T : Map} {x : BitString} {epsilon i j j' : Nat}
     (hjj : j ≤ j')
@@ -87,12 +99,15 @@ theorem inPlainDescriptionProfile_of_inStrongDescriptionProfile
   obtain ⟨S, hS, hdesc⟩ := h
   exact ⟨S, hS, hdesc.1⟩
 
+/-- Every point of the strong description profile of `x` is also a point of its plain description
+profile. -/
 theorem strongDescriptionProfileSet_subset_plain
     (V T : Map) (x : BitString) (epsilon : Nat) :
     strongDescriptionProfileSet V T x epsilon ⊆
       plainDescriptionProfileSet V x :=
   fun _ h => inPlainDescriptionProfile_of_inStrongDescriptionProfile h
 
+/-- The strong description profile set grows with the slack `epsilon`. -/
 theorem strongDescriptionProfileSet_mono_epsilon
     (V T : Map) (x : BitString) {epsilon epsilon' : Nat}
     (hε : epsilon ≤ epsilon') :
@@ -100,6 +115,7 @@ theorem strongDescriptionProfileSet_mono_epsilon
       strongDescriptionProfileSet V T x epsilon' :=
   fun _ h => h.mono_epsilon hε
 
+/-- The strong description profile set is upward closed in both budgets. -/
 theorem strongDescriptionProfileSet_isUpperSet
     (V T : Map) (x : BitString) (epsilon : Nat) :
     IsUpperSet (strongDescriptionProfileSet V T x epsilon) := by
@@ -110,11 +126,14 @@ theorem strongDescriptionProfileSet_isUpperSet
 noncomputable def canonicalSingletonSetCode (x : BitString) : BitString :=
   canonicalUniformCodeOfList [x]
 
+/-- The map sending a string to the code of the uniform distribution on its singleton is computable.
+The map sending a string to the code of the uniform distribution on its singleton is computable. -/
 theorem canonicalSingletonSetCode_computable :
     Computable canonicalSingletonSetCode :=
   canonicalUniformCodeOfList_computable.comp
     (Computable.list_cons.comp Computable.id (Computable.const []))
 
+/-- The canonical singleton code of `x` is the code of the uniform distribution on `{x}`. -/
 @[simp] theorem canonicalSingletonSetCode_eq (x : BitString) :
     canonicalSingletonSetCode x =
       (codedUniformOn {x} (Finset.singleton_nonempty x)).code := by
@@ -132,7 +151,7 @@ theorem plainSetComplexity_singleton_le_plainK
       plainSetComplexity V {x} (Finset.singleton_nonempty x) ≤
         plainK V x + (c : ENat) := by
   obtain ⟨cMap, hMap⟩ :=
-    plainKMapLe V hV canonicalSingletonSetCode
+    plainK_map_le V hV canonicalSingletonSetCode
       canonicalSingletonSetCode_computable
   refine ⟨cMap, fun x => ?_⟩
   unfold plainSetComplexity
@@ -147,9 +166,9 @@ theorem plainSetComplexity_singleton_le_length
       plainSetComplexity V {x} (Finset.singleton_nonempty x) ≤
         ((x.length + c : Nat) : ENat) := by
   obtain ⟨cMap, hMap⟩ :=
-    plainKMapLe V hV canonicalSingletonSetCode
+    plainK_map_le V hV canonicalSingletonSetCode
       canonicalSingletonSetCode_computable
-  obtain ⟨cLen, hLen⟩ := plainKLeLength V hV
+  obtain ⟨cLen, hLen⟩ := plainK_le_length V hV
   refine ⟨cMap + cLen, fun x => ?_⟩
   unfold plainSetComplexity
   rw [← canonicalSingletonSetCode_eq]
@@ -261,6 +280,7 @@ theorem normal_of_length_strength
   rw [hc x n hn]
   exact ProfileSetsWithinNeighborhood.refl _
 
+/-- Normality of a string is preserved when the tolerance `delta` is enlarged. -/
 theorem IsNormalString.mono_delta
     {V T : Map} {x : BitString} {epsilon delta delta' : Nat}
     (hδ : delta ≤ delta')

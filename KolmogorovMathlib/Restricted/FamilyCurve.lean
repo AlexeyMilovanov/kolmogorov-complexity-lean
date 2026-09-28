@@ -6,7 +6,24 @@ import KolmogorovMathlib.Restricted.FamilyCurve.AnchoredChain
 import KolmogorovMathlib.Restricted.FamilyCurve.VersionDecoder
 import KolmogorovMathlib.Restricted.FamilyCurve.VersionClose
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.PaperTheorems
+import KolmogorovMathlib.Restricted.HammingGap.HelperLemmasHammingVolume
 import KolmogorovMathlib.Restricted.HammingGap
+
+/-!
+# Realization of restricted-family profile curves
+
+This module assembles the grid, sampled run, anchored chain and version decoder into the
+restricted-family realization theorem. Intermediate existence lemmas produce an anchored output
+with a complexity-controlled model, then a sampled output core, a coupled output and finally a
+scale template and scale state.
+
+`RestrictedScaleTemplate.exists_good_candidate` extracts a string with the required profile
+bounds. The endpoint `prop_family_curve` realizes every admissible target curve, under the
+standing effectiveness and coverage assumptions on the family, up to the explicit square-root
+and logarithmic slack.
+
+This is the formal restricted-family curve result corresponding to VS40 section 6.
+-/
 
 namespace Kolmogorov
 open scoped ENNReal
@@ -42,7 +59,7 @@ lemma sqrtSlack_add (a b n : ℕ) :
   rw [Nat.add_mul]
   omega
 
-/-- The version-coding core of M7: the anchored effective run (replayed with a
+/-- The version-coding core of the curve realization: the anchored effective run (replayed with a
 canonical code for `U` chosen inside the proof) reaches a terminal state whose
 survivor avoids every forbidden restricted-profile witness AND whose sampled
 models carry version-coded complexity bounds: each terminal model is decodable
@@ -106,13 +123,12 @@ lemma exists_restricted_anchored_output_with_model_complexity
     _ = (grid.i s + sqrtSlack (c_grid + c_ver) n : ENat) := by
         rfl
 
-/-- The core M7 assembly.  `RunBounds` supplies the balanced ambient
-padding, terminating anchored run, nonempty terminal survivor, and
-forbidden-profile avoidance; `restrictedAnchoredRun_model_setComplexity`
-supplies the version-coded model complexities.  The candidate complexity
-follows from the two-part decoder bound because the terminal anchored level
-has unit size (`grid.j N = 0`), and the packaged core is produced by
-`restrictedAnchoredState_to_sampledOutputCore`. -/
+/-- There is a constant `c_run`, depending only on the machine `U` and the family `𝒜`, such
+that every restricted curve grid carries a sampled output core at overhead `c_grid + 8 + c_run`:
+for all `c_grid n k N t` and every `grid : RestrictedCurveGrid n k N t` with
+`N = √(n / (log₂ n + 1)) + 1`, grid code of prefix complexity at most `sqrtSlack c_grid n`,
+`k ≤ n`, `t 0 ≤ n`, `t k = 0` and `t` strictly decreasing below `k`, the type
+`RestrictedSampledOutputCore 𝒜 U n k N (c_grid + 8 + c_run) t grid` is nonempty. -/
 lemma exists_restricted_sampled_output_core
     (U : Map) (_hU : IsOptimalPrefixConditional U)
     (𝒜 : DescriptionFamily) (hPoly : 𝒜.HasPolynomialOverhead) :
@@ -270,7 +286,7 @@ lemma exists_restricted_coupled_scale_process
     survivor_mem := output.survivor_mem
     survivor_not_bad := output.survivor_not_bad }⟩
 
-/-- Hard M7 leaf: construct the computably generated, survivor-preserving
+/-- Construction of the computably generated, survivor-preserving
 multi-scale good-set process.  The bad-profile union bound is now provided by
 `restrictedProfileBadSet_card_le`; the coupled process is isolated in
 `exists_restricted_coupled_scale_process`. -/
@@ -345,7 +361,7 @@ lemma exists_restricted_scale_state (U : Map) (hU : IsOptimalPrefixConditional U
   exact template.complexity_bound s hs ⟨x, template.candidate_mem x hxcand s hs⟩
 
 /--
-M7: restricted curve realization (`thm:family-curve`).
+Restricted curve realization (`thm:family-curve`).
 
 For a fixed restricted description family `𝒜`, every strictly decreasing boundary
 sequence `t 0 > t 1 > ... > t k = 0`, with `k ≤ n` and `t 0 ≤ n`, is realized up

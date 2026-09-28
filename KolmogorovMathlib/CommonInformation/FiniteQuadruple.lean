@@ -34,12 +34,12 @@ of total mass `1` (`Kolmogorov.QuadDist`).
 
 ## Main results
 
-* `Kolmogorov.exercise_314_conditionally_independent_uniform_pair`: for every
+* `Kolmogorov.exists_quadDist_condIndep_uniform_pair`: for every
   `c ∈ [3/8, 5/8]` there is a distribution with uniform `α`, uniform `β`,
   independent `γ, δ`, conditional independence of `α, β` given `γ` and given
   `δ`, and `Pr[α = β] = c`; moreover the joint law of `(α, β)` is the symmetric
   one with `Pr[α = β = a] = c/2`.
-* `Kolmogorov.exercise_314_not_independent`: for `c ≠ 1/2` such a pair is not
+* `Kolmogorov.not_alphaBetaIndep_of_prAgree_ne_half`: for `c ≠ 1/2` such a pair is not
   independent, so the mutual information of `α` and `β` is nonzero — this is
   the point of the exercise.
 
@@ -199,79 +199,99 @@ variable {p : ℝ}
 
 open QuadDist
 
+/-- The high quadruple distribution has uniform first marginal. -/
 theorem highDist_prAlpha (h₁ : 1 / 2 ≤ p) (h₂ : p ≤ 3 / 4) (a : Bool) :
     (highDist p h₁ h₂).prAlpha a = 1 / 2 := by
   cases a <;> simp [prAlpha, pr, highDist, highWeight] <;> ring
 
+/-- The high quadruple distribution has uniform second marginal. -/
 theorem highDist_prBeta (h₁ : 1 / 2 ≤ p) (h₂ : p ≤ 3 / 4) (b : Bool) :
     (highDist p h₁ h₂).prBeta b = 1 / 2 := by
   cases b <;> simp [prBeta, pr, highDist, highWeight] <;> ring
 
+/-- In the high quadruple distribution the two hidden coordinates are independent. -/
 theorem highDist_gammaDeltaIndep (h₁ : 1 / 2 ≤ p) (h₂ : p ≤ 3 / 4) :
     (highDist p h₁ h₂).GammaDeltaIndep := by
   intro g d
   cases g <;> cases d <;>
     simp [prGammaDelta, prGamma, prDelta, pr, highDist, highWeight] <;> ring
 
+/-- In the high quadruple distribution the two visible coordinates are conditionally independent
+given the first hidden one. -/
 theorem highDist_condIndepGivenGamma (h₁ : 1 / 2 ≤ p) (h₂ : p ≤ 3 / 4) :
     (highDist p h₁ h₂).CondIndepGivenGamma := by
   intro a b g
   cases a <;> cases b <;> cases g <;>
     simp [prAlphaBetaGamma, prGamma, prAlphaGamma, prBetaGamma, pr, highDist, highWeight] <;> ring
 
+/-- In the high quadruple distribution the two visible coordinates are conditionally independent
+given the second hidden one. -/
 theorem highDist_condIndepGivenDelta (h₁ : 1 / 2 ≤ p) (h₂ : p ≤ 3 / 4) :
     (highDist p h₁ h₂).CondIndepGivenDelta := by
   intro a b d
   cases a <;> cases b <;> cases d <;>
     simp [prAlphaBetaDelta, prDelta, prAlphaDelta, prBetaDelta, pr, highDist, highWeight] <;> ring
 
+/-- The joint law of the two visible coordinates in the high quadruple distribution. -/
 theorem highDist_prAlphaBeta (h₁ : 1 / 2 ≤ p) (h₂ : p ≤ 3 / 4) (a b : Bool) :
     (highDist p h₁ h₂).prAlphaBeta a b =
       if a = b then (1 - 2 * p * (1 - p)) / 2 else (2 * p * (1 - p)) / 2 := by
   cases a <;> cases b <;> simp [prAlphaBeta, pr, highDist, highWeight] <;> ring
 
+/-- In the high quadruple distribution the two visible coordinates agree with probability
+`1 - 2p(1-p)`. -/
 theorem highDist_prAgree (h₁ : 1 / 2 ≤ p) (h₂ : p ≤ 3 / 4) :
     (highDist p h₁ h₂).prAgree = 1 - 2 * p * (1 - p) := by
   simp [prAgree, pr, highDist, highWeight]; ring
 
+/-- The low quadruple distribution has uniform first marginal. -/
 theorem lowDist_prAlpha (h₁ : 1 / 2 ≤ p) (h₂ : p ≤ 3 / 4) (a : Bool) :
     (lowDist p h₁ h₂).prAlpha a = 1 / 2 := by
   cases a <;> simp [prAlpha, pr, lowDist, lowWeight] <;> ring
 
+/-- The low quadruple distribution has uniform second marginal. -/
 theorem lowDist_prBeta (h₁ : 1 / 2 ≤ p) (h₂ : p ≤ 3 / 4) (b : Bool) :
     (lowDist p h₁ h₂).prBeta b = 1 / 2 := by
   cases b <;> simp [prBeta, pr, lowDist, lowWeight] <;> ring
 
+/-- In the low quadruple distribution the two hidden coordinates are independent. -/
 theorem lowDist_gammaDeltaIndep (h₁ : 1 / 2 ≤ p) (h₂ : p ≤ 3 / 4) :
     (lowDist p h₁ h₂).GammaDeltaIndep := by
   intro g d
   cases g <;> cases d <;>
     simp [prGammaDelta, prGamma, prDelta, pr, lowDist, lowWeight] <;> ring
 
+/-- In the low quadruple distribution the two visible coordinates are conditionally independent
+given the first hidden one. -/
 theorem lowDist_condIndepGivenGamma (h₁ : 1 / 2 ≤ p) (h₂ : p ≤ 3 / 4) :
     (lowDist p h₁ h₂).CondIndepGivenGamma := by
   intro a b g
   cases a <;> cases b <;> cases g <;>
     simp [prAlphaBetaGamma, prGamma, prAlphaGamma, prBetaGamma, pr, lowDist, lowWeight] <;> ring
 
+/-- In the low quadruple distribution the two visible coordinates are conditionally independent
+given the second hidden one. -/
 theorem lowDist_condIndepGivenDelta (h₁ : 1 / 2 ≤ p) (h₂ : p ≤ 3 / 4) :
     (lowDist p h₁ h₂).CondIndepGivenDelta := by
   intro a b d
   cases a <;> cases b <;> cases d <;>
     simp [prAlphaBetaDelta, prDelta, prAlphaDelta, prBetaDelta, pr, lowDist, lowWeight] <;> ring
 
+/-- The joint law of the two visible coordinates in the low quadruple distribution. -/
 theorem lowDist_prAlphaBeta (h₁ : 1 / 2 ≤ p) (h₂ : p ≤ 3 / 4) (a b : Bool) :
     (lowDist p h₁ h₂).prAlphaBeta a b =
       if a = b then (2 * p * (1 - p)) / 2 else (1 - 2 * p * (1 - p)) / 2 := by
   cases a <;> cases b <;> simp [prAlphaBeta, pr, lowDist, lowWeight] <;> ring
 
+/-- In the low quadruple distribution the two visible coordinates agree with probability
+`2p(1-p)`. -/
 theorem lowDist_prAgree (h₁ : 1 / 2 ≤ p) (h₂ : p ≤ 3 / 4) :
     (lowDist p h₁ h₂).prAgree = 2 * p * (1 - p) := by
   simp [prAgree, pr, lowDist, lowWeight]; ring
 
 end Verification
 
-/-- **SUV Exercise 314.**  For every `c ∈ [3/8, 5/8]` there are four Boolean
+/-- For every `c ∈ [3/8, 5/8]` there are four Boolean
 random variables `α, β, γ, δ` on a common (finite) probability space such that
 
 * `α` and `β` are uniformly distributed in `{0,1}`;
@@ -279,8 +299,8 @@ random variables `α, β, γ, δ` on a common (finite) probability space such th
 * `α` and `β` are independent given `γ`, and also given `δ`;
 * `Pr[α = β] = c`, the joint law of `(α, β)` being the symmetric one.
 
-For `c = 5/8` this is SUV Theorem 217. -/
-theorem exercise_314_conditionally_independent_uniform_pair (c : ℝ)
+For `c = 5/8` this is SUV Theorem 217.  SUV Exercise 314. -/
+theorem exists_quadDist_condIndep_uniform_pair (c : ℝ)
     (hc₀ : 3 / 8 ≤ c) (hc₁ : c ≤ 5 / 8) :
     ∃ D : QuadDist,
       (∀ a, D.prAlpha a = 1 / 2) ∧ (∀ b, D.prBeta b = 1 / 2) ∧
@@ -329,10 +349,10 @@ theorem exercise_314_conditionally_independent_uniform_pair (c : ℝ)
       · simp only [hab, if_false]
         nlinarith [hcp]
 
-/-- The pairs produced by `exercise_314_conditionally_independent_uniform_pair`
+/-- The pairs produced by `exists_quadDist_condIndep_uniform_pair`
 are **not** independent unless `c = 1/2`: their mutual information is nonzero,
 which is what makes the statement interesting. -/
-theorem exercise_314_not_independent {D : QuadDist} {c : ℝ} (hc : c ≠ 1 / 2)
+theorem not_alphaBetaIndep_of_prAgree_ne_half {D : QuadDist} {c : ℝ} (hc : c ≠ 1 / 2)
     (hα : ∀ a, D.prAlpha a = 1 / 2) (hβ : ∀ b, D.prBeta b = 1 / 2)
     (hjoint : ∀ a b, D.prAlphaBeta a b = if a = b then c / 2 else (1 - c) / 2) :
     ¬ D.AlphaBetaIndep := by
@@ -341,17 +361,17 @@ theorem exercise_314_not_independent {D : QuadDist} {c : ℝ} (hc : c ≠ 1 / 2)
   rw [hjoint false false, hα false, hβ false, if_pos rfl] at h00
   exact hc (by linarith)
 
-/-- **SUV Theorem 217** (p. 342), the case `c = 5/8` of Exercise 314: there are
-two uniformly distributed, conditionally independent but *dependent* Boolean
-random variables `α, β` with `Pr[α = β] = 5/8`. -/
-theorem theorem_217_conditionally_independent_not_independent :
+/-- (p. 342), the case `c = 5/8` of Exercise 314: there are two uniformly distributed,
+conditionally independent but *dependent* Boolean random variables `α, β` with `Pr[α = β] =
+5/8`.  SUV Theorem 217. -/
+theorem exists_quadDist_condIndep_not_indep :
     ∃ D : QuadDist,
       (∀ a, D.prAlpha a = 1 / 2) ∧ (∀ b, D.prBeta b = 1 / 2) ∧
         D.GammaDeltaIndep ∧ D.CondIndepGivenGamma ∧ D.CondIndepGivenDelta ∧
           D.prAgree = 5 / 8 ∧ ¬ D.AlphaBetaIndep := by
   obtain ⟨D, hα, hβ, hγδ, hcg, hcd, hagree, hjoint⟩ :=
-    exercise_314_conditionally_independent_uniform_pair (5 / 8) (by norm_num) le_rfl
+    exists_quadDist_condIndep_uniform_pair (5 / 8) (by norm_num) le_rfl
   exact ⟨D, hα, hβ, hγδ, hcg, hcd, hagree,
-    exercise_314_not_independent (by norm_num) hα hβ hjoint⟩
+    not_alphaBetaIndep_of_prAgree_ne_half (by norm_num) hα hβ hjoint⟩
 
 end Kolmogorov

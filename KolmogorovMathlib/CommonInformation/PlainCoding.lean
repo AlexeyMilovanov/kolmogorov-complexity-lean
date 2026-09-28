@@ -1,7 +1,23 @@
 import KolmogorovMathlib.CommonInformation.Definitions
 
+/-!
+# Programs and outputs
+
+The elementary coding facts about plain complexity that the common-information estimates use
+without comment.  `HasPlainComplexityValue.exists_program` and its conditional form turn an
+exact complexity value into a program of exactly that length, and
+`exists_plainComplexityValue` and `exists_plainConditionalComplexityValue` provide those
+values for an optimal machine.
+
+The inequalities: `condK_output_given_plainProgram_le` (`K(x | p) = O(1)`),
+`plainK_output_le_plainK_program`, `pairPlainK_output_program_le_plainK_program`, the two
+projections `pairPlainK_left_le` and `pairPlainK_right_le`, and
+`condK_right_le_pairPlainK`.
+-/
+
 namespace Kolmogorov
 
+/-- A string whose plain complexity is `k` has a program of length exactly `k`. -/
 theorem HasPlainComplexityValue.exists_program
     {V : Map} {x : BitString} {k : Nat}
     (h : HasPlainComplexityValue V x k) :
@@ -18,6 +34,8 @@ theorem HasPlainComplexityValue.exists_program
     exact h
   exact_mod_cast hlen'
 
+/-- A string whose conditional complexity given `y` is `k` has a program of length exactly `k`
+that produces it from `y`. -/
 theorem HasPlainConditionalComplexityValue.exists_program
     {V : Map} {x y : BitString} {k : Nat}
     (h : HasPlainConditionalComplexityValue V x y k) :
@@ -34,10 +52,11 @@ theorem HasPlainConditionalComplexityValue.exists_program
     exact h
   exact_mod_cast hlen'
 
+/-- For an optimal machine every string has a finite plain complexity. -/
 theorem exists_plainComplexityValue
     (V : Map) (hV : isOptimalConditional V) (x : BitString) :
     ∃ k : Nat, HasPlainComplexityValue V x k := by
-  obtain ⟨c, hc⟩ := plainKLeLength V hV
+  obtain ⟨c, hc⟩ := plainK_le_length V hV
   have hfinite : plainK V x ≠ ⊤ := by
     refine ne_top_of_le_ne_top ?_ (hc x)
     rw [← Nat.cast_add]
@@ -45,11 +64,13 @@ theorem exists_plainComplexityValue
   obtain ⟨k, hk⟩ := ENat.ne_top_iff_exists.mp hfinite
   exact ⟨k, hk.symm⟩
 
+/-- For an optimal machine every string has a finite conditional complexity given any
+condition. -/
 theorem exists_plainConditionalComplexityValue
     (V : Map) (hV : isOptimalConditional V) (x y : BitString) :
     ∃ k : Nat, HasPlainConditionalComplexityValue V x y k := by
-  obtain ⟨cPlain, hPlain⟩ := plainKLeLength V hV
-  obtain ⟨cCond, hCond⟩ := condKLePlainK V hV
+  obtain ⟨cPlain, hPlain⟩ := plainK_le_length V hV
+  obtain ⟨cCond, hCond⟩ := condK_le_plainK V hV
   have hbound :
       condK V x y ≤ ((x.length + cPlain + cCond : Nat) : ENat) := by
     calc
@@ -63,6 +84,7 @@ theorem exists_plainConditionalComplexityValue
   obtain ⟨k, hk⟩ := ENat.ne_top_iff_exists.mp hfinite
   exact ⟨k, hk.symm⟩
 
+/-- The output of a program is cheap given the program: `K(x | p) = O(1)`. -/
 theorem condK_output_given_plainProgram_le
     (V : Map) (hV : isOptimalConditional V) :
     ∃ c : Nat, ∀ p x : BitString,
@@ -79,6 +101,7 @@ theorem condK_output_given_plainProgram_le
       exact sInf_le ⟨[], hp, rfl⟩
     _ = (c : ENat) := zero_add _
 
+/-- The output of a program is no more complex than the program itself, up to a constant. -/
 theorem plainK_output_le_plainK_program
     (V : Map) (hV : isOptimalConditional V) :
     ∃ c : Nat, ∀ p x : BitString,
@@ -105,6 +128,8 @@ theorem plainK_output_le_plainK_program
       exact sInf_le ⟨q, hDprod, rfl⟩
     _ = plainK V p + (c : ENat) := by rw [hqLen, hkp]
 
+/-- The pair of a program and its output is no more complex than the program, up to a
+constant. -/
 theorem pairPlainK_output_program_le_plainK_program
     (V : Map) (hV : isOptimalConditional V) :
     ∃ c : Nat, ∀ p x : BitString,
@@ -141,27 +166,31 @@ theorem pairPlainK_output_program_le_plainK_program
       exact sInf_le ⟨q, hDprod, rfl⟩
     _ = plainK V p + (c : ENat) := by rw [hqLen, hkp]
 
+/-- The left component of a pair is no more complex than the pair, up to a constant. -/
 theorem pairPlainK_left_le
     (V : Map) (hV : isOptimalConditional V) :
     ∃ c : Nat, ∀ x y : BitString,
       plainK V x ≤ pairPlainK V x y + (c : ENat) := by
-  obtain ⟨c, hc⟩ := plainKMapLe V hV decodeFirst decodeFirst_computable
+  obtain ⟨c, hc⟩ := plainK_map_le V hV decodeFirst decodeFirst_computable
   refine ⟨c, fun x y => ?_⟩
   simpa [pairPlainK, decodeFirst_pairCode] using hc (pairCode x y)
 
+/-- The right component of a pair is no more complex than the pair, up to a constant. -/
 theorem pairPlainK_right_le
     (V : Map) (hV : isOptimalConditional V) :
     ∃ c : Nat, ∀ x y : BitString,
       plainK V y ≤ pairPlainK V x y + (c : ENat) := by
-  obtain ⟨c, hc⟩ := plainKMapLe V hV decodeSecond decodeSecond_computable
+  obtain ⟨c, hc⟩ := plainK_map_le V hV decodeSecond decodeSecond_computable
   refine ⟨c, fun x y => ?_⟩
   simpa [pairPlainK, decodeSecond_pairCode] using hc (pairCode x y)
 
+/-- The conditional complexity of `y` given `x` is at most the complexity of the pair, up to a
+constant. -/
 theorem condK_right_le_pairPlainK
     (V : Map) (hV : isOptimalConditional V) :
     ∃ c : Nat, ∀ x y : BitString,
       condK V y x ≤ pairPlainK V x y + (c : ENat) := by
-  obtain ⟨cCond, hCond⟩ := condKLePlainK V hV
+  obtain ⟨cCond, hCond⟩ := condK_le_plainK V hV
   obtain ⟨cPair, hPair⟩ := pairPlainK_right_le V hV
   refine ⟨cCond + cPair, fun x y => ?_⟩
   calc

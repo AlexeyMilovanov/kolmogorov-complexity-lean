@@ -54,72 +54,44 @@ instance : Primcodable CodedFiniteDistribution :=
 
 /-! ### Primitive recursiveness of the encoders -/
 
-/-- The unary natural-number encoder is primitive recursive. -/
-theorem natCode_primrec : Primrec natCode := by
-  have hrep : Primrec (fun n : ℕ => List.replicate n true) := by
-    have h : (fun n : ℕ => List.replicate n true)
-        = fun n => Nat.rec ([] : List Bool) (fun _ ih => true :: ih) n := by
-      funext n; induction n with
-      | zero => rfl
-      | succ n ih => rw [List.replicate_succ, ih]
-    rw [h]
-    exact Primrec.nat_rec' Primrec.id (Primrec.const [])
-      (Primrec.list_cons.comp (Primrec.const true) (Primrec.snd.comp Primrec.snd)).to₂
-  have h : natCode = fun n => List.replicate n true ++ [false] := rfl
-  rw [h]
-  exact Primrec.list_append.comp hrep (Primrec.const [false])
-
 /-- The self-delimiting pair encoder is primitive recursive. -/
 theorem pairCode_primrec : Primrec₂ pairCode :=
   (Primrec.list_append.comp
     (Primrec.list_append.comp
-      (natCode_primrec.comp (Primrec.list_length.comp Primrec.fst))
+      (primrec_natCode.comp (Primrec.list_length.comp Primrec.fst))
       Primrec.fst)
     Primrec.snd).of_eq (fun _ => rfl)
 
-/-- The `num` projection of a rational mass is primitive recursive. -/
-theorem ratMass_num_primrec : Primrec (fun q : RatMass => q.num) := by
+/-- The `num`–`den` pair of a rational mass is primitive recursive. This is the general
+statement behind `ratMass_num_primrec` and `ratMass_den_primrec`, which are its two
+components. -/
+theorem ratMass_numDen_primrec : Primrec (fun q : RatMass => (q.num, q.den)) := by
   have := @Primrec.of_equiv
-  convert this.comp ( Primrec.id ) |> Primrec.comp ( Primrec.fst.comp ( Primrec.subtype_val ) )
-      using 1
+  convert this.comp ( Primrec.id ) |> Primrec.comp ( Primrec.subtype_val ) using 1
+
+/-- The `num` projection of a rational mass is primitive recursive. -/
+theorem ratMass_num_primrec : Primrec (fun q : RatMass => q.num) :=
+  Primrec.fst.comp ratMass_numDen_primrec
 
 /-- The `den` projection of a rational mass is primitive recursive. -/
-theorem ratMass_den_primrec : Primrec (fun q : RatMass => q.den) := by
-  have := @Primrec.of_equiv
-  convert this.comp ( Primrec.id ) |> Primrec.comp ( Primrec.snd.comp ( Primrec.subtype_val ) )
-      using 1
-
-/-- The map `k ↦ 2^k` is primitive recursive. -/
-theorem twoPow_primrec : Primrec (fun k : ℕ => 2 ^ k) := by
-  have h :
-      (fun k : ℕ => 2 ^ k) =
-        fun k => Nat.rec 1 (fun _ ih => ih * 2) k := by
-    funext k
-    induction k with
-    | zero => rfl
-    | succ k ih =>
-        rw [Nat.pow_succ, ih]
-  rw [h]
-  exact Primrec.nat_rec' Primrec.id (Primrec.const 1)
-    (Primrec.nat_mul.comp
-      (Primrec.snd.comp (Primrec.snd : Primrec (fun p : ℕ × (ℕ × ℕ) => p.2)))
-      (Primrec.const 2)).to₂
+theorem ratMass_den_primrec : Primrec (fun q : RatMass => q.den) :=
+  Primrec.snd.comp ratMass_numDen_primrec
 
 /-- The rational threshold test `q.den ≤ q.num * 2^k` is primitive recursive. -/
-theorem ratMass_ge_invPow2_primrec : Primrec₂ RatMass.ge_invPow2 := by
+theorem ratMass_ge_invPow2_primrec : Primrec₂ RatMass.geInvPow2 := by
   have hden : Primrec₂ (fun q : RatMass => fun _k : ℕ => q.den) :=
     (ratMass_den_primrec.comp (Primrec.fst : Primrec (fun p : RatMass × ℕ => p.1))).to₂
   have hrhs : Primrec₂ (fun q : RatMass => fun k : ℕ => q.num * 2 ^ k) :=
     (Primrec.nat_mul.comp
       (ratMass_num_primrec.comp (Primrec.fst : Primrec (fun p : RatMass × ℕ => p.1)))
-      (twoPow_primrec.comp (Primrec.snd : Primrec (fun p : RatMass × ℕ => p.2)))).to₂
+      (primrec_two_pow_aux.comp (Primrec.snd : Primrec (fun p : RatMass × ℕ => p.2)))).to₂
   exact (PrimrecRel.decide (PrimrecRel.comp₂ Primrec.nat_le hden hrhs)).of_eq
     (fun q k => rfl)
 
 /-- The rational-mass encoder is primitive recursive. -/
 theorem ratMass_code_primrec : Primrec RatMass.code :=
-  (pairCode_primrec.comp (natCode_primrec.comp ratMass_num_primrec)
-    (natCode_primrec.comp ratMass_den_primrec)).of_eq (fun _ => rfl)
+  (pairCode_primrec.comp (primrec_natCode.comp ratMass_num_primrec)
+    (primrec_natCode.comp ratMass_den_primrec)).of_eq (fun _ => rfl)
 
 /-- The `point` projection of an entry is primitive recursive. -/
 theorem entry_point_primrec :

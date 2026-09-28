@@ -1,4 +1,19 @@
+import KolmogorovMathlib.Restricted.FamilyCurve.EffectiveRun.Part03
 import KolmogorovMathlib.Restricted.FamilyCurve.EffectiveRun
+
+/-!
+# Semantics of the effective restricted-family run
+
+This module connects the executable sampled run with the abstract construction. It first proves
+that each decoded bad batch is sound, and defines `restrictedBadPrefixUnion`, the cumulative
+finite set of bad model codes seen up to a step.
+
+`restrictedEffectiveSampledRunProcess_spec` inducts over the encoded process using the step
+contract. `restrictedEffectiveSampledRun_spec` exposes the resulting decoded state, processed
+bad-code prefix and invariant whenever the partial run terminates.
+
+These semantics feed the stabilization and final-output bounds in `RunBounds`.
+-/
 
 namespace Kolmogorov
 
@@ -164,12 +179,8 @@ lemma restrictedEffectiveSampledRunProcess_spec
   · intro i hi
     exact hdisjoint i (by omega)
 
-/-- Every finite effective run over an actual sampled grid terminates in a
-decoded state, and every previously processed canonical bad event is disjoint
-from every live level.
-
-The target exponent is deliberately tied to the executable size schedule. -/
-lemma restrictedEffectiveSampledRun_processed_disjoint
+/-- Public finite-time semantics of the effective sampled run. -/
+lemma restrictedEffectiveSampledRun_spec
     (𝒜 : DescriptionFamily) (c : Code)
     {n k N : ℕ} {target : ℕ → ℕ}
     (grid : RestrictedCurveGrid n k N target)
@@ -271,28 +282,5 @@ lemma restrictedEffectiveSampledRun_processed_disjoint
           apply Finset.disjoint_left.mpr
           intro x hx hxbad
           exact (Finset.disjoint_left.mp hprevDisjoint) (hroot s hs hx) hxbad
-
-/-- Public finite-time semantics of the effective sampled run. -/
-lemma restrictedEffectiveSampledRun_spec
-    (𝒜 : DescriptionFamily) (c : Code)
-    {n k N : ℕ} {target : ℕ → ℕ}
-    (grid : RestrictedCurveGrid n k N target)
-    (ambientLength Δ time : ℕ)
-    (hnambient : n ≤ ambientLength) :
-    ∃ output : BitString,
-      ∃ state : RestrictedSampledRunState 𝒜 N ambientLength
-          (2 * 𝒜.overhead ambientLength)
-          (fun s => grid.j s - (Δ + 1)),
-        restrictedEffectiveSampledRun 𝒜 c (restrictedCurveGridCode grid)
-            ambientLength N Δ time = Part.some output ∧
-        DecodesToRestrictedSampledRunState output state ∧
-        ∀ time' < time,
-          ∀ w ∈ restrictedSampledBadBatchAt c (restrictedCurveGridCode grid)
-            𝒜.toPre N Δ time',
-          ∀ bad : Finset BitString,
-            decodeCoverCodeList w = canonicalFinsetList bad →
-            ∀ s ≤ N, Disjoint (state.live s) bad := by
-  exact restrictedEffectiveSampledRun_processed_disjoint 𝒜 c grid
-    ambientLength Δ time hnambient
 
 end Kolmogorov

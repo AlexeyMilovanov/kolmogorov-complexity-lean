@@ -2,8 +2,25 @@ import Mathlib.Algebra.Order.BigOperators.Group.Finset
 import KolmogorovMathlib.Complexity.Incompressibility
 import KolmogorovMathlib.CommonInformation.Definitions
 
+/-!
+# Counting the pairs with a common witness
+
+The counting behind the non-extractability of common information: the pairs that do admit a
+short common witness are too few to cover a positive fraction of all pairs.
+
+`commonWitnessPairsLe` is the set of pairs `(x, y)` with a witness `z` satisfying
+`K(z) ≤ α`, `K(x|z) ≤ β`, `K(y|z) ≤ γ`, characterised by
+`mem_commonWitnessPairsLe_iff` and bounded by `card_commonWitnessPairsLe_lt`: fewer than
+`2 ^ (α + β + γ + 3)`.  `card_conditionallyCompressiblePairs_lt` is the companion bound for
+pairs with two conditionally compressible components, and the three
+`card_fixedLengthPairs_*_lt` lemmas count, among pairs of length-`L` strings, those with a
+simple left component, a simple right component, or a simple pair.
+-/
+
 namespace Kolmogorov
 
+/-- There are fewer than `2^{β+γ+2}` pairs both of whose components are conditionally compressible
+below the respective thresholds. -/
 theorem card_conditionallyCompressiblePairs_lt
     (V : Map) (z : BitString) (β γ : Nat) :
   ((compressibleWords V z β).product
@@ -12,8 +29,8 @@ theorem card_conditionallyCompressiblePairs_lt
   change ((compressibleWords V z β ×ˢ compressibleWords V z γ).card <
     2 ^ ((β + 1) + (γ + 1)))
   rw [Finset.card_product, pow_add]
-  have hβ := cardCompressibleWordsLt V z β
-  have hγ := cardCompressibleWordsLt V z γ
+  have hβ := card_compressibleWordsLt V z β
+  have hγ := card_compressibleWordsLt V z γ
   calc
     (compressibleWords V z β).card * (compressibleWords V z γ).card
         ≤ (compressibleWords V z β).card * 2 ^ (γ + 1) :=
@@ -21,6 +38,8 @@ theorem card_conditionallyCompressiblePairs_lt
     _ < 2 ^ (β + 1) * 2 ^ (γ + 1) :=
       Nat.mul_lt_mul_of_pos_right hβ (Nat.pow_pos (by norm_num))
 
+/-- The pairs `(x, y)` admitting a common witness `z` with `K(z) ≤ α`, `K(x|z) ≤ β` and
+`K(y|z) ≤ γ`. -/
 noncomputable def commonWitnessPairsLe
     (V : Map) (α β γ : Nat) :
     Finset (BitString × BitString) :=
@@ -39,7 +58,7 @@ theorem mem_compressibleWords_iff
   · exact fun h => h.2
   · intro hx
     refine ⟨?_, hx⟩
-    obtain ⟨p, hpLen, hp⟩ := (condKLeIff V x y k).mp hx
+    obtain ⟨p, hpLen, hp⟩ := (condK_le_iff V x y k).mp hx
     rw [generatedWords, List.mem_toFinset, List.mem_filterMap]
     exact ⟨p, mem_programsLe k p hpLen, progToOut_eq_some.mpr hp⟩
 
@@ -69,12 +88,13 @@ theorem mem_commonWitnessPairsLe_iff
     exact ⟨(mem_compressibleWords_iff V z x β).mpr hx,
       (mem_compressibleWords_iff V z y γ).mpr hy⟩
 
+/-- Fewer than `2^{α+β+γ+3}` pairs admit a common witness within the given thresholds. -/
 theorem card_commonWitnessPairsLe_lt
     (V : Map) (α β γ : Nat) :
   (commonWitnessPairsLe V α β γ).card <
     2 ^ ((α + 1) + (β + 1) + (γ + 1)) := by
   unfold commonWitnessPairsLe
-  have hα := cardCompressibleWordsLt V [] α
+  have hα := card_compressibleWordsLt V [] α
   have hEach :
       ∀ z ∈ compressibleWords V [] α,
         ((compressibleWords V z β).product
@@ -100,6 +120,8 @@ theorem card_commonWitnessPairsLe_lt
       congr 1
       omega
 
+/-- Among the pairs of length-`L` strings, fewer than `2^{L+t+1}` have a left component of
+complexity at most `t`. -/
 theorem card_fixedLengthPairs_lowLeft_lt
     (V : Map) (L t : Nat) :
   (((stringsOfLength L).product (stringsOfLength L)).filter
@@ -120,10 +142,10 @@ theorem card_fixedLengthPairs_lowLeft_lt
     rw [compressibleWords, Finset.mem_filter]
     refine ⟨?_, hp.2⟩
     obtain ⟨q, hqLen, hq⟩ :=
-      (condKLeIff V p.1 [] t).mp hp.2
+      (condK_le_iff V p.1 [] t).mp hp.2
     rw [generatedWords, List.mem_toFinset, List.mem_filterMap]
     exact ⟨q, mem_programsLe t q hqLen, progToOut_eq_some.mpr hq⟩
-  have hcomp := cardCompressibleWordsLt V [] t
+  have hcomp := card_compressibleWordsLt V [] t
   calc
     (((stringsOfLength L).product (stringsOfLength L)).filter
         fun p => plainK V p.1 ≤ (t : ENat)).card
@@ -133,7 +155,7 @@ theorem card_fixedLengthPairs_lowLeft_lt
     _ = (compressibleWords V [] t).card * 2 ^ L := by
       change (compressibleWords V [] t ×ˢ stringsOfLength L).card =
         (compressibleWords V [] t).card * 2 ^ L
-      rw [Finset.card_product, cardStringsOfLength]
+      rw [Finset.card_product, card_stringsOfLength]
     _ < 2 ^ (t + 1) * 2 ^ L :=
       Nat.mul_lt_mul_of_pos_right hcomp (Nat.pow_pos (by norm_num))
     _ = 2 ^ (L + t + 1) := by
@@ -141,6 +163,8 @@ theorem card_fixedLengthPairs_lowLeft_lt
       congr 1
       omega
 
+/-- Among the pairs of length-`L` strings, fewer than `2^{L+t+1}` have a right component of
+complexity at most `t`. -/
 theorem card_fixedLengthPairs_lowRight_lt
     (V : Map) (L t : Nat) :
   (((stringsOfLength L).product (stringsOfLength L)).filter
@@ -161,10 +185,10 @@ theorem card_fixedLengthPairs_lowRight_lt
     rw [compressibleWords, Finset.mem_filter]
     refine ⟨?_, hp.2⟩
     obtain ⟨q, hqLen, hq⟩ :=
-      (condKLeIff V p.2 [] t).mp hp.2
+      (condK_le_iff V p.2 [] t).mp hp.2
     rw [generatedWords, List.mem_toFinset, List.mem_filterMap]
     exact ⟨q, mem_programsLe t q hqLen, progToOut_eq_some.mpr hq⟩
-  have hcomp := cardCompressibleWordsLt V [] t
+  have hcomp := card_compressibleWordsLt V [] t
   calc
     (((stringsOfLength L).product (stringsOfLength L)).filter
         fun p => plainK V p.2 ≤ (t : ENat)).card
@@ -174,13 +198,15 @@ theorem card_fixedLengthPairs_lowRight_lt
     _ = 2 ^ L * (compressibleWords V [] t).card := by
       change (stringsOfLength L ×ˢ compressibleWords V [] t).card =
         2 ^ L * (compressibleWords V [] t).card
-      rw [Finset.card_product, cardStringsOfLength]
+      rw [Finset.card_product, card_stringsOfLength]
     _ < 2 ^ L * 2 ^ (t + 1) :=
       Nat.mul_lt_mul_of_pos_left hcomp (Nat.pow_pos (by norm_num))
     _ = 2 ^ (L + t + 1) := by
       rw [← pow_add]
       congr 1
 
+/-- Among the pairs of length-`L` strings, fewer than `2^{t+1}` have pair complexity at
+most `t`. -/
 theorem card_fixedLengthPairs_lowPair_lt
     (V : Map) (L t : Nat) :
   (((stringsOfLength L).product (stringsOfLength L)).filter
@@ -202,7 +228,7 @@ theorem card_fixedLengthPairs_lowPair_lt
     rw [compressibleWords, Finset.mem_filter]
     refine ⟨?_, ?_⟩
     · obtain ⟨q, hqLen, hq⟩ :=
-        (condKLeIff V (pairCode p.1 p.2) [] t).mp hpComplex
+        (condK_le_iff V (pairCode p.1 p.2) [] t).mp hpComplex
       rw [generatedWords, List.mem_toFinset, List.mem_filterMap]
       exact ⟨q, mem_programsLe t q hqLen, progToOut_eq_some.mpr hq⟩
     · exact hpComplex
@@ -214,6 +240,6 @@ theorem card_fixedLengthPairs_lowPair_lt
         = bad.card := rfl
     _ = (bad.image encodePair).card := hcardImage.symm
     _ ≤ (compressibleWords V [] t).card := Finset.card_le_card hsub
-    _ < 2 ^ (t + 1) := cardCompressibleWordsLt V [] t
+    _ < 2 ^ (t + 1) := card_compressibleWordsLt V [] t
 
 end Kolmogorov

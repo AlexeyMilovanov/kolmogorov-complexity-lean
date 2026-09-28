@@ -5,11 +5,25 @@ import KolmogorovMathlib.CommonInformation.ConditionalCounting
 import KolmogorovMathlib.CommonInformation.WorstCaseCounting
 import KolmogorovMathlib.CommonInformation.WorstCaseRegionBounds
 
+/-!
+# Counting for the region construction
+
+`exists_muchnikRegionSurvivor`: for every positive `n` a survivor of the region construction
+exists.  `muchnikRegionBadPairs` is the set of pairs some admissible triple does serve
+(`mem_muchnikRegionBadPairs_iff`, `not_mem_muchnikRegionBadPairs_iff`), bounded by
+`card_muchnikRegionBadPairs_lt` at fewer than `2 ^ (4n + 2)`; with the other bad families
+(`muchnikRegion_bad_card_sum_lt`) this stays below the `2 ^ (4n + 4)` candidates.
+`muchnikRegion_cubic_le_pow` is the estimate that makes the cubic parameter scan negligible.
+-/
+
 namespace Kolmogorov
 
+/-- The pairs for which some string in the admissible region acts as a common witness. -/
 noncomputable def muchnikRegionBadPairs (V : Map) (n : Nat) : Finset (BitString × BitString) :=
   (muchnikAdmissibleTriples n).toFinset.biUnion (fun t => commonWitnessPairsLe V t.1 t.2.1 t.2.2)
 
+/-- Membership in the bad set means that some admissible triple is realised by a common
+witness. -/
 theorem mem_muchnikRegionBadPairs_iff
     (V : Map) (n : Nat) (x y : BitString) :
   (x, y) ∈ muchnikRegionBadPairs V n ↔
@@ -35,6 +49,8 @@ theorem muchnikRegion_cubic_le_pow {n : Nat} (hn : 22 ≤ n) :
         _ ≤ 2 * 2 ^ n := Nat.mul_le_mul_left 2 ih
         _ = 2 ^ (n + 1) := by rw [pow_succ]; omega
 
+/-- The counts of the several bad families add up to less than `2^{4n+4}`, the number of
+candidate pairs. -/
 theorem muchnikRegion_bad_card_sum_lt
     {n : Nat} (hn : 0 < n) :
   2^(4*n+2) + 2^(4*n+2) + 2^(3*n) +
@@ -93,6 +109,7 @@ theorem muchnikRegion_bad_card_sum_lt
       norm_num
       ring
 
+/-- Fewer than `2^{4n+2}` pairs admit a common witness in the admissible region. -/
 theorem card_muchnikRegionBadPairs_lt
     (V : Map) {n : Nat} (_hn : 0 < n) :
   (muchnikRegionBadPairs V n).card < 2 ^ (4 * n + 2) := by
@@ -146,6 +163,8 @@ theorem card_muchnikRegionBadPairs_lt
         dsimp [r]
         omega
 
+/-- Avoiding the bad set means that every candidate witness violates one of the three region
+inequalities by at least the margin. -/
 theorem not_mem_muchnikRegionBadPairs_iff
     (V : Map) (n : Nat) (x y : BitString) :
   (x, y) ∉ muchnikRegionBadPairs V n ↔
@@ -218,6 +237,7 @@ theorem not_mem_muchnikRegionBadPairs_iff
     · exact (not_le_of_gt hY) h
     · exact (not_le_of_gt hXY) h
 
+/-- For every positive `n` a survivor pair of the region construction exists. -/
 theorem exists_muchnikRegionSurvivor
     (V : Map) {n : Nat} (hn : 0 < n) :
   ∃ x y, IsMuchnikRegionSurvivor V n x y := by
@@ -251,7 +271,7 @@ theorem exists_muchnikRegionSurvivor
   have hU : U.card = 2 ^ (4 * n + 4) := by
     dsimp [U, L]
     rw [Finset.card_product]
-    simp only [cardStringsOfLength]
+    simp only [card_stringsOfLength]
     rw [← pow_add]
     congr 1
     omega
@@ -281,7 +301,7 @@ theorem exists_muchnikRegionSurvivor
     dsimp [U, L] at hpU
     change (x, y) ∈
       stringsOfLength (2 * n + 2) ×ˢ stringsOfLength (2 * n + 2) at hpU
-    rw [Finset.mem_product, memStringsOfLength, memStringsOfLength] at hpU
+    rw [Finset.mem_product, mem_stringsOfLength, mem_stringsOfLength] at hpU
     exact hpU
   have hxNotLow : ¬plainK V x ≤ ((2 * n - 1 : Nat) : ENat) := by
     intro hx

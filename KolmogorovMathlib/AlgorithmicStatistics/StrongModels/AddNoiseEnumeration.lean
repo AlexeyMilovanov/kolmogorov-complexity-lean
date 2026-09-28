@@ -27,9 +27,12 @@ open Kolmogorov.CodedFiniteDistribution
 def codeSupportList (w : BitString) : List BitString :=
   (decodeDistributionData w).map CodedDistributionEntry.point
 
+/-- Listing the support points of a coded distribution is primitive recursive. -/
 theorem codeSupportList_primrec : Primrec codeSupportList :=
   Primrec.list_map decodeDistributionData_primrec (entry_point_primrec.comp Primrec.snd)
 
+/-- The support list of the canonical uniform code of `S` is the canonical listing
+of `S`. -/
 @[simp] theorem codeSupportList_codedUniformOn (S : Finset BitString) (hS : S.Nonempty) :
     codeSupportList (codedUniformOn S hS).code = canonicalFinsetList S := by
   unfold codeSupportList
@@ -42,6 +45,8 @@ def noiseCandidateCodeFilter (x : BitString) (l j : ℕ) (w : BitString) : Bool 
       (fun z => decide (z = pairCode x (decodeSecond z) ∧ (decodeSecond z).length = l)) ∧
     (codeSupportList w).dedup.length ≤ 2 ^ j)
 
+/-- The candidate filter accepts a code exactly when its support contains a pair
+`(x, y)` with `|y| = l` and has at most `2 ^ j` elements. -/
 theorem noiseCandidateCodeFilter_iff (x : BitString) (l j : ℕ) (w : BitString) :
     noiseCandidateCodeFilter x l j w = true ↔
       (∃ y : BitString, y.length = l ∧ pairCode x y ∈ codeSupportList w) ∧
@@ -58,6 +63,7 @@ theorem noiseCandidateCodeFilter_iff (x : BitString) (l j : ℕ) (w : BitString)
     rw [decide_eq_true_eq, decodeSecond_pairCode]
     exact ⟨rfl, hy⟩
 
+/-- The candidate filter is primitive recursive in its parameters and the code. -/
 theorem noiseCandidateCodeFilter_primrec :
     Primrec (fun p : (BitString × ℕ × ℕ) × BitString =>
       noiseCandidateCodeFilter p.1.1 p.1.2.1 p.1.2.2 p.2) := by
@@ -68,7 +74,8 @@ theorem noiseCandidateCodeFilter_primrec :
     have h1 : PrimrecPred (fun q : ((BitString × ℕ × ℕ) × BitString) × BitString =>
         q.2 = pairCode q.1.1.1 (decodeSecond q.2)) :=
       Primrec.eq.comp Primrec.snd
-        (pairCode_primrec.comp (Primrec.fst.comp (Primrec.fst.comp Primrec.fst))
+        (pairCode_primrec.comp (Primrec.fst.comp (Primrec.fst.comp
+          Primrec.fst))
           (decodeSecond_primrec.comp Primrec.snd))
     have h2 : PrimrecPred (fun q : ((BitString × ℕ × ℕ) × BitString) × BitString =>
         (decodeSecond q.2).length = q.1.1.2.1) :=
@@ -89,7 +96,7 @@ theorem noiseCandidateCodeFilter_primrec :
       (codeSupportList p.2).dedup.length ≤ 2 ^ p.1.2.2) :=
     Primrec.nat_le.comp
       (Primrec.list_length.comp (dedup_primrec.comp hL))
-      (twoPow_primrec.comp (Primrec.snd.comp (Primrec.snd.comp Primrec.fst)))
+      (primrec_two_pow_aux.comp (Primrec.snd.comp (Primrec.snd.comp Primrec.fst)))
   exact PrimrecPred.decide (PrimrecPred.and hpos hcard)
 
 /-- The snapshot codes at time `t` that pass the candidate filter. -/
@@ -110,6 +117,7 @@ noncomputable def noiseCandidateTruncationAppearanceCodes
   | t + 1 => (noiseCandidateTruncationAppearanceCodes c x l i j t ++
       noiseCandidateTruncationCodes c x l i j (t + 1)).eraseDups
 
+/-- The stage list of filtered candidate codes is primitive recursive. -/
 theorem noiseCandidateFilteredCodes_primrec (c : Code) :
     Primrec (fun p : ((BitString × ℕ × ℕ) × ℕ) × ℕ =>
       noiseCandidateFilteredCodes c p.1.1.1 p.1.1.2.1 p.1.2 p.1.1.2.2 p.2) := by
@@ -124,6 +132,7 @@ theorem noiseCandidateFilteredCodes_primrec (c : Code) :
   exact (noiseCandidateCodeFilter_primrec.comp
     (Primrec.pair (Primrec.fst.comp (Primrec.fst.comp Primrec.fst)) Primrec.snd)).to₂
 
+/-- The stage list of candidate truncation codes is primitive recursive. -/
 theorem noiseCandidateTruncationCodes_primrec (c : Code) :
     Primrec (fun p : ((BitString × ℕ × ℕ) × ℕ) × ℕ =>
       noiseCandidateTruncationCodes c p.1.1.1 p.1.1.2.1 p.1.2 p.1.1.2.2 p.2) := by
@@ -132,6 +141,7 @@ theorem noiseCandidateTruncationCodes_primrec (c : Code) :
     (Primrec.list_map (codeSupportList_primrec.comp Primrec.snd)
       ((decodeFirst_primrec.comp Primrec.snd).to₂))).to₂
 
+/-- The accumulated list of candidate truncation codes is primitive recursive. -/
 theorem noiseCandidateTruncationAppearanceCodes_primrec (c : Code) :
     Primrec (fun p : ((BitString × ℕ × ℕ) × ℕ) × ℕ =>
       noiseCandidateTruncationAppearanceCodes c p.1.1.1 p.1.1.2.1 p.1.2 p.1.1.2.2 p.2) := by
@@ -154,6 +164,7 @@ theorem noiseCandidateTruncationAppearanceCodes_primrec (c : Code) :
   | zero => rfl
   | succ t ih => simp only [noiseCandidateTruncationAppearanceCodes]; rw [← ih]
 
+/-- The accumulated list of candidate truncation codes is computable. -/
 theorem noiseCandidateTruncationAppearanceCodes_computable (c : Code) :
     Computable (fun p : ((BitString × ℕ × ℕ) × ℕ) × ℕ =>
       noiseCandidateTruncationAppearanceCodes c p.1.1.1 p.1.1.2.1 p.1.2 p.1.1.2.2 p.2) :=
@@ -161,22 +172,26 @@ theorem noiseCandidateTruncationAppearanceCodes_computable (c : Code) :
 
 /-! ### Structural properties of the enumeration -/
 
+/-- At stage zero the accumulated list is the stage-zero list without repetitions. -/
 @[simp] theorem noiseCandidateTruncationAppearanceCodes_zero
     (c : Code) (x : BitString) (l i j : ℕ) :
     noiseCandidateTruncationAppearanceCodes c x l i j 0 =
       (noiseCandidateTruncationCodes c x l i j 0).eraseDups := rfl
 
+/-- Each stage appends the new stage list and removes repetitions. -/
 theorem noiseCandidateTruncationAppearanceCodes_succ
     (c : Code) (x : BitString) (l i j t : ℕ) :
     noiseCandidateTruncationAppearanceCodes c x l i j (t + 1) =
       (noiseCandidateTruncationAppearanceCodes c x l i j t ++
         noiseCandidateTruncationCodes c x l i j (t + 1)).eraseDups := rfl
 
+/-- The accumulated list has no repetitions. -/
 theorem noiseCandidateTruncationAppearanceCodes_nodup
     (c : Code) (x : BitString) (l i j t : ℕ) :
     (noiseCandidateTruncationAppearanceCodes c x l i j t).Nodup := by
   cases t <;> exact nodup_eraseDups_bitString _
 
+/-- Each stage of the accumulated list is a prefix of the next. -/
 theorem noiseCandidateTruncationAppearanceCodes_prefix
     (c : Code) (x : BitString) (l i j t : ℕ) :
     noiseCandidateTruncationAppearanceCodes c x l i j t <+:
@@ -185,6 +200,7 @@ theorem noiseCandidateTruncationAppearanceCodes_prefix
   exact prefix_eraseDups_append_of_nodup _ _
     (noiseCandidateTruncationAppearanceCodes_nodup c x l i j t)
 
+/-- A code produced at stage `t` belongs to the accumulated list at stage `t`. -/
 theorem mem_noiseCandidateTruncationAppearanceCodes_of_mem_stage
     {c : Code} {x : BitString} {l i j t : ℕ} {w : BitString}
     (hw : w ∈ noiseCandidateTruncationCodes c x l i j t) :
@@ -195,6 +211,7 @@ theorem mem_noiseCandidateTruncationAppearanceCodes_of_mem_stage
     rw [noiseCandidateTruncationAppearanceCodes_succ]
     exact mem_eraseDups_bitString.mpr (List.mem_append_right _ hw)
 
+/-- A code in the accumulated list was produced at some stage. -/
 theorem exists_stage_of_mem_noiseCandidateTruncationAppearanceCodes
     {c : Code} {x : BitString} {l i j t : ℕ} {w : BitString}
     (hw : w ∈ noiseCandidateTruncationAppearanceCodes c x l i j t) :
@@ -300,6 +317,7 @@ theorem mem_noiseCandidateTruncationCodes_complete
   rw [canonicalImageCodeOfList_eq_codedUniformOn _ (by rw [hlist]; exact hAne)]
   exact codedUniformOn_code_congr _ _ hlist
 
+/-- No stage enumerates more codes than there are candidate truncations. -/
 theorem noiseCandidateTruncationAppearanceCodes_length_le
     {U : Map} {c : Code} (hc : IsCodeFor c U) (x : BitString) (l i j t : ℕ) :
     (noiseCandidateTruncationAppearanceCodes c x l i j t).length ≤
