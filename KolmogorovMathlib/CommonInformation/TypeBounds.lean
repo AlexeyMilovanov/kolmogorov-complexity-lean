@@ -129,7 +129,7 @@ theorem multinomial_mul_pow_le_multinomial_mul_pow_self {α : Type*} [DecidableE
       (Finset.prod_pos fun i _ => Nat.factorial_pos _)
   have coordwise :
       ∏ i ∈ s, ((f i) ^ (k i) * (f i)!) ≤ ∏ i ∈ s, ((f i) ^ (f i) * (k i)!) := by
-    apply Finset.prod_le_prod'
+    apply Finset.prod_le_prod
     intro i _
     calc (f i) ^ (k i) * (f i)! = (f i)! * (f i) ^ (k i) := by ring
       _ ≤ (k i)! * (f i) ^ (f i) := factorial_mul_pow_le_factorial_mul_pow_self (f i) (k i)

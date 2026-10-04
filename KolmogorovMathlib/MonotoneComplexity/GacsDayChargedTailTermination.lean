@@ -190,7 +190,6 @@ theorem grayChargedTail_round_positive_of_not_gray
       simpa [jT] using hmin)
     hfailT hposT
   convert hout using 1
-  omega
 
 /-- If the round meets the charged gray goal, the tail freezes it at some later time, starting a
 fresh round with empty history. -/
@@ -294,7 +293,7 @@ theorem grayChargedTail_freezes_of_round_gray
       simp [hs]
   rw [hnext]
   simp only [grayChargedTailStep, grayTailWaitingB, Bool.false_eq_true,
-    if_false, hdoneT, hslotsT, htest, if_true]
+    ite_false, hdoneT, hslotsT, htest, ite_true]
   simp [hsame.frozen, htime]
 
 /-- From an active round, either the advantage strategy already wins with positive unserved mass,

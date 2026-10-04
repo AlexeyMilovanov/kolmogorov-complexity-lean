@@ -155,8 +155,8 @@ theorem rawChargedSonRequest_eq {n b : ℕ} (source : ℕ) (threshold eps : ℚ)
       grayChargedSonRequest source threshold eps entries i c := by
   unfold rawChargedSonRequest grayChargedSonRequest
   by_cases hc : c.val < source
-  · rw [if_pos hc, if_pos hc, rawSonRequest_eq]
-  · rw [if_neg hc, if_neg hc, rawSonBase_eq]
+  · rw [ite_eq_left hc, ite_eq_left hc, rawSonRequest_eq]
+  · rw [ite_eq_right hc, ite_eq_right hc, rawSonBase_eq]
 
 /-- The raw root request on encoded entries agrees with the structured root request. -/
 theorem rawChargedRootRequest_eq {n b : ℕ} (source : ℕ) (threshold eps : ℚ)
@@ -242,21 +242,21 @@ theorem rawChargedFamilyMove_eq {n b : ℕ} (source : ℕ) (threshold eps : ℚ)
         rawChargedSonRequest source threshold eps (toRawEntries entries) i.val c else 0 := by
     funext c
     by_cases hc : c < b
-    · rw [dif_pos hc, if_pos hc]
+    · rw [dite_eq_left hc, ite_eq_left hc]
       exact (rawChargedSonRequest_eq source threshold eps entries i ⟨c, hc⟩).symm
-    · rw [dif_neg hc, if_neg hc]
+    · rw [dite_eq_right hc, ite_eq_right hc]
   have h3 : (fun c c' => if hc : c < b then
         (if hc' : c' < b then grayTailEntryMove entries (i, ⟨c, hc⟩, ⟨c', hc'⟩) else []) else []) =
       fun c c' => if c < b then
         (if c' < b then rawEntryMove (toRawEntries entries) (i.val, c, c') else []) else [] := by
     funext c c'
     by_cases hc : c < b
-    · rw [dif_pos hc, if_pos hc]
+    · rw [dite_eq_left hc, ite_eq_left hc]
       by_cases hc' : c' < b
-      · rw [dif_pos hc', if_pos hc']
+      · rw [dite_eq_left hc', ite_eq_left hc']
         exact (rawEntryMove_eq entries (i, ⟨c, hc⟩, ⟨c', hc'⟩)).symm
-      · rw [dif_neg hc', if_neg hc']
-    · rw [dif_neg hc, if_neg hc]
+      · rw [dite_eq_right hc', ite_eq_right hc']
+    · rw [dite_eq_right hc, ite_eq_right hc]
   rw [h1, h2, h3]
 
 /-! ### The erased advantage transition -/
@@ -330,13 +330,13 @@ theorem rawChargedTailStepWith_eq {n b : ℕ} (q L a e : ℕ) (sigma : FamilyStr
   unfold rawChargedTailStepWith
   simp only [toRawState, List.isEmpty_map, List.length_map]
   by_cases hd : st.done = true
-  · rw [if_pos hd]
+  · rw [ite_eq_left hd]
     simp [hd]
-  · rw [if_neg hd]
+  · rw [ite_eq_right hd]
     by_cases hs : st.slots.isEmpty = true
-    · rw [if_pos hs]
+    · rw [ite_eq_left hs]
       simp [hd, hs]
-    · rw [if_neg hs]
+    · rw [ite_eq_right hs]
       simp only [hd, hs, Bool.or_self]
       rw [rawLocalServerMove_eq]
       by_cases hgoal : grayChargedTailGoalAtB q e
@@ -346,7 +346,7 @@ theorem rawChargedTailStepWith_eq {n b : ℕ} (q L a e : ℕ) (sigma : FamilyStr
           (grayTailCurrentMove q L e sigma st)
           (grayTailLocalServerMove
             (grayTailRoundDelta q L e st.frozen.length) st.slots sm) = true
-      · rw [if_pos hgoal, if_pos hgoal]
+      · rw [ite_eq_left hgoal, ite_eq_left hgoal]
         have hfr : (st.frozen.map toRawRound ++
               [((st.frozen.length, st.time,
                   grayTailRoundEps q L e st.frozen.length),
@@ -361,7 +361,7 @@ theorem rawChargedTailStepWith_eq {n b : ℕ} (q L a e : ℕ) (sigma : FamilyStr
         rw [hfr, rawNextSlots_eq, rawGrayHarvest_eq, rawGlobalQuarterB_eq]
         simp [grayChargedTailStepRound, grayChargedThreshold,
           grayChargedSourceCount]
-      · rw [if_neg hgoal, if_neg hgoal]
+      · rw [ite_eq_right hgoal, ite_eq_right hgoal]
         simp
 
 /-! ### The erased phase-tagged transition -/
@@ -439,9 +439,9 @@ theorem rawChargedStartSpend_eq {n b : ℕ} (q L a e : ℕ) (A : Allocation)
   simp only [toRawState]
   simp only [rawChargedSlotsForPass_eq, rawGrayHarvest_eq, List.isEmpty_map]
   by_cases hemp : (grayChargedSlotsForPass q a e 0 core.frozen).isEmpty = true
-  · rw [if_pos hemp, if_pos hemp]
+  · rw [ite_eq_left hemp, ite_eq_left hemp]
     simp [chargedPhaseTag]
-  · rw [if_neg hemp, if_neg hemp]
+  · rw [ite_eq_right hemp, ite_eq_right hemp]
     simp [chargedPhaseTag]
 
 /-- **The charged transition commutes with erasure.**  This is the theorem that
@@ -463,27 +463,27 @@ theorem rawChargedStepWith_eq {n b : ℕ} (q L a e : ℕ) (sigma : FamilyStrateg
     norm_num
     rw [rawChargedTailStepWith_eq q L a e sigma A st.core sm]
     by_cases hdone : (grayChargedTailStep q L a e sigma A st.core sm).done = true
-    · rw [if_pos (by simpa [toRawState] using hdone), if_pos hdone]
+    · rw [ite_eq_left (by simpa [toRawState] using hdone), ite_eq_left hdone]
       exact rawChargedStartSpend_eq q L a e A _ sm
-    · rw [if_neg (by simpa [toRawState] using hdone), if_neg hdone]
+    · rw [ite_eq_right (by simpa [toRawState] using hdone), ite_eq_right hdone]
       simp [toRawChargedState, chargedPhaseTag]
   | spend pass =>
     have h1 : chargedPhaseTag (GrayChargedPhase.spend pass) = pass + 2 := rfl
     rw [h1]
-    rw [if_neg (by omega), if_neg (by omega)]
+    rw [ite_eq_right (by omega), ite_eq_right (by omega)]
     have hsub : pass + 2 - 2 = pass := by omega
     simp only [hsub, toRawState, List.isEmpty_map, List.length_map]
     by_cases hs : st.core.slots.isEmpty = true
-    · rw [if_pos hs, if_pos hs]
+    · rw [ite_eq_left hs, ite_eq_left hs]
       simp [toRawChargedState, toRawState, chargedPhaseTag]
-    · rw [if_neg hs, if_neg hs]
+    · rw [ite_eq_right hs, ite_eq_right hs]
       rw [rawLocalServerMove_eq]
       by_cases hgoal : grayChargedSpendGoalAtB q L a e pass
           st.core.slots.length st.core.unavailable
           (grayChargedSpendMove q L a e pass sigma st.core)
           (grayTailLocalServerMove
             (grayChargedSpendDelta a L e pass) st.core.slots sm) = true
-      · rw [if_pos hgoal, if_pos hgoal]
+      · rw [ite_eq_left hgoal, ite_eq_left hgoal]
         have hfr : (st.core.frozen.map toRawRound ++
               [((st.core.frozen.length, st.core.time,
                   grayChargedSpendEps a L e pass),
@@ -511,16 +511,16 @@ theorem rawChargedStepWith_eq {n b : ℕ} (q L a e : ℕ) (sigma : FamilyStrateg
         · by_cases hemp : (grayChargedSlotsForPass q a e (pass + 1)
               (st.core.frozen
                 ++ [grayChargedSpendStepRound q L a e pass sigma st.core sm])).isEmpty = true
-          · simp only [if_pos hp, if_pos hemp]
+          · simp only [ite_eq_left hp, ite_eq_left hemp]
             simp [toRawChargedState, toRawState, chargedPhaseTag,
               grayChargedSpendStepRound, toRawRound]
-          · simp only [if_pos hp, if_neg hemp]
+          · simp only [ite_eq_left hp, ite_eq_right hemp]
             simp [toRawChargedState, toRawState, chargedPhaseTag,
               grayChargedSpendStepRound, toRawRound]
-        · simp only [if_neg hp]
+        · simp only [ite_eq_right hp]
           simp [toRawChargedState, toRawState, chargedPhaseTag,
             grayChargedSpendStepRound, toRawRound]
-      · rw [if_neg hgoal, if_neg hgoal]
+      · rw [ite_eq_right hgoal, ite_eq_right hgoal]
         simp [toRawChargedState, toRawState, chargedPhaseTag]
 
 /-! ### The erased displayed move -/
@@ -574,7 +574,7 @@ theorem rawChargedQuery_eq_advantage {n b : ℕ} (q L a e : ℕ)
         (rawChargedQuery q L a e tag (toRawState st)).2.2.2 =
       grayTailCurrentMove q L e sigma st := by
   unfold rawChargedQuery
-  rw [if_pos htag]
+  rw [ite_eq_left htag]
   exact rawQuery_eq q L e st sigma
 
 /-- On the tag `pass + 2`, the raw query hands the scheme exactly the arguments that produce the
@@ -588,7 +588,7 @@ theorem rawChargedQuery_eq_spend {n b : ℕ} (q L a e pass : ℕ)
         (rawChargedQuery q L a e (pass + 2) (toRawState st)).2.2.2 =
       grayChargedSpendMove q L a e pass sigma st := by
   unfold rawChargedQuery grayChargedSpendMove toRawState
-  rw [if_neg (by omega)]
+  rw [ite_eq_right (by omega)]
   simp
 
 /-- On the tag of a state's phase, the raw query hands the scheme the arguments that produce the

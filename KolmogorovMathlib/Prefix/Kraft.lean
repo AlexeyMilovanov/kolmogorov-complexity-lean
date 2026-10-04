@@ -1,7 +1,7 @@
 import KolmogorovMathlib.Prefix.UniquelyDecodable
 import KolmogorovMathlib.AlgorithmicProbability.Semimeasure
 import KolmogorovMathlib.Complexity.Incompressibility
-import Mathlib.Data.ENNReal.Basic
+import Mathlib.Basic.ENNReal.Basic
 
 /-!
 # Finite Kraft Inequality for Prefix-Free Bitstring Codes

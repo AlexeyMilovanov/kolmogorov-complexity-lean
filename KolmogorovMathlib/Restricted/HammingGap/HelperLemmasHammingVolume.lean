@@ -564,8 +564,8 @@ theorem setIndexDecompressor_computable : isDecompressor setIndexDecompressor :=
     cases h : (pr.1.length ==
         (Nat.bits
           ((decodeDistributionData pr.2).map CodedDistributionEntry.point).length).length) <;>
-      simp only [setIndexDecompressorOpt, h, cond_true, cond_false,
-        Bool.false_eq_true, eq_self, if_true, if_false]
+      simp only [setIndexDecompressorOpt, h, Bool.cond_true, Bool.cond_false,
+        Bool.false_eq_true, eq_self, ite_true, ite_false]
   exact Computable.ofOption h_opt.to_comp
 
 /-- The set-index decompressor is a prefix machine: for each context all halting programs have
@@ -581,7 +581,7 @@ theorem setIndexDecompressor_isPrefixMachine : IsPrefixMachine setIndexDecompres
     · exact beq_iff_eq.mp h
     · exfalso
       rw [Bool.not_eq_true] at h
-      simp only [setIndexDecompressorOpt, h, cond_false, ne_eq, not_true_eq_false] at hr
+      simp only [setIndexDecompressorOpt, h, Bool.cond_false, ne_eq, not_true_eq_false] at hr
   intro y p hp q hq hpre
   have hp' : setIndexDecompressorOpt (p, y) ≠ none := by
     intro h
@@ -619,7 +619,7 @@ theorem setIndexDecompressor_produces (S : Finset BitString) (hS : S.Nonempty) (
   rw [Part.mem_ofOption]
   unfold setIndexDecompressorOpt
   simp only [dataPoints_codedUniformOn S hS, length_canonicalFinsetList, hplen, ← hs,
-    beq_self_eq_true, cond_true, Option.mem_def, Option.some.injEq]
+    beq_self_eq_true, Bool.cond_true, Option.mem_def, Option.some.injEq]
   rw [bitsToNat_chunkAddress]
   exact hgetD
 

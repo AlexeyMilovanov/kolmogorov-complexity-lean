@@ -329,13 +329,13 @@ theorem dedup_map_injOn {α β} [DecidableEq α] [DecidableEq β] (f : α → β
       = (if f a ∈ List.dedup (List.map f t) then List.dedup (List.map f t)
           else f a :: List.dedup (List.map f t))
     by_cases h : a ∈ t
-    · rw [if_pos (hmemA.mpr h), if_pos (hmemB.mpr (List.mem_map_of_mem h)), iht]
+    · rw [ite_eq_left (hmemA.mpr h), ite_eq_left (hmemB.mpr (List.mem_map_of_mem h)), iht]
     · have hfa : f a ∉ List.dedup (List.map f t) := by
         intro hd
         rw [hmemB, List.mem_map] at hd
         obtain ⟨x, hx, hfx⟩ := hd
         exact h (hf x (by simp [hx]) a (by simp) hfx ▸ hx)
-      rw [if_neg (fun hd => h (hmemA.mp hd)), if_neg hfa, List.map_cons, iht]
+      rw [ite_eq_right (fun hd => h (hmemA.mp hd)), ite_eq_right hfa, List.map_cons, iht]
 
 /-- Every description list produced by `snapshotDescList` is in canonical form,
 i.e. it is a fixed point of `canonicalFinsetList ∘ List.toFinset`.  This is the

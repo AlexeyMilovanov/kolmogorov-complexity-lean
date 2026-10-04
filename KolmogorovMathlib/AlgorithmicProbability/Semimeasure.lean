@@ -77,9 +77,9 @@ theorem progWeight_le_aprioriMeasure {M : Map} {p x y : BitString}
   classical
   rw [aprioriMeasure]
   calc
-    progWeight p = (if produces M p y x then progWeight p else 0) := by rw [if_pos h]
+    progWeight p = (if produces M p y x then progWeight p else 0) := by rw [ite_eq_left h]
     _ ≤ ∑' q : BitString, if produces M q y x then progWeight q else 0 :=
-      ENNReal.le_tsum p
+      ENNReal.le_tsum (f := fun q => if produces M q y x then progWeight q else 0) p
 
 /-- If some program produces `x` from `y`, then the a priori semimeasure is
 strictly positive. -/
@@ -96,6 +96,6 @@ theorem aprioriMeasure_eq_zero_of_forall_not_produces {M : Map} {x y : BitString
   classical
   rw [aprioriMeasure]
   refine (tsum_congr (fun p => ?_)).trans tsum_zero
-  rw [if_neg (h p)]
+  rw [ite_eq_right (h p)]
 
 end Kolmogorov

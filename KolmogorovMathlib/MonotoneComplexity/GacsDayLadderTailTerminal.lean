@@ -62,7 +62,7 @@ lemma grayTail_terminal_sonBase_eq_frozen
     (n := n) (b := grayTailBranch q L a e)
     q L a e sigma A sm t
   by_cases hdone : st.done = true
-  · rw [if_pos hdone, grayTailEntries, grayTailSonBase_append_globalEntries,
+  · rw [ite_eq_left hdone, grayTailEntries, grayTailSonBase_append_globalEntries,
       grayTailSonBase_slotEntries_emptyMove]
     simp [grayTailFrozenSonBase]
   · have hempty : st.slots.isEmpty = true := by
@@ -70,7 +70,7 @@ lemma grayTail_terminal_sonBase_eq_frozen
       | false => simp [st, hdone, hs] at hterminal
       | true => rfl
     have hnil := List.isEmpty_iff.mp hempty
-    rw [if_neg hdone, hnil]
+    rw [ite_eq_right hdone, hnil]
     simp [grayTailEntries, grayTailSlotEntries, grayTailFrozenSonBase]
 
 /-- The tail output requests at a child of a client the son request computed from its entries. -/
@@ -119,7 +119,7 @@ lemma getFamilyReq_grayTailOutput_son_of_terminal_threshold
   rw [getFamilyReq_grayTailOutput_son st hi hc]
   unfold grayTailSonRequest
   rw [grayTail_terminal_sonBase_eq_frozen hterminal]
-  rw [if_pos]
+  rw [ite_eq_left]
   simpa [st] using hthreshold
 
 /-- In a terminal play without a positive unserved request, every resolved

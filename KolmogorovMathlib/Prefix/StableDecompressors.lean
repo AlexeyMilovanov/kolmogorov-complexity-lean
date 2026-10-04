@@ -306,13 +306,13 @@ theorem stabSelect_eq_some_iff {py : BitString × BitString}
   by_cases hb : (decide (t.1.2 = py.2) && decide (t.1.1 = py.1.take t.1.1.length)) = true
   · rw [hb]
     simp only [Bool.and_eq_true, decide_eq_true_eq] at hb
-    simp only [cond_true, Option.some.injEq]
+    simp only [Bool.cond_true, Option.some.injEq]
     constructor
     · intro h; exact ⟨hb.1, List.prefix_iff_eq_take.mpr hb.2, h⟩
     · rintro ⟨-, -, h⟩; exact h
   · rw [Bool.not_eq_true] at hb
     rw [hb]
-    simp only [cond_false, reduceCtorEq, false_iff]
+    simp only [Bool.cond_false, reduceCtorEq, false_iff]
     rintro ⟨h1, h2, -⟩
     have hb' : (decide (t.1.2 = py.2) && decide (t.1.1 = py.1.take t.1.1.length)) = true := by
       simp only [Bool.and_eq_true, decide_eq_true_eq]
@@ -571,7 +571,7 @@ theorem takeWhile_eq_of_prefix {l l' : BitString} (hpre : l <+: l')
     l'.takeWhile id = l.takeWhile id := by
   obtain ⟨r, rfl⟩ := hpre
   rw [List.takeWhile_append]
-  rw [if_neg (by omega)]
+  rw [ite_eq_right (by omega)]
 
 /-- The universal machine is prefix-stable: on comparable inputs with the same condition its
 outputs are comparable. -/
@@ -582,7 +582,7 @@ theorem stabUniversal_isPrefixStableMachine : IsPrefixStableMachine stabUniversa
   obtain ⟨code, hcode, hzmem⟩ := hz
   rw [Part.mem_ofOption] at hcode
   by_cases hlt : (p.takeWhile id).length < p.length
-  · rw [if_pos hlt] at hcode
+  · rw [ite_eq_left hlt] at hcode
     have hsame : p'.takeWhile id = p.takeWhile id := takeWhile_eq_of_prefix hpre hlt
     have hlt' : (p'.takeWhile id).length < p'.length := by
       have hlen : p.length ≤ p'.length := hpre.length_le
@@ -594,11 +594,11 @@ theorem stabUniversal_isPrefixStableMachine : IsPrefixStableMachine stabUniversa
       rw [hsame, ← hr]
       exact List.drop_append_of_le_length (by omega)
     refine ⟨code, ?_, ?_⟩
-    · rw [Part.mem_ofOption, if_pos hlt', hsame]
+    · rw [Part.mem_ofOption, ite_eq_left hlt', hsame]
       exact hcode
     · rw [hdrop]
       exact stabMap_isPrefixStableMachine code y _ _ z hzmem ⟨r, rfl⟩
-  · rw [if_neg hlt] at hcode
+  · rw [ite_eq_right hlt] at hcode
     exact absurd hcode (by simp)
 
 /-- On an input prefixed by the unary code of `code`, the universal machine behaves as the
@@ -613,7 +613,7 @@ theorem stabUniversal_apply (code : Code) (p y : BitString) :
     omega
   unfold stabUniversal
   simp only [hlenTake, Encodable.encodek, drop_unaryPrefix]
-  rw [if_pos (show Encodable.encode code < (unaryPrefix (Encodable.encode code) ++ p).length by
+  rw [ite_eq_left (show Encodable.encode code < (unaryPrefix (Encodable.encode code) ++ p).length by
     rw [List.length_append, length_unaryPrefix]; omega)]
   simp
 
@@ -725,7 +725,7 @@ theorem prefixExtensionMap_mem_imp_produces {V : Map} {code : Code}
   by_cases hlen : n.unpair.1 ≤ p.length
   · have hdec : decide (n.unpair.1 ≤ p.length) = true := decide_eq_true hlen
     rw [hdec] at hz1
-    simp only [if_true] at hz1
+    simp only [ite_true] at hz1
     rw [Option.bind_eq_some_iff] at hz1
     obtain ⟨e, he_eval, he_dec⟩ := hz1
     refine ⟨p.take n.unpair.1, List.take_prefix _ _, ?_⟩
@@ -773,7 +773,7 @@ theorem prefixExtensionMap_isPrefixStableMachine {V : Map} {code : Code}
     obtain ⟨r, hr⟩ := hp'q
     subst hr
     rw [hdec]
-    simp only [if_true, List.take_left, ht, Option.bind_some, Encodable.encodek]
+    simp only [ite_true, List.take_left, ht, Option.bind_some, Encodable.encodek]
   have hcheck : prefixExtensionCheck code q c (Nat.pair p'.length t) = true := by
     unfold prefixExtensionCheck
     rw [hn_out]

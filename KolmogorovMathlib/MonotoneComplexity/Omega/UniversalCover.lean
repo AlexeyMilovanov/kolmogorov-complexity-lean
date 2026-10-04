@@ -235,8 +235,8 @@ theorem covLen_covEmit (p : ℕ × ℚ) (m : ℕ) :
     covLen (covEmit p m) = cond (covOver p m (covAcc p m)) 0 (covLen (covCand p m)) := by
   rw [covEmit]
   cases covOver p m (covAcc p m) with
-  | false => rw [cond_false, cond_false]
-  | true => rw [cond_true, cond_true, covLen_none]
+  | false => rw [Bool.cond_false, Bool.cond_false]
+  | true => rw [Bool.cond_true, Bool.cond_true, covLen_none]
 
 /-- The accumulated length grows by the length of the interval emitted at the current index. -/
 theorem covAcc_succ (p : ℕ × ℚ) (m : ℕ) :
@@ -260,9 +260,9 @@ theorem covAcc_le (p : ℕ × ℚ) (hb : 0 ≤ covBudget p.2 p.1) (m : ℕ) :
   | succ m ih =>
       rw [covAcc]
       cases hc : covOver p m (covAcc p m) with
-      | true => rw [cond_true, add_zero]; exact ih
+      | true => rw [Bool.cond_true, add_zero]; exact ih
       | false =>
-          rw [cond_false]
+          rw [Bool.cond_false]
           have h : ¬ (covBudget p.2 p.1 < covAcc p m + covLen (covCand p m)) := by
             rw [covOver, ratLtPair] at hc
             simpa using hc
@@ -485,7 +485,7 @@ private theorem codeFirst_at_first_step {q : ℕ × ℚ} {T : ℕ → ℕ} {c_B 
     rfl
   · have hv0 : codeVal q i t' = none := hTmin i t' (by omega)
     have hv : codeVal q i (t' + 1) = some (c_B i) := hTi ▸ hTval i
-    rw [codeFirst_succ, hv0, Option.isSome_none, cond_false, codeOut_def, hv]
+    rw [codeFirst_succ, hv0, Option.isSome_none, Bool.cond_false, codeOut_def, hv]
     rfl
 
 /-- At steps other than `T i`, `codeFirst` yields `none`. -/
@@ -499,13 +499,13 @@ private theorem codeFirst_of_ne {q : ℕ × ℚ} {T : ℕ → ℕ} {c_B : ℕ �
   · rcases t with _ | t'
     · rw [codeFirst_zero, codeOut_def, hTmin i 0 hlt]
       rfl
-    · rw [codeFirst_succ, hTmin i t' (by omega), Option.isSome_none, cond_false,
+    · rw [codeFirst_succ, hTmin i t' (by omega), Option.isSome_none, Bool.cond_false,
         codeOut_def, hTmin i (t' + 1) hlt]
       rfl
   · have hgt : T i < t := lt_of_le_of_ne hge (fun hcc => ht hcc.symm)
     rcases t with _ | t'
     · exact absurd hgt (Nat.not_lt_zero _)
-    · rw [codeFirst_succ, hmonoVal i t' (by omega), hTspec i, cond_true]
+    · rw [codeFirst_succ, hmonoVal i t' (by omega), hTspec i, Bool.cond_true]
 
 /-- The candidate family of `q` is concentrated on the sparse index set of the pairs
 `Nat.pair i (T i)`, where it takes the value `c_B i`; at every other index it is undefined. -/
@@ -573,7 +573,7 @@ private theorem covOver_eq_false_of_sum_le (p : ℕ × ℚ)
   | succ m ih =>
       obtain ⟨hnf_m, hacc_m⟩ := ih
       have hacc_succ : covAcc p (m + 1) = ∑ m' ∈ Finset.range (m + 1), covLen (covCand p m') := by
-        rw [covAcc_succ_raw, hnf_m, cond_false, hacc_m, Finset.sum_range_succ]
+        rw [covAcc_succ_raw, hnf_m, Bool.cond_false, hacc_m, Finset.sum_range_succ]
       have hnf_succ : covOver p (m + 1) (covAcc p (m + 1)) = false := by
         rw [covOver_def, ratLtPair, decide_eq_false_iff_not, not_lt, hacc_succ]
         have h1 := hsumle (m + 2)
@@ -659,7 +659,7 @@ theorem exists_code_covEnum {c : ℚ → ℕ → Option (ℚ × ℚ)} (hc : Comp
     (covOver_eq_false_of_sum_le q hsumle m).1
   refine ⟨B, hBpos, fun i => ⟨Nat.pair e₀ (Nat.pair i (T i)), ?_⟩⟩
   have hqq : ((e₀ : ℕ), ε) = q := hq.symm
-  rw [covEnum_def, Nat.unpair_pair, hqq, covEmit_def, hnofire (Nat.pair i (T i)), cond_false,
+  rw [covEnum_def, Nat.unpair_pair, hqq, covEmit_def, hnofire (Nat.pair i (T i)), Bool.cond_false,
     hCandT i]
 
 end Kolmogorov

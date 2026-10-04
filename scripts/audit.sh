@@ -3,6 +3,35 @@ set -euo pipefail
 
 cd "$(dirname "$0")/.."
 
+file_size_gate() {
+  echo "== file size gate =="
+  # The target is 1,000 lines when a natural topical boundary exists.  A file
+  # without one is listed with a substantive reason instead of being cut merely
+  # to satisfy the benchmark.
+  python3 -B scripts/size_allow.py --check
+  declare -A size_allowed_files=()
+  while IFS= read -r rel; do
+    size_allowed_files["$rel"]=1
+  done < <(python3 -B scripts/size_allow.py --kind file)
+  local oversized="" rel lines
+  while IFS= read -r -d '' rel; do
+    lines="$(wc -l < "$rel")"
+    if (( lines > 1000 )) && [[ -z "${size_allowed_files[$rel]:-}" ]]; then
+      oversized+="${lines} ${rel}"$'\n'
+    fi
+  done < <(find KolmogorovMathlib KolmogorovCounterexamples -name '*.lean' -print0)
+  if [ -n "$oversized" ]; then
+    echo "$oversized"
+    echo "ERROR: the files above exceed 1,000 lines without a justified size exception"
+    return 1
+  fi
+}
+
+if [[ "${AUDIT_ONLY_FILE_SIZE:-0}" == "1" ]]; then
+  file_size_gate
+  exit
+fi
+
 echo "== forbidden constructs and resource overrides =="
 # Comment-aware: prose in comments/docstrings must not trip the audit.
 if ! python3 -B scripts/forbidden_scan.py --mode forbidden \
@@ -43,16 +72,7 @@ if ! python3 -B scripts/gen_deprecated.py --check; then
   exit 1
 fi
 
-echo "== file size gate =="
-# Files stay under 1,000 lines; split by topic (CONTRIBUTING, "File size").
-if oversized="$(
-  find KolmogorovMathlib KolmogorovCounterexamples -name '*.lean' -print0 |
-    xargs -0 wc -l | awk '$2 != "total" && $1 > 1000 { print $1, $2 }'
-)"; [ -n "$oversized" ]; then
-  echo "$oversized"
-  echo "ERROR: the files above exceed 1,000 lines; split them by topic"
-  exit 1
-fi
+file_size_gate
 
 echo "== mechanical-cut gate =="
 # Flags the shapes four audits agreed are mechanical cuts (RFL-BINDER,

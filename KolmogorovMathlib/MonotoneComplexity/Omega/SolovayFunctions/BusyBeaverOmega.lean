@@ -597,12 +597,12 @@ theorem bbFromStage_eq_BPlain {V : Map} {c : Nat.Partrec.Code} (hc : IsCodeFor c
     refine foldr_max_le_nat _ (fun x hx => ?_)
     obtain ⟨v, hv, rfl⟩ := List.mem_map.1 hx
     by_cases hcanon : Nat.bits (bitsToNat v) = v
-    · simp only [bbCode, if_pos hcanon]
+    · simp only [bbCode, ite_eq_left hcanon]
       have hmem : bitsToNat v ∈ boundedNatOutputs c m := by
         rw [mem_boundedNatOutputs_iff_mem_completed, hcanon]
         exact hv
       exact le_BPlain_of_plainKNat_le ((mem_boundedNatOutputs_iff_plainKNat_le hc m _).1 hmem)
-    · simp only [bbCode, if_neg hcanon]
+    · simp only [bbCode, ite_eq_right hcanon]
       exact Nat.zero_le _
   · rcases Set.eq_empty_or_nonempty (plainKNatSublevel V m) with hE | hN
     · have hzero : BPlain V m = 0 := by rw [BPlain, hE]; simp
@@ -613,7 +613,7 @@ theorem bbFromStage_eq_BPlain {V : Map} {c : Nat.Partrec.Code} (hc : IsCodeFor c
         rw [← mem_boundedNatOutputs_iff_mem_completed]
         exact (mem_boundedNatOutputs_iff_plainKNat_le hc m _).2 hmem
       have hb : bbCode (Nat.bits (BPlain V m)) = BPlain V m := by
-        simp only [bbCode, bitsToNat_bits, if_pos]
+        simp only [bbCode, bitsToNat_bits, ite_eq_left]
       rw [bbFromStage, hstage]
       exact le_foldr_max_nat_mem _ (List.mem_map.2 ⟨Nat.bits (BPlain V m), hbits, hb⟩)
 

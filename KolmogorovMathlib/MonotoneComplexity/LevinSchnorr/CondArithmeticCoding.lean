@@ -326,7 +326,7 @@ lemma condArithmeticCodingStage_of_ne_nil (a : BitString → ℕ → ℕ) (s : �
             + 2 ^ p.length * (x ++ y).length + 2 ^ p.length)
         < 2 ^ p.length * treeLeftEndApprox a (x ++ y) s + 2 ^ p.length * a (x ++ y) s) := by
   unfold condArithmeticCodingStage
-  rw [if_neg hy]
+  rw [ite_eq_right hy]
   simp only [Bool.and_eq_true, decide_eq_true_eq]
 
 /-- For a computable dyadic approximation of the mass function the stage test of conditional

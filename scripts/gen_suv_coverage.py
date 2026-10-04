@@ -103,6 +103,7 @@ def render() -> str:
     existing = sum(1 for r in rows if r[1] == 'existing')
     archived = sum(1 for r in rows if r[1] == 'archived')
     partly = sum(1 for r in rows if r[1] == 'partly archived')
+    stated = sum(1 for r in rows if r[1] == 'stated')
     out = [
         '# SUV coverage',
         '',
@@ -118,10 +119,12 @@ def render() -> str:
         '`archived` that the item was judged not worth formalising and its',
         'statement is preserved in `docs/ARCHIVED_TARGETS.md`; `partly',
         'archived` that one half of the item is proved (the declarations',
-        'listed) and the other half is archived there.',
+        'listed) and the other half is archived there.  `stated` means the',
+        'item is formalised as a statement whose proof is still `sorry`.',
         '',
-        f'{len(rows)} items: {proved} proved, {existing} existing, '
-        f'{archived} archived, {partly} partly archived.',
+        f'{len(rows)} items: {proved} proved, {stated} stated, '
+        f'{existing} existing, {archived} archived, '
+        f'{partly} partly archived.',
         '',
         '| Book item | Status | Theorem | Module |',
         '| --- | --- | --- | --- |',

@@ -248,10 +248,10 @@ private theorem t1RunStep_preserves_model
               (events ++ [.cPrimeModel w]) prepared :=
           (t1RunHistoryInvariant_congr hdata).mpr hhistory
         rw [t1RunStep_cPrime_eq]
-        simp only [hactive, if_true]
+        simp only [hactive, ite_true]
         by_cases hsat :
             t1RunSaturated (t1RunCPrimePrepared n s w) quota = true
-        · simp only [hsat, if_true]
+        · simp only [hsat, ite_true]
           have hrebuildModel :
               T1RunModelInvariant cSparse n k epsilon quota
                 (t1RunRebuild cSparse n k epsilon prepared) :=
@@ -260,7 +260,7 @@ private theorem t1RunStep_preserves_model
               hquota hprefix hpreparedHistory hrebuild
           simpa [T1RunModelInvariant] using hrebuildModel
         · simp only [Bool.not_eq_true] at hsat
-          simp only [hsat, Bool.false_eq_true, if_false]
+          simp only [hsat, Bool.false_eq_true, ite_false]
           exact t1RunPrepared_preserves_model
             cSparse n k epsilon quota s prepared hmodel
               rfl rfl rfl (by
@@ -272,7 +272,7 @@ private theorem t1RunStep_preserves_model
                 rw [hsat] at hcontra
                 cases hcontra)
       · rw [t1RunStep_cPrime_eq]
-        simp only [hactive, if_false]
+        simp only [hactive, ite_false]
         simpa [T1RunModelInvariant, t1RunCPrimeSeenPrepared] using hmodel
   | dString x =>
       let prepared := t1RunDPrepared n s x
@@ -287,7 +287,7 @@ private theorem t1RunStep_preserves_model
       rw [t1RunStep_dString_eq]
       by_cases hsat :
           t1RunSaturated (t1RunDPrepared n s x) quota = true
-      · simp only [hsat, if_true]
+      · simp only [hsat, ite_true]
         have hrebuildModel :
             T1RunModelInvariant cSparse n k epsilon quota
               (t1RunRebuild cSparse n k epsilon prepared) :=
@@ -296,7 +296,7 @@ private theorem t1RunStep_preserves_model
             hprefix hpreparedHistory hrebuild
         simpa [T1RunModelInvariant] using hrebuildModel
       · simp only [Bool.not_eq_true] at hsat
-        simp only [hsat, Bool.false_eq_true, if_false]
+        simp only [hsat, Bool.false_eq_true, ite_false]
         exact t1RunPrepared_preserves_model
           cSparse n k epsilon quota s prepared hmodel
             rfl rfl rfl (by

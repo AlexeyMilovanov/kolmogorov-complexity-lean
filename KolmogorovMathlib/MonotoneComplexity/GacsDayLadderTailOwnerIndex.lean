@@ -104,7 +104,7 @@ theorem grayTailOwnerIndex_spec {n b : Nat} {frozen : GrayTailFrozen n b}
     {i : Fin n} {c : Fin b} (h : ∃ k, GrayTailOwnerSplitAt frozen i c k) :
     GrayTailOwnerSplitAt frozen i c (grayTailOwnerIndex frozen i c) := by
   classical
-  rw [grayTailOwnerIndex, dif_pos h]
+  rw [grayTailOwnerIndex, dite_eq_left h]
   exact h.choose_spec
 
 /-- Any owner position is *the* owner index. -/

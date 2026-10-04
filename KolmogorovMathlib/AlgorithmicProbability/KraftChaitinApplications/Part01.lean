@@ -151,7 +151,7 @@ lemma isSemimeasure_embedFirst {m : BitString → ℝ≥0∞} (hm : IsSemimeasur
       apply hc
       exact ⟨decodeFirst z, h_eq.symm⟩
     unfold embedFirst at hz
-    exact hz (if_neg h_if)
+    exact hz (ite_eq_right h_if)
   have h_inj : Function.Injective (fun x : BitString => pairCode x []) := by
     intro x1 x2 h
     have h_pair : pairCode x1 [] = pairCode x2 [] := h
@@ -167,7 +167,7 @@ lemma isSemimeasure_embedFirst {m : BitString → ℝ≥0∞} (hm : IsSemimeasur
       have h_eq : z = pairCode (decodeFirst z) [] := by
         subst hx
         rw [decodeFirst_pairCode]
-      rw [if_pos h_eq]
+      rw [ite_eq_left h_eq]
     rw [h_eq]
     have h_equiv := (Equiv.ofInjective (fun x => pairCode x []) h_inj).tsum_eq
       (fun z => m (decodeFirst z))
@@ -198,7 +198,7 @@ lemma isLSC_embedFirst {m : BitString → ℝ≥0∞} (hm : IsLSC (fun x _ => m 
     · change ⨆ s, dyadicValue (approx s (decodeFirst z) ctx) s = embedFirst m z
       rw [hsup (decodeFirst z) ctx]
       unfold embedFirst
-      rw [if_pos h]
+      rw [ite_eq_left h]
     · simp [dyadicValue, embedFirst, h]
   · unfold approx_embed
     have h_dec : Computable decodeFirst := decodeFirst_computable
@@ -586,7 +586,7 @@ theorem aprioriMeasure_pair_sum_eq (m : BitString → ℝ≥0∞) (hm : IsUniver
   obtain ⟨c₂, hc₂_top, hc₂_bound⟩ := SemimeasureEmbedding.upper_bound_sum_pair hm
   refine ⟨c₁, c₂, hc₁_pos, hc₂_top, fun x => ⟨?_, hc₂_bound x⟩⟩
   calc c₁ * m x ≤ m (pairCode x []) := hc₁_bound x
-    _ ≤ ∑' y : BitString, m (pairCode x y) := ENNReal.le_tsum []
+    _ ≤ ∑' y : BitString, m (pairCode x y) := ENNReal.le_tsum (f := fun y => m (pairCode x y)) []
 
 /-- **Exercise 101, maximum version.** `max_y m([x, y])` differs from `m(x)` by at
 most a constant factor in both directions. -/
@@ -600,7 +600,8 @@ theorem aprioriMeasure_pair_max_eq (m : BitString → ℝ≥0∞) (hm : IsUniver
   · calc c₁ * m x ≤ m (pairCode x []) := hc₁_bound x
       _ ≤ ⨆ y : BitString, m (pairCode x y) := le_iSup (fun y => m (pairCode x y)) []
   · calc (⨆ y : BitString, m (pairCode x y))
-        ≤ ∑' y : BitString, m (pairCode x y) := iSup_le (fun y => ENNReal.le_tsum y)
+        ≤ ∑' y : BitString, m (pairCode x y) :=
+          iSup_le (fun y => ENNReal.le_tsum (f := fun y => m (pairCode x y)) y)
       _ ≤ c₂ * m x := hc₂_bound x
 
 end Kolmogorov

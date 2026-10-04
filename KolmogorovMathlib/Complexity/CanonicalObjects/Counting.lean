@@ -16,6 +16,13 @@ import Mathlib.Computability.PartrecCode
 import Mathlib.Computability.Reduce
 import Mathlib.Data.Nat.Dist
 
+/-!
+# Canonical objects: counting exercises
+
+Exercises on canonical objects proved by counting arguments, such as Lipschitz-type
+bounds for decompressors shifted by an additive term.
+-/
+
 namespace Kolmogorov
 open Nat.Partrec (Code)
 open Kolmogorov.CodedFiniteDistribution
@@ -481,7 +488,7 @@ theorem card_plainK_lt_mem_Icc (U : Map) (hU : isOptimalConditional U) :
     have hprogOf_spec : ∀ x ∈ S, progOf x ∈ boundedPrograms (n - 1) ∧ x ∈ U (progOf x, []) := by
       intro x hx
       dsimp [progOf]
-      rw [dif_pos hx]
+      rw [dite_eq_left hx]
       exact Classical.choose_spec (h_prog x hx)
     have hprogOf_inj : ∀ x ∈ S, ∀ y ∈ S, progOf x = progOf y → x = y := by
       intro x hx y hy heq
@@ -587,7 +594,7 @@ theorem card_plainK_eq_le_pow (U : Map) (hU : isOptimalConditional U) (n : ℕ) 
   have hprogOf_spec : ∀ x ∈ S, progOf x ∈ exactLengthPrograms n ∧ x ∈ U (progOf x, []) := by
     intro x hx
     dsimp [progOf]
-    rw [dif_pos hx]
+    rw [dite_eq_left hx]
     exact Classical.choose_spec (h_prog x hx)
   have hprogOf_inj : ∀ x ∈ S, ∀ y ∈ S, progOf x = progOf y → x = y := by
     intro x hx y hy heq

@@ -64,13 +64,13 @@ lemma log2Iter_spec : ∀ (k n acc : Nat), Nat.log2 n ≤ k →
       · have h0 : Nat.log2 n = 0 := by
           rw [Nat.log2_eq_log_two, Nat.log_of_lt hn]
         have hstep : log2Step (n, acc) = (n, acc) := by
-          rw [log2Step]; exact if_pos hn
+          rw [log2Step]; exact ite_eq_left hn
         rw [log2Iter_succ', hstep]
         exact ih n acc (by omega)
       · have h2 : 2 ≤ n := Nat.not_lt.mp hn
         have hs := log2_eq_succ n h2
         have hstep : log2Step (n, acc) = (n / 2, acc + 1) := by
-          rw [log2Step]; exact if_neg hn
+          rw [log2Step]; exact ite_eq_right hn
         rw [log2Iter_succ', hstep]
         have hIH := ih (n / 2) (acc + 1) (by omega)
         exact ⟨hIH.1, by rw [hIH.2]; omega⟩

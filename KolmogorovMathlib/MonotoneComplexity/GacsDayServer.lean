@@ -173,7 +173,7 @@ lemma computable_gacsDayServerStage (chk : (BitString × BitString) → ℕ
     induction x with
     | nil => rfl
     | cons b x ih =>
-        simp only [id_eq] at ih
+        simp only [id_eq, Bool.cond_eq_ite] at ih
         cases b <;> simp [gacsDayNodeOfBitString, ih]
   have hbitsUpPrim : Primrec gacsDayBitStringsUpTo := by
     have h := Primrec.list_flatMap (Primrec.list_range.comp Primrec.succ)

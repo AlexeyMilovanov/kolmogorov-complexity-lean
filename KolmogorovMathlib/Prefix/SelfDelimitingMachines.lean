@@ -170,14 +170,14 @@ lemma exists_non_robust_program : ∃ c : Code, ¬ IsRobustProgram c := by
   let f2 : ℕ → ℕ := fun n => if n = n1 then v1 else v2
   have hf2_1 : f2 n1 = v1 := by
     change (if n1 = n1 then v1 else v2) = v1
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
   have hn12 : n1 ≠ n2 := by
     intro h
     have h' := Encodable.encode_inj.mp h
     cases h'
   have hf2_2 : f2 n2 = v2 := by
     change (if n2 = n1 then v1 else v2) = v2
-    rw [if_neg hn12.symm]
+    rw [ite_eq_right hn12.symm]
   have hf2_prim : Primrec f2 := by
     have hc : PrimrecPred (fun n => n = n1) :=
       Primrec.eq.comp Primrec.id (Primrec.const n1)

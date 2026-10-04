@@ -93,9 +93,9 @@ theorem not_isMartinLofRandomReal_of_exists_smallMassREFamily
       refine tsum_congr (fun i => ?_)
       rw [Set.indicator_apply]
       by_cases hi : i ∈ W ε
-      · rw [if_pos hi]
+      · rw [ite_eq_left hi]
         exact iSup_ofReal_enumStageVal_of_fires hr0 (ε, i) ((hEiff (ε, i)).2 hi)
-      · rw [if_neg hi]
+      · rw [ite_eq_right hi]
         exact iSup_ofReal_enumStageVal_of_never (ε, i)
           (fun k hk => hi ((hEiff (ε, i)).1 ⟨k, hk⟩))
     rw [hkey]
@@ -115,14 +115,14 @@ theorem not_isMartinLofRandomReal_of_exists_smallMassREFamily
         = (if N ≤ i then ENNReal.ofReal ((r i : ℚ) : ℝ) else 0) := by
       intro i
       by_cases hi : N ≤ i
-      · rw [if_pos hi, if_pos hi]
+      · rw [ite_eq_left hi, ite_eq_left hi]
         exact iSup_ofReal_enumStageVal_of_fires hr0 (ε, i) ((hEiff (ε, i)).2 (hN i hi))
-      · rw [if_neg hi, if_neg hi]
+      · rw [ite_eq_right hi, ite_eq_right hi]
     rw [tsum_congr hterm]
     have hshift : (∑' i : ℕ, (if N ≤ i then ENNReal.ofReal ((r i : ℚ) : ℝ) else 0))
         = ∑' m, ENNReal.ofReal ((r (m + N) : ℚ) : ℝ) := by
-      refine tsum_shift_nat N (fun i hi => if_neg (by omega)) (fun m => ?_)
-      rw [if_pos (Nat.le_add_left N m)]
+      refine tsum_shift_nat N (fun i hi => ite_eq_right (by omega)) (fun m => ?_)
+      rw [ite_eq_left (Nat.le_add_left N m)]
     rw [hshift]
     have hS2 : Summable (fun m => ((r (m + N) : ℚ) : ℝ)) := (summable_nat_add_iff N).2 hS
     have hnn : ∀ m : ℕ, (0 : ℝ) ≤ ((r (m + N) : ℚ) : ℝ) := fun m => by exact_mod_cast hr0 _
@@ -214,10 +214,10 @@ theorem isUniformlyREFamily_inter_half {W₁ W₂ : ℚ → Set ℕ} (h₁ : IsU
     · rintro ⟨k, hk⟩
       cases hd : decide (e₁ (ε / 2) k.unpair.1 = e₂ (ε / 2) k.unpair.2) with
       | false =>
-          simp only [hd, cond_false] at hk
+          simp only [hd, Bool.cond_false] at hk
           exact absurd hk (by simp)
       | true =>
-          simp only [hd, cond_true] at hk
+          simp only [hd, Bool.cond_true] at hk
           have hk1 : e₁ (ε / 2) k.unpair.1 = some n := hk
           have hd' : e₁ (ε / 2) k.unpair.1 = e₂ (ε / 2) k.unpair.2 := of_decide_eq_true hd
           exact ⟨(hW₁ (ε / 2) n).2 ⟨k.unpair.1, hk1⟩,

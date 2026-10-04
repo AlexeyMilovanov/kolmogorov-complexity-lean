@@ -315,7 +315,7 @@ lemma grayChargedBlockSourceInvariant_step {n b : Nat}
     GrayTailSourceInvariant (grayChargedSourceCount a e)
       (grayChargedBlockTailStep q L a e sigma A st sm) := by
   unfold grayChargedBlockTailStep
-  simp only [grayTailWaitingB, Bool.false_eq_true, if_false]
+  simp only [grayTailWaitingB, Bool.false_eq_true, ite_false]
   split
   · exact ⟨hst.current, hst.frozen⟩
   · split

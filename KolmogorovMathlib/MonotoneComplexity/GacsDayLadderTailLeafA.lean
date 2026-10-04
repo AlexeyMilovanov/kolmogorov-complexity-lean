@@ -102,7 +102,7 @@ theorem grayTailStep_chronological {n b : ℕ}
     (hst : GrayTailChronological st.frozen) :
     GrayTailChronological (grayTailStep q L a e sigma A st sm).frozen := by
   rw [grayTailStep]
-  simp only [grayTailWaitingB, Bool.false_eq_true, if_false]
+  simp only [grayTailWaitingB, Bool.false_eq_true, ite_false]
   split
   · exact hst
   · split
@@ -172,7 +172,7 @@ theorem finRange_filter_lt_length (b used : ℕ) (h : used ≤ b) :
 theorem grayTailSlots_length (n b used r : ℕ) (hr : r < b) (h : used ≤ b) :
     (grayTailSlots n b used r).length = n * used := by
   unfold grayTailSlots
-  rw [dif_pos hr, List.length_flatMap]
+  rw [dite_eq_left hr, List.length_flatMap]
   simp [finRange_filter_lt_length b used h]
 
 /-- The controller has not yet frozen anything exactly while its slot list is
@@ -190,7 +190,7 @@ theorem grayTailStep_sourceFirst {n b : ℕ}
     (hst : GrayTailSourceFirst a e st) :
     GrayTailSourceFirst a e (grayTailStep q L a e sigma A st sm) := by
   rw [grayTailStep]
-  simp only [grayTailWaitingB, Bool.false_eq_true, if_false]
+  simp only [grayTailWaitingB, Bool.false_eq_true, ite_false]
   split
   · exact hst
   · split
@@ -291,7 +291,7 @@ theorem grayTail_terminal_displayed_root_request
     rw [grayTailRunMove, getFamilyReq_grayTailOutput_son _ i.isLt c.isLt]
   rw [grayTailRunMove, getFamilyReq_grayTailOutput_root _ i.isLt]
   unfold grayTailRootRequest
-  rw [if_pos hdone]
+  rw [ite_eq_left hdone]
   congr 1
   refine Finset.sum_congr rfl fun c _ => ?_
   rw [hson c]

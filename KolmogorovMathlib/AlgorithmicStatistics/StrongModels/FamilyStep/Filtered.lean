@@ -1,6 +1,11 @@
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.HereditaryLift
 
+/-!
+# Filtered family step
 
+Executable filtered enumeration: intersections of decoded canonical point lists used in
+the family step of the strong-models construction.
+-/
 
 namespace Kolmogorov
 

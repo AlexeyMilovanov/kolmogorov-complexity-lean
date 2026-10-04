@@ -260,7 +260,7 @@ theorem firstStageWithCount_spec {c : Code} {m n N : ℕ}
     (hex : ∃ t, N ≤ (lengthSlice c m n t).length) :
     N ≤ (lengthSlice c m n (firstStageWithCount c m n N)).length := by
   unfold firstStageWithCount
-  rw [dif_pos hex]
+  rw [dite_eq_left hex]
   exact Nat.find_spec hex
 
 /-- Minimality of the stage found by `firstStageWithCount`. -/
@@ -269,7 +269,7 @@ theorem firstStageWithCount_min {c : Code} {m n N : ℕ}
     (hk : k < firstStageWithCount c m n N) :
     ¬ N ≤ (lengthSlice c m n k).length := by
   unfold firstStageWithCount at hk
-  rw [dif_pos hex] at hk
+  rw [dite_eq_left hex] at hk
   exact Nat.find_min hex hk
 
 /-- At the first stage carrying `sliceCount c m n` length-`n` strings, the stage slice is already

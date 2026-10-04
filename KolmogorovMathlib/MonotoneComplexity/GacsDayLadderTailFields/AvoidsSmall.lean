@@ -175,7 +175,7 @@ lemma grayTailFrozenAvoidsSmall_step
   rw [grayTailStep_eq]
   by_cases hactive : st.done || st.slots.isEmpty
   · simpa [hactive] using hst_frozen
-  · simp only [hactive, Bool.false_eq_true, if_false]
+  · simp only [hactive, Bool.false_eq_true, ite_false]
     by_cases hgoal : familyRobustGrayGoalAtB (halfAmplification q)
         ((3 / 4 : ℚ) * dyadicScale (grayCallDepth q e))
         (grayTailRoundEps q L e st.frozen.length)
@@ -183,7 +183,7 @@ lemma grayTailFrozenAvoidsSmall_step
         (grayTailCurrentMove q L e sigma st)
         (grayTailLocalServerMove (grayTailRoundDelta q L e st.frozen.length)
           st.slots (sm t))
-    · simp only [hgoal, if_true]
+    · simp only [hgoal, ite_true]
       intro p hp j hj
       rcases List.mem_append.mp hp with hp | hp
       · exact hst_frozen p hp j hj
@@ -293,10 +293,10 @@ lemma grayTailSonRequest_avoidsSmall {n b : ℕ} {e : ℕ} {delta : ℚ}
   unfold grayTailSonRequest
   by_cases htr : threshold < grayTailSonBase entries i c
   · dsimp only
-    rw [if_pos htr]
+    rw [ite_eq_left htr]
     exact Or.inr hae
   · dsimp only
-    rw [if_neg htr]
+    rw [ite_eq_right htr]
     exact grayTailSonBase_avoidsSmall hpos_delta hall i c
 
 /-- A root request built from entries that avoid small requests is either `0` or at least
@@ -332,10 +332,10 @@ lemma grayTailRootRequest_avoidsSmall {n b q a e : ℕ} {delta : ℚ}
       exact Or.inl (by linarith)
   by_cases hd : done
   · dsimp only
-    rw [if_pos hd]
+    rw [ite_eq_left hd]
     exact Or.inr (le_trans hfloor (le_max_right _ _))
   · dsimp only
-    rw [if_neg hd]
+    rw [ite_eq_right hd]
     exact hsum_avoids
 
 /-- **Child E5g.**  Every displayed positive request is at least the fine
@@ -373,11 +373,11 @@ theorem grayTail_output_avoidsSmall
   · exact grayTailRootRequest_avoidsSmall (dyadicScale_pos
                                             _) ha hae hfloor hdelta_e hall st.done threshold ⟨i, hi⟩
   · intro c hc
-    rw [dif_pos hc]
+    rw [dite_eq_left hc]
     exact grayTailSonRequest_avoidsSmall (dyadicScale_pos _) hdelta_e hall threshold
       ⟨i, hi⟩ ⟨c, hc⟩
   · intro c hc c' hc'
-    rw [dif_pos hc, dif_pos hc']
+    rw [dite_eq_left hc, dite_eq_left hc']
     exact grayTail_entryMove_avoidsSmall hall (⟨i, hi⟩, ⟨c, hc⟩, ⟨c', hc'⟩)
 
 end Kolmogorov

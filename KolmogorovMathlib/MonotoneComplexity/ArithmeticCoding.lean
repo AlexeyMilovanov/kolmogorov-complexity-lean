@@ -218,9 +218,9 @@ lemma abs_treeLeftEndApprox_sub_le (μ : Measure CantorSeq) [IsProbabilityMeasur
     _ ≤ ∑ _i ∈ Finset.range x.length, (1 : ℝ) := by
         refine Finset.sum_le_sum (fun i _ => ?_)
         by_cases hb : x.getD i false = true
-        · simp only [hb, if_true]
+        · simp only [hb, ite_true]
           exact abs_approx_sub_le_one μ ha _ s
-        · simp only [hb, if_false, Bool.false_eq_true]
+        · simp only [hb, ite_false, Bool.false_eq_true]
           simp
     _ = (x.length : ℝ) := by simp
 

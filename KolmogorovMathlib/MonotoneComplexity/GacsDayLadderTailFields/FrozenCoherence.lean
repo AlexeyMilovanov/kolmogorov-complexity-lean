@@ -127,7 +127,7 @@ private lemma grayTailCurrentMove_requestCoherentCap
       (grayTailFutureServer q L e st sm) hlocal
     have hcurr := grayTailCurrentMove_eq_futurePlay
       q L e sigma hhist htrace
-    simp only [Bool.false_eq_true, if_false]
+    simp only [Bool.false_eq_true, ite_false]
     rw [congrArg (fun m => familyClientMoveAt m j) hcurr]
     exact hlegal.1 st.history.2.length j hj
 
@@ -274,33 +274,33 @@ theorem grayTail_output_coherentCap
     · exact max_le hsum_le (grayTailTargetFloor_le q a)
     · exact hsum_le
   · intro c hc
-    rw [dif_pos hc]
+    rw [dite_eq_left hc]
     exact hson_nonneg ⟨c, hc⟩
   · have hsum_eq :
         (∑ c : Fin b, if hc : c.val < b then
           grayTailSonRequest thresh eps entries ⟨i, hi⟩ ⟨c.val, hc⟩ else 0) =
           ∑ c : Fin b, grayTailSonRequest thresh eps entries ⟨i, hi⟩ c := by
       refine Finset.sum_congr rfl fun c _ => ?_
-      rw [dif_pos c.isLt]
+      rw [dite_eq_left c.isLt]
     rw [hsum_eq]
     unfold grayTailRootRequest
     split_ifs
     · exact le_max_left _ _
     · exact le_rfl
   · intro c hc
-    rw [dif_pos hc]
+    rw [dite_eq_left hc]
     have hsum := (sum_grayTailEntryMove_root_le_grayTailSonBase
       entries hentries_nonneg ⟨i, hi⟩ ⟨c, hc⟩).trans
         (hbase_le_son ⟨c, hc⟩)
     refine le_trans (le_of_eq ?_) hsum
     refine Finset.sum_congr rfl fun c' _ => ?_
-    rw [dif_pos hc, dif_pos c'.isLt]
+    rw [dite_eq_left hc, dite_eq_left c'.isLt]
   · intro c hc c' hc' x
-    rw [dif_pos hc, dif_pos hc']
+    rw [dite_eq_left hc, dite_eq_left hc']
     exact grayTailEntryMove_nonneg entries hentries_nonneg
       (⟨i, hi⟩, ⟨c, hc⟩, ⟨c', hc'⟩) x
   · intro c hc c' hc' x
-    rw [dif_pos hc, dif_pos hc']
+    rw [dite_eq_left hc, dite_eq_left hc']
     exact grayTailEntryMove_child_le entries hentries_child
       (⟨i, hi⟩, ⟨c, hc⟩, ⟨c', hc'⟩) x
 /-- The son request is monotone in the son base, as long as the threshold does not exceed the

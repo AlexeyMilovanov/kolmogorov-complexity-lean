@@ -145,10 +145,10 @@ lemma dyadicEnum_spec {approx : ℕ → BitString → ℕ} (q : ℚ) (s : ℕ) (
     unfold dyadicEnum
     dsimp only
     rw [Nat.unpair_pair]
-    rw [dif_pos k.2]
+    rw [dite_eq_left k.2]
     have h_eq : (bitStringsOfLength s).get ⟨k.1, k.2⟩ = x := h_get
     rw [h_eq]
-    rw [if_pos hlt]
+    rw [ite_eq_left hlt]
   · intro h
     rcases h with ⟨i, hi⟩
     unfold dyadicEnum at hi
@@ -414,7 +414,7 @@ lemma int_mul_nat_eq (a b : ℤ) : intMulNat (Encodable.encode a) (Encodable.enc
         rfl
       · have : (n == 0) = false := by
           have : ¬(n == 0) = true := mt h_prod_zero.mp h
-          exact eq_false_of_ne_true this
+          exact Bool.eq_false_of_ne_true this
         rw [this]
         have eq_val : Int.ofNat n * Int.negSucc m = Int.negSucc (n * m + n - 1) := by
           change (n : ℤ) * -((m : ℤ) + 1) = -(((n * m + n - 1 : ℕ) : ℤ) + 1)
@@ -446,7 +446,7 @@ lemma int_mul_nat_eq (a b : ℤ) : intMulNat (Encodable.encode a) (Encodable.enc
         rfl
       · have : (m == 0) = false := by
           have : ¬(m == 0) = true := mt h_prod_zero.mp h
-          exact eq_false_of_ne_true this
+          exact Bool.eq_false_of_ne_true this
         rw [this]
         have eq_val : Int.negSucc n * Int.ofNat m = Int.negSucc (n * m + m - 1) := by
           change -((n : ℤ) + 1) * (m : ℤ) = -(((n * m + m - 1 : ℕ) : ℤ) + 1)

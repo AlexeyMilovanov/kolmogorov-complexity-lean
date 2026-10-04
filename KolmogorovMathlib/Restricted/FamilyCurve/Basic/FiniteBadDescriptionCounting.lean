@@ -4,16 +4,17 @@ import KolmogorovMathlib.Restricted.FamilyCurve.Selector
 import KolmogorovMathlib.Encoding.Tuples
 import KolmogorovMathlib.Restricted.FamilyCurve.Basic.Part01
 
-namespace Kolmogorov
-open scoped ENNReal
-
-/-! ### Finite bad-description counting
+/-!
+# Finite bad-description counting
 
 The coupled process must charge rebuilds to actual bad descriptions and to
 actual deleted survivors.  The following definitions and lemmas expose the
 finite objects being counted; in particular, none of the witnesses below is an
 unconstrained natural number.
 -/
+
+namespace Kolmogorov
+open scoped ENNReal
 
 /-- Restricted family members whose canonical uniform codes have complexity at
 most `i` and whose cardinality is at most `2^j`. -/
@@ -340,7 +341,7 @@ lemma restrictedCurveGridPredecessor_spec
       grid.j (restrictedCurveGridPredecessor grid hstrict idx) ≤
         t idx + (n / N + 1) := by
   unfold restrictedCurveGridPredecessor
-  rw [dif_pos hidx]
+  rw [dite_eq_left hidx]
   have hs := Classical.choose_spec
     (restrictedCurveGrid_height_le_target_add_mesh grid hstrict idx hidx)
   exact ⟨hs.1, hs.2.1, hs.2.2.2⟩

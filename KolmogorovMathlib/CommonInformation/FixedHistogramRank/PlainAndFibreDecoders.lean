@@ -368,7 +368,7 @@ theorem mem_fiberLiftWords {A B : Type*} [Fintype B] [DecidableEq A] [DecidableE
       · rintro ⟨b, hb⟩
         by_cases h0 : f (a, b) = 0
         · simp [h0] at hb
-        rw [if_neg h0, List.mem_map] at hb
+        rw [ite_eq_right h0, List.mem_map] at hb
         obtain ⟨w', hw', rfl⟩ := hb
         have hpos : 0 < f (a, b) := Nat.pos_of_ne_zero h0
         obtain ⟨hc', hm'⟩ := (ih _ (marginal_update hmargin hpos) w').mp hw'
@@ -393,7 +393,7 @@ theorem mem_fiberLiftWords {A B : Type*} [Fintype B] [DecidableEq A] [DecidableE
           rw [List.count_cons_self] at h
           omega
         refine ⟨b, ?_⟩
-        rw [if_neg (by omega), List.mem_map]
+        rw [ite_eq_right (by omega), List.mem_map]
         refine ⟨w', ?_, rfl⟩
         refine (ih _ (marginal_update hmargin hpos) w').mpr ⟨fun i => ?_, hm'⟩
         by_cases hii : i = (a', b)
@@ -420,7 +420,7 @@ theorem fiberLiftWords_nodup {A B : Type*} [Fintype B] [DecidableEq A] [Decidabl
       · intro b _
         by_cases h0 : f (a, b) = 0
         · simp [h0]
-        · rw [if_neg h0]
+        · rw [ite_eq_right h0]
           exact (ih _).map (fun x y h => by cases h; rfl)
       · refine (Finset.nodup_toList _).imp ?_
         intro b b' hbb' w hw hw'
@@ -429,8 +429,8 @@ theorem fiberLiftWords_nodup {A B : Type*} [Fintype B] [DecidableEq A] [Decidabl
         · simp [h0] at hw
         by_cases h1 : f (a, b') = 0
         · simp [h1] at hw'
-        rw [if_neg h0, List.mem_map] at hw
-        rw [if_neg h1, List.mem_map] at hw'
+        rw [ite_eq_right h0, List.mem_map] at hw
+        rw [ite_eq_right h1, List.mem_map] at hw'
         obtain ⟨u, -, rfl⟩ := hw
         obtain ⟨v, -, hv⟩ := hw'
         have hab : (a, b') = (a, b) := (List.cons.inj hv).1
@@ -470,7 +470,7 @@ theorem length_fiberLiftWords {A B : Type*} [Fintype A] [Fintype B]
         by_cases h0 : f (a, b) = 0
         · simp [h0]
         · have hpos : 0 < f (a, b) := Nat.pos_of_ne_zero h0
-          rw [if_neg h0, if_neg h0]
+          rw [ite_eq_right h0, ite_eq_right h0]
           simp only [List.length_map]
           rw [ih _ (marginal_update hmargin hpos)]
           rw [← Finset.mul_prod_erase univ _ (Finset.mem_univ a)]

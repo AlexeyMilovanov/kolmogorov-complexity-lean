@@ -279,7 +279,7 @@ theorem grayChargedV2_frozen_slot_req_le_final_root
     by_cases hcs : c.val < grayChargedSourceCount a e
     · rw [grayChargedSonRequest_source i c hcs, grayTailSonRequest]
       by_cases hraise : grayChargedThreshold q e < grayTailSonBase entries i c
-      · simp only [hraise, if_true]
+      · simp only [hraise, ite_true]
         rcases hshape with ⟨hanchor, -, hgoal, -, -, -⟩ |
           ⟨pass, -, -, -, -, hpSlots, -⟩
         · have hub := (grayChargedBlockGoalAtB_root_bounds hgoal
@@ -296,7 +296,7 @@ theorem grayChargedV2_frozen_slot_req_le_final_root
             grayBlockSpendPairs_first_ge hpair
           rw [hc] at hcs
           omega
-      · simp only [hraise, if_false]
+      · simp only [hraise, ite_false]
         exact hterm
     · rw [grayChargedSonRequest_spare i c (Nat.not_lt.mp hcs)]
       exact hterm
@@ -307,9 +307,9 @@ theorem grayChargedV2_frozen_slot_req_le_final_root
     by_cases hds : d.val < grayChargedSourceCount a e
     · rw [grayChargedSonRequest_source i d hds, grayTailSonRequest]
       by_cases hraise : grayChargedThreshold q e < grayTailSonBase entries i d
-      · simp only [hraise, if_true]
+      · simp only [hraise, ite_true]
         exact (dyadicScale_pos e).le
-      · simp only [hraise, if_false]
+      · simp only [hraise, ite_false]
         exact grayTailSonBase_nonneg_global hreq
     · rw [grayChargedSonRequest_spare i d (Nat.not_lt.mp hds)]
       exact grayTailSonBase_nonneg_global hreq

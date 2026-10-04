@@ -77,10 +77,10 @@ theorem primrec_natSubInt : Primrec₂ (fun a b : ℕ => (a : ℤ) - b) := by
         (Primrec.nat_sub.comp Primrec.snd Primrec.fst) (Primrec.const 1))))
   exact h.of_eq (fun p => by
     by_cases hle : p.2 ≤ p.1
-    · simp only [hle, if_pos]
+    · simp only [hle, ite_eq_left]
       change ((p.1 - p.2 : ℕ) : ℤ) = _
       omega
-    · simp only [hle, if_neg, not_false_iff]
+    · simp only [hle, ite_eq_right, not_false_iff]
       change (Int.negSucc (p.2 - p.1 - 1)) = _
       omega)
 
@@ -160,7 +160,7 @@ theorem gcdStep_iterate (n : ℕ) :
     · rw [Function.iterate_succ_apply]
       have hstep : gcdStep (x, y) = (y, x % y) := by
         simp only [gcdStep]
-        rw [if_neg (by omega)]
+        rw [ite_eq_right (by omega)]
       rw [hstep, ih y (x % y) (by have := Nat.mod_lt x hy; omega)]
       rw [Nat.gcd_comm y (x % y), ← Nat.gcd_rec, Nat.gcd_comm]
 
@@ -889,11 +889,11 @@ theorem isLowerSemicomputableReal_of_isRE_rat_lt {a : ℝ}
     intro k
     by_cases hk : (Nat.Partrec.Code.evaln (k.unpair.2 + 1) c k.unpair.1).isSome = true
     · have hgk : g k = Denumerable.ofNat ℚ k.unpair.1 := by
-        rw [hgdef]; simp only [if_pos hk]
+        rw [hgdef]; simp only [ite_eq_left hk]
       rw [hgk]
       refine (hcode _).2 ⟨k.unpair.2 + 1, ?_⟩
       rwa [ratIndex_ofNat]
-    · have hgk : g k = r₀ := by rw [hgdef]; simp only [if_neg hk]
+    · have hgk : g k = r₀ := by rw [hgdef]; simp only [ite_eq_right hk]
       rw [hgk]
       exact hr₀
   have hgrange : ∀ r : ℚ, ((r : ℝ) < a) → ∃ k, g k = r := by
@@ -906,7 +906,7 @@ theorem isLowerSemicomputableReal_of_isRE_rat_lt {a : ℝ}
         (Nat.Partrec.Code.evaln_mono (Nat.le_succ k₀) (Option.mem_def.mpr hy))⟩
     rw [hgdef]
     simp only [Nat.unpair_pair]
-    rw [if_pos hstep, ofNat_ratIndex]
+    rw [ite_eq_left hstep, ofNat_ratIndex]
   have hlub : IsLUB (Set.range fun k => ((g k : ℚ) : ℝ)) a := by
     constructor
     · rintro x ⟨k, rfl⟩

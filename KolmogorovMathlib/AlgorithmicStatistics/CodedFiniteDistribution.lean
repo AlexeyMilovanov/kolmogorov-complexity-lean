@@ -316,7 +316,7 @@ theorem foldr_uniform_zero (l : List BitString) (v : ENNReal) (x : BitString)
   | nil => rfl
   | cons a l ih =>
     rw [List.mem_cons, not_or] at hx
-    rw [List.foldr_cons, if_neg (fun h => hx.1 h.symm), ih hx.2, add_zero]
+    rw [List.foldr_cons, ite_eq_right (fun h => hx.1 h.symm), ih hx.2, add_zero]
 
 /-- Auxiliary: over a `Nodup` list containing `x`, the selecting `foldr` yields
 the single selected value. -/
@@ -329,9 +329,9 @@ theorem foldr_uniform_aux (l : List BitString) (v : ENNReal) (x : BitString)
     rw [List.nodup_cons] at hnd
     rw [List.foldr_cons]
     rcases List.mem_cons.mp hx with h | h
-    · rw [if_pos h.symm, foldr_uniform_zero l v x (by rw [h]; exact hnd.1), add_zero]
+    · rw [ite_eq_left h.symm, foldr_uniform_zero l v x (by rw [h]; exact hnd.1), add_zero]
     · have hax : a ≠ x := by rintro rfl; exact hnd.1 h
-      rw [if_neg hax, zero_add, ih h hnd.2]
+      rw [ite_eq_right hax, zero_add, ih h hnd.2]
 
 /-- A coded uniform distribution on a nonempty finite set.  The data list is the
 finite set's canonical *computable* enumeration (`canonicalFinsetList`), with

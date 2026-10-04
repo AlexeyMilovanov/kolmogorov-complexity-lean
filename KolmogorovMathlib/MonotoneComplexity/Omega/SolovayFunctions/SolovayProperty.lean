@@ -422,14 +422,14 @@ theorem isUniformlyREFamily_lt_apriori {m : ℕ → ℝ≥0∞}
       obtain ⟨s, hs⟩ := (hkey ε n).1 hn
       refine ⟨Nat.pair n s, ?_⟩
       simp only [Nat.unpair_pair]
-      rw [decide_eq_false (not_le.2 hs), cond_false]
+      rw [decide_eq_false (not_le.2 hs), Bool.cond_false]
     · rintro ⟨k, hk⟩
       refine (hkey ε n).2 ⟨k.unpair.2, ?_⟩
       by_cases hc : (ε / 2) * ((A k.unpair.2 (natToBitString k.unpair.1) [] : ℚ)
           * ((2 : ℚ)⁻¹) ^ k.unpair.2) ≤ r k.unpair.1
-      · rw [decide_eq_true hc, cond_true] at hk
+      · rw [decide_eq_true hc, Bool.cond_true] at hk
         exact absurd hk (by simp)
-      · rw [decide_eq_false hc, cond_false, Option.some.injEq] at hk
+      · rw [decide_eq_false hc, Bool.cond_false, Option.some.injEq] at hk
         subst hk
         exact not_le.1 hc
 
@@ -463,7 +463,8 @@ theorem not_isMartinLofRandomReal_of_ratioTendstoZero {m : ℕ → ℝ≥0∞}
             ENNReal.ofReal ((ε : ℝ) / 2) * m (i : ℕ) :=
           ENNReal.tsum_le_tsum (fun i => le_of_lt i.2)
       _ ≤ ∑' i : ℕ, ENNReal.ofReal ((ε : ℝ) / 2) * m i :=
-          ENNReal.tsum_comp_le_tsum_of_injective Subtype.val_injective _
+          ENNReal.tsum_comp_le_tsum_of_injective Subtype.val_injective
+            (fun i : ℕ => ENNReal.ofReal ((ε : ℝ) / 2) * m i)
       _ = ENNReal.ofReal ((ε : ℝ) / 2) * ∑' i : ℕ, m i := ENNReal.tsum_mul_left
       _ ≤ ENNReal.ofReal ((ε : ℝ) / 2) * 1 := mul_le_mul_right hm.tsum_le_one _
       _ = ENNReal.ofReal ((ε : ℝ) / 2) := mul_one _
@@ -557,7 +558,7 @@ private lemma dyadicWeight_mul_indicator_qq_eq (k i : ℕ) {r : ℕ → ℚ} {W 
     dyadicWeight k * (if i ∈ W (((2 : ℚ)⁻¹) ^ (2 * k))
       then ENNReal.ofReal ((((((2 : ℚ) ^ (2 * k)) * r i : ℚ)) : ℝ)) else 0)
       = (2 : ℝ≥0∞)⁻¹ * ((2 : ℝ≥0∞) ^ k * ENNReal.ofReal ((r i : ℝ))) := by
-  rw [if_pos hi]
+  rw [ite_eq_left hi]
   have hcast : ENNReal.ofReal (((((2 : ℚ) ^ (2 * k)) * r i : ℚ)) : ℝ)
       = (2 : ℝ≥0∞) ^ (2 * k) * ENNReal.ofReal ((r i : ℝ)) := by
     push_cast
@@ -652,7 +653,7 @@ theorem exists_const_two_pow_mul_le_apriori_of_reFamily {m : ℕ → ℝ≥0∞}
     rw [hmu]
     simp only
     by_cases hmem : (bitStringToNat out) ∈ W (ee k)
-    · rw [if_pos hmem, ← hfloor]
+    · rw [ite_eq_left hmem, ← hfloor]
       obtain ⟨s₀, hs₀⟩ := (hGex k (bitStringToNat out)).2 hmem
       refine le_antisymm (iSup_le fun s => ?_) (iSup_le fun s => ?_)
       · refine le_iSup_of_le s ?_
@@ -670,7 +671,7 @@ theorem exists_const_two_pow_mul_le_apriori_of_reFamily {m : ℕ → ℝ≥0∞}
             (fun _ => le_refl _) (le_max_left s s₀)
         refine le_trans hstep ?_
         rw [hAa]; simp only; rw [hGm]; simp
-    · rw [if_neg hmem]
+    · rw [ite_eq_right hmem]
       refine le_antisymm (iSup_le fun s => ?_) (zero_le)
       have hGs : G k (bitStringToNat out) s = false := by
         rw [← Bool.not_eq_true]
@@ -713,7 +714,8 @@ theorem exists_const_two_pow_mul_le_apriori_of_reFamily {m : ℕ → ℝ≥0∞}
     dyadicWeight_mul_indicator_qq_eq k i hi
   calc c * (2 : ℝ≥0∞)⁻¹ * ((2 : ℝ≥0∞) ^ k * ENNReal.ofReal ((r i : ℝ)))
       = c * (dyadicWeight k * mu k i) := by rw [hterm]; ring
-    _ ≤ c * ∑' k' : ℕ, dyadicWeight k' * mu k' i := mul_le_mul_right (ENNReal.le_tsum k) _
+    _ ≤ c * ∑' k' : ℕ, dyadicWeight k' * mu k' i :=
+      mul_le_mul_right (ENNReal.le_tsum (f := fun k' => dyadicWeight k' * mu k' i) k) _
     _ ≤ m i := hdom i
 
 /-- If the sum is not random then `rᵢ/m(i) → 0`. *Proof.* Theorem 109

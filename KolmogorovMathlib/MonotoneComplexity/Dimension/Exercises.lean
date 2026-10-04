@@ -301,7 +301,7 @@ theorem isEffectiveAlphaNull_of_isInfinitelyCoveredCover {r : ℝ} (hr : 0 < r) 
         by_contra hge
         push Not at hge
         refine hcon (Set.mem_iUnion.2 ⟨k, ?_⟩)
-        simp only [decide_eq_true hge, cond_true, Option.elim_some]
+        simp only [decide_eq_true hge, Bool.cond_true, Option.elim_some]
         exact hk
       have h1 : ((2 : ℝ≥0∞)⁻¹) ^ (L ε) ≤ ((2 : ℝ≥0∞)⁻¹) ^ (I k).length :=
         inv_two_pow_antitone (le_of_lt hlt)
@@ -329,7 +329,7 @@ theorem isEffectiveAlphaNull_of_isInfinitelyCoveredCover {r : ℝ} (hr : 0 < r) 
             * ((2 : ℝ≥0∞)⁻¹) ^ (alphaFloor (r' - s) (L ε)) := by
       intro k
       by_cases hk : L ε ≤ (I k).length
-      · rw [decide_eq_true hk, cond_true, coverAlphaMass_some]
+      · rw [decide_eq_true hk, Bool.cond_true, coverAlphaMass_some]
         have hsplit : ((r' : ℚ) : ℝ) = ((s : ℚ) : ℝ) + (((r' - s : ℚ)) : ℝ) := by
           push_cast; ring
         rw [intervalAlphaMass_eq_inv_two_pow, intervalAlphaMass_eq_inv_two_pow, hsplit,
@@ -345,7 +345,7 @@ theorem isEffectiveAlphaNull_of_isInfinitelyCoveredCover {r : ℝ} (hr : 0 < r) 
         calc ((alphaFloor (r' - s) (L ε) : ℕ) : ℝ)
             ≤ (((r' - s : ℚ)) : ℝ) * ((L ε : ℕ) : ℝ) := this
           _ = ((L ε : ℕ) : ℝ) * (((r' - s : ℚ)) : ℝ) := by ring
-      · rw [decide_eq_false hk, cond_false, coverAlphaMass_none]
+      · rw [decide_eq_false hk, Bool.cond_false, coverAlphaMass_none]
         exact zero_le
     have hmain : (∑' k, coverAlphaMass ((r' : ℚ) : ℝ)
         (bif decide (L ε ≤ (I k).length) then some (I k) else none))
@@ -550,7 +550,7 @@ theorem problem_185_image_expectationDeficiency_le {μ ν : Measure CantorSeq}
   rcases eq_or_ne (v t) 0 with hv0 | hv0
   · rw [hv0]
     unfold ennrealLogbTwo
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     exact bot_le
   -- `v t` is then finite and positive, and so is `u w`
   have hc0 : (c : ℝ≥0∞) ≠ 0 := by
@@ -588,7 +588,7 @@ theorem problem_185_image_expectationDeficiency_le {μ ν : Measure CantorSeq}
     rw [Real.logb_mul (ne_of_gt hcR) (ne_of_gt hupos)] at h2
     linarith
   unfold ennrealLogbTwo
-  rw [if_neg hv0, if_neg hvtop, if_neg hu0, if_neg hutop]
+  rw [ite_eq_right hv0, ite_eq_right hvtop, ite_eq_right hu0, ite_eq_right hutop]
   rw [← EReal.coe_add]
   exact_mod_cast hlog
 
@@ -672,7 +672,7 @@ theorem problem_187_finitary_image_deficiency_le {μ ν : Measure CantorSeq}
   intro u w d hd hle hdw
   have hwne : cantorMass μ w ≠ 0 := by
     intro h0
-    rw [deficiency, if_pos h0] at hdw
+    rw [deficiency, ite_eq_left h0] at hdw
     exact absurd hdw.symm (EReal.coe_ne_top d)
   have hmono : cantorMass μ w ≤ cantorMass ν u := by
     rw [hν u]

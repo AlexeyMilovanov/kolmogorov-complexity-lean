@@ -1,6 +1,6 @@
 import KolmogorovMathlib.AlgorithmicRandomness.EffectiveNull
 import KolmogorovMathlib.AlgorithmicRandomness.Measure
-import Mathlib.Data.Real.Basic
+import Mathlib.Basic.Real.Basic
 import Mathlib.Probability.Independence.InfinitePi
 import Mathlib.Probability.StrongLaw
 

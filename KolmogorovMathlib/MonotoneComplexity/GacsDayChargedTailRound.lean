@@ -117,7 +117,7 @@ lemma grayChargedTailSameRound_step_false
       apply hactive
       simp [hs]
   simp only [grayChargedTailStep, grayTailWaitingB, Bool.false_eq_true,
-    if_false, hsame.done, hslots, hgoal]
+    ite_false, hsame.done, hslots, hgoal]
   exact ⟨by simp,
     by simpa using hsame.frozen,
     by simpa using hsame.unavailable,

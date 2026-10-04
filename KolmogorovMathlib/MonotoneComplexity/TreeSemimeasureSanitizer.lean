@@ -101,7 +101,7 @@ lemma freezeStage_self_iff (approx : ℕ → BitString → BitString → ℕ) (s
       have h1 : ∀ t ≤ s, rootBudgetOK approx t := fun t ht => h t (Nat.le_trans ht (Nat.le_succ s))
       have h2 : rootBudgetOK approx (s + 1) := h (s + 1) (Nat.le_refl _)
       have h3 : freezeStage approx s = s := ih.mpr h1
-      rw [if_pos ⟨h3, h2⟩]
+      rw [ite_eq_left ⟨h3, h2⟩]
 
 /-- At each stage the sanitiser either advances or stays at its freezing stage. -/
 lemma freezeStage_step_cases (approx : ℕ → BitString → BitString → ℕ) (s : ℕ) :

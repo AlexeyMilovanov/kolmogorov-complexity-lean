@@ -95,7 +95,8 @@ theorem lintegral_prefixSumRatio_le {m : BitString → ℝ≥0∞} (μ : Measure
 Problem 146. -/
 lemma prefixSupRatio_le_prefixSumRatio (m : BitString → ℝ≥0∞) (μ : Measure CantorSeq)
     (w : CantorSeq) : prefixSupRatio m μ w ≤ prefixSumRatio m μ w :=
-  iSup_le fun n => ENNReal.le_tsum n
+  iSup_le fun n =>
+    ENNReal.le_tsum (f := fun n => m (cantorPrefix w n) / cantorMass μ (cantorPrefix w n)) n
 
 /-- **SUV Problem 147 (p. 150), the integral half**: `∫ sup_{x ⊑ ω} m(x)/p(x) dμ ≤ 1`. -/
 theorem lintegral_prefixSupRatio_le {m : BitString → ℝ≥0∞} (μ : Measure CantorSeq)

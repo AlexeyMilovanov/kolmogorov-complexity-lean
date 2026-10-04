@@ -5,9 +5,6 @@ import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.SlackArith
 import KolmogorovMathlib.Encoding.Tuples
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.AddNoise
 
-namespace Kolmogorov
-open scoped ENNReal
-
 /-!
 # Exact-budget corollaries
 
@@ -20,6 +17,8 @@ made this module impossible to import together with the `KolmogorovMathlib`
 aggregate.)
 -/
 
+namespace Kolmogorov
+open scoped ENNReal
 
 private theorem KP_le_condK_of_exact_budget
     (V U : Map) (hV : isOptimalConditional V)

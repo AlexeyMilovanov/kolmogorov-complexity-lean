@@ -2,6 +2,12 @@ import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.OrdinalPlainRandomne
 import KolmogorovMathlib.Complexity.PairComplexity.LogarithmicTerms.PlainBounds
 import KolmogorovMathlib.Complexity.PairComplexity.Overhead
 
+/-!
+# Conditional complexity bounds
+
+Exercises 25-34: bounds on conditional complexity with logarithmic error terms.
+-/
+
 namespace Kolmogorov
 open Nat.Partrec (Code)
 

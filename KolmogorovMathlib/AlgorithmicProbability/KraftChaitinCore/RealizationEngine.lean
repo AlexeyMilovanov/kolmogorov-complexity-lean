@@ -3,7 +3,7 @@ import KolmogorovMathlib.AlgorithmicProbability.KraftChaitinAllocator
 import KolmogorovMathlib.Prefix.Optimal
 import Mathlib.Algebra.Field.GeomSum
 import Mathlib.Analysis.SpecificLimits.Basic
-import Mathlib.Data.ENNReal.Basic
+import Mathlib.Basic.ENNReal.Basic
 import Mathlib.Tactic.IntervalCases
 import Mathlib.Tactic.Linarith
 import KolmogorovMathlib.AlgorithmicProbability.KraftChaitinCore.LSCApproximation
@@ -119,7 +119,7 @@ lemma extract_request_stream {f : BitString → BitString → ℝ≥0∞}
           · exact Computable.const true;
         · intro n
           cases le_total n.1 n.2 <;>
-            simp only [*, Bool.and_true, Bool.if_false_right, Nat.rec_zero,
+            simp only [*, Bool.and_true, Bool.ite_false_right, Nat.rec_zero,
               Nat.sub_eq_zero_of_le, false_eq_decide_iff, not_lt]
           cases lt_or_eq_of_le ‹_› <;>
             simp only [*, Nat.rec_zero, decide_false, decide_true, lt_self_iff_false,
@@ -216,10 +216,10 @@ lemma extract_request_stream {f : BitString → BitString → ℝ≥0∞}
             ↓reduceIte]
         rw [ tsum_eq_sum ];
         any_goals exact Finset.range ( evNum approx t ctx );
-        · rw [ Finset.sum_congr rfl fun x hx => if_pos <| Finset.mem_range.mp hx ]
+        · rw [ Finset.sum_congr rfl fun x hx => ite_eq_left <| Finset.mem_range.mp hx ]
           norm_num [ div_eq_mul_inv ]
           norm_num [ ENNReal.inv_pow ];
-        · intro b hb; rw [if_neg (by simpa using hb)]
+        · intro b hb; rw [ite_eq_right (by simpa using hb)]
       rw [ ← funext h_sum_eq ];
       rw [ ← ENNReal.tsum_prod ];
       rw [ ← Equiv.tsum_eq ( Equiv.ofBijective
@@ -646,14 +646,14 @@ lemma geomReq_crossed_kraft_perOutput {f : BitString → BitString → ℝ≥0�
             intro x y hxy
             have h_eq : x.val = y.val := by
               linarith [ Nat.sub_add_cancel
-                  ( show L ≤ x.val from by by_contra hc; exact x.2 (if_neg hc) ),
+                  ( show L ≤ x.val from by by_contra hc; exact x.2 (ite_eq_right hc) ),
                 Nat.sub_add_cancel
-                  ( show L ≤ y.val from by by_contra hc; exact y.2 (if_neg hc) ) ]
+                  ( show L ≤ y.val from by by_contra hc; exact y.2 (ite_eq_right hc) ) ]
             exact Subtype.ext h_eq;
           · exact fun x _ => ⟨⟨x + L, by simp⟩, by simp⟩
           · rintro ⟨x, hx⟩
-            have hle : L ≤ x := by by_contra hc; exact hx (if_neg hc)
-            rw [Nat.add_sub_cancel' hle, if_pos hle]
+            have hle : L ≤ x := by by_contra hc; exact hx (ite_eq_right hc)
+            rw [Nat.add_sub_cancel' hle, ite_eq_left hle]
         simp_all +decide only [not_and, not_exists, not_le, exists_and_right,
           pow_add, ENNReal.tsum_mul_left, ENNReal.tsum_geometric,
           ENNReal.one_sub_inv_two, inv_inv]

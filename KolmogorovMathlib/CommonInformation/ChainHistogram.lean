@@ -84,12 +84,12 @@ theorem chainStepKernel_rationalAtom {R p : ℕ} {c : ℝ} (hR : 0 < R)
   · by_cases hab : a = b
     · refine ⟨R - p, ?_⟩
       rw [hsub]
-      simp only [chainStepKernel, hgd, hab, if_false, if_true]
+      simp only [chainStepKernel, hgd, hab, ite_false, ite_true]
       field_simp
       linarith [hcRat]
     · refine ⟨R + p, ?_⟩
       push_cast
-      simp only [chainStepKernel, hgd, hab, if_false]
+      simp only [chainStepKernel, hgd, hab, ite_false]
       field_simp
       linarith [hcRat]
 

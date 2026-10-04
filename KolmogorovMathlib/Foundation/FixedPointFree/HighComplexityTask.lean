@@ -730,8 +730,8 @@ theorem recursiveIn_charFun_of_isRE (P : ℕ → Prop) (hP : IsRE P) :
     simp only [charOracle]
     congr 1
     by_cases h : P n
-    · rw [if_pos ((hmP n).mpr h), if_pos h]
-    · rw [if_neg (fun hc => h ((hmP n).mp hc)), if_neg h]
+    · rw [ite_eq_left ((hmP n).mpr h), ite_eq_left h]
+    · rw [ite_eq_right (fun hc => h ((hmP n).mp hc)), ite_eq_right h]
 
 /-- **The halting oracle solves the high-complexity task.** -/
 theorem solvesHighComplexity_recursiveIn_halting (U : Map) (hU : isOptimalConditional U) :

@@ -74,7 +74,7 @@ theorem suffixCountIncluding_append_cons_of_not_mem
       simp only [List.mem_cons, not_or] at hxP
       unfold suffixCountIncluding
       simp only [List.cons_append]
-      rw [if_neg (Ne.symm hxP.1)]
+      rw [ite_eq_right (Ne.symm hxP.1)]
       exact ih hxP.2
 
 /-- The dyadic block used by the position selector really contains `x`.
@@ -119,7 +119,7 @@ theorem mem_recentBlock_of_suffix_bracket
     have hidxT : T - 2 * Q + j < T := by omega
     have hopt :
         (L.take T)[T - 2 * Q + j]? = some x := by
-      rw [List.getElem?_take, if_pos hidxT, hidx, hdecomp]
+      rw [List.getElem?_take, ite_eq_left hidxT, hidx, hdecomp]
       simp
     exact (List.getElem?_eq_some_iff.mp hopt).2
 
@@ -425,7 +425,7 @@ private lemma nat_find_mem_rfind {f : ℕ → Bool} (h : ∃ t, f t = true) :
   refine ⟨Part.mem_some_iff.mpr (Nat.find_spec h).symm, ?_⟩
   intro u hu
   have h_min := Nat.find_min h hu
-  have hu_false : f u = false := eq_false_of_ne_true h_min
+  have hu_false : f u = false := Bool.eq_false_of_ne_true h_min
   exact Part.mem_some_iff.mpr hu_false.symm
 
 /-- The decidable-predicate form of `nat_find_mem_rfind`: the least stage at which a

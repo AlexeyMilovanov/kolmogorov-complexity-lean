@@ -298,7 +298,7 @@ lemma filter_length_bound (f : ℕ → ℕ → Option BitString) (n i : ℕ) (s 
     cases h_le : decide (n ≤ s_orig.length) with
     | false =>
       rw [h_le] at h
-      simp only [cond_false] at h
+      simp only [Bool.cond_false] at h
       cases hy : Encodable.decode₂ BitString (Nat.unpair i).2 with
       | none =>
         rw [hy] at h
@@ -310,26 +310,26 @@ lemma filter_length_bound (f : ℕ → ℕ → Option BitString) (n i : ℕ) (s 
         cases h_dec : decide (y.length = n - s_orig.length) with
         | false =>
           rw [h_dec] at h
-          simp only [cond_false] at h
+          simp only [Bool.cond_false] at h
           contradiction
         | true =>
           rw [h_dec] at h
-          simp only [cond_true, Option.some.injEq] at h
+          simp only [Bool.cond_true, Option.some.injEq] at h
           have h1 : y.length = n - s_orig.length := of_decide_eq_true h_dec
           rw [← h]
           simp only [List.length_append]
           omega
     | true =>
       rw [h_le] at h
-      simp only [cond_true] at h
+      simp only [Bool.cond_true] at h
       cases h_k : (Nat.unpair i).2 == 0 with
       | false =>
         rw [h_k] at h
-        simp only [cond_false] at h
+        simp only [Bool.cond_false] at h
         contradiction
       | true =>
         rw [h_k] at h
-        simp only [cond_true, Option.some.injEq] at h
+        simp only [Bool.cond_true, Option.some.injEq] at h
         have h1 : n ≤ s_orig.length := of_decide_eq_true h_le
         rw [← h]
         exact h1
@@ -354,7 +354,7 @@ lemma filter_length_union (f : ℕ → ℕ → Option BitString) (n : ℕ) :
       cases h_le : decide (n ≤ s_orig.length) with
       | false =>
         rw [h_le] at hi
-        simp only [cond_false] at hi
+        simp only [Bool.cond_false] at hi
         cases hy : Encodable.decode₂ BitString (Nat.unpair i).2 with
         | none =>
           rw [hy] at hi
@@ -366,25 +366,25 @@ lemma filter_length_union (f : ℕ → ℕ → Option BitString) (n : ℕ) :
           cases h_dec : decide (y.length = n - s_orig.length) with
           | false =>
             rw [h_dec] at hi
-            simp only [cond_false, Option.elim_none] at hi
+            simp only [Bool.cond_false, Option.elim_none] at hi
             contradiction
           | true =>
             rw [h_dec] at hi
-            simp only [cond_true, Option.elim_some] at hi
+            simp only [Bool.cond_true, Option.elim_some] at hi
             have h_subset : cantorCylinder (s_orig ++ y) ⊆ cantorCylinder s_orig :=
               cantorCylinder_subset_of_prefix (List.prefix_append s_orig y)
             exact h_subset hi
       | true =>
         rw [h_le] at hi
-        simp only [cond_true] at hi
+        simp only [Bool.cond_true] at hi
         cases h_k : (Nat.unpair i).2 == 0 with
         | false =>
           rw [h_k] at hi
-          simp only [cond_false, Option.elim_none] at hi
+          simp only [Bool.cond_false, Option.elim_none] at hi
           contradiction
         | true =>
           rw [h_k] at hi
-          simp only [cond_true, Option.elim_some] at hi
+          simp only [Bool.cond_true, Option.elim_some] at hi
           exact hi
   · rintro ⟨j, hj⟩
     cases hf : f n j with
@@ -410,17 +410,17 @@ lemma filter_length_union (f : ℕ → ℕ → Option BitString) (n : ℕ) :
         dsimp [filterLength]
         simp only [Nat.unpair_pair, hf, Option.bind_some]
         rw [h_le]
-        simp only [cond_false, hk, Option.bind_some]
+        simp only [Bool.cond_false, hk, Option.bind_some]
         have h_dec : decide (y.length = n - s_orig.length) = true := decide_eq_true hy
         rw [h_dec]
-        simp only [cond_true, Option.elim_some]
+        simp only [Bool.cond_true, Option.elim_some]
         exact hpre
       | true =>
         use Nat.pair j 0
         dsimp [filterLength]
         simp only [Nat.unpair_pair, hf, Option.bind_some]
         rw [h_le]
-        simp only [cond_true, BEq.rfl, Option.elim_some]
+        simp only [Bool.cond_true, BEq.rfl, Option.elim_some]
         exact hj
 
 /-- Every uniformly effectively open family may be enumerated so that the strings used for the

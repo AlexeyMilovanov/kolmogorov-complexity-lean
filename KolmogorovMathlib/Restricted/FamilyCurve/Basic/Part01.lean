@@ -826,7 +826,7 @@ private lemma restricted_rebuild_nextB_spec (𝒜 : DescriptionFamily)
   by_cases hc_le :
       ((2 ^ t (i + 1)) ≤ A'.card ∧ 0 < (2 ^ t (i + 1)) ∧ 𝒜.mem A' ∧ C' ⊆ A' ∧
         (∀ x ∈ C', List.length x = n))
-  · simp only [dif_pos hc_le]
+  · simp only [dite_eq_left hc_le]
     let hA_nonempty : A'.Nonempty := Finset.card_pos.mp (by omega)
     let Acode := (codedUniformOn A' hA_nonempty).code
     let Ccode : BitString := if hC_ne : C'.Nonempty then (codedUniformOn C' hC_ne).code else []
@@ -852,7 +852,7 @@ private lemma restricted_rebuild_nextB_spec (𝒜 : DescriptionFamily)
       _ ≤ overhead_bound * 2 ^ t i * (C' ∩ B).card := by
         rw [Finset.inter_comm]
         exact Nat.mul_le_mul (Nat.mul_le_mul hover hA_card) (le_refl _)
-  · rw [dif_neg hc_le, dif_pos hex]
+  · rw [dite_eq_right hc_le, dite_eq_left hex]
     exact Classical.choose_spec hex
 
 /-- Existence of a next set in the rebuild sequence with specified density.  Only the single
@@ -969,7 +969,7 @@ lemma restricted_rebuild_suffix_pointwise_core (𝒜 : DescriptionFamily)
     have hsub_succ : i + 1 - s = (i - s) + 1 := by
       simpa [Nat.succ_eq_add_one] using Nat.succ_sub hsi
     have hi_eq : s + (i - s) = i := Nat.add_sub_of_le hsi
-    simp only [C_seq, B, dif_pos hsi, dif_pos hsi_succ]
+    simp only [C_seq, B, dite_eq_left hsi, dite_eq_left hsi_succ]
     rw [hsub_succ, states_succ]
   have hdensity_step : ∀ i, s ≤ i → i < k →
       (2 ^ t (i + 1)) * (C_seq i).card ≤ (overhead_bound * 2 ^ t i) * (C_seq (i + 1)).card := by
@@ -983,7 +983,7 @@ lemma restricted_rebuild_suffix_pointwise_core (𝒜 : DescriptionFamily)
     have hsi_succ : s ≤ i + 1 := hsi.trans (Nat.le_succ i)
     have hsub_succ : i + 1 - s = (i - s) + 1 := by
       simpa [Nat.succ_eq_add_one] using Nat.succ_sub hsi
-    simp only [C_seq, dif_pos hsi, dif_pos hsi_succ]
+    simp only [C_seq, dite_eq_left hsi, dite_eq_left hsi_succ]
     rw [hsub_succ, states_succ]
     simp only [step, hi_eq]
     exact hnext.2.2

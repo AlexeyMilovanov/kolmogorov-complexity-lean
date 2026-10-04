@@ -705,7 +705,7 @@ theorem t1RunStep_cPrime_history
   by_cases hactive : w ∈ s.seenCDouble
   · simp only [t1RunStep, t1RunStepCPrimeFn,
       t1RunStepCPrimeActive, t1RunStepParamsState, hactive,
-      decide_true, if_true, t1RunStepCPrimeActiveFn]
+      decide_true, ite_true, t1RunStepCPrimeActiveFn]
     split <;>
       simp only [t1RunStepCPrimeSaturated,
         t1RunSaturationRebuildFinal, t1RunStepCPrimeRebuilt,
@@ -740,7 +740,7 @@ theorem t1RunStep_cPrime_unchanged_histories
   by_cases hactive : w ∈ s.seenCDouble
   · simp only [t1RunStep, t1RunStepCPrimeFn,
       t1RunStepCPrimeActive, t1RunStepParamsState, hactive,
-      decide_true, if_true, t1RunStepCPrimeActiveFn]
+      decide_true, ite_true, t1RunStepCPrimeActiveFn]
     split <;>
       simp_all [t1RunStepCPrimeSaturated,
         t1RunSaturationRebuildFinal, t1RunStepCPrimeRebuilt,

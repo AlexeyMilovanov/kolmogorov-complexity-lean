@@ -231,9 +231,9 @@ theorem dilExtract_dilExpand (p q : ℕ) (hq : 0 < q) (hpq : p ≤ q) (n : ℕ) 
     refine List.flatMap_congr (fun i hi => ?_)
     have hin : i < n := by simpa using hi
     by_cases hsel : dilSel p q i = true
-    · rw [if_pos hsel, if_pos hsel, getD_dilExpand hin y, if_pos hsel]
+    · rw [ite_eq_left hsel, ite_eq_left hsel, getD_dilExpand hin y, ite_eq_left hsel]
     · simp only [Bool.not_eq_true] at hsel
-      rw [if_neg (by simp [hsel]), if_neg (by simp [hsel])]
+      rw [ite_eq_right (by simp [hsel]), ite_eq_right (by simp [hsel])]
   rw [hstep, flatMap_dilSel_eq p q hq hpq y n, ← hy, map_getD_range_length]
 
 /-! ## The two coded families -/

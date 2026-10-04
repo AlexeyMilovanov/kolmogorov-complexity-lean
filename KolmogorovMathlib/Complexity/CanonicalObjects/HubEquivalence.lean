@@ -580,9 +580,12 @@ private theorem lower_6 (U : Map) (hU : isOptimalConditional U) (c : Code)
         Primrec₂.comp (haltsWithin_primrec₂ c) Primrec.snd Primrec.fst
       have h2 : Primrec (fun z : BitString × ℕ => decide (z.1 = ([] : BitString))) :=
         PrimrecPred.decide (PrimrecRel.comp Primrec.eq Primrec.fst (Primrec.const []))
+      have hpred' : Primrec (fun z : BitString × ℕ =>
+          (haltsWithin c z.2 z.1 || decide (z.1 = ([] : BitString)))) :=
+        (Primrec.cond h1 (Primrec.const true) h2).of_eq
+          (fun z => by cases haltsWithin c z.2 z.1 <;> rfl)
       have hpred : Primrec₂ (fun (w : BitString) (t : ℕ) =>
-          (haltsWithin c t w || decide (w = ([] : BitString)))) :=
-        ((Primrec.cond h1 (Primrec.const true) h2).of_eq (fun _ => rfl)).to₂
+          (haltsWithin c t w || decide (w = ([] : BitString)))) := hpred'.to₂
       exact (Partrec.rfind hpred.to_comp.partrec₂).map
         (natBits_computable.comp ((bigNat_primrec c).to_comp.comp Computable.snd)).to₂
     refine lower_of_partrec U hU c hc 6 _ hFB 0
@@ -598,7 +601,7 @@ private theorem lower_6 (U : Map) (hU : isOptimalConditional U) (c : Code)
           (Nat.rfind (fun t => Part.some (haltsWithin c t (canonicalObject U c 6 n) ||
             decide (canonicalObject U c 6 n = ([] : BitString))))).map
             (fun t => Nat.bits (bigNat c t))
-        rw [hX, if_pos hnl]
+        rw [hX, ite_eq_left hnl]
         have hrf : Nat.rfind (fun t => Part.some
             (haltsWithin c t ([] : BitString) || decide (([] : BitString) = ([] : BitString))))
             = Part.some 0 := by
@@ -632,7 +635,7 @@ private theorem lower_6 (U : Map) (hU : isOptimalConditional U) (c : Code)
           (Nat.rfind (fun t => Part.some (haltsWithin c t (canonicalObject U c 6 n) ||
             decide (canonicalObject U c 6 n = ([] : BitString))))).map
             (fun t => Nat.bits (bigNat c t))
-        rw [hX, if_neg hnl]
+        rw [hX, ite_eq_right hnl]
         have hsimp : (fun t => Part.some (haltsWithin c t q || decide (q = ([] : BitString))))
             = (fun t => Part.some (haltsWithin c t q)) := by
           funext t
@@ -641,7 +644,7 @@ private theorem lower_6 (U : Map) (hU : isOptimalConditional U) (c : Code)
         simp
     · by_cases hnl : haltingProgramsBounded c n = []
       · exact (no_output_of_nil c n hnl hx).elim
-      · rw [if_neg hnl]
+      · rw [ite_eq_right hnl]
         exact lt_bigNat c n hx
 
 private theorem lower_mono {U : Map} {c : Code} {i k k' : ℕ} (h : k ≤ k')

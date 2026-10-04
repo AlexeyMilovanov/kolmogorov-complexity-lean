@@ -82,7 +82,7 @@ theorem code_mem_modelsWithComplexityLe (U : Map) (P : CodedFiniteDistribution)
   have hcode : modelCodeOfProgram U p = P.code := by
     have hdom : (U (p, [])).Dom := hp_prod.1
     unfold modelCodeOfProgram
-    rw [dif_pos hdom]
+    rw [dite_eq_left hdom]
     exact hp_prod.2
   unfold modelsWithComplexityLe
   rw [Finset.mem_image]
@@ -109,7 +109,7 @@ theorem probModelOfCode_eq {P : CodedFiniteDistribution} (hP : P.IsProbability) 
     probModelOfCode P.code = P := by
   classical
   unfold probModelOfCode
-  rw [dif_pos ⟨P, rfl, hP⟩]
+  rw [dite_eq_left ⟨P, rfl, hP⟩]
   exact CodedFiniteDistribution.code_injective
     (Exists.choose_spec (⟨P, rfl, hP⟩ : ∃ Q, Q.code = P.code ∧ Q.IsProbability)).1
 

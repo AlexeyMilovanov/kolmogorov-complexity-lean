@@ -53,7 +53,7 @@ theorem weightedTestSemimeasure_isConditionalSemimeasure
     rw [tsum_eq_sum]
     · exact t.expectation_le_one
     · exact fun x hx ↦ mul_eq_zero_of_left (P.mass_eq_zero_of_not_mem_support x hx) _
-  · simp only [weightedTestSemimeasure, if_neg h, tsum_zero, zero_le]
+  · simp only [weightedTestSemimeasure, ite_eq_right h, tsum_zero, zero_le]
 
 /-- The canonical test is `2^{-K(x|P.code)} / P.mass x`. -/
 noncomputable def canonicalTest (U : Map) (P : CodedFiniteDistribution) : BitString -> ENNReal :=

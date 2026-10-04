@@ -15,6 +15,13 @@ import KolmogorovMathlib.Complexity.Incompressibility
 import KolmogorovMathlib.Complexity.BusyBeaver
 import KolmogorovMathlib.Complexity.CanonicalObjects.HubReductions
 
+/-!
+# Hub edges for canonical objects
+
+The individual reductions between canonical objects and the hub object (the list of
+halting programs) used in Theorem 15.
+-/
+
 namespace Kolmogorov
 open Nat.Partrec (Code)
 open Kolmogorov.CodedFiniteDistribution
@@ -707,10 +714,10 @@ theorem busyBeaver_reduces_haltingList (U : Map) (hU : isOptimalConditional U) (
      else listCode ((boundedPrograms (q.1 - (c_len + c_map + K0))).filter
        (fun x => haltsWithin c (decodeBits q.2) x))), hA, fun n => ?_⟩
   by_cases hn : n < c_len + c_map + K0
-  · simp only [decide_eq_true hn, cond_true]
+  · simp only [decide_eq_true hn, Bool.cond_true]
     rw [show n - (c_len + c_map + K0) = 0 by omega]
   · simp only [not_lt] at hn
-    simp only [decide_eq_false (by omega : ¬ n < c_len + c_map + K0), cond_false]
+    simp only [decide_eq_false (by omega : ¬ n < c_len + c_map + K0), Bool.cond_false]
     obtain ⟨b0, hb0⟩ := busyBeaver_isSome_of_nonempty c n (hK0 n (by omega))
     have hcanon2 : canonicalObject U c 2 n = natBits b0 := by
       change natBits ((busyBeaver c n).getD 0) = natBits b0

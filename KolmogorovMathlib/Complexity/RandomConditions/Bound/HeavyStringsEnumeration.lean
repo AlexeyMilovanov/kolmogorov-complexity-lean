@@ -20,7 +20,7 @@ import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.SlackArith
 import Mathlib.Analysis.SpecialFunctions.Log.Base
 import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 import Mathlib.Algebra.BigOperators.Field
-import Mathlib.Data.ENNReal.Inv
+import Mathlib.Basic.ENNReal.Inv
 import KolmogorovMathlib.AlgorithmicStatistics.Selector
 import KolmogorovMathlib.CommonInformation.Counting
 import KolmogorovMathlib.Complexity.RandomConditions.Enumeration
@@ -417,8 +417,8 @@ lemma dedup_eq_foldr (l : List BitString) :
   | cons a l ih =>
     rw [List.foldr_cons, ← ih]
     by_cases h : a ∈ l.dedup
-    · rw [if_pos h, List.dedup_cons_of_mem (List.mem_dedup.mp h)]
-    · rw [if_neg h, List.dedup_cons_of_notMem (fun hh => h (List.mem_dedup.mpr hh))]
+    · rw [ite_eq_left h, List.dedup_cons_of_mem (List.mem_dedup.mp h)]
+    · rw [ite_eq_right h, List.dedup_cons_of_notMem (fun hh => h (List.mem_dedup.mpr hh))]
 
 /-- The hit predicate of a fixed code is primitive recursive in the length bound, the step
 budget, the string and the condition. -/

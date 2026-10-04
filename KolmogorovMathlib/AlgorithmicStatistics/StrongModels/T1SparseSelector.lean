@@ -78,8 +78,8 @@ private theorem t1ListDedupPrimrec {α : Type} [Primcodable α] [DecidableEq α]
             (a :: l).dedup
         rw [List.foldr_cons, ih, List.dedup_cons]
         by_cases ha : a ∈ l
-        · rw [if_pos ha, if_pos (List.mem_dedup.mpr ha)]
-        · rw [if_neg ha, if_neg (fun h => ha (List.mem_dedup.mp h))]
+        · rw [ite_eq_left ha, ite_eq_left (List.mem_dedup.mpr ha)]
+        · rw [ite_eq_right ha, ite_eq_right (fun h => ha (List.mem_dedup.mp h))]
 
 private theorem t1SparseIntersectionCard_primrec
     {α : Type} [Primcodable α] [DecidableEq α] :

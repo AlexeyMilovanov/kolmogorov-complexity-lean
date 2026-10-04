@@ -90,9 +90,9 @@ lemma anchoredListChangeCount_le_card_filter {s M : ℕ} (codes : ℕ → BitStr
         Finset.filter_subset_filter _
           (fun x hx => Finset.mem_range.mpr (Nat.lt_succ_of_lt (Finset.mem_range.mp hx)))
       by_cases hEq : anchoredModelListAt s (codes (m + 1)) = anchoredModelListAt s (codes m)
-      · rw [anchoredListChangeCount, if_pos hEq]
+      · rw [anchoredListChangeCount, ite_eq_left hEq]
         exact hstep.trans (Finset.card_le_card hsub)
-      · rw [anchoredListChangeCount, if_neg hEq]
+      · rw [anchoredListChangeCount, ite_eq_right hEq]
         have hmem : m ∈ (Finset.range (m + 1)).filter (fun a => edges a ≤ s) :=
           Finset.mem_filter.mpr ⟨Finset.mem_range.mpr (by omega), hedge m (by omega) hEq⟩
         have hnot : m ∉ (Finset.range m).filter (fun a => edges a ≤ s) := by
@@ -161,14 +161,14 @@ lemma anchoredChangeTrace_eq_of_fold (𝒜 : DescriptionFamily) (c : Code)
           (by omega) (hfold (m + 1)),
         Part.map_some]
       by_cases hEq : anchoredModelListAt s (codes (m + 1)) = anchoredModelListAt s (codes m)
-      · rw [if_pos hEq]
+      · rw [ite_eq_left hEq]
         rw [show anchoredListChangeCount s codes (m + 1) =
             anchoredListChangeCount s codes m by
-          rw [anchoredListChangeCount, if_pos hEq], hEq]
-      · rw [if_neg hEq]
+          rw [anchoredListChangeCount, ite_eq_left hEq], hEq]
+      · rw [ite_eq_right hEq]
         rw [show anchoredListChangeCount s codes (m + 1) =
             anchoredListChangeCount s codes m + 1 by
-          rw [anchoredListChangeCount, if_neg hEq]]
+          rw [anchoredListChangeCount, ite_eq_right hEq]]
 
 /-- Terminal decoder evaluation over the anchored event chain: the change
 count of the decoded scale-`s` list is bounded by the chain's rebuild count,

@@ -85,16 +85,16 @@ lemma trimTable_of_allAcc {e : ℕ} : ∀ {s : ℕ}, allAcc a e s = true →
     ∀ x, trimTable a e x s = patchTable e s x := by
   intro s h x
   cases s with
-  | zero => rw [trimTable_zero, if_pos h]
-  | succ s => rw [trimTable_succ, if_pos h]
+  | zero => rw [trimTable_zero, ite_eq_left h]
+  | succ s => rw [trimTable_succ, ite_eq_left h]
 
 /-- The trimmed table at least doubles from one stage to the next. -/
 lemma two_mul_trimTable_le (a : BitString → ℕ → ℕ) (e : ℕ) (x : BitString) (s : ℕ) :
     2 * trimTable a e x s ≤ trimTable a e x (s + 1) := by
   by_cases h : allAcc a e (s + 1) = true
-  · rw [trimTable_succ, if_pos h, trimTable_of_allAcc (allAcc_of_succ h) x]
+  · rw [trimTable_succ, ite_eq_left h, trimTable_of_allAcc (allAcc_of_succ h) x]
     exact two_mul_patchTable_le e s x
-  · rw [trimTable_succ, if_neg h]
+  · rw [trimTable_succ, ite_eq_right h]
 
 /-- The trimmed table at stage `s` reads at most the first `s` bits of its string argument. -/
 lemma trimTable_take (a : BitString → ℕ → ℕ) (e : ℕ) (x : BitString) {m : ℕ} :
@@ -105,14 +105,14 @@ lemma trimTable_take (a : BitString → ℕ → ℕ) (e : ℕ) (x : BitString) {
       intro _
       rw [trimTable_zero, trimTable_zero]
       by_cases h : allAcc a e 0 = true
-      · rw [if_pos h, if_pos h, patchTable_take e 0 x (Nat.zero_le m)]
-      · rw [if_neg h, if_neg h]
+      · rw [ite_eq_left h, ite_eq_left h, patchTable_take e 0 x (Nat.zero_le m)]
+      · rw [ite_eq_right h, ite_eq_right h]
   | succ s ih =>
       intro hs
       rw [trimTable_succ, trimTable_succ]
       by_cases h : allAcc a e (s + 1) = true
-      · rw [if_pos h, if_pos h, patchTable_take e (s + 1) x hs]
-      · rw [if_neg h, if_neg h, ih (Nat.le_of_succ_le hs)]
+      · rw [ite_eq_left h, ite_eq_left h, patchTable_take e (s + 1) x hs]
+      · rw [ite_eq_right h, ite_eq_right h, ih (Nat.le_of_succ_le hs)]
 
 /-! ## The trimmed component -/
 
@@ -172,7 +172,7 @@ lemma lintegral_trimVal_le
       · have heq : ∀ w, trimVal a e 0 w = 0 := by
           intro w
           simp only [trimVal]
-          rw [trimTable_zero, if_neg h]
+          rw [trimTable_zero, ite_eq_right h]
           simp [dyadicValue]
         simp only [heq]
         simp
@@ -188,7 +188,7 @@ lemma lintegral_trimVal_le
       · have heq : ∀ w, trimVal a e (s + 1) w = trimVal a e s w := by
           intro w
           simp only [trimVal]
-          rw [trimTable_succ, if_neg h, dyadicValue_two_mul_succ]
+          rw [trimTable_succ, ite_eq_right h, dyadicValue_two_mul_succ]
           congr 1
           rw [← cantorPrefix_take w s (s + 1) (Nat.le_succ s),
             trimTable_take a e (cantorPrefix w (s + 1)) s le_rfl]
@@ -492,7 +492,7 @@ theorem exists_maximal_lsc_integral_le_one (hμ : IsComputableMeasure μ) :
     obtain ⟨e, he⟩ := exists_index_compVal_ge ha hv hint
     refine ⟨(2 : NNReal) ^ (e + 2), fun w => ?_⟩
     have hle : dyadicValue 1 (e + 2) * compVal a e w ≤ mixVal a w :=
-      ENNReal.le_tsum e
+      ENNReal.le_tsum (f := fun e => dyadicValue 1 (e + 2) * compVal a e w) e
     have hcast : ((((2 : NNReal) ^ (e + 2) : NNReal)) : ℝ≥0∞) = (2 : ℝ≥0∞) ^ (e + 2) := by
       push_cast
       rfl

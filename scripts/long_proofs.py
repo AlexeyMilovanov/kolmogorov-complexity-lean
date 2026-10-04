@@ -15,6 +15,8 @@ import re
 from collections import Counter
 from pathlib import Path
 
+import size_allow
+
 KEYWORDS = ('theorem', 'lemma', 'def', 'abbrev', 'instance', 'structure',
             'inductive', 'class', 'opaque', 'example', 'macro', 'notation',
             'syntax', 'elab', 'mutual', 'initialize', 'alias')
@@ -73,6 +75,10 @@ def main() -> None:
     args = ap.parse_args()
 
     root = Path(__file__).resolve().parent.parent
+    allowed, errors = size_allow.load(root / 'docs/history/size_allow.tsv')
+    if errors:
+        raise SystemExit('\n'.join(errors))
+    allowed_proofs = {name for kind, name in allowed if kind == 'proof'}
     found = []
     for r in args.roots:
         p = root / r
@@ -80,8 +86,10 @@ def main() -> None:
         for f in files:
             if 'Deprecated' in f.parts:
                 continue
+            qualified = dict((written, full) for full, written in
+                             size_allow.qualified_declarations(f, NAME_RE))
             for name, line, length in spans(f):
-                if length > args.min:
+                if length > args.min and qualified.get(name, name) not in allowed_proofs:
                     found.append((length, f.relative_to(root), line, name))
     found.sort(reverse=True)
     if args.summary:

@@ -119,10 +119,10 @@ lemma findIdx_go_add (p : Bool → Bool) (z : BitString) (n : ℕ) :
   | cons head tail ih =>
     unfold List.findIdx.go
     cases h : p head
-    · simp only [cond_false]
+    · simp only [Bool.false_eq_true, ↓reduceIte]
       rw [ih (n + 1), ih 1]
       omega
-    · simp only [cond_true]
+    · simp only [↓reduceIte]
       exact (Nat.zero_add n).symm
 
 /-- The length of the initial run of ones of a bitstring is the position of its first zero. -/

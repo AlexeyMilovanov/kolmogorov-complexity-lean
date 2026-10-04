@@ -126,7 +126,7 @@ theorem t1RunStep_cPrime_active_markingDataEq
       (t1RunStep cSparse n k epsilon quota s
         (.cPrimeModel w)) := by
   rw [t1RunStep_cPrime_eq]
-  simp only [hactive, if_true]
+  simp only [hactive, ite_true]
   split
   · simpa [T1RunMarkingDataEq] using
       t1RunRebuild_markingDataEq cSparse n k epsilon
@@ -144,7 +144,7 @@ theorem t1RunStep_dString_markingDataEq
   rw [t1RunStep_dString_eq]
   by_cases hsat :
       t1RunSaturated (t1RunDPrepared n s x) quota = true
-  · simp only [hsat, if_true]
+  · simp only [hsat, ite_true]
     simpa [T1RunMarkingDataEq] using
       t1RunRebuild_markingDataEq cSparse n k epsilon
         (t1RunDPrepared n s x)

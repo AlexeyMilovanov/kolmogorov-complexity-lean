@@ -146,7 +146,7 @@ lemma grayChargedOwnerFibreV2_mem_of_transport
     (z.1.val, w.2) ∈ grayChargedOwnerFibreV2 hae p hp' z := by
   rw [grayChargedOwnerFibreV2, List.mem_flatMap]
   refine ⟨j, List.mem_finRange _, ?_⟩
-  rw [if_pos hfib]
+  rw [ite_eq_left hfib]
   obtain ⟨u, hu, hmap⟩ := mem_grayChargedTransportRoot.mp hw
   rw [List.mem_map] at hmap
   obtain ⟨s, hs, rfl⟩ := hmap

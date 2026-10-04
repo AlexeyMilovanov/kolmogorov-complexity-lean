@@ -190,19 +190,19 @@ theorem exists_mem_ratInterval_paint {p b g d : ℕ → ℚ} {α : ℝ} {c : ℚ
     intro n
     rw [hg'val n]
     by_cases hn : n = n₀
-    · rw [if_pos hn]; linarith [hg n, (hd n₀).le]
-    · rw [if_neg hn]; linarith [hg n]
+    · rw [ite_eq_left hn]; linarith [hg n, (hd n₀).le]
+    · rw [ite_eq_right hn]; linarith [hg n]
   have hg'le : ∀ n, g' n ≤ G n := by
     intro n
     rw [hg'val n, hGval n]
     by_cases hn : n = n₀
-    · rw [if_pos hn, hn]; linarith [hgb n₀]
-    · rw [if_neg hn]; linarith [hgb n, (hd n).le]
+    · rw [ite_eq_left hn, hn]; linarith [hgb n₀]
+    · rw [ite_eq_right hn]; linarith [hgb n, (hd n).le]
   have hc' : ∀ n, 0 < g' n → c ≤ p n := by
     intro n hn
     by_cases hnn : n = n₀
     · rw [hnn]; exact hc₀
-    · rw [hg'val n, if_neg hnn, add_zero] at hn
+    · rw [hg'val n, ite_eq_right hnn, add_zero] at hn
       exact hc n hn
   -- a finite stage at which the accounting sum already exceeds `α - c`
   have hδ : (0 : ℝ) < ((d n₀ : ℚ) : ℝ) := by exact_mod_cast hd n₀
@@ -216,7 +216,7 @@ theorem exists_mem_ratInterval_paint {p b g d : ℕ → ℚ} {α : ℝ} {c : ℚ
       = (∑ n ∈ Finset.range (N + 1), g n) + d n₀ := by
     simp only [hg'def]
     rw [Finset.sum_add_distrib, Finset.sum_ite_eq' (Finset.range (N + 1)) n₀ (fun _ => d n₀),
-      if_pos hmem]
+      ite_eq_left hmem]
   have hsub : ∑ n ∈ Finset.range N₁, ((g n : ℚ) : ℝ)
       ≤ ∑ n ∈ Finset.range (N + 1), ((g n : ℚ) : ℝ) := by
     have hsubset : Finset.range N₁ ⊆ Finset.range (N + 1) := fun x hx =>

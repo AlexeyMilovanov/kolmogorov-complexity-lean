@@ -62,15 +62,15 @@ private lemma anchoredChangeTraceAgainst_eq_count
       by_cases hEq :
           anchoredModelListAt s (codes (m + 1)) =
             anchoredModelListAt s (codes m)
-      · rw [if_pos hEq]
+      · rw [ite_eq_left hEq]
         rw [show anchoredListChangeCount s codes (m + 1) =
             anchoredListChangeCount s codes m by
-              rw [anchoredListChangeCount, if_pos hEq],
+              rw [anchoredListChangeCount, ite_eq_left hEq],
           hEq]
-      · rw [if_neg hEq]
+      · rw [ite_eq_right hEq]
         rw [show anchoredListChangeCount s codes (m + 1) =
             anchoredListChangeCount s codes m + 1 by
-              rw [anchoredListChangeCount, if_neg hEq]]
+              rw [anchoredListChangeCount, ite_eq_right hEq]]
 
 /-- The change count up to step `m` is bounded by the number of edges with weight `≤ s`. -/
 private lemma anchoredListChangeCount_le_filter_card
@@ -103,9 +103,9 @@ private lemma anchoredListChangeCount_le_filter_card
       by_cases hEq :
           anchoredModelListAt s (codes (m + 1)) =
             anchoredModelListAt s (codes m)
-      · rw [anchoredListChangeCount, if_pos hEq]
+      · rw [anchoredListChangeCount, ite_eq_left hEq]
         exact hstep.trans (Finset.card_le_card hsub)
-      · rw [anchoredListChangeCount, if_neg hEq]
+      · rw [anchoredListChangeCount, ite_eq_right hEq]
         have hedge : chain.edges m ≤ s := by
           by_contra hgt
           have hpres :=

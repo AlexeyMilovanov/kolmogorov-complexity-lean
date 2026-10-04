@@ -188,7 +188,7 @@ theorem canonicalGrayCodeV2_add_four (c0 c1 c2 code3 : Nat.Partrec.Code)
     canonicalGrayCodeV2 c0 c1 c2 code3 G (q + 4) =
       G (q + 3) (grayFootprint (q + 3)) (canonicalGrayCodeV2 c0 c1 c2 code3 G (q + 3)) := by
   simp only [canonicalGrayCodeV2]
-  rw [if_neg (by omega), if_neg (by omega), if_neg (by omega)]
+  rw [ite_eq_right (by omega), ite_eq_right (by omega), ite_eq_right (by omega)]
 
 /-- The V2 code recursion is computable whenever the V2 tail code step is.  V1
 twin: `computable_canonicalGrayCode`; the only new ingredients are the extra

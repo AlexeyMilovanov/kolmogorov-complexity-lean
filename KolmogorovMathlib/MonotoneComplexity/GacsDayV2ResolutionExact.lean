@@ -37,12 +37,12 @@ lemma grayBlockHasSon_iff {n b : Nat}
     rw [List.mem_map] at hs
     obtain ⟨g, hg, rfl⟩ := hs
     refine ⟨(i0, c0, ⟨round, hr⟩), ?_, hsi, hsc⟩
-    rw [grayTailNextSlots, dif_pos hr, List.mem_flatMap]
+    rw [grayTailNextSlots, dite_eq_left hr, List.mem_flatMap]
     refine ⟨i0, List.mem_finRange _, ?_⟩
     rw [List.mem_map]
     exact ⟨c0, hc0, rfl⟩
   · rintro ⟨s, hs, hsi, hsc⟩
-    rw [grayTailNextSlots, dif_pos hr, List.mem_flatMap] at hs
+    rw [grayTailNextSlots, dite_eq_left hr, List.mem_flatMap] at hs
     obtain ⟨i0, -, hs⟩ := hs
     rw [List.mem_map] at hs
     obtain ⟨c0, hc0, rfl⟩ := hs

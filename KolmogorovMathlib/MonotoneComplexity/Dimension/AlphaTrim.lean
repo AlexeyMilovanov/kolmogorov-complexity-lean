@@ -162,9 +162,9 @@ lemma alphaApprox_bound (α : ℚ) (x : BitString) (s : ℕ) :
       alphaFloorMass α x ≤ dyadicValue (alphaApprox α x s) s + dyadicValue 1 s := by
   unfold alphaApprox alphaFloorMass
   by_cases h : alphaFloor α x.length ≤ s
-  · rw [if_pos h, dyadicValue_two_pow_sub h]
+  · rw [ite_eq_left h, dyadicValue_two_pow_sub h]
     exact ⟨le_self_add, le_self_add⟩
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     have hs : s ≤ alphaFloor α x.length := le_of_not_ge h
     have hsplit : (2 : ℝ≥0∞)⁻¹ ^ alphaFloor α x.length
         ≤ (2 : ℝ≥0∞)⁻¹ ^ s := by
@@ -197,10 +197,10 @@ lemma weight_trimEnum_le
   cases hacc : trimAccept w k with
   | false => simp
   | true =>
-    simp only [cond_true]
+    simp only [Bool.cond_true]
     unfold trimTerm
     rw [hacc]
-    simp only [if_true]
+    simp only [ite_true]
     cases hek : e k with
     | none => simp
     | some u =>
@@ -347,7 +347,7 @@ theorem trimEnum_eq_self_of_tsum_weight_le
   have hacc := (trimAccept_of_partial_le_weight ha hsmall
     (trimPartial_mul_le_sum_weight ha hsmall k)).1
   unfold trimEnum
-  rw [hacc, cond_true]
+  rw [hacc, Bool.cond_true]
 
 end GeneralWeight
 

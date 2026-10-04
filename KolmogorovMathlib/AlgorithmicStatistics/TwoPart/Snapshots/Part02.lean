@@ -37,7 +37,7 @@ theorem emittedHalfRichChunks_foldStep_append (j : ℕ) (half_rich L : List BitS
       rw [List.foldl_append, List.foldl_cons, List.foldl_nil, hr]
       rcases Bool.eq_false_or_eq_true
           (decide (x ∈ (acc ++ r).flatten)) with h | h <;>
-        simp only [emittedHalfRichChunksFoldStep, h, cond_true, cond_false]
+        simp only [emittedHalfRichChunksFoldStep, h, Bool.cond_true, Bool.cond_false]
       · exact ⟨r, rfl⟩
       · exact ⟨_, (List.append_assoc _ _ _)⟩
 
@@ -54,7 +54,7 @@ theorem emittedHalfRichChunks_foldStep_length (j : ℕ) (half_rich L : List BitS
       set acc' := xs.foldl (emittedHalfRichChunksFoldStep j half_rich) acc with hacc'
       have hacc'_len : ∀ l ∈ acc', l.length ≤ 2 ^ j := ih acc hacc
       rcases Bool.eq_false_or_eq_true (decide (x ∈ acc'.flatten)) with h | h <;>
-        simp only [emittedHalfRichChunksFoldStep, h, cond_true, cond_false] at hl
+        simp only [emittedHalfRichChunksFoldStep, h, Bool.cond_true, Bool.cond_false] at hl
       · exact hacc'_len l hl
       · rw [List.mem_append, List.mem_singleton] at hl
         rcases hl with hl | hl
@@ -116,7 +116,7 @@ theorem emittedHalfRichChunks_foldStep_mem_flatten (j : ℕ) (half_rich L : List
       · refine emittedHalfRichChunks_foldStep_flatten_subset j half_rich as _ ?_
         unfold emittedHalfRichChunksFoldStep
         rcases Bool.eq_false_or_eq_true (decide (y ∈ acc.flatten)) with h | h <;>
-          simp only [h, cond_true, cond_false]
+          simp only [h, Bool.cond_true, Bool.cond_false]
         · exact of_decide_eq_true h
         · rw [List.flatten_append, List.mem_append]
           refine Or.inr ?_
@@ -180,10 +180,10 @@ theorem emittedHalfRichChunks_foldStep_flatten_mem (j : ℕ) (half_rich : List B
             List.take ( 2 ^ j ) ( x :: List.filter ( fun a => !decide ( a = x ) && !decide (
               ∃ l ∈ chunks, a ∈ l ) ) half_rich ) ] ) acc xs, x ∈ l
         · simp_all +decide only [List.mem_flatten, Bool.cond_true_right, Bool.or_false,
-            List.filter_filter, decide_true, cond_true]
+            List.filter_filter, decide_true, Bool.cond_true]
           grind
         · simp_all +decide only [List.mem_flatten, Bool.cond_true_right, Bool.or_false,
-            List.filter_filter, decide_false, cond_false, List.mem_append, List.mem_cons,
+            List.filter_filter, decide_false, Bool.cond_false, List.mem_append, List.mem_cons,
             List.not_mem_nil, or_false, not_exists, not_and, not_false_eq_true, implies_true]
           rcases hl₁ with ( hl₁ | rfl );
           · exact ih acc hacc _ hl₁ hl₂;
@@ -210,7 +210,7 @@ theorem emittedHalfRichChunks_foldStep_flatten_nodup (j : ℕ) (half_rich : List
         List.filter_filter, List.foldl_append, List.foldl_cons, List.foldl_nil]
     · unfold emittedHalfRichChunksFoldStep at *; aesop;
     · rw [decide_eq_false]
-      · simp_all +decide only [not_exists, not_and, cond_false, List.flatten_append,
+      · simp_all +decide only [not_exists, not_and, Bool.cond_false, List.flatten_append,
           List.flatten_cons, List.flatten_nil, List.append_nil]
         rw [ List.nodup_append ];
         refine ⟨ ?_, ?_, ?_ ⟩;
@@ -365,10 +365,10 @@ theorem emittedHalfRichChunks_foldStep_flatten_mem_or (j : ℕ) (half_rich : Lis
           fun a => !decide ( a = x ) && !decide ( ∃ l ∈ chunks, a ∈ l ) ) half_rich ) ] ) acc L,
             ih ∈ l
     · simp_all +decide only [true_or, implies_true, List.mem_flatten,
-        forall_exists_index, and_imp, forall_const, decide_true, cond_true]
+        forall_exists_index, and_imp, forall_const, decide_true, Bool.cond_true]
       unfold emittedHalfRichChunksFoldStep at *; aesop;
     · simp_all +decide only [true_or, implies_true, List.mem_flatten,
-        forall_exists_index, and_imp, forall_const, decide_false, cond_false,
+        forall_exists_index, and_imp, forall_const, decide_false, Bool.cond_false,
         List.mem_append, List.mem_cons, List.not_mem_nil, or_false, not_exists, not_and]
       rcases hx with ( hx | rfl );
       · rename_i h''; specialize h'' acc y x
@@ -483,7 +483,7 @@ private theorem emittedHalfRichChunks_fold_step_mem_ne_nil (j : ℕ) (half_rich 
     by_cases hx : x ∈ acc.flatten
     · exact hacc l (by simpa [emittedHalfRichChunksFoldStep, hx] using hl)
     · have hdecide : decide (x ∈ acc.flatten) = false := by simp [hx]
-      simp only [emittedHalfRichChunksFoldStep, hdecide, cond_false, List.mem_append,
+      simp only [emittedHalfRichChunksFoldStep, hdecide, Bool.cond_false, List.mem_append,
         List.mem_cons, List.not_mem_nil, or_false] at hl
       rcases hl with hl | rfl
       · exact hacc l hl
@@ -718,9 +718,9 @@ theorem emittedHalfRichChunks_foldStep_unplaced_full (j : ℕ) (half_rich L : Li
   specialize h acc y hy_hr
   by_cases h' : ∃ l ∈ List.foldl (emittedHalfRichChunksFoldStep j half_rich) acc L,
       ih ∈ l
-  · simp_all +decide only [decide_true, cond_true, not_false_eq_true, implies_true,
+  · simp_all +decide only [decide_true, Bool.cond_true, not_false_eq_true, implies_true,
       forall_const]
-  · simp_all +decide only [decide_false, cond_false, List.mem_append, List.mem_cons,
+  · simp_all +decide only [decide_false, Bool.cond_false, List.mem_append, List.mem_cons,
       List.not_mem_nil, or_false, true_or, not_false_eq_true, implies_true, forall_const,
       not_exists, not_and]
     by_contra h_contra;
@@ -750,12 +750,12 @@ theorem nonfull_chunk_emit_time (c : Code) (i j k : ℕ) (t : ℕ) (S : Finset B
   have h_l_not_in_acc : l ∉ (if t > 0 then
       emittedHalfRichChunksList c i j k (t - 1) else []) := by
     by_cases ht : t > 0
-    · simp only [ht, if_true]
+    · simp only [ht, ite_true]
       intro h_prev
       apply h_new ht
       unfold emittedHalfRichChunks
       exact List.mem_map.mpr ⟨l, h_prev, hl.2⟩
-    · simp only [ht, if_false, List.not_mem_nil]
+    · simp only [ht, ite_false, List.not_mem_nil]
       exact not_false
   by_contra h_contra; push Not at h_contra;
   obtain ⟨x, hx_rich, hx_unplaced⟩ := h_contra

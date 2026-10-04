@@ -367,13 +367,13 @@ theorem rawChargedBlockTailStepV2_eq {n b : ℕ} (q L a e : ℕ)
   unfold rawChargedBlockTailStepV2 grayChargedBlockTailStepV2
   simp only [toRawStateV2, List.isEmpty_map, List.length_map]
   by_cases hd : st.done = true
-  · rw [if_pos hd]
+  · rw [ite_eq_left hd]
     simp [hd]
-  · rw [if_neg hd]
+  · rw [ite_eq_right hd]
     by_cases hs : st.slots.isEmpty = true
-    · rw [if_pos hs]
+    · rw [ite_eq_left hs]
       simp [hd, hs]
-    · rw [if_neg hs]
+    · rw [ite_eq_right hs]
       simp only [hd, hs]
       rw [rawLocalServerMove_eq]
       by_cases hgoal : grayChargedBlockGoalAtB q L e st.frozen.length
@@ -381,7 +381,7 @@ theorem rawChargedBlockTailStepV2_eq {n b : ℕ} (q L a e : ℕ)
           (grayBlockCurrentMoveV2 q L e sigma st)
           (grayTailLocalServerMove
             (grayTailRoundDelta q L e st.frozen.length) st.slots sm) = true
-      · rw [if_pos hgoal, if_pos hgoal]
+      · rw [ite_eq_left hgoal, ite_eq_left hgoal]
         have hfr : (st.frozen.map toRawRoundV2 ++
               [((st.frozen.length, st.time,
                   grayTailRoundEps q L e st.frozen.length,
@@ -399,7 +399,7 @@ theorem rawChargedBlockTailStepV2_eq {n b : ℕ} (q L a e : ℕ)
         rw [hfr, rawFrozenV1OfV2_map, rawBlockNextSlots_eq, rawNextSlots_eq,
           rawGrayHarvest_eq, rawGlobalQuarterB_eq]
         simp [grayChargedBlockStepRoundV2, grayChargedSourceCount]
-      · rw [if_neg hgoal, if_neg hgoal]
+      · rw [ite_eq_right hgoal, ite_eq_right hgoal]
         simp
 
 /-! ### The erased phase-tagged V2 transition -/
@@ -427,9 +427,9 @@ theorem rawChargedStartSpendV2_eq {n b : ℕ} (q L a e : ℕ) (A : Allocation)
   simp only [toRawStateV2]
   simp only [rawChargedSlotsForPassV2_eq, rawGrayHarvest_eq, List.isEmpty_map]
   by_cases hemp : (grayChargedSlotsForPassV2 q L a e 0 core.frozen).isEmpty = true
-  · simp only [if_pos hemp]
+  · simp only [ite_eq_left hemp]
     simp [chargedPhaseTag]
-  · simp only [if_neg hemp]
+  · simp only [ite_eq_right hemp]
     simp [chargedPhaseTag]
 
 /-- Erased form of `grayChargedStepV2`, with the answer of the recursive child
@@ -519,33 +519,33 @@ theorem rawChargedStepV2With_eq {n b : ℕ} (q L a e : ℕ)
     rw [rawChargedBlockTailStepV2_eq q L a e sigma A st.core sm]
     by_cases hdone :
         (grayChargedBlockTailStepV2 q L a e sigma A st.core sm).done = true
-    · rw [if_pos (by simpa [toRawStateV2] using hdone), if_pos hdone]
+    · rw [ite_eq_left (by simpa [toRawStateV2] using hdone), ite_eq_left hdone]
       rw [rawChargedWaitServedB_eq]
       by_cases hserved : grayChargedWaitServedB q a e
           (grayChargedBlockTailStepV2 q L a e sigma A st.core sm) sm = true
-      · rw [if_pos hserved, if_pos hserved]
+      · rw [ite_eq_left hserved, ite_eq_left hserved]
         exact rawChargedStartSpendV2_eq q L a e A _ sm
-      · rw [if_neg hserved, if_neg hserved]
+      · rw [ite_eq_right hserved, ite_eq_right hserved]
         simp [toRawChargedStateV2, chargedPhaseTag]
-    · rw [if_neg (by simpa [toRawStateV2] using hdone), if_neg hdone]
+    · rw [ite_eq_right (by simpa [toRawStateV2] using hdone), ite_eq_right hdone]
       simp [toRawChargedStateV2, chargedPhaseTag]
   | spend pass =>
     have h1 : chargedPhaseTag (GrayChargedPhase.spend pass) = pass + 2 := rfl
     rw [h1]
-    rw [if_neg (by omega), if_neg (by omega)]
+    rw [ite_eq_right (by omega), ite_eq_right (by omega)]
     have hsub : pass + 2 - 2 = pass := by omega
     simp only [hsub, toRawStateV2, List.isEmpty_map, List.length_map]
     by_cases hs : st.core.slots.isEmpty = true
-    · rw [if_pos hs, if_pos hs]
+    · rw [ite_eq_left hs, ite_eq_left hs]
       simp [toRawChargedStateV2, toRawStateV2, chargedPhaseTag]
-    · rw [if_neg hs, if_neg hs]
+    · rw [ite_eq_right hs, ite_eq_right hs]
       rw [rawLocalServerMove_eq]
       by_cases hgoal : grayChargedBlockSpendGoalAtB q L a e pass
           st.core.slots.length st.core.unavailable
           (grayBlockSpendMoveV2 q L a e pass sigma st.core)
           (grayTailLocalServerMove
             (grayChargedSpendDelta a L e pass) st.core.slots sm) = true
-      · rw [if_pos hgoal, if_pos hgoal]
+      · rw [ite_eq_left hgoal, ite_eq_left hgoal]
         have hfr : (st.core.frozen.map toRawRoundV2 ++
               [((st.core.frozen.length, st.core.time,
                   grayChargedSpendEps a L e pass,
@@ -581,16 +581,16 @@ theorem rawChargedStepV2With_eq {n b : ℕ} (q L a e : ℕ)
               (st.core.frozen ++
                 [grayChargedSpendStepRoundV2 q L a e pass sigma st.core sm])).isEmpty
               = true
-          · simp only [if_pos hp, if_pos hemp]
+          · simp only [ite_eq_left hp, ite_eq_left hemp]
             simp [toRawChargedStateV2, toRawStateV2, chargedPhaseTag,
               grayChargedSpendStepRoundV2, toRawRoundV2]
-          · simp only [if_pos hp, if_neg hemp]
+          · simp only [ite_eq_left hp, ite_eq_right hemp]
             simp [toRawChargedStateV2, toRawStateV2, chargedPhaseTag,
               grayChargedSpendStepRoundV2, toRawRoundV2]
-        · simp only [if_neg hp]
+        · simp only [ite_eq_right hp]
           simp [toRawChargedStateV2, toRawStateV2, chargedPhaseTag,
             grayChargedSpendStepRoundV2, toRawRoundV2]
-      · rw [if_neg hgoal, if_neg hgoal]
+      · rw [ite_eq_right hgoal, ite_eq_right hgoal]
         simp [toRawChargedStateV2, toRawStateV2, chargedPhaseTag]
 
 /-! ### The erased child query -/
@@ -621,7 +621,7 @@ theorem rawChargedQueryV2_eq_advantage {n b : ℕ} (q L a e : ℕ)
         (rawChargedQueryV2 q L a e tag (toRawStateV2 st)).2.2.2 =
       grayBlockCurrentMoveV2 q L e sigma st := by
   unfold rawChargedQueryV2 grayBlockCurrentMoveV2 toRawStateV2
-  rw [if_pos htag]
+  rw [ite_eq_left htag]
   simp
 
 /-- On the tag `pass + 2`, the raw V2 query hands the scheme the arguments that produce the block
@@ -635,7 +635,7 @@ theorem rawChargedQueryV2_eq_spend {n b : ℕ} (q L a e pass : ℕ)
         (rawChargedQueryV2 q L a e (pass + 2) (toRawStateV2 st)).2.2.2 =
       grayBlockSpendMoveV2 q L a e pass sigma st := by
   unfold rawChargedQueryV2 grayBlockSpendMoveV2 toRawStateV2
-  rw [if_neg (by omega)]
+  rw [ite_eq_right (by omega)]
   simp
 
 /-- On the tag of a state's phase, the raw V2 query hands the scheme the arguments that produce

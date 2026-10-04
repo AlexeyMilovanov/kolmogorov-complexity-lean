@@ -303,7 +303,7 @@ lemma robustDenotation_finite_le_iff_exists_history {step : TimingHistory → Bi
     (x : BitStream) (y : BitString) :
     BitStream.finite y ≤ robustDenotation step x ↔
       ∃ h : TimingHistory, h.realizes x ∧ y <+: step h := by
-  rw [robustDenotation, dif_pos hmono,
+  rw [robustDenotation, dite_eq_left hmono,
     BitStream.finite_le_ofPrefixSet_iff]
   constructor
   · rintro ⟨n, hyn⟩

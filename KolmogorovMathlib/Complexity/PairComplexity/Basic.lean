@@ -23,7 +23,14 @@ import KolmogorovMathlib.Prefix.TwoStage
 import Mathlib.Algebra.BigOperators.Field
 import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 import Mathlib.Analysis.SpecialFunctions.Log.Base
-import Mathlib.Data.ENNReal.Inv
+import Mathlib.Basic.ENNReal.Inv
+
+/-!
+# Complexity of pairs: basic notation
+
+Notation for the plain complexity of pairs and triples and for the associated
+information quantities.
+-/
 
 namespace Kolmogorov
 

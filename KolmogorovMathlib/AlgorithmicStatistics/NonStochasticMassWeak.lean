@@ -65,12 +65,12 @@ private theorem nonStochasticMass_upper_bound_weak (U : Map) (C_imp : ℕ) (c : 
     unfold nonStochasticMass nonStochasticAprioriMass
     refine ENNReal.tsum_le_tsum (fun x => ?_)
     by_cases hcond : x.length = n ∧ IsNonStochastic U x alpha beta
-    · rw [if_pos hcond]
+    · rw [ite_eq_left hcond]
       have hcond2 : x.length = n ∧ ¬ IsStochastic U x alpha (logSlack C_imp n) := by
         refine ⟨hcond.1, fun hst => hcond.2 (h_stoch_imp x hst)⟩
-      rw [if_pos hcond2]
+      rw [ite_eq_left hcond2]
       exact complexityWeight_KP_le_aprioriMeasure U x []
-    · rw [if_neg hcond]
+    · rw [ite_eq_right hcond]
       exact zero_le
   have h_apriori_bound := hC_imp n alpha
   have h2_inv_le : (2 : ℝ≥0∞)⁻¹ ^ (logSlack c n) ≤ (2 : ℝ≥0∞)⁻¹ ^ (logSlack C_imp n) :=
@@ -200,8 +200,9 @@ theorem nonStochasticMass_bounds_weak (U : Map) (hU : IsOptimalPrefixConditional
       exact lt_irrefl n h_contra
     have h_mem_sum : (if x.length = n ∧ IsNonStochastic U x alpha beta
         then complexityWeight (KPPlain U x) else 0) ≤ nonStochasticMass U n alpha beta :=
-      ENNReal.le_tsum x
-    rw [if_pos ⟨hx_len, hnstoch⟩] at h_mem_sum
+      ENNReal.le_tsum (f := fun x => if x.length = n ∧ IsNonStochastic U x alpha beta
+        then complexityWeight (KPPlain U x) else 0) x
+    rw [ite_eq_left ⟨hx_len, hnstoch⟩] at h_mem_sum
     have h_KPPlain_le_ENat : KPPlain U x ≤ ((alpha + logSlack c n : ℕ) : ENat) := by
       refine hx_KP_ub.trans ?_
       norm_cast

@@ -194,12 +194,12 @@ lemma grayChargedFrozenSupportedV2_step
       simp only [grayChargedStepV2, hphase]
       by_cases hdone :
           (grayChargedBlockTailStepV2 q L a e sigma A st.core m).done = true
-      · rw [if_pos hdone]
+      · rw [ite_eq_left hdone]
         by_cases hserved : grayChargedWaitServedB q a e
             (grayChargedBlockTailStepV2 q L a e sigma A st.core m) m = true
-        · rw [if_pos hserved, grayChargedStartSpendV2_frozen]
+        · rw [ite_eq_left hserved, grayChargedStartSpendV2_frozen]
           exact hnext
-        · rw [if_neg hserved]
+        · rw [ite_eq_right hserved]
           exact hnext
       · simpa [hdone] using hnext
   | spend pass =>
@@ -309,9 +309,9 @@ lemma grayChargedCurrentMoveV2_supported
   cases st.phase with
   | advantage =>
       by_cases hcond : (st.core.done || st.core.slots.isEmpty) = true
-      · rw [if_pos hcond]
+      · rw [ite_eq_left hcond]
         exact grayChargedEntryMoveSupported_nil q _
-      · rw [if_neg hcond]
+      · rw [ite_eq_right hcond]
         exact grayBlockCurrentMoveV2_supported hL hRung st.core hne hj
   | spend pass =>
       by_cases hempty : st.core.slots.isEmpty = true
@@ -332,9 +332,9 @@ lemma grayChargedCurrentMoveV2_supported_display
         (familyClientMoveAt (grayChargedCurrentMoveV2 q L a e sigma st) j) := by
   intro j hj
   by_cases hd : st.core.done = true
-  · rw [if_pos hd] at hj
+  · rw [ite_eq_left hd] at hj
     simp at hj
-  · rw [if_neg hd] at hj
+  · rw [ite_eq_right hd] at hj
     exact grayChargedCurrentMoveV2_supported hL hRung st j hj
 
 /-- All entries of a projected ledger with a supported current move are
@@ -374,10 +374,10 @@ lemma grayChargedTailFamilyMove_range_eq_zero {n b q : ℕ}
       (x ++ [i]) = 0 := by
   unfold grayChargedTailFamilyMove familyClientMoveAt
   rw [List.getD_eq_getElem?_getD, List.getElem?_ofFn]
-  rw [dif_pos hj]
+  rw [dite_eq_left hj]
   refine getReq_graftTwoLevel_eq_zero_of_range ?_ x hi
   intro c hc c' hc' y k hk
-  simp only [hc, hc', dif_pos]
+  simp only [hc, hc', dite_eq_left]
   exact (grayCharged_entryMove_supported hall _).1 y k hk
 
 /-- Tree support of the two-level graft from the support of its entries. -/
@@ -392,10 +392,10 @@ lemma grayChargedTailFamilyMove_length_eq_zero {n b q : ℕ}
       x = 0 := by
   unfold grayChargedTailFamilyMove familyClientMoveAt
   rw [List.getD_eq_getElem?_getD, List.getElem?_ofFn]
-  rw [dif_pos hj]
+  rw [dite_eq_left hj]
   refine getReq_graftTwoLevel_eq_zero_of_length (h := 2 * q) ?_ x (by omega)
   intro c hc c' hc' y hy
-  simp only [hc, hc', dif_pos]
+  simp only [hc, hc', dite_eq_left]
   exact (grayCharged_entryMove_supported hall _).2 y hy
 
 /-! ### The outer support fields of the V2 charged strategy -/

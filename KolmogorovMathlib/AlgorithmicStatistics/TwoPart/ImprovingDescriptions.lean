@@ -2,11 +2,6 @@ import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.Basic
 import KolmogorovMathlib.AlgorithmicStatistics.NonStochastic
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.DescriptionShift
 
-namespace Kolmogorov
-
-open scoped ENNReal
-open Kolmogorov.CodedFiniteDistribution
-
 /-!
 # Improving Descriptions (Phase D infrastructure)
 
@@ -14,6 +9,10 @@ This module builds the decoder and counting infrastructure for the
 improving descriptions theorem (P-IMP). It defines the finite universe
 of descriptions and sets up the counting facts.
 -/
+
+namespace Kolmogorov
+open scoped ENNReal
+open Kolmogorov.CodedFiniteDistribution
 
 /-- A model code `c` represents a canonical uniform distribution if the model
 it decodes to is exactly the canonical `codedUniformOn` its own support. -/

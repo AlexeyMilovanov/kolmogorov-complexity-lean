@@ -391,7 +391,8 @@ theorem BPapriori_le_BPprime {m : ℕ → ℝ≥0∞} (_hm : IsUniversalSemimeas
   intro n hn
   refine lt_of_le_of_lt ?_ hN
   calc m n = (if N < n then m n else 0) := by simp [hn]
-    _ ≤ ∑' n', (if N < n' then m n' else 0) := ENNReal.le_tsum n
+    _ ≤ ∑' n', (if N < n' then m n' else 0) :=
+      ENNReal.le_tsum (f := fun n' => if N < n' then m n' else 0) n
 
 /-- **SUV p. 169.** The *modulus of convergence* of `aₙ → α`: the minimal `N` such
 that `|α - aₙ| < ε` for all `n > N` — the source's own quantifier (p. 169: "there
@@ -750,7 +751,7 @@ private theorem tsum_tail_mul_le_tsum_apriori_neighbourhood {m : ℕ → ℝ≥0
     by_cases hc : ∃ n, N < n ∧ a n = q
     · obtain ⟨n, _, hn⟩ := hc
       exact ⟨n, hn⟩
-    · exact absurd (by rw [hfval, if_neg hc]) hq
+    · exact absurd (by rw [hfval, ite_eq_right hc]) hq
   have h1 : c₀ * (∑' n, if N < n then m n else 0)
       = ∑' n : ℕ, (if N < n then c₀ * m n else 0) := by
     rw [← ENNReal.tsum_mul_left]
@@ -759,7 +760,7 @@ private theorem tsum_tail_mul_le_tsum_apriori_neighbourhood {m : ℕ → ℝ≥0
     intro n
     by_cases hn : N < n
     · have hex : ∃ n' : ℕ, N < n' ∧ a n' = a n := ⟨n, hn, rfl⟩
-      rw [if_pos hn, hfval, if_pos hex]
+      rw [ite_eq_left hn, hfval, ite_eq_left hex]
       exact hdom n
     · simp [hn]
   have h3 : ∀ q : ℚ,
@@ -769,8 +770,8 @@ private theorem tsum_tail_mul_le_tsum_apriori_neighbourhood {m : ℕ → ℝ≥0
     · obtain ⟨n, hn, hq⟩ := hc
       subst hq
       have hex : ∃ n' : ℕ, N < n' ∧ a n' = a n := ⟨n, hn, rfl⟩
-      rw [hfval, if_pos hex, if_pos (hS n hn)]
-    · rw [hfval, if_neg hc]
+      rw [hfval, ite_eq_left hex, ite_eq_left (hS n hn)]
+    · rw [hfval, ite_eq_right hc]
       exact zero_le
   calc c₀ * (∑' n, if N < n then m n else 0)
       = ∑' n : ℕ, (if N < n then c₀ * m n else 0) := h1

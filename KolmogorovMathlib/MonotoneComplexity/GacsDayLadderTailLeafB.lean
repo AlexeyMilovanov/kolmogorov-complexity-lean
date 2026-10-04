@@ -241,7 +241,7 @@ theorem grayTail_thresholdExit_son_witness
   have hreq :
       getFamilyReq (playClientFamily A n (grayTailStrategy q L a e sigma) sm T)
         i.val [c.val] = dyadicScale e := by
-    rw [hdata.play_eq T le_rfl, hdata.son_request_eq i c, if_pos hthreshold]
+    rw [hdata.play_eq T le_rfl, hdata.son_request_eq i c, ite_eq_left hthreshold]
   -- so the outer play must serve it at some time
   have hserve : ∃ t, Serves (getFamilyAlloc (sm t) i.val [c.val])
       (getFamilyReq (playClientFamily A n (grayTailStrategy q L a e sigma) sm T)

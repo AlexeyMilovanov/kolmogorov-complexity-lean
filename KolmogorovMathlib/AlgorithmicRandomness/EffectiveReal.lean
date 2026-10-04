@@ -366,7 +366,7 @@ lemma mulPrecision_pos {t ε : ℚ} (ht : 0 < t) (hε : 0 < ε) :
 lemma mulPrecision_le_one {t ε : ℚ} (ht : 0 < t) (ht1 : t ≤ 1) :
     mulPrecision t ε ≤ 1 := by
   by_cases h : ε ≤ 1
-  · simp only [mulPrecision, h, decide_true, cond_true]
+  · simp only [mulPrecision, h, decide_true, Bool.cond_true]
     nlinarith
   · simpa [mulPrecision, h] using ht1
 
@@ -375,9 +375,9 @@ precision. -/
 lemma mulPrecision_mul_le {t c ε : ℚ} (htc : t * c = 1) (hε : 0 < ε) :
     mulPrecision t ε * c ≤ ε := by
   by_cases h : ε ≤ 1
-  · simp only [mulPrecision, h, decide_true, cond_true]
+  · simp only [mulPrecision, h, decide_true, Bool.cond_true]
     nlinarith
-  · simp only [mulPrecision, h, decide_false, cond_false]
+  · simp only [mulPrecision, h, decide_false, Bool.cond_false]
     push Not at h
     linarith
 

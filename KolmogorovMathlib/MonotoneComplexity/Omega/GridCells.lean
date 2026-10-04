@@ -331,7 +331,7 @@ theorem gridCover_eq_some {I : ℕ → ℕ → Option (ℚ × ℚ)} {n k : ℕ} 
       J = (gridEnd I n k.unpair.2.unpair.1, gridEnd I n k.unpair.2.unpair.2) := by
   by_cases hc : gridCellCond I n k.unpair.1 k.unpair.2.unpair.1 k.unpair.2.unpair.2 = true
   · rw [gridCover, hc] at h
-    simp only [cond_true, Option.some.injEq] at h
+    simp only [Bool.cond_true, Option.some.injEq] at h
     exact ⟨hc, h.symm⟩
   · simp only [Bool.not_eq_true] at hc
     rw [gridCover, hc] at h
@@ -592,7 +592,7 @@ theorem sdiff_range_ratCast_subset_iUnion_gridCover (I : ℕ → ℕ → Option 
     exact ⟨hv₁, hv₂, hlt₁, hlt₂, hab, hgap, hbf₁, hbf₂, hmidcov, hmidncov⟩
   refine Set.mem_iUnion.2 ⟨Nat.pair N (Nat.pair t₁ t₂), ?_⟩
   rw [gridCover_pair, hcond]
-  simp only [cond_true]
+  simp only [Bool.cond_true]
   have hval : ((some (gridEnd I n t₁, gridEnd I n t₂) : Option (ℚ × ℚ)).elim ∅ ratInterval)
       = Set.Ioo ((gridEnd I n t₁ : ℚ) : ℝ) ((gridEnd I n t₂ : ℚ) : ℝ) := rfl
   rw [hval, he₁, he₂]
@@ -783,10 +783,11 @@ private theorem computable_gridIdxFirst {I : ℕ → ℕ → Option (ℚ × ℚ)
 private theorem computable_gridIdxCovSucc {I : ℕ → ℕ → Option (ℚ × ℚ)} (hI : Computable₂ I) :
     Computable (fun p : ℕ × ℕ => gridCovered I p.1
       ((gridEnd I p.1 p.2.unpair.2.unpair.1 + gridEnd I p.1 p.2.unpair.2.unpair.2) / 2)
-      (p.2.unpair.1 + 1)) :=
-  (computable_gridCovered hI).comp
+      (p.2.unpair.1 + 1)) := by
+  have h := (computable_gridCovered hI).comp
     (Computable.pair (Computable.pair Computable.fst (computable_gridIdxMid hI))
       (Computable.succ.comp computable_gridIdxStage))
+  exact h
 
 /-- The "covered at stage `N`" test of a cover index. -/
 private theorem computable_gridIdxCov {I : ℕ → ℕ → Option (ℚ × ℚ)} (hI : Computable₂ I) :

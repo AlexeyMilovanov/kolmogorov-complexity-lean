@@ -112,8 +112,8 @@ lemma grayChargedV2_wait_raised_display_eq
   rw [grayChargedRunMoveV2_eq_of_wait hphase hdone]
   rw [getFamilyReq_grayChargedTailFamilyMove_son _ _ _ _ _ _ z.1 z.2]
   simp only [grayTailEntries, grayTailSlotEntries, List.ofFn_zero, List.append_nil]
-  simp only [grayChargedSonRequest, hsrc, if_pos, grayTailSonRequest]
-  rw [if_pos hraise]
+  simp only [grayChargedSonRequest, hsrc, ite_eq_left, grayTailSonRequest]
+  rw [ite_eq_left hraise]
 
 /-- One wait step that keeps the advantage phase is a tick: the raised sons
 were not all served, and the core's frozen ledger and `done` flag persist. -/

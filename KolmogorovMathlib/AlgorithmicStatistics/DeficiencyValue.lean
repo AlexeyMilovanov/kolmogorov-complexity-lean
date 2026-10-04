@@ -524,7 +524,7 @@ theorem countP_coveredBool_le (snap : List BitString) (max_k n : ℕ) :
           exact (countP_levelSetMemBool_le w k n (Bool.and_elim_right
             hw)).trans (Nat.pow_le_pow_right (by decide) hk)
         have h_sum :=
-          List.sum_le_card_nsmul ((List.range (max_k + 1)).map (fun k =>
+          List.sum_le_length_nsmul ((List.range (max_k + 1)).map (fun k =>
           (allStrings n).countP (fun x => levelSetMemBool w k x))) (2 ^ max_k) (by
           intro y hy
           rw [List.mem_map] at hy
@@ -540,7 +540,7 @@ theorem countP_coveredBool_le (snap : List BitString) (max_k n : ℕ) :
       rw [h_false, List.countP_false]
       positivity
   have h_sum_snap :=
-    List.sum_le_card_nsmul (snap.map (fun w => (allStrings n).countP (fun x =>
+    List.sum_le_length_nsmul (snap.map (fun w => (allStrings n).countP (fun x =>
     isValidCodeBool w && isProbBool w && (List.range (max_k + 1)).any (fun k =>
     levelSetMemBool w k x)))) ((max_k + 1) * 2 ^ max_k) (by
     intro y hy
@@ -720,8 +720,9 @@ theorem nonStochasticMass_bounds (U : Map) (hU : IsOptimalPrefixConditional U) :
       exact hx_not_mem P hprob hcomp k hk_max hk_mem
     have h_mem_sum : (if x.length = n ∧ IsNonStochastic U x alpha beta
         then complexityWeight (KPPlain U x) else 0) ≤ nonStochasticMass U n alpha beta :=
-      ENNReal.le_tsum x
-    rw [if_pos ⟨hx_len, hnstoch⟩] at h_mem_sum
+      ENNReal.le_tsum (f := fun x => if x.length = n ∧ IsNonStochastic U x alpha beta
+        then complexityWeight (KPPlain U x) else 0) x
+    rw [ite_eq_left ⟨hx_len, hnstoch⟩] at h_mem_sum
     have h_KPPlain_le_ENat : KPPlain U x ≤ ((alpha + logSlack c n : ℕ) : ENat) := by
       refine hx_KPPlain.trans ?_
       norm_cast
@@ -743,12 +744,12 @@ theorem nonStochasticMass_bounds (U : Map) (hU : IsOptimalPrefixConditional U) :
       unfold nonStochasticMass nonStochasticAprioriMass
       refine ENNReal.tsum_le_tsum (fun x => ?_)
       by_cases hcond : x.length = n ∧ IsNonStochastic U x alpha beta
-      · rw [if_pos hcond]
+      · rw [ite_eq_left hcond]
         have hcond2 : x.length = n ∧ ¬ IsStochastic U x alpha (logSlack C_imp n) := by
           refine ⟨hcond.1, fun hst => hcond.2 (h_stoch_imp x hst)⟩
-        rw [if_pos hcond2]
+        rw [ite_eq_left hcond2]
         exact complexityWeight_KP_le_aprioriMeasure U x []
-      · rw [if_neg hcond]
+      · rw [ite_eq_right hcond]
         exact zero_le
     have h_apriori_bound := hC_imp n alpha
     have h2_inv_le : (2 : ℝ≥0∞)⁻¹ ^ (logSlack c n) ≤ (2 : ℝ≥0∞)⁻¹ ^ (logSlack C_imp n) :=

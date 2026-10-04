@@ -123,7 +123,7 @@ theorem codedPairUniformExtension_mass_pairCode
     by_cases he : e.point = a
     · simp only [he, true_and]
       rw [foldr_ite_eq_add_of_nodup _ _ _ _ (allStrings_nodup m)]
-      rw [if_pos ((mem_allStrings m u).mpr hu)]
+      rw [ite_eq_left ((mem_allStrings m u).mpr hu)]
       rw [RatMass.scaleInvPow2_value]
       simp
     · simp [he]

@@ -1,6 +1,6 @@
 import Mathlib.Data.Finset.Basic
 import Mathlib.Data.Finset.Max
-import Mathlib.Data.Rel
+import Mathlib.Basic.Rel
 import Mathlib.Data.Nat.Choose.Basic
 import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 import Mathlib.Combinatorics.SimpleGraph.Density

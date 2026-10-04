@@ -79,7 +79,7 @@ theorem grayChargedSpendRoundV2_cell_incomparable_of_snapshot
   obtain ⟨pass0, hslots0⟩ := hspendSlots
   -- the designated cell is a certified new-gray cell of the spend goal
   unfold grayChargedRoundLocalChargeV2 at hz
-  rw [dif_neg hcoarse] at hz
+  rw [dite_eq_right hcoarse] at hz
   have hSp := grayChargedRunStateV2_frozen_spend_goal q L a e sigma A sm t hp hcoarse
   have hvalid := grayChargedLocalChargeOfBlockSpendGoal_valid hSp.choose_spec.2.2.2
   have hcell := (familyGrayChargeAtB.cell hvalid hz).2

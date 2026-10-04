@@ -174,8 +174,8 @@ lemma reCnt_mono (f : ℕ → Option ℕ) (N : ℕ) {t t' : ℕ} (h : t ≤ t') 
     rw [reCnt_succ, reCnt_succ]
     have hbit : (if reBit f t N then 1 else 0) ≤ (if reBit f t' N then 1 else 0) := by
       by_cases hb : reBit f t N = true
-      · rw [if_pos hb, if_pos (reBit_mono f h hb)]
-      · rw [if_neg hb]; positivity
+      · rw [ite_eq_left hb, ite_eq_left (reBit_mono f h hb)]
+      · rw [ite_eq_right hb]; positivity
     omega
 
 /-- The count over the first `N` positions is computable in the length and the stage. -/
@@ -343,7 +343,7 @@ lemma reTest_tsum_inner_le (f : ℕ → Option ℕ) (N : ℕ) :
       = ∑ _t ∈ hfin.toFinset, (2 : ℝ≥0∞)⁻¹ ^ N := by
     refine Finset.sum_congr rfl fun t ht => ?_
     have hnew : reNew f N t = true := by simpa using ht
-    rw [reTest_term, if_pos hnew]
+    rw [reTest_term, ite_eq_left hnew]
   rw [hsum, Finset.sum_const, nsmul_eq_mul]
   gcongr
   have hcard := reNew_card_le f N
@@ -383,8 +383,8 @@ lemma reCnt_le_bitCnt (hx : ∀ n, x n = true ↔ ∃ i, f i = some n) (N t : �
     rw [reCnt_succ, bitCnt_succ]
     have hbit : (if reBit f t N then 1 else 0) ≤ (if x N then 1 else 0) := by
       by_cases hb : reBit f t N = true
-      · rw [if_pos hb, if_pos (reBit_imp_of_charSeq hx t N hb)]
-      · rw [if_neg hb]; positivity
+      · rw [ite_eq_left hb, ite_eq_left (reBit_imp_of_charSeq hx t N hb)]
+      · rw [ite_eq_right hb]; positivity
     omega
 
 /-- Once the counts agree, the approximation agrees with the characteristic sequence on the whole
@@ -398,8 +398,8 @@ lemma reBit_eq_of_reCnt_eq (hx : ∀ n, x n = true ↔ ∃ i, f i = some n) (N t
     have hle := reCnt_le_bitCnt (x := x) hx N t
     have hbit : (if reBit f t N then 1 else 0) ≤ (if x N then 1 else 0) := by
       by_cases hb : reBit f t N = true
-      · rw [if_pos hb, if_pos (reBit_imp_of_charSeq hx t N hb)]
-      · rw [if_neg hb]; positivity
+      · rw [ite_eq_left hb, ite_eq_left (reBit_imp_of_charSeq hx t N hb)]
+      · rw [ite_eq_right hb]; positivity
     have hN : reCnt f N t = bitCnt x N := by omega
     have hlast : reBit f t N = x N := by
       have hsame : (if reBit f t N then (1 : ℕ) else 0) = (if x N then 1 else 0) := by omega
@@ -486,7 +486,7 @@ lemma reTest_hits (hx : ∀ n, x n = true ↔ ∃ i, f i = some n) (N : ℕ) :
       have hne : reCnt f N s ≠ bitCnt x N := Nat.find_min hex (by omega)
       rw [hs, reNew_succ_true_iff, ← hs, hspec]
       exact fun h => hne h.symm
-  simp only [reTest, Nat.unpair_pair, hnew, cond_true, hseg]
+  simp only [reTest, Nat.unpair_pair, hnew, Bool.cond_true, hseg]
 
 /-- **SUV Theorem 36.** The characteristic sequence of a computably enumerable set of
 naturals is not Martin-Löf random with respect to the uniform measure. -/

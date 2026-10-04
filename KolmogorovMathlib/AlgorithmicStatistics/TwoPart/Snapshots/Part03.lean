@@ -53,7 +53,7 @@ theorem emittedHalfRichChunks_foldStep_nonfull_count (j : ℕ) (half_rich : List
       by_cases hx_prev : x ∈ prev.flatten
       · have hdec : decide (x ∈ prev.flatten) = true := decide_eq_true hx_prev
         simpa only [List.foldl_append, List.foldl_cons, List.foldl_nil,
-          emittedHalfRichChunksFoldStep, prev, hdec, cond_true] using ih'
+          emittedHalfRichChunksFoldStep, prev, hdec, Bool.cond_true] using ih'
       · have hdec : decide (x ∈ prev.flatten) = false := decide_eq_false hx_prev
         let unplaced := half_rich.filter (fun y =>
           bif decide (y ∈ prev.flatten) then false else true)
@@ -62,7 +62,7 @@ theorem emittedHalfRichChunks_foldStep_nonfull_count (j : ℕ) (half_rich : List
         let newChunk := base.take (2 ^ j)
         have hstep : emittedHalfRichChunksFoldStep j half_rich prev x =
             prev ++ [newChunk] := by
-          simp only [emittedHalfRichChunksFoldStep, hdec, cond_false, unplaced,
+          simp only [emittedHalfRichChunksFoldStep, hdec, Bool.cond_false, unplaced,
             base, newChunk]
         rw [List.foldl_append, List.foldl_cons, List.foldl_nil, hstep]
         by_cases hnew : newChunk.length < 2 ^ j
@@ -444,11 +444,11 @@ theorem nonfullChunkTrigger_rich_curr (c : Code) (i j k t m : ℕ)
             (snapshotRichElementsList c i j (k - 1) τ).eraseDups acc' x at hl
           by_cases hx : x ∈ acc'.flatten
           · have hdec : decide (x ∈ acc'.flatten) = true := decide_eq_true hx
-            simp only [emittedHalfRichChunksFoldStep, hdec, cond_true] at hl
+            simp only [emittedHalfRichChunksFoldStep, hdec, Bool.cond_true] at hl
             obtain ⟨y, hy, hne, hhead⟩ := ih hl hacc
             exact ⟨y, List.mem_append.mpr (Or.inl hy), hne, hhead⟩
           · have hdec : decide (x ∈ acc'.flatten) = false := decide_eq_false hx
-            simp only [emittedHalfRichChunksFoldStep, hdec, cond_false,
+            simp only [emittedHalfRichChunksFoldStep, hdec, Bool.cond_false,
               List.mem_append, List.mem_singleton] at hl
             rcases hl with hl | hl
             · obtain ⟨y, hy, hne, hhead⟩ := ih hl hacc
@@ -566,7 +566,7 @@ theorem nonfull_chunk_fresh_descriptions (c : Code) (i j k : ℕ) (t : ℕ) :
         _ ?_ (nonfullChunkTrigger_rich_curr c i j k t 0 (by omega))
       rw [snapshotRichElementsList_zero]
       simp
-    · rw [if_neg hm0]
+    · rw [ite_eq_right hm0]
       obtain ⟨m', rfl⟩ : ∃ m', m = m' + 1 := ⟨m - 1, by omega⟩
       simp only [Nat.add_sub_cancel]
       exact trigger_gains_fresh_finset c i j k (nonfullChunkEmissionTime c i j k t m')
@@ -588,7 +588,7 @@ theorem nonfull_chunk_fresh_descriptions (c : Code) (i j k : ℕ) (t : ℕ) :
     rw [Finset.mem_filter]
     refine ⟨?_, hsq_mem.2⟩
     have hq0 : q ≠ 0 := by omega
-    rw [if_neg hq0]
+    rw [ite_eq_right hq0]
     refine snapshotDescriptionsAndSizeLe_subset_of_le c i j ?_ hsp_mem
     exact nonfullChunkEmissionTime_mono c i j k t (by omega) (by omega)
   -- The charged finsets are pairwise disjoint.

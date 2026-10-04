@@ -200,7 +200,7 @@ lemma iUnion_devEnumP (approx : ℚ → ℚ) (k T : ℕ) :
     · refine ⟨j.unpair.1, ?_⟩
       rw [devEnumP] at hj
       rw [hdev] at hj
-      simp only [cond_true, Option.elim_some] at hj
+      simp only [Bool.cond_true, Option.elim_some] at hj
       have hpref : cantorPrefix w n = natToBits n j.unpair.2 := by
         have hlen : (natToBits n j.unpair.2).length = n := natToBits_length _ _
         have h := (isCantorPrefix_iff_cantorPrefix_eq (natToBits n j.unpair.2) w).1 hj
@@ -224,7 +224,7 @@ lemma iUnion_devEnumP (approx : ℚ → ℚ) (k T : ℕ) :
       rw [bitsAux_count, hi]
       exact hj
     rw [devEnumP, Nat.unpair_pair]
-    simp only [← hn, hdev, cond_true, Option.elim_some]
+    simp only [← hn, hdev, Bool.cond_true, Option.elim_some]
     have hbits : (bitsAux n i).2.1 = cantorPrefix w n := hi
     rw [hbits]
     exact mem_cantorCylinder_cantorPrefix w n

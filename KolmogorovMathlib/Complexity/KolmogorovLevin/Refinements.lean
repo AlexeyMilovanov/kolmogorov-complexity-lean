@@ -20,7 +20,7 @@ import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.SlackArith
 import Mathlib.Analysis.SpecialFunctions.Log.Base
 import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 import Mathlib.Algebra.BigOperators.Field
-import Mathlib.Data.ENNReal.Inv
+import Mathlib.Basic.ENNReal.Inv
 import KolmogorovMathlib.AlgorithmicStatistics.Selector
 import KolmogorovMathlib.CommonInformation.Counting
 import KolmogorovMathlib.Complexity.ConditionalComplexity.Continuity
@@ -554,7 +554,7 @@ lemma dichotomySnapshotY_mem (c : Code) (z : BitString) (B : ℕ) (x y : BitStri
   unfold dichotomySnapshotY
   rw [mem_eraseDups_bitString, List.mem_filterMap]
   refine ⟨pairCode x y, h, ?_⟩
-  rw [decodeFirst_pairCode, decodeSecond_pairCode, if_pos rfl]
+  rw [decodeFirst_pairCode, decodeSecond_pairCode, ite_eq_left rfl]
 
 /-- A string `x` with at least `2 ^ l` partners at stage `t` enters the first enumeration. -/
 lemma dichotomyEnum1_mem (c : Code) (z : BitString) (k l : ℕ) (x y : BitString) (t : ℕ)

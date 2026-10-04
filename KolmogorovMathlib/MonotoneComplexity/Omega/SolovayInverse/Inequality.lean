@@ -397,12 +397,11 @@ lemma solovayCond_lt_length (cU : Code) (c₆₄ : ℕ) (w : BitString) (m_val :
     bitsToNat (w.drop m_val.unpair.1) < (solovayCodes cU c₆₄ (w, m_val)).length := by
   unfold solovayCond at h_cond
   rw [h_out] at h_cond
-  dsimp at h_cond
   cases h_eq : decide (Nat.bits (solovayKN cU (w, m_val)) = solovayOutStr cU (w, m_val)) with
   | false => rw [h_eq] at h_cond; contradiction
   | true =>
     rw [h_eq] at h_cond
-    dsimp at h_cond
+    simp only [Bool.cond_true] at h_cond
     exact of_decide_eq_true h_cond
 
 /-- At a stage where the halting count is maximal, the check succeeds on the program consisting

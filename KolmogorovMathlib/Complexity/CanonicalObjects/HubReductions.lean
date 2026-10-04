@@ -76,7 +76,7 @@ noncomputable def canonicalObject (U : Map) (c : Code) (i n : ℕ) : BitString :
 theorem haltsWithin_haltTime (c : Code) {p : BitString}
     (h : ∃ t, haltsWithin c t p = true) : haltsWithin c (haltTimeNat c p) p = true := by
   unfold haltTimeNat
-  rw [dif_pos h]
+  rw [dite_eq_left h]
   exact Nat.find_spec h
 
 /-- If `p` halts under `c` within `t` steps, then `haltTimeNat c p ≤ t`: the halting time is a
@@ -85,7 +85,7 @@ theorem haltTime_le_of_haltsWithin (c : Code) {p : BitString} {t : ℕ}
     (h : haltsWithin c t p = true) : haltTimeNat c p ≤ t := by
   have hex : ∃ s, haltsWithin c s p = true := ⟨t, h⟩
   unfold haltTimeNat
-  rw [dif_pos hex]
+  rw [dite_eq_left hex]
   exact Nat.find_min' hex h
 
 /-- Past the maximal halting stage of a level, the stage-wise output equals the completed

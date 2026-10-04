@@ -88,7 +88,7 @@ theorem multinomial_eq_sum_update_pred {α : Type*} [DecidableEq α] (s : Finset
         refine Finset.sum_congr rfl fun i hi => ?_
         by_cases h0 : f i = 0
         · simp [h0]
-        · rw [if_neg h0, sum_mul_multinomial_update_pred s f hi (Nat.pos_of_ne_zero h0)]
+        · rw [ite_eq_right h0, sum_mul_multinomial_update_pred s f hi (Nat.pos_of_ne_zero h0)]
 
 /-- The four-letter multinomial coefficient as a product of binomial
 coefficients. -/
@@ -194,7 +194,7 @@ theorem mem_histWords {m : ℕ} : ∀ (n : ℕ) (f : Fin m → ℕ), (∑ i, f i
     · rintro ⟨i, hi⟩
       by_cases h0 : f i = 0
       · simp [h0] at hi
-      · rw [if_neg h0, List.mem_map] at hi
+      · rw [ite_eq_right h0, List.mem_map] at hi
         obtain ⟨w', hw', rfl⟩ := hi
         have hpos : 0 < f i := Nat.pos_of_ne_zero h0
         have hsum : (∑ j, Function.update f i (f i - 1) j) = n := by
@@ -205,9 +205,9 @@ theorem mem_histWords {m : ℕ} : ∀ (n : ℕ) (f : Fin m → ℕ), (∑ i, f i
         rw [count_cons_fin, hc j]
         by_cases hji : j = i
         · subst hji
-          rw [Function.update_self, if_pos rfl]
+          rw [Function.update_self, ite_eq_left rfl]
           omega
-        · rw [Function.update_of_ne hji, if_neg (Ne.symm hji)]
+        · rw [Function.update_of_ne hji, ite_eq_right (Ne.symm hji)]
           omega
     · intro hcount
       have hlen : w.length = n + 1 := by
@@ -220,11 +220,11 @@ theorem mem_histWords {m : ℕ} : ∀ (n : ℕ) (f : Fin m → ℕ), (∑ i, f i
         | cons a w' => exact ⟨a, w', rfl⟩
       have h0 : f i ≠ 0 := by
         have hci := hcount i
-        rw [count_cons_fin, if_pos rfl] at hci
+        rw [count_cons_fin, ite_eq_left rfl] at hci
         omega
       have hpos : 0 < f i := Nat.pos_of_ne_zero h0
       refine ⟨i, ?_⟩
-      rw [if_neg h0, List.mem_map]
+      rw [ite_eq_right h0, List.mem_map]
       refine ⟨w', ?_, rfl⟩
       have hsum : (∑ j, Function.update f i (f i - 1) j) = n := by
         rw [sum_update_pred f i hpos, hf]
@@ -235,9 +235,9 @@ theorem mem_histWords {m : ℕ} : ∀ (n : ℕ) (f : Fin m → ℕ), (∑ i, f i
       rw [count_cons_fin] at hj
       by_cases hji : j = i
       · subst hji
-        rw [Function.update_self, if_pos rfl] at *
+        rw [Function.update_self, ite_eq_left rfl] at *
         omega
-      · rw [Function.update_of_ne hji, if_neg (Ne.symm hji)] at *
+      · rw [Function.update_of_ne hji, ite_eq_right (Ne.symm hji)] at *
         omega
 
 /-- The list of words of a given histogram has no repetitions. -/
@@ -252,7 +252,7 @@ theorem histWords_nodup {m : ℕ} : ∀ (n : ℕ) (f : Fin m → ℕ), (histWord
     · intro i _
       by_cases h0 : f i = 0
       · simp [h0]
-      · rw [if_neg h0]
+      · rw [ite_eq_right h0]
         exact (ih _).map (fun a b h => by cases h; rfl)
     · refine (List.nodup_finRange m).imp ?_
       intro i j hij w hw hw'
@@ -261,8 +261,8 @@ theorem histWords_nodup {m : ℕ} : ∀ (n : ℕ) (f : Fin m → ℕ), (histWord
       · simp [h0] at hw
       by_cases h1 : f j = 0
       · simp [h1] at hw'
-      rw [if_neg h0, List.mem_map] at hw
-      rw [if_neg h1, List.mem_map] at hw'
+      rw [ite_eq_right h0, List.mem_map] at hw
+      rw [ite_eq_right h1, List.mem_map] at hw'
       obtain ⟨a, -, rfl⟩ := hw
       obtain ⟨b, -, hb⟩ := hw'
       have : j = i := by injection hb
@@ -296,7 +296,7 @@ theorem length_histWords {m : ℕ} : ∀ (n : ℕ) (f : Fin m → ℕ), (∑ i, 
     by_cases h0 : f i = 0
     · simp [h0]
     · have hpos : 0 < f i := Nat.pos_of_ne_zero h0
-      rw [if_neg h0, if_neg h0]
+      rw [ite_eq_right h0, ite_eq_right h0]
       exact ih _ (by rw [sum_update_pred f i hpos, hf]; omega)
 
 /-! ### The fixed-histogram family -/

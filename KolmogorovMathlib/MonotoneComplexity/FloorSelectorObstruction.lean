@@ -311,10 +311,10 @@ lemma leadOnes_append_of_all_ones {x : BitString} (h : leadOnes x = x.length) (b
   | cons c t ih =>
     cases c
     · simp [leadOnes] at h
-    · simp only [leadOnes, List.length_cons, if_true] at h ⊢
+    · simp only [leadOnes, List.length_cons, ite_true] at h ⊢
       have h' : leadOnes t = t.length := by omega
       rw [List.cons_append]
-      simp only [leadOnes, if_true, ih h']
+      simp only [leadOnes, ite_true, ih h']
       cases b <;> simp
 
 /-- Appending a bit past the first zero does not change the run of leading ones. -/
@@ -325,9 +325,9 @@ lemma leadOnes_append_of_not_all_ones {x : BitString} (h : leadOnes x < x.length
   | cons c t ih =>
     cases c
     · simp [leadOnes]
-    · simp only [leadOnes, List.length_cons, if_true] at h ⊢
+    · simp only [leadOnes, List.length_cons, ite_true] at h ⊢
       rw [List.cons_append]
-      simp only [leadOnes, if_true, ih (by omega : leadOnes t < t.length)]
+      simp only [leadOnes, ite_true, ih (by omega : leadOnes t < t.length)]
 
 /-- Appending a bit does not change the earlier entries. -/
 lemma getD_append_of_lt {x : BitString} {i : ℕ} (h : i < x.length) (b d : Bool) :
@@ -437,7 +437,7 @@ lemma computable_hardStage : Computable (fun p : ℕ × BitString => hardStage p
 /-- Away from the test nodes the tree carries the uniform mass `2 ^ (s - |x|)`. -/
 lemma hardStage_plain {x : BitString} (h : x.length ≤ leadOnes x + 1) (s : ℕ) :
     hardStage s x = if x.length ≤ s then 2 ^ (s - x.length) else 0 := by
-  simp only [hardStage, h, if_true]
+  simp only [hardStage, h, ite_true]
 
 /-- Below a test node the tree carries the heavier or the lighter child numerator, according to
 the bit following the run of ones. -/
@@ -448,7 +448,7 @@ lemma hardStage_hard {x : BitString} (h : leadOnes x + 1 < x.length) (s : ℕ) :
         hardPlusNum (leadOnes x) (s - x.length - 3)
       else hardMinusNum (leadOnes x) (s - x.length - 3) := by
   have h' : ¬ (x.length ≤ leadOnes x + 1) := by omega
-  simp only [hardStage, h', if_false]
+  simp only [hardStage, h', ite_false]
 
 /-- The stage numerators at least double from one stage to the next, so the dyadic masses
 increase. -/
@@ -459,20 +459,20 @@ lemma hardStage_mono (s : ℕ) (x : BitString) :
     by_cases hs : x.length ≤ s
     · have hs' : x.length ≤ s + 1 := by omega
       have hk : s + 1 - x.length = (s - x.length) + 1 := by omega
-      simp only [hs, hs', if_true, hk, pow_succ]
+      simp only [hs, hs', ite_true, hk, pow_succ]
       omega
-    · simp only [hs, if_false, Nat.mul_zero]
+    · simp only [hs, ite_false, Nat.mul_zero]
       exact Nat.zero_le _
   · have hlt : leadOnes x + 1 < x.length := by omega
     rw [hardStage_hard hlt, hardStage_hard hlt]
     by_cases h3 : s < x.length + 3
-    · simp only [h3, if_true, Nat.mul_zero]
+    · simp only [h3, ite_true, Nat.mul_zero]
       exact Nat.zero_le _
     · have h3' : ¬ (s + 1 < x.length + 3) := by omega
       have hk : s + 1 - x.length - 3 = (s - x.length - 3) + 1 := by omega
-      simp only [h3, h3', if_false, hk]
+      simp only [h3, h3', ite_false, hk]
       by_cases hg : x.getD (leadOnes x + 1) true = false
-      · simp only [hg, if_true]
+      · simp only [hg, ite_true]
         exact two_mul_hardPlusNum_le _ _
       · simp only [hg]
         exact two_mul_hardMinusNum_le _ _
@@ -498,13 +498,13 @@ lemma hardStage_coh (s : ℕ) (x : BitString) :
       hardStage_plain (by omega : x.length ≤ leadOnes x + 1), hlenf, hlent]
     by_cases hs : x.length + 1 ≤ s
     · obtain ⟨k, rfl⟩ : ∃ k, s = x.length + 1 + k := ⟨s - x.length - 1, by omega⟩
-      rw [if_pos (by omega : x.length + 1 ≤ x.length + 1 + k),
-        if_pos (by omega : x.length ≤ x.length + 1 + k)]
+      rw [ite_eq_left (by omega : x.length + 1 ≤ x.length + 1 + k),
+        ite_eq_left (by omega : x.length ≤ x.length + 1 + k)]
       have e1 : x.length + 1 + k - (x.length + 1) = k := by omega
       have e2 : x.length + 1 + k - x.length = k + 1 := by omega
       rw [e1, e2, pow_succ]
       omega
-    · rw [if_neg hs]
+    · rw [ite_eq_right hs]
       exact Nat.zero_le _
   · -- appending does not change the leading block of ones
     have hf : leadOnes (x ++ [false]) = leadOnes x := leadOnes_append_of_not_all_ones hlt false
@@ -519,16 +519,16 @@ lemma hardStage_coh (s : ℕ) (x : BitString) :
         hardStage_hard (by omega : leadOnes (x ++ [true]) + 1 < (x ++ [true]).length),
         hardStage_hard hhard, hf, ht, hgf, hgt, hlenf, hlent]
       by_cases h4 : s < x.length + 1 + 3
-      · rw [if_pos h4]
+      · rw [ite_eq_left h4]
         exact Nat.zero_le _
-      · rw [if_neg h4, if_neg (by omega : ¬ s < x.length + 3)]
+      · rw [ite_eq_right h4, ite_eq_right (by omega : ¬ s < x.length + 3)]
         have hk : s - x.length - 3 = (s - (x.length + 1) - 3) + 1 := by omega
         rw [hk]
         by_cases hg : x.getD (leadOnes x + 1) true = false
-        · rw [if_pos hg, if_pos hg]
+        · rw [ite_eq_left hg, ite_eq_left hg]
           have := two_mul_hardPlusNum_le (leadOnes x) (s - (x.length + 1) - 3)
           omega
-        · rw [if_neg hg, if_neg hg]
+        · rw [ite_eq_right hg, ite_eq_right hg]
           have := two_mul_hardMinusNum_le (leadOnes x) (s - (x.length + 1) - 3)
           omega
     · -- `x = 1^e 0`: the two children carry the two perturbed weights
@@ -541,10 +541,10 @@ lemma hardStage_coh (s : ℕ) (x : BitString) :
         hardStage_hard (by omega : leadOnes (x ++ [true]) + 1 < (x ++ [true]).length),
         hardStage_plain (by omega), hf, ht, hgf, hgt, hlenf, hlent]
       by_cases h4 : s < x.length + 1 + 3
-      · rw [if_pos h4, if_pos h4]
+      · rw [ite_eq_left h4, ite_eq_left h4]
         exact Nat.zero_le _
-      · rw [if_neg h4, if_neg h4, if_pos (by omega : x.length ≤ s),
-          if_pos (rfl : false = false), if_neg (by simp : ¬ (true = false))]
+      · rw [ite_eq_right h4, ite_eq_right h4, ite_eq_left (by omega : x.length ≤ s),
+          ite_eq_left (rfl : false = false), ite_eq_right (by simp : ¬ (true = false))]
         have hsum := hardNum_add (leadOnes x) (s - (x.length + 1) - 3)
         have hk : s - (x.length + 1) - 3 + 4 = s - x.length := by omega
         rw [hk] at hsum
@@ -567,8 +567,8 @@ lemma hardStage_coh_close (s : ℕ) (x : BitString) (hs : x.length + 4 ≤ s) :
       hardStage_plain (x := x ++ [false]) (by omega),
       hardStage_plain (x := x ++ [true]) (by omega), hlenf, hlent]
     obtain ⟨k, rfl⟩ : ∃ k, s = x.length + 1 + k := ⟨s - x.length - 1, by omega⟩
-    rw [if_pos (by omega : x.length + 1 ≤ x.length + 1 + k),
-      if_pos (by omega : x.length ≤ x.length + 1 + k)]
+    rw [ite_eq_left (by omega : x.length + 1 ≤ x.length + 1 + k),
+      ite_eq_left (by omega : x.length ≤ x.length + 1 + k)]
     have e1 : x.length + 1 + k - (x.length + 1) = k := by omega
     have e2 : x.length + 1 + k - x.length = k + 1 := by omega
     rw [e1, e2, pow_succ]
@@ -583,15 +583,15 @@ lemma hardStage_coh_close (s : ℕ) (x : BitString) (hs : x.length + 4 ≤ s) :
       rw [hardStage_hard (by omega : leadOnes (x ++ [false]) + 1 < (x ++ [false]).length),
         hardStage_hard (by omega : leadOnes (x ++ [true]) + 1 < (x ++ [true]).length),
         hardStage_hard hhard, hf, ht, hgf, hgt, hlenf, hlent]
-      simp only [if_neg (by omega : ¬ s < x.length + 1 + 3),
-        if_neg (by omega : ¬ s < x.length + 3)]
+      simp only [ite_eq_right (by omega : ¬ s < x.length + 1 + 3),
+        ite_eq_right (by omega : ¬ s < x.length + 3)]
       have hk : s - x.length - 3 = (s - (x.length + 1) - 3) + 1 := by omega
       rw [hk]
       by_cases hg : x.getD (leadOnes x + 1) true = false
-      · simp only [if_pos hg]
+      · simp only [ite_eq_left hg]
         have := hardPlusNum_succ_le (leadOnes x) (s - (x.length + 1) - 3)
         omega
-      · simp only [if_neg hg]
+      · simp only [ite_eq_right hg]
         have := hardMinusNum_succ_le (leadOnes x) (s - (x.length + 1) - 3)
         omega
     · have hlen : x.length = leadOnes x + 1 := by omega
@@ -602,9 +602,9 @@ lemma hardStage_coh_close (s : ℕ) (x : BitString) (hs : x.length + 4 ≤ s) :
       rw [hardStage_hard (by omega : leadOnes (x ++ [false]) + 1 < (x ++ [false]).length),
         hardStage_hard (by omega : leadOnes (x ++ [true]) + 1 < (x ++ [true]).length),
         hardStage_plain (x := x) (by omega), hf, ht, hgf, hgt, hlenf, hlent]
-      simp only [if_neg (by omega : ¬ s < x.length + 1 + 3),
-        if_pos (by omega : x.length ≤ s),
-        if_neg (by simp : ¬ (true = false)), if_true]
+      simp only [ite_eq_right (by omega : ¬ s < x.length + 1 + 3),
+        ite_eq_left (by omega : x.length ≤ s),
+        ite_eq_right (by simp : ¬ (true = false)), ite_true]
       have hsum := hardNum_add (leadOnes x) (s - (x.length + 1) - 3)
       have hk : s - (x.length + 1) - 3 + 4 = s - x.length := by omega
       rw [hk] at hsum
@@ -747,7 +747,7 @@ lemma hardStage_hardNode (s e : ℕ) :
   have h5 : e + 2 + 3 = e + 5 := by omega
   have hk : s - (e + 2) - 3 = s - e - 5 := by omega
   rw [h5, hk]
-  simp only [if_true]
+  simp only [ite_true]
 
 /-- If the diagonal value is zero, the mass of the test node exceeds `2 ^ -(e + 2)`. -/
 theorem hardTree_hardNode_gt {e : ℕ} (h : DiagZero e) :
@@ -764,7 +764,7 @@ theorem hardTree_hardNode_gt {e : ℕ} (h : DiagZero e) :
     simp only [hardPlusNum, hO]
     omega
   have hstage : hardStage (t0 + 2 + e + 5) (hardNode e) = hardPlusNum e (t0 + 2) := by
-    rw [hardStage_hardNode, if_neg (by omega)]
+    rw [hardStage_hardNode, ite_eq_right (by omega)]
     congr 1
     omega
   have hscale : dyadicValue 1 (e + 2) = dyadicValue (2 ^ (t0 + 2 + 3)) (t0 + 2 + e + 5) := by
@@ -825,9 +825,9 @@ theorem hardTree_hardNode_lt {e : ℕ} (h : DiagOne e) :
     intro s
     rw [hardStage_hardNode]
     by_cases hs : s < e + 5
-    · rw [if_pos hs]
+    · rw [ite_eq_left hs]
       simp [dyadicValue]
-    · rw [if_neg hs]
+    · rw [ite_eq_right hs]
       obtain ⟨k, rfl⟩ : ∃ k, s = k + e + 5 := ⟨s - e - 5, by omega⟩
       have hk : k + e + 5 - e - 5 = k := by omega
       rw [hk]

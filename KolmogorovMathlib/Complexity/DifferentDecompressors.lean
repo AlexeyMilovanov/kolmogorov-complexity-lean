@@ -298,12 +298,10 @@ private lemma exists_partrec_busyBeaver_to_haltingList (U V : Map) (hU : isOptim
   refine ⟨k_br, A_br, hA_br_part, fun n => ?_⟩
   dsimp [A_br, f_br]
   by_cases hn : n < k_br
-  · rw [decide_eq_true hn]
-    dsimp
+  · rw [decide_eq_true hn, Bool.cond_true]
     have h0 : n - k_br = 0 := by omega
     rw [h0]
-  · rw [decide_eq_false hn]
-    dsimp
+  · rw [decide_eq_false hn, Bool.cond_false]
     push Not at hn
     set m := n - k_br
     have hn_K0 : n ≥ K0 := by dsimp [m, k_br] at *; omega

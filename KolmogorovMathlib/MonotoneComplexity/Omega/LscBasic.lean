@@ -171,9 +171,9 @@ theorem mem_ratSearchPair {a b : ℕ → ℚ} {r q : ℚ} (h : q ∈ ratSearchPa
   rw [ratSearchPair] at h
   obtain ⟨n, hn⟩ := Nat.rfindOpt_spec h
   by_cases hb : r < b n
-  · rw [if_pos hb] at hn
+  · rw [ite_eq_left hb] at hn
     exact ⟨n, hb, Eq.symm (by simpa using hn)⟩
-  · rw [if_neg hb] at hn
+  · rw [ite_eq_right hb] at hn
     exact absurd hn (by simp)
 
 /-- The reduction function converges at `r` as soon as some `b n` exceeds `r`. -/
@@ -208,10 +208,10 @@ theorem mem_ratSearchIndex {b : ℕ → ℚ} {r : ℚ} {n : ℕ} (h : n ∈ ratS
   rw [ratSearchIndex] at h
   obtain ⟨k, hk⟩ := Nat.rfindOpt_spec h
   by_cases hb : r < b k
-  · rw [if_pos hb] at hk
+  · rw [ite_eq_left hb] at hk
     have hnk : n = k := Eq.symm (by simpa using hk)
     rwa [hnk]
-  · rw [if_neg hb] at hk
+  · rw [ite_eq_right hb] at hk
     exact absurd hk (by simp)
 
 /-- The index search converges at `r` as soon as some `b n` exceeds `r`. -/

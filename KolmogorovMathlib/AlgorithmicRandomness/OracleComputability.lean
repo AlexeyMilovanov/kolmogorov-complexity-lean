@@ -457,7 +457,7 @@ protected theorem cond {c : α → Bool} {f g : α →. σ} (hc : ComputableIn O
           fun x => decide (x = 0)) : ℕ →. Bool)
         = fun k => (g a).map fun s => decide (encode s = k) := by
       refine funext fun k => ?_
-      simp only [ht_def, hu_def, hca, cond_false, Bool.not_false, cond_true,
+      simp only [ht_def, hu_def, hca, Bool.cond_false, Bool.not_false, Bool.cond_true,
         Part.bind_some, Part.map_map]
       refine Part.ext fun b => ?_
       simp only [Part.mem_map_iff, Function.comp_apply]
@@ -470,7 +470,7 @@ protected theorem cond {c : α → Bool} {f g : α →. σ} (hc : ComputableIn O
           fun x => decide (x = 0)) : ℕ →. Bool)
         = fun k => (f a).map fun s => decide (encode s = k) := by
       refine funext fun k => ?_
-      simp only [ht_def, hu_def, hca, cond_true, Bool.not_true, cond_false,
+      simp only [ht_def, hu_def, hca, Bool.cond_true, Bool.not_true, Bool.cond_false,
         Part.map_some, Part.bind_some_eq_map, Part.map_map]
       refine Part.ext fun b => ?_
       simp only [Part.mem_map_iff, Function.comp_apply]

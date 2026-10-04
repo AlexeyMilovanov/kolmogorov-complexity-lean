@@ -88,7 +88,7 @@ private lemma step_preserves_window_invariant (G : Finset α) (W : ℕ)
         exact Finset.not_nonempty_empty hsurv
     have hPunion : (P ∪ st.2.1) ⊆ st.1 ∪ (d ∩ G) :=
       Finset.union_subset (hP₁.trans Finset.subset_union_left) h
-    simp only [step, if_pos h]
+    simp only [step, ite_eq_left h]
     refine ⟨P ∪ st.2.1, hPunion, ?_, ?_, hsubG, (hsub _).trans Finset.sdiff_subset, ?_, ?_⟩
     · exact Finset.disjoint_of_subset_left (hsub _)
         (Finset.disjoint_of_subset_right hPunion Finset.sdiff_disjoint)
@@ -124,14 +124,14 @@ private lemma step_preserves_window_invariant (G : Finset α) (W : ℕ)
         have hnew : W ≤ (st.2.1 ∩ st.1).card + (d ∩ G).card := by
           rw [← hw]
           exact h_inter
-        have hp_false : p d = false := eq_false_of_ne_true hp
+        have hp_false : p d = false := Bool.eq_false_of_ne_true hp
         have h_rhs : c + (if p d then W else 0) +
             (if !p d then (d ∩ G).card else 0) = c + (d ∩ G).card := by
           simp [hp_false]
         rw [h_rhs]
         omega
   · -- no refresh
-    simp only [step, if_neg h]
+    simp only [step, ite_eq_right h]
     refine ⟨P, hP₁.trans Finset.subset_union_left, hP₂, hP₃, hsubG, hP₅, ?_, ?_⟩
     · rcases hP₆ with hw | ⟨D, hD₁, hD₂, hw'⟩
       · exact Or.inl hw
@@ -155,7 +155,7 @@ private lemma step_preserves_window_invariant (G : Finset α) (W : ℕ)
         have hnew :
             (st.2.1 ∩ (st.1 ∪ d ∩ G)).card ≤ (st.2.1 ∩ st.1).card + (d ∩ G).card :=
           card_inter_union_le_add_bound _ _ _ hdel
-        have hp_false : p d = false := eq_false_of_ne_true hp
+        have hp_false : p d = false := Bool.eq_false_of_ne_true hp
         have h_rhs : c + (if p d then W else 0) +
             (if !p d then (d ∩ G).card else 0) = c + (d ∩ G).card := by
           simp [hp_false]
@@ -380,7 +380,7 @@ theorem fold_window_sdiff_deleted_nonempty (G : Finset α) (first : Finset α �
       have h_ne' : ((step G first st d).2.1 \ (step G first st d).1).Nonempty := by
         unfold step
         by_cases h : st.2.1 ⊆ st.1 ∪ (d ∩ G)
-        · simp only [h, if_true]
+        · simp only [h, ite_true]
           have h_G_sdiff_ne : (G \ (st.1 ∪ (d ∩ G))).Nonempty :=
             hSurv.mono (Finset.subset_sdiff.mpr ⟨hSurvG, h_surv_del'⟩)
           have h_first_ne := hfirst_ne _ h_G_sdiff_ne
@@ -391,7 +391,7 @@ theorem fold_window_sdiff_deleted_nonempty (G : Finset α) (first : Finset α �
               Finset.sdiff_eq_self_iff_disjoint.mpr h_disj_first
           rw [heq]
           exact h_first_ne
-        · simp only [h, if_false]
+        · simp only [h, ite_false]
           exact Finset.sdiff_nonempty.mpr h
       exact ih (step G first st d) (he ▸ h_ne') (he ▸ h_surv_del') hdisj_M'
   have h_init_ne : ((first G) \ ∅).Nonempty := by
@@ -501,7 +501,7 @@ theorem fold_final_not_subset {α : Type} [DecidableEq α] (G : Finset α) (key 
                                                                 st.2.2 + 1) := by
         unfold step
         dsimp only
-        rw [if_pos h_ref]
+        rw [ite_eq_left h_ref]
       have h_nonempty : (G \ (st.1 ∪ d ∩ G)).Nonempty := by
         rw [← h_surv_eq] at h_surv_sub
         obtain ⟨y, hy⟩ := h_surv

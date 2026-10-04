@@ -8,7 +8,7 @@ import KolmogorovMathlib.Complexity.Properties
 import Mathlib.Analysis.SpecialFunctions.Log.Base
 import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 import Mathlib.Algebra.BigOperators.Field
-import Mathlib.Data.ENNReal.Inv
+import Mathlib.Basic.ENNReal.Inv
 import KolmogorovMathlib.AlgorithmicStatistics.Selector
 import KolmogorovMathlib.Complexity.InfiniteSequences.MonotoneGap
 
@@ -97,7 +97,7 @@ private lemma seqM_onesZerosSeq_le (U : Map) (c0 : Code) (K C_Dones C_Dcond : �
   intro n
   rw [seqPrefix_onesZeros]
   by_cases hnB : n ≤ bk_m
-  · rw [if_pos hnB]
+  · rw [ite_eq_left hnB]
     have h1 := hD_ones (List.replicate n true) (Nat.bits n)
     have hDones_produces : List.replicate n true ∈ D_ones (Nat.bits n, Nat.bits n) := by
       unfold D_ones
@@ -115,7 +115,7 @@ private lemma seqM_onesZerosSeq_le (U : Map) (c0 : Code) (K C_Dones C_Dcond : �
         ≤ (C_Dones : ℕ∞) := h2
       _ ≤ ((c * Nat.log 2 m + c : ℕ) : ℕ∞) := by
         exact_mod_cast (show C_Dones ≤ c * Nat.log 2 m + c by dsimp [c]; omega)
-  · rw [if_neg hnB]
+  · rw [ite_eq_right hnB]
     simp only [not_le] at hnB
     have hDcond_produces := onesZerosSeq_prefix_mem_D_cond c0 K m n hnB
     have hDcond_val : condK (D_cond c0 K)
@@ -169,7 +169,7 @@ private lemma fExtract_mem_of_eval_onesZerosSeq (U : Map) (c0 : Code) (m K : ℕ
     · intro n hn
       have hn_prefix := he_eval n
       have hn_seq := seqPrefix_onesZeros bk_m n
-      rw [hn_seq, if_pos (by omega)] at hn_prefix
+      rw [hn_seq, ite_eq_left (by omega)] at hn_prefix
       refine Part.mem_bind_iff.mpr ⟨Encodable.encode (List.replicate n true), hn_prefix, ?_⟩
       rw [Part.mem_ofOption]
       rw [Encodable.encodek]

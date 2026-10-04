@@ -207,7 +207,7 @@ theorem grayChargedOwnerFibreV2_mass_lt
       grayChargedLocalChargeOfBlockGoal
         (grayChargedRunStateV2_frozen_adv_goal q L a e sigma A sm t hp
           hae hadv) := by
-    rw [grayChargedRoundLocalChargeV2, dif_pos hadv]
+    rw [grayChargedRoundLocalChargeV2, dite_eq_left hadv]
   rw [grayChargedOwnerFibreV2, grayChargeMass_flatMap]
   have hstep : ((List.finRange p.slots.length).map fun j =>
       grayChargeMass (e + grayTailNewLoss q L)
@@ -222,10 +222,10 @@ theorem grayChargedOwnerFibreV2_mass_lt
     apply List.sum_le_sum
     intro j _
     by_cases hm : (p.slots.get j).1 = z.1 ∧ (p.slots.get j).2.1 = z.2
-    · rw [if_pos hm, if_pos hm, hcharge,
+    · rw [ite_eq_left hm, ite_eq_left hm, hcharge,
         grayChargedTransportRoot_mass_of_charge hdeltaLe hvalid]
       exact (familyGrayChargeAtB.root hvalid j.isLt).2.2
-    · rw [if_neg hm, if_neg hm]
+    · rw [ite_eq_right hm, ite_eq_right hm]
       simp [grayChargeMass, grayMassOfCount]
   refine lt_of_le_of_lt hstep ?_
   have hbridge : ((List.finRange p.slots.length).map fun j =>
@@ -241,11 +241,11 @@ theorem grayChargedOwnerFibreV2_mass_lt
     intro j _
     simp only [Function.comp]
     by_cases hm : (p.slots.get j).1 = z.1 ∧ (p.slots.get j).2.1 = z.2
-    · rw [if_pos hm]
-      rw [if_pos hm]
+    · rw [ite_eq_left hm]
+      rw [ite_eq_left hm]
       rfl
-    · rw [if_neg hm]
-      rw [if_neg hm, mul_zero]
+    · rw [ite_eq_right hm]
+      rw [ite_eq_right hm, mul_zero]
   rw [hbridge]
   have hcallStrict := grayCallDepth_scale_strict q e
   have hkpos : (0 : Rat) < halfAmplification q := halfAmplification_pos q

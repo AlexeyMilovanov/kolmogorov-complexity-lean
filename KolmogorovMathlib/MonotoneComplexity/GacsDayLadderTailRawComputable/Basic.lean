@@ -5,7 +5,11 @@ import KolmogorovMathlib.MonotoneComplexity.GacsDayRobustGrayComputable
 import KolmogorovMathlib.MonotoneComplexity.GacsDayStageTwoComputable
 import KolmogorovMathlib.MonotoneComplexity.GacsDayTailReserveComputable
 
+/-!
+# Gacs-Day ladder tail: raw computability
 
+Computability of the anchored reserve search used by the gray-tail ladder.
+-/
 
 namespace Kolmogorov
 

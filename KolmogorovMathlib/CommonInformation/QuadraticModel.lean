@@ -65,13 +65,13 @@ private lemma foldr_ite_eq_true_iff (f : Nat → Nat) (l : List Nat) :
   | cons a l ih =>
       rw [List.foldr_cons]
       by_cases hfa : f a = 0
-      · rw [if_pos hfa]
+      · rw [ite_eq_left hfa]
         constructor
         · intro hcontra
           exact absurd hcontra (by simp)
         · intro h
           exact absurd (h a (List.mem_cons_self ..)) (by simp [hfa])
-      · rw [if_neg hfa, ih]
+      · rw [ite_eq_right hfa, ih]
         constructor
         · intro h t ht
           rcases List.mem_cons.mp ht with rfl | ht'

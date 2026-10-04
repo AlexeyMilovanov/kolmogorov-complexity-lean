@@ -244,12 +244,12 @@ theorem greedy_fold_correspondence (G : Finset BitString) (size : ℕ) :
     -- reduce one fold step on both sides, then apply the induction hypothesis.
     simp only [List.foldl_cons, List.map_cons, greedyWindowStepList, GreedyWindow.step]
     by_cases hb : wf ⊆ df ∪ (d.toFinset ∩ G)
-    · rw [if_pos (htest.mpr hb), if_pos hb]
+    · rw [ite_eq_left (htest.mpr hb), ite_eq_left hb]
       apply ih
       · exact hdel
       · exact refresh_window_eq G size _ _ hdel
       · rw [h3]
-    · rw [if_neg (fun hc => hb (htest.mp hc)), if_neg hb]
+    · rw [ite_eq_right (fun hc => hb (htest.mp hc)), ite_eq_right hb]
       apply ih
       · exact hdel
       · exact h2
@@ -382,10 +382,10 @@ theorem decodeCurve_primrec : Primrec₂ (fun (code : BitString) (i : ℕ) => de
     | nil => simp [List.splitOnP_nil]
     | cons b code ih =>
       cases b
-      · simp only [List.splitOnP_cons_eq_if_modifyHead, Bool.not_false,
+      · simp only [List.splitOnP_cons_eq_ite_modifyHead, Bool.not_false,
           ↓reduceIte, List.map_cons, List.length_nil]
         exact congrArg (fun xs => 0 :: xs) ih
-      · simp only [List.splitOnP_cons_eq_if_modifyHead, Bool.not_true, Bool.false_eq_true,
+      · simp only [List.splitOnP_cons_eq_ite_modifyHead, Bool.not_true, Bool.false_eq_true,
           ↓reduceIte]
         cases hs : List.splitOnP (fun x : Bool => !x) code with
         | nil => exact (List.splitOnP_ne_nil (fun x : Bool => !x) code hs).elim
@@ -571,7 +571,7 @@ theorem newBadSetsAtTimeList_primrec (c : Nat.Partrec.Code) :
   | zero => rfl
   | succ t =>
     simp only [newBadSetsAtTimeList, Nat.add_sub_cancel]
-    rw [if_neg (Nat.add_one_ne_zero t)]
+    rw [ite_eq_right (Nat.add_one_ne_zero t)]
     congr 1
     funext S
     rw [List.elem_eq_mem]
@@ -630,8 +630,8 @@ theorem list_dedup_eq_root (l : List BitString) : List.dedup l = _root_.List.ded
     unfold List.dedup
     rw [ih]
     by_cases h : a ∈ t
-    · rw [if_pos (List.mem_dedup.mpr h), _root_.List.dedup_cons_of_mem h]
-    · rw [if_neg (fun hc => h (List.mem_dedup.mp hc)), _root_.List.dedup_cons_of_notMem h]
+    · rw [ite_eq_left (List.mem_dedup.mpr h), _root_.List.dedup_cons_of_mem h]
+    · rw [ite_eq_right (fun hc => h (List.mem_dedup.mp hc)), _root_.List.dedup_cons_of_notMem h]
 
 /-- The project-local `List.dedup` is primitive recursive. -/
 theorem local_dedup_primrec : Primrec (fun l : List BitString => List.dedup l) :=

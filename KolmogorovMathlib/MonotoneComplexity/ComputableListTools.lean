@@ -71,7 +71,11 @@ private theorem foldl_filter_eq (p : β → Bool) : ∀ (l : List β) (acc : Lis
   | nil => intro acc; simp
   | cons b t ih =>
     intro acc
-    cases hb : p b <;> simp [ih, hb]
+    cases hb : p b
+    · simp only [List.foldl_cons, hb, Bool.cond_false, ih, List.filter_cons,
+        Bool.false_eq_true, ↓reduceIte]
+    · simp only [List.foldl_cons, hb, Bool.cond_true, ih, List.filter_cons, ↓reduceIte,
+        List.append_assoc, List.singleton_append]
 
 /-- Existential quantification over a computable list with a computable predicate. -/
 theorem computable_list_any {f : α → List β} {p : α → β → Bool}

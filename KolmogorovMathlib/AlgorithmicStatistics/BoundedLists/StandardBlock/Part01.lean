@@ -155,7 +155,7 @@ theorem exists_standardBlock_of_mem_completed
   -- Show x is in the standard block
   use j
   unfold standardBlock
-  rw [if_pos hjbit]
+  rw [ite_eq_left hjbit]
   -- x is in the toFinset iff x is in the list after drop and take
   rw [List.mem_toFinset]
   -- Use that x = l[idx] and idx is in the right range
@@ -222,7 +222,7 @@ theorem card_standardBlock_of_mem
     (standardBlock c m j x).card = 2 ^ j := by
   have hbit := standardBlock_testBit_of_mem c m j x hx
   unfold standardBlock
-  rw [if_pos hbit, List.toFinset_card_of_nodup]
+  rw [ite_eq_left hbit, List.toFinset_card_of_nodup]
   · simp only [List.length_take, List.length_drop]
     rw [Nat.min_eq_left]
     have hfit :=
@@ -317,7 +317,7 @@ theorem standardBlock_eq_completedDyadicBlock
   have hbit := standardBlock_testBit_of_mem c m j x hx
   have hxList : x ∈ (L.drop start).take p := by
     unfold standardBlock at hx
-    rw [if_pos hbit, List.mem_toFinset] at hx
+    rw [ite_eq_left hbit, List.mem_toFinset] at hx
     simpa [L, p, q, start] using hx
   obtain ⟨k, hk, hkx⟩ := List.mem_iff_getElem.mp hxList
   have hklt : k < p := by
@@ -350,7 +350,7 @@ theorem standardBlock_eq_completedDyadicBlock
         start + k < start + p := by omega
         _ = (2 * q + 1) * p := by rw [hstart]; ring
   unfold standardBlock
-  rw [if_pos hbit]
+  rw [ite_eq_left hbit]
   unfold completedDyadicBlock completedDyadicBlockList
   apply congrArg List.toFinset
   change (L.drop start).take p =

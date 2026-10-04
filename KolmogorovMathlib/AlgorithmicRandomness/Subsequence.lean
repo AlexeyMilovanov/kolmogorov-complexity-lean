@@ -361,7 +361,7 @@ lemma exists_mem_selectPullOne {f : ℕ → ℕ} {s : BitString} {x : CantorSeq}
   have hopt : (levelList N)[m]? = some y := by
     rw [List.getElem?_eq_getElem hm, hget]
   rw [selectPullOne, ← hN, hopt]
-  simp only [Option.bind_some, hc, if_true, Option.elim_some]
+  simp only [Option.bind_some, hc, ite_true, Option.elim_some]
   change IsCantorPrefix y x
   rw [isCantorPrefix_iff_cantorPrefix_eq]
   simp [hy]

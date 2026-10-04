@@ -29,7 +29,7 @@ lemma foldr_zero_of_not_mem {l : List CodedDistributionEntry} {x : BitString}
     have hneq : e.point ≠ x := by
       intro h
       exact hx.1 h.symm
-    rw [show (if e.point = x then e.mass.value else 0) = 0 from if_neg hneq]
+    rw [show (if e.point = x then e.mass.value else 0) = 0 from ite_eq_right hneq]
     rw [ih hx.2, add_zero]
 
 /-- Summing `f` against the masses accumulated per support point equals summing `f` entrywise over
@@ -76,7 +76,7 @@ lemma expected_value_foldr_data (data : List CodedDistributionEntry) (f : BitStr
         rw [h3, zero_mul, zero_add]
       rw [h2]
       rw [ih]
-      have h_if : (if e.point = e.point then e.mass.value else 0) = e.mass.value := if_pos rfl
+      have h_if : (if e.point = e.point then e.mass.value else 0) = e.mass.value := ite_eq_left rfl
       rw [h_if]
 
 /-- The exact fibre-mass formula over `P.support`. -/
@@ -242,7 +242,7 @@ theorem fstProjectionApprox_mono (c : Nat.Partrec.Code) (s : ℕ) (z : BitString
   simp only [fstProjectionApprox, fstProjectionInputs, fstProjectionMassPair,
     fstProjectionAprioriNumerator, fstProjectionAprioriArgs, fstProjectionScale]
   split_ifs with hzero
-  · simp only [hzero, if_pos, dyadicValue]
+  · simp only [hzero, ite_eq_left, dyadicValue]
     norm_num
   · simp only [hzero]
     let a := decodeFirst z
@@ -425,7 +425,7 @@ theorem fstProjectionApprox_iSup
   simp only [fstProjectionApprox, fstProjectionInputs, fstProjectionMassPair,
     fstProjectionAprioriNumerator, fstProjectionAprioriArgs, fstProjectionScale]
   split_ifs with hzero
-  · simp only [hzero, if_pos]
+  · simp only [hzero, ite_eq_left]
     rw [show (⨆ s, dyadicValue 0 s) = 0 by simp [dyadicValue]]
     let P : CodedFiniteDistribution :=
       ⟨CodedFiniteDistribution.decodeDistributionData ctx⟩
@@ -442,7 +442,7 @@ theorem fstProjectionApprox_iSup
     change 0 = P.mass z * (aprioriMeasure U a P_fst.code / P_fst.mass a)
     rw [hSource, zero_mul]
   · let a := decodeFirst z
-    simp only [hzero, if_false]
+    simp only [hzero, ite_false]
     let A := (fstProjectionSourceMass z ctx).num *
       (fstProjectionFiberMass z ctx).den
     let B := (fstProjectionSourceMass z ctx).den *

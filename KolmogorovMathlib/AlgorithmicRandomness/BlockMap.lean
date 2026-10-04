@@ -48,7 +48,7 @@ lemma cantorMass_bernoulliMeasure_prod (p : NNReal) (hp : p ≤ 1) (s : BitStrin
   apply Finset.prod_congr rfl
   intro i _
   have hi : (i : ℕ) < s.length := i.isLt
-  simp only [hi, dif_pos, Fin.getElem_fin]
+  simp only [hi, dite_eq_left, Fin.getElem_fin]
 
 /-- The product of a two-valued weight over a boolean list, grouped by the count
 of `true` and `false` entries. -/
@@ -329,7 +329,7 @@ lemma blockPreimage_card (s : BitString) :
             ihl]
           ring
       rw [hflat, ih, List.count_cons]
-      simp only [beq_iff_eq, if_true]
+      simp only [beq_iff_eq, ite_true]
       ring
 
 /-- The uniform mass of the preimage equals the Bernoulli(3/4) mass.  Stated as a
@@ -372,7 +372,7 @@ instance : IsProbabilityMeasure bernoulli34 := by
 
 /-- The block map is measurable. -/
 lemma measurable_blockMap : Measurable blockMap := by
-  apply measurable_pi_lambda
+  apply Measurable.of_eval
   intro n
   have hset : MeasurableSet ((fun f : CantorSeq => f (2 * n)) ⁻¹' {true}) :=
     (measurable_pi_apply (2 * n)) (measurableSet_singleton true)
@@ -417,8 +417,7 @@ lemma uniformMeasure_blockMap_preimage (s : BitString) :
 lemma blockMap_measurePreserving :
     MeasurePreserving blockMap uniformMeasure bernoulli34 := by
   refine ⟨measurable_blockMap, ?_⟩
-  have : IsProbabilityMeasure (Measure.map blockMap uniformMeasure) :=
-    Measure.isProbabilityMeasure_map measurable_blockMap.aemeasurable
+  have : IsProbabilityMeasure (Measure.map blockMap uniformMeasure) := inferInstance
   refine cantorMeasure_unique _ _ (fun s => ?_)
   rw [cantorMass, Measure.map_apply measurable_blockMap (measurableSet_cantorCylinder s)]
   exact uniformMeasure_blockMap_preimage s
@@ -668,14 +667,14 @@ lemma blockMap_preimage_blockCoveredSet_subset (f : ℕ → Option BitString) :
   simp only [Set.mem_preimage, blockCoveredSet, Set.mem_iUnion] at hx
   obtain ⟨s, hs⟩ := hx
   by_cases hc : blockCovered f s = true
-  · rw [if_pos hc] at hs
+  · rw [ite_eq_left hc] at hs
     obtain ⟨t, ht, hxt⟩ := (mem_cantorCylinder_blockMap s x).1 hs
     have hdt : decidableCover f t = true := (blockCovered_iff f s).1 hc t ht
     have hmem : x ∈ ⋃ x',
         if decidableCover f x' then cantorCylinder x' else (∅ : Set CantorSeq) :=
       Set.mem_iUnion.2 ⟨t, by simp [hdt, hxt]⟩
     rwa [decidableCover_iUnion] at hmem
-  · rw [if_neg hc] at hs
+  · rw [ite_eq_right hc] at hs
     exact absurd hs (Set.notMem_empty x)
 
 /-- Compactness: if the whole fibre of `y` is covered by `f`, then already a
@@ -711,7 +710,7 @@ lemma mem_blockCoveredSet_of_fibre_subset (f : ℕ → Option BitString) (y : Ca
         have hiN : i ≤ N := Finset.le_sup (f := id) hiI
         exact (prefixSeen_spec f t (t.length + 1)).2 ⟨i, by omega, u, hfi, hut⟩
   refine Set.mem_iUnion.2 ⟨cantorPrefix y (N + L + 1), ?_⟩
-  rw [if_pos hcov]
+  rw [ite_eq_left hcov]
   exact mem_cantorCylinder_cantorPrefix y (N + L + 1)
 
 /-- The covering test is computable uniformly in the index of a computable family of

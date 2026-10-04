@@ -2,7 +2,11 @@ import KolmogorovMathlib.MonotoneComplexity.GacsDayLadderTailPointwise
 import KolmogorovMathlib.MonotoneComplexity.GacsDayLadderTailFibre
 import KolmogorovMathlib.MonotoneComplexity.GacsDayLadderTailLeafD
 
+/-!
+# Gacs-Day ladder tail: entry support
 
+The standing data of a gray-tail run and the support of its entries.
+-/
 
 namespace Kolmogorov
 
@@ -168,7 +172,7 @@ lemma grayTailFrozenSupported_step
   rw [grayTailStep_eq]
   by_cases hdone : st.done || st.slots.isEmpty
   · simpa [hdone] using hst
-  · simp only [hdone, Bool.false_eq_true, if_false]
+  · simp only [hdone, Bool.false_eq_true, ite_false]
     by_cases hgoal : familyRobustGrayGoalAtB (halfAmplification q)
         ((3 / 4 : ℚ) * dyadicScale (grayCallDepth q e))
         (grayTailRoundEps q L e st.frozen.length)
@@ -176,7 +180,7 @@ lemma grayTailFrozenSupported_step
         (grayTailCurrentMove q L e sigma st)
         (grayTailLocalServerMove (grayTailRoundDelta q L e st.frozen.length)
           st.slots sm)
-    · simp only [hgoal, if_true]
+    · simp only [hgoal, ite_true]
       intro p hp j hj
       rcases List.mem_append.mp hp with hp | hp
       · exact hst p hp j hj
@@ -229,10 +233,10 @@ theorem grayTail_fold_entries_supported
   refine grayTailEntries_all_supported hfrozen ?_ pr hpr
   intro j hj
   by_cases hdone : st.done
-  · simp only [hdone, if_true]
+  · simp only [hdone, ite_true]
     have h_nil : [] = familyClientMoveAt [] j := rfl
     exact h_nil ▸ grayTailEntryMoveSupported_nil q (grayTailBranch q L a e)
-  · simp only [hdone, Bool.false_eq_true, if_false]
+  · simp only [hdone, Bool.false_eq_true, ite_false]
     have hlen : 1 ≤ st.slots.length := by omega
     exact grayTail_rungMove_supported hB hRung st.frozen.length
       st.slots.length hlen st.history hj
@@ -255,7 +259,7 @@ theorem grayTailStrategy_rangeSupported
   rw [familyClientMoveAt_grayTailOutput _ hj]
   refine getReq_graftTwoLevel_eq_zero_of_range ?_ x hi
   intro c hc c' hc' y k hk
-  simp only [hc, hc', dif_pos]
+  simp only [hc, hc', dite_eq_left]
   exact (grayTail_entryMove_supported
     (fun pr hpr => grayTail_fold_entries_supported hB hRung hist.2 pr hpr) _).1 y k hk
 
@@ -275,7 +279,7 @@ theorem grayTailStrategy_treeSupported
   rw [familyClientMoveAt_grayTailOutput _ hj]
   refine getReq_graftTwoLevel_eq_zero_of_length (h := 2 * q) ?_ x (by omega)
   intro c hc c' hc' y hy
-  simp only [hc, hc', dif_pos]
+  simp only [hc, hc', dite_eq_left]
   exact (grayTail_entryMove_supported
     (fun pr hpr => grayTail_fold_entries_supported hB hRung hist.2 pr hpr) _).2 y hy
 
@@ -331,7 +335,7 @@ lemma sum_grayTailEntryMove_root_le_grayTailSonBase {n b : ℕ}
       unfold grayTailSonBase
       simp only [List.foldr_cons]
       by_cases hmatch : i_p = i ∧ c1_p = c
-      · rw [if_pos hmatch]
+      · rw [ite_eq_left hmatch]
         have h_entry : ∀ c' : Fin b,
             grayTailEntryMove (((i_p, c1_p, c2_p), m_p) :: rest) (i, c, c') =
               if c2_p = c' then m_p else grayTailEntryMove rest (i, c, c') := by
@@ -341,13 +345,13 @@ lemma sum_grayTailEntryMove_root_le_grayTailSonBase {n b : ℕ}
           by_cases hc' : c2_p = c'
           · have hslot : (i_p, c1_p, c2_p) = (i, c, c') := by
               ext <;> simp [hmatch.1, hmatch.2, hc']
-            rw [if_pos hc']
+            rw [ite_eq_left hc']
             simp [hslot]
           · have hslot : (i_p, c1_p, c2_p) ≠ (i, c, c') := by
               intro h
               have : c2_p = c' := by injection h with _ h2; injection h2
               exact hc' this
-            rw [if_neg hc']
+            rw [ite_eq_right hc']
             simp [hslot]
         simp_rw [h_entry]
         have h_sum : (∑ c' : Fin b, getReq (if c2_p = c' then m_p else grayTailEntryMove rest (i,
@@ -379,7 +383,7 @@ lemma sum_grayTailEntryMove_root_le_grayTailSonBase {n b : ℕ}
           intro c' _ _
           exact grayTailEntryMove_nonneg rest hrest_nonneg (i, c, c') []
         linarith
-      · rw [if_neg hmatch]
+      · rw [ite_eq_right hmatch]
         have h_entry : ∀ c' : Fin b,
             grayTailEntryMove (((i_p, c1_p, c2_p), m_p) :: rest) (i, c,
                                                                    c') = grayTailEntryMove rest (i,
@@ -474,7 +478,7 @@ lemma grayTailSonRequest_eq_zero_of_source_ge
   dsimp
   rw [hbase]
   have hthresh_nonneg : 0 ≤ thresh := grayTail_threshold_nonneg_global q e
-  rw [if_neg (not_lt_of_ge hthresh_nonneg)]
+  rw [ite_eq_right (not_lt_of_ge hthresh_nonneg)]
 
 /-- The son requests of a client displayed by a tail run sum to at most `dyadicScale a`. -/
 lemma sum_grayTailSonRequest_le_dyadicScale
@@ -496,12 +500,12 @@ lemma sum_grayTailSonRequest_le_dyadicScale
         apply Finset.sum_le_sum
         intro c _
         by_cases hc : c.val < used
-        · rw [if_pos hc]
+        · rw [ite_eq_left hc]
           exact grayTailSonRequest_le_dyadicScale (q := q) (L := L) (a := a) (e := e) (t :=
                                                                                         t) (sigma :=
                                                                                              sigma)
             (A := A) (sm := sm) i c
-        · rw [if_neg hc]
+        · rw [ite_eq_right hc]
           have hzero :=
             grayTailSonRequest_eq_zero_of_source_ge (q := q) (L := L) (a := a) (e := e) (t :=
                                                                                           t)
@@ -603,19 +607,19 @@ private lemma grayTailSlotSonBase_le_callScale
         else 0 := by
         refine Finset.sum_le_sum fun j _ => ?_
         by_cases hj : (st.slots.get j).1 = i ∧ (st.slots.get j).2.1 = c
-        · rw [if_pos hj, if_pos hj]
+        · rw [ite_eq_left hj, ite_eq_left hj]
           have hj' := h_elem j
-          rw [if_pos hj] at hj'
+          rw [ite_eq_left hj] at hj'
           exact hj'
-        · rw [if_neg hj, if_neg hj]
+        · rw [ite_eq_right hj, ite_eq_right hj]
     _ = ∑ j ∈ Finset.univ.filter (fun j : Fin st.slots.length =>
           decide ((st.slots.get j).1 = i ∧ (st.slots.get j).2.1 = c)),
           dyadicScale (grayCallDepth q e) := by
         rw [Finset.sum_filter]
         refine Finset.sum_congr rfl fun j _ => ?_
         by_cases hj : (st.slots.get j).1 = i ∧ (st.slots.get j).2.1 = c
-        · rw [if_pos hj, if_pos (decide_eq_true hj)]
-        · rw [if_neg hj, if_neg (fun h => hj (decide_eq_true_iff.mp h))]
+        · rw [ite_eq_left hj, ite_eq_left (decide_eq_true hj)]
+        · rw [ite_eq_right hj, ite_eq_right (fun h => hj (decide_eq_true_iff.mp h))]
     _ = ((Finset.univ.filter (fun j : Fin st.slots.length =>
           decide ((st.slots.get j).1 = i ∧ (st.slots.get j).2.1 = c))).card : ℚ)
         * dyadicScale (grayCallDepth q e) := by
@@ -663,7 +667,7 @@ lemma grayTailSonBase_le_dyadicScale
     have hdone_not : ¬ st.done = true := by simp [hdone]
     change grayTailSonBase (grayTailEntries st.frozen st.slots
       (if st.done then [] else grayTailCurrentMove q L e sigma st)) i c ≤ dyadicScale e
-    rw [if_neg hdone_not, grayTailEntries, grayTailSonBase_append_globalEntries]
+    rw [ite_eq_right hdone_not, grayTailEntries, grayTailSonBase_append_globalEntries]
     by_cases hhas : GrayTailHasKey st.slots i c
     · obtain ⟨s, hs, hi, hc⟩ := hhas
       have hfrozen_thresh : grayTailFrozenSonBase st.frozen i c ≤

@@ -20,7 +20,7 @@ import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.SlackArith
 import Mathlib.Analysis.SpecialFunctions.Log.Base
 import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 import Mathlib.Algebra.BigOperators.Field
-import Mathlib.Data.ENNReal.Inv
+import Mathlib.Basic.ENNReal.Inv
 import KolmogorovMathlib.AlgorithmicStatistics.Selector
 import KolmogorovMathlib.CommonInformation.Counting
 import KolmogorovMathlib.Complexity.Information.RandomConservation
@@ -583,14 +583,14 @@ private lemma sum_indicator_bound (M : ℕ) (z : ℤ) (hz : z ≤ (M : ℤ)) :
         intro k hk
         rw [Finset.mem_range] at hk
         have h_cond : (k : ℤ) + 1 ≤ (z : ℤ) := by omega
-        rw [if_pos h_cond]
+        rw [ite_eq_left h_cond]
       rw [Finset.sum_congr rfl this, Finset.sum_const, Finset.card_range, nsmul_eq_mul, mul_one]
     have h2 : ∑ k ∈ Finset.Ico z M, (if (k : ℤ) + 1 ≤ (z : ℤ) then (1 : ℝ) else 0) = 0 := by
       have : ∀ k ∈ Finset.Ico z M, (if (k : ℤ) + 1 ≤ (z : ℤ) then (1 : ℝ) else 0) = 0 := by
         intro k hk
         rw [Finset.mem_Ico] at hk
         have h_cond : ¬ ((k : ℤ) + 1 ≤ (z : ℤ)) := by omega
-        rw [if_neg h_cond]
+        rw [ite_eq_right h_cond]
       rw [Finset.sum_congr rfl this, Finset.sum_const_zero]
     rw [← Finset.sum_range_add_sum_Ico _ hzM, h1, h2, add_zero]
     rfl
@@ -700,14 +700,14 @@ theorem expected_info_le_log (U : Map) (hU : isOptimalConditional U) :
       exact Finset.sum_boole _ _
     rw [h_filter]
     by_cases hkc : k < c_plain
-    · rw [if_pos hkc]
+    · rw [ite_eq_left hkc]
       have h_card_le : ((allStrings n).toFinset.filter
           (fun y => (k : ℤ) + 1 ≤ (n + c_plain : ℤ) - (condCVal U y x : ℤ))).card ≤
           (allStrings n).toFinset.card := Finset.card_filter_le _ _
       rw [List.toFinset_card_of_nodup (allStrings_nodup n), h_len] at h_card_le
       exact_mod_cast h_card_le
     · push Not at hkc
-      rw [if_neg (not_lt.mpr hkc)]
+      rw [ite_eq_right (not_lt.mpr hkc)]
       have hm_eq : c_plain + n - k = (n + c_plain - k - 1) + 1 := by
         have : k < c_plain + n := hk
         have : c_plain ≤ k := hkc
@@ -765,7 +765,7 @@ theorem expected_info_le_log (U : Map) (hU : isOptimalConditional U) :
         (if k < c_plain then (2 : ℝ) ^ n else (2 : ℝ) ^ (c_plain + n - k)) = (2 : ℝ) ^ n := by
       intro k hk
       rw [Finset.mem_range] at hk
-      exact if_pos hk
+      exact ite_eq_left hk
     rw [Finset.sum_congr rfl this, Finset.sum_const, Finset.card_range, nsmul_eq_mul]
   have h_part2 : ∑ k ∈ Finset.Ico c_plain (c_plain + n),
         (if k < c_plain then (2 : ℝ) ^ n else (2 : ℝ) ^ (c_plain + n - k)) ≤ 2 * (2 : ℝ) ^ n := by
@@ -776,7 +776,7 @@ theorem expected_info_le_log (U : Map) (hU : isOptimalConditional U) :
       intro k hk
       rw [Finset.mem_Ico] at hk
       have : ¬ (k < c_plain) := by omega
-      exact if_neg this
+      exact ite_eq_right this
     rw [h_ico_eq]
     rw [sum_Ico_shift n c_plain]
     have h_rev := sum_pow_two_reverse n

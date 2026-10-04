@@ -263,7 +263,7 @@ private lemma restrictedEffectiveAnchoredInitialState_density_step
       exact hpowers (s - 1) (by omega)
     calc sizes.getD s 0 * Cprev.card
         ≤ 𝒜.overhead ambientLength * sizes.getD (s - 1) 0 * (Bnext ∩ Cprev).card := by
-          rw [if_neg (ne_of_gt hs_pos)] at hdensity; exact hdensity
+          rw [ite_eq_right (ne_of_gt hs_pos)] at hdensity; exact hdensity
       _ = 𝒜.overhead ambientLength * 2 ^ t s * (Bnext ∩ Cprev).card := by rw [hsizes_pred]
       _ ≤ 2 * 𝒜.overhead ambientLength * 2 ^ t s * (Bnext ∩ Cprev).card := by
           gcongr; omega

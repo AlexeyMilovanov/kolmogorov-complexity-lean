@@ -258,7 +258,7 @@ lemma dyadicValue_countingNum_bits (c : Nat.Partrec.Code) {s n : ℕ} (hs : n �
     dyadicValue (countingNum c s (Nat.bits n) []) s
       = (countingApprox c s n : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ n := by
   rw [dyadicValue_countingNum,
-    if_pos ⟨rfl, by rw [decodeBits_natBits], by rw [decodeBits_natBits]; exact hs⟩,
+    ite_eq_left ⟨rfl, by rw [decodeBits_natBits], by rw [decodeBits_natBits]; exact hs⟩,
     decodeBits_natBits]
 
 /-- The dyadic value of the staged numerator is monotone in the stage. -/
@@ -268,10 +268,10 @@ lemma countingNum_dyadic_mono (c : Nat.Partrec.Code) (s : ℕ) (out ctx : BitStr
   rw [dyadicValue_countingNum, dyadicValue_countingNum]
   by_cases h : ctx = [] ∧ Nat.bits (decodeBits out) = out ∧ decodeBits out ≤ s
   · obtain ⟨h1, h2, h3⟩ := h
-    rw [if_pos ⟨h1, h2, h3⟩, if_pos ⟨h1, h2, Nat.le_succ_of_le h3⟩]
+    rw [ite_eq_left ⟨h1, h2, h3⟩, ite_eq_left ⟨h1, h2, Nat.le_succ_of_le h3⟩]
     gcongr
     exact_mod_cast countingApprox_mono c s (decodeBits out)
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     exact bot_le
 
 /-
@@ -584,23 +584,23 @@ lemma tsum_domain_progWeight_le_one (U : Map) (hU : IsPrefixDecompressor U) :
   refine le_trans (le_of_eq ?_) h_sum
   refine tsum_congr (fun p ↦ ?_)
   by_cases hp : (U (p, [])).Dom
-  · rw [if_pos hp]
+  · rw [ite_eq_left hp]
     have ⟨x, hx⟩ := Part.dom_iff_mem.mp hp
     have h_prod : produces U p [] x := hx
     have h_eq : (∑' x', if produces U p [] x' then progWeight p else 0) = progWeight p := by
       rw [tsum_eq_single x]
-      · rw [if_pos h_prod]
+      · rw [ite_eq_left h_prod]
       · intro x' hneq
-        rw [if_neg]
+        rw [ite_eq_right]
         intro h_prod'
         exact hneq (Part.mem_unique h_prod' h_prod)
     exact h_eq.symm
-  · rw [if_neg hp]
+  · rw [ite_eq_right hp]
     have h_eq : (∑' x', if produces U p [] x' then progWeight p else 0) = 0 := by
       have h_zero : (fun x' ↦ if produces U p [] x' then (progWeight p : ENNReal) else 0)
           = fun _ ↦ 0 := by
         ext x'
-        rw [if_neg]
+        rw [ite_eq_right]
         intro h_prod
         exact hp (Part.dom_iff_mem.mpr ⟨x', h_prod⟩)
       rw [h_zero, tsum_zero]
@@ -630,7 +630,7 @@ lemma tsum_haltMass_eq_tsum_nat (U : Map) :
     rw [Function.mem_support] at hx
     by_cases h : Nat.bits (decodeBits x) = x
     · exact ⟨decodeBits x, h⟩
-    · rw [if_neg h] at hx
+    · rw [ite_eq_right h] at hx
       contradiction
 
 /-
@@ -646,12 +646,12 @@ lemma tsum_ge_pow (m : ℕ) :
     rw [Function.mem_support] at hx
     by_cases hmx : m ≤ x
     · exact ⟨x - m, Nat.sub_add_cancel hmx⟩
-    · rw [if_neg hmx] at hx
+    · rw [ite_eq_right hmx] at hx
       exact absurd rfl hx
   have h_factor : (∑' n, if m ≤ n then (2 : ℝ≥0∞)⁻¹ ^ n else 0)
       = (∑' n, (2 : ℝ≥0∞)⁻¹ ^ (n + m)) := by
     rw [← hinj.tsum_eq hsupp]
-    exact tsum_congr fun n ↦ if_pos (Nat.le_add_left m n)
+    exact tsum_congr fun n ↦ ite_eq_left (Nat.le_add_left m n)
   rw [h_factor]
   simp [pow_add, ENNReal.tsum_mul_right]
 
@@ -668,7 +668,7 @@ lemma tsum_haltMass_le (U : Map) (hU : IsPrefixDecompressor U) :
         = 2 * (if (U (p, ([] : BitString))).Dom then progWeight p else 0) := by
     intro p
     by_cases hdom : (U (p, ([] : BitString))).Dom
-    · simp only [hdom, and_true, if_true]
+    · simp only [hdom, and_true, ite_true]
       rw [tsum_ge_pow p.length, progWeight]
     · simp [hdom]
   simp_rw [hinner]
@@ -698,7 +698,7 @@ lemma countingF_tsum_le (U : Map) (hU : IsPrefixDecompressor U) (c : Nat.Partrec
       intro out
       have hs : ∀ s, dyadicValue (countingNum c s out ctx) s = 0 := by
         intro s
-        rw [dyadicValue_countingNum, if_neg]
+        rw [dyadicValue_countingNum, ite_eq_right]
         rintro ⟨h1, _⟩; exact hctx h1
       unfold countingF
       simp only [hs, iSup_const]

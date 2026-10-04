@@ -104,11 +104,11 @@ lemma grayTailSonBase_sum_le_grayChargedRootRequest {n b : Nat}
   intro c _
   unfold grayChargedSonRequest grayTailSonRequest
   by_cases hc : c.val < source
-  · rw [if_pos hc]
+  · rw [ite_eq_left hc]
     by_cases ht : threshold < grayTailSonBase entries i c
     · simpa [ht] using hraise c hc ht
     · simp [ht]
-  · rw [if_neg hc]
+  · rw [ite_eq_right hc]
 
 /-! ## Spend rounds occupy only spare sons
 

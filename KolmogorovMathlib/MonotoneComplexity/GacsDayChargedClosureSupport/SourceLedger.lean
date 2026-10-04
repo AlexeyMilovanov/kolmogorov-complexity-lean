@@ -4,7 +4,11 @@ import KolmogorovMathlib.MonotoneComplexity.GacsDayChargedClosureCore.TailStep
 import KolmogorovMathlib.MonotoneComplexity.GacsDayChargedClosureCore.FinalReplay
 import KolmogorovMathlib.MonotoneComplexity.GacsDayChargedClosureCore
 
+/-!
+# Gacs-Day charged closure: source ledger
 
+Section 8.2: service and reserve witnesses on the non-positive branch.
+-/
 
 namespace Kolmogorov
 
@@ -244,9 +248,9 @@ lemma grayChargedTailStep_frozen_length_lt_roundCount {n b : Nat}
       grayChargedAdvantageRoundCount q := by
   rw [grayChargedTailStep_eq] at hdone ⊢
   by_cases hterm : (st.done || st.slots.isEmpty) = true
-  · rw [if_pos hterm] at hdone ⊢
+  · rw [ite_eq_left hterm] at hdone ⊢
     exact hst hdone
-  · rw [if_neg hterm] at hdone ⊢
+  · rw [ite_eq_right hterm] at hdone ⊢
     by_cases hgoal : grayChargedTailGoalAtB q e
         (grayTailRoundEps q L e st.frozen.length)
         (grayTailRoundDelta q L e st.frozen.length)
@@ -254,7 +258,7 @@ lemma grayChargedTailStep_frozen_length_lt_roundCount {n b : Nat}
         (grayTailCurrentMove q L e sigma st)
         (grayTailLocalServerMove
           (grayTailRoundDelta q L e st.frozen.length) st.slots m) = true
-    · rw [if_pos hgoal] at hdone ⊢
+    · rw [ite_eq_left hgoal] at hdone ⊢
       dsimp only at hdone ⊢
       have h := Bool.or_eq_false_iff.mp hdone
       have hfour := grayTailRoundCount_eight_lt q
@@ -268,7 +272,7 @@ lemma grayChargedTailStep_frozen_length_lt_roundCount {n b : Nat}
       simp only [List.length_append, List.length_singleton] at ⊢
       unfold grayChargedAdvantageRoundCount
       omega
-    · rw [if_neg hgoal] at hdone ⊢
+    · rw [ite_eq_right hgoal] at hdone ⊢
       dsimp only at hdone ⊢
       exact hst hdone
 
@@ -312,9 +316,9 @@ lemma grayChargedTailStep_freeze_shape_of_done {n b : Nat}
           (grayChargedTailStep q L a e sigma A st m).frozen m := by
   rw [grayChargedTailStep_eq] at hdone ⊢
   by_cases hslots : st.slots.isEmpty = true
-  · rw [if_pos (by simp [hslots])] at hdone
+  · rw [ite_eq_left (by simp [hslots])] at hdone
     simp [hactive] at hdone
-  · rw [if_neg (by simp [hactive, hslots])] at hdone ⊢
+  · rw [ite_eq_right (by simp [hactive, hslots])] at hdone ⊢
     by_cases hgoal : grayChargedTailGoalAtB q e
         (grayTailRoundEps q L e st.frozen.length)
         (grayTailRoundDelta q L e st.frozen.length)
@@ -322,10 +326,10 @@ lemma grayChargedTailStep_freeze_shape_of_done {n b : Nat}
         (grayTailCurrentMove q L e sigma st)
         (grayTailLocalServerMove
           (grayTailRoundDelta q L e st.frozen.length) st.slots m) = true
-    · rw [if_pos hgoal] at hdone ⊢
+    · rw [ite_eq_left hgoal] at hdone ⊢
       dsimp only
       exact ⟨by simp, rfl⟩
-    · rw [if_neg hgoal] at hdone
+    · rw [ite_eq_right hgoal] at hdone
       dsimp only at hdone
       rw [hactive] at hdone
       exact absurd hdone (by simp)

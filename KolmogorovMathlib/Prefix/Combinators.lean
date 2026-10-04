@@ -116,12 +116,12 @@ theorem taggedUnion_dom_decompose {M : ℕ → Map} {p y : BitString}
     have heq : taggedUnion M (p, y)
         = M ((p.takeWhile id).length) (p.drop ((p.takeWhile id).length + 1), y) := by
       simp only [taggedUnion]
-      rw [if_pos hlt]
+      rw [ite_eq_left hlt]
     rwa [heq] at h
   · exfalso
     have heq : taggedUnion M (p, y) = Part.none := by
       simp only [taggedUnion]
-      rw [if_neg hlt]
+      rw [ite_eq_right hlt]
     rw [heq] at h
     exact h
 
@@ -167,7 +167,7 @@ theorem taggedUnion_produces_natCode {M : ℕ → Map} {i : ℕ} {q y x : BitStr
     simp only [List.length_append, length_natCode]; omega
   have heq : taggedUnion M (natCode i ++ q, y) = M i (q, y) := by
     simp only [taggedUnion, length_takeWhile_natCode_append, drop_natCode_append]
-    rw [if_pos hlt]
+    rw [ite_eq_left hlt]
   change x ∈ taggedUnion M (natCode i ++ q, y)
   rw [heq]
   exact h

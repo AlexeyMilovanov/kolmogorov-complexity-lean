@@ -227,12 +227,12 @@ theorem dyLeft_cantorPrefix (w : CantorSeq) (n : ℕ) :
     have hne : ((2 : ℝ) ^ n) ≠ 0 := by positivity
     cases h : w n
     · have hdev : devBitsToNat [false] = 0 := rfl
-      simp only [Bool.false_eq_true, if_false, hdev]
+      simp only [Bool.false_eq_true, ite_false, hdev]
       push_cast
       field_simp
       ring_nf
     · have hdev : devBitsToNat [true] = 1 := rfl
-      simp only [if_true, hdev]
+      simp only [ite_true, hdev]
       push_cast
       field_simp
       ring_nf
@@ -309,8 +309,8 @@ theorem half_pow_succ (n : ℕ) : ((1 : ℝ) / 2) ^ (n + 1) = (1 : ℝ) / 2 ^ (n
 theorem expandVal_succ (β : ℝ) (n : ℕ) :
     expandVal β (n + 1) = expandVal β n + bitTerm (expandSeq β) n := by
   by_cases hc : expandVal β n + (1 : ℝ) / 2 ^ (n + 1) < β
-  · rw [expandVal, if_pos hc, bitTerm, if_pos (by simpa [expandSeq] using hc)]
-  · rw [expandVal, if_neg hc, bitTerm, if_neg (by simpa [expandSeq] using hc), add_zero]
+  · rw [expandVal, ite_eq_left hc, bitTerm, ite_eq_left (by simpa [expandSeq] using hc)]
+  · rw [expandVal, ite_eq_right hc, bitTerm, ite_eq_right (by simpa [expandSeq] using hc), add_zero]
 
 /-- The greedy expansion keeps its value strictly below `β` and within `2^{-n}` of it. -/
 theorem expandVal_spec {β : ℝ} (h0 : 0 < β) (h1 : β ≤ 1) (n : ℕ) :
@@ -325,10 +325,10 @@ theorem expandVal_spec {β : ℝ} (h0 : 0 < β) (h1 : β ≤ 1) (n : ℕ) :
       ring
     have hnext : ((1 : ℝ) / 2) ^ (n + 1) = (1 : ℝ) / 2 ^ (n + 1) := half_pow_succ n
     by_cases hc : expandVal β n + (1 : ℝ) / 2 ^ (n + 1) < β
-    · rw [expandVal, if_pos hc, hnext]
+    · rw [expandVal, ite_eq_left hc, hnext]
       rw [hsplit] at hle
       exact ⟨hc, by linarith⟩
-    · rw [expandVal, if_neg hc, hnext]
+    · rw [expandVal, ite_eq_right hc, hnext]
       push Not at hc
       exact ⟨hlt, hc⟩
 
@@ -385,9 +385,9 @@ theorem tsum_inv_two_pow_length_le_of_antichain {P : BitString → Prop} [Decida
     intro p
     by_cases hp : P p
     · have hp' : p ∈ {p : BitString | P p} := hp
-      rw [Set.indicator_of_mem hp', volume_dyIco, if_pos hp]
+      rw [Set.indicator_of_mem hp', volume_dyIco, ite_eq_left hp]
     · have hp' : p ∉ {p : BitString | P p} := hp
-      rw [Set.indicator_of_notMem hp', if_neg hp]
+      rw [Set.indicator_of_notMem hp', ite_eq_right hp]
   have hdisj : Pairwise (Function.onFun Disjoint
       (fun p : {p : BitString | P p} => dyIco (p : BitString))) := by
     intro a b hab
@@ -657,7 +657,7 @@ theorem isMartinLofRandomReal_of_isMartinLofRandom_uniform {w : CantorSeq}
           intro c
           rw [cantorPullback_pair, hcase]
           by_cases hm : dyMaximal I (natToBitString c) = true
-          · simp only [Option.bind_some, hm, if_true]
+          · simp only [Option.bind_some, hm, ite_true]
             exact uniformMeasure_cantorCylinder _
           · simp only [Bool.not_eq_true] at hm
             simp [hm]
@@ -691,7 +691,7 @@ theorem isMartinLofRandomReal_of_isMartinLofRandom_uniform {w : CantorSeq}
     rw [hV, Set.mem_iUnion]
     refine ⟨Nat.pair i (bitStringToNat (cantorPrefix w m)), ?_⟩
     rw [cantorPullback_pair, hcase, natToBitString_bitStringToNat]
-    simp only [Option.bind_some, hm, if_true]
+    simp only [Option.bind_some, hm, ite_true]
     exact mem_cantorCylinder_cantorPrefix w m
 
 /-! ### From a Martin-Löf test on sequences to a real cover -/

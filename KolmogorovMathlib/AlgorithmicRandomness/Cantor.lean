@@ -96,15 +96,15 @@ lemma prependCantor_append (x y : BitString) (rest : CantorSeq) :
   funext i
   by_cases hx : i < x.length
   · have hxy : i < (x ++ y).length := by simp only [List.length_append]; omega
-    simp only [prependCantor, dif_pos hx, dif_pos hxy, List.getElem_append_left hx]
+    simp only [prependCantor, dite_eq_left hx, dite_eq_left hxy, List.getElem_append_left hx]
   · by_cases hxy : i < (x ++ y).length
     · have hy : i - x.length < y.length := by
         simp only [List.length_append] at hxy; omega
-      simp only [prependCantor, dif_neg hx, dif_pos hxy, dif_pos hy]
+      simp only [prependCantor, dite_eq_right hx, dite_eq_left hxy, dite_eq_left hy]
       exact List.getElem_append_right (by omega)
     · have hy : ¬ i - x.length < y.length := by
         simp only [List.length_append] at hxy; omega
-      simp only [prependCantor, dif_neg hx, dif_neg hxy, dif_neg hy]
+      simp only [prependCantor, dite_eq_right hx, dite_eq_right hxy, dite_eq_right hy]
       congr 1
       simp only [List.length_append]
       omega

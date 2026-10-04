@@ -65,7 +65,7 @@ lemma getFamilyReq_grayChargedTailFamilyMove_mono {n b i : ℕ} {source : ℕ}
   unfold grayChargedTailFamilyMove familyClientMoveAt
   rw [List.getD_eq_getElem?_getD, List.getElem?_ofFn]
   rw [List.getD_eq_getElem?_getD, List.getElem?_ofFn]
-  rw [dif_pos hi, dif_pos hi]
+  rw [dite_eq_left hi, dite_eq_left hi]
   simp only [Option.getD_some]
   rcases x with _ | ⟨c, _ | ⟨c', y⟩⟩
   · rw [getReq_graftTwoLevel_root, getReq_graftTwoLevel_root]
@@ -73,14 +73,14 @@ lemma getFamilyReq_grayChargedTailFamilyMove_mono {n b i : ℕ} {source : ℕ}
     exact Finset.sum_le_sum fun c _ => grayChargedSonRequest_mono htheps ⟨i, hi⟩ c (hbase c)
   · by_cases hc : c < b
     · rw [getReq_graftTwoLevel_son hc, getReq_graftTwoLevel_son hc]
-      simp only [dif_pos hc]
+      simp only [dite_eq_left hc]
       exact grayChargedSonRequest_mono htheps ⟨i, hi⟩ ⟨c, hc⟩ (hbase ⟨c, hc⟩)
     · have hc' : b ≤ c := Nat.le_of_not_gt hc
       rw [getReq_graftTwoLevel_of_ge hc', getReq_graftTwoLevel_of_ge hc']
   · by_cases hc : c < b
     · by_cases hc' : c' < b
       · rw [getReq_graftTwoLevel_grandson hc hc', getReq_graftTwoLevel_grandson hc hc']
-        simp only [dif_pos hc, dif_pos hc']
+        simp only [dite_eq_left hc, dite_eq_left hc']
         exact hentry (⟨i, hi⟩, ⟨c, hc⟩, ⟨c', hc'⟩) y
       · have hc'' : b ≤ c' := Nat.le_of_not_gt hc'
         rw [getReq_graftTwoLevel_of_son_ge hc hc'', getReq_graftTwoLevel_of_son_ge hc hc'']
@@ -179,9 +179,9 @@ lemma grayChargedDisplayedMoveV2_mono_of_freeze {n b q L a e i : ℕ}
     hi x hentries (fun pr hpr y => getReq_slotEntries_mem_nonneg _ _ ?_ pr hpr y)
   intro j hj y
   by_cases hd : st'.core.done = true
-  · rw [if_pos hd] at hj
+  · rw [ite_eq_left hd] at hj
     simp at hj
-  · rw [if_neg hd] at hj
+  · rw [ite_eq_right hd] at hj
     exact hnonneg j hj y
 
 /-- From a wait state — the advantage phase over a done core, displaying the
@@ -200,7 +200,7 @@ lemma grayChargedDisplayedMoveV2_mono_of_wait {n b q L a e i : ℕ}
   have hcur : grayChargedCurrentMoveV2 q L a e sigma st = [] := by
     simp [grayChargedCurrentMoveV2, hphase, hdone]
   rw [grayChargedDisplayedMoveV2_eq_current, grayChargedDisplayedMoveV2_eq_current, hfrozen,
-    hcur, if_pos hdone]
+    hcur, ite_eq_left hdone]
   have hentries : grayTailEntries (st.core.frozen.map GrayTailRoundV2.toV1)
       (if st'.core.done then [] else st'.core.slots)
       (grayChargedCurrentMoveV2 q L a e sigma st') =
@@ -213,9 +213,9 @@ lemma grayChargedDisplayedMoveV2_mono_of_wait {n b q L a e i : ℕ}
     hi x hentries (fun pr hpr y => getReq_slotEntries_mem_nonneg _ _ ?_ pr hpr y)
   intro j hj y
   by_cases hd : st'.core.done = true
-  · rw [if_pos hd] at hj
+  · rw [ite_eq_left hd] at hj
     simp at hj
-  · rw [if_neg hd] at hj
+  · rw [ite_eq_right hd] at hj
     exact hnonneg j hj y
 
 /-! ### The current sub-moves are monotone in the exchange -/

@@ -85,7 +85,7 @@ lemma grayChargedRootIncrement_spend_upper
                 grayCharged_filter_index_card slots i
         _ = grayChargedSpendCount q a e := by
           dsimp [slots, grayChargedSlotsForPass]
-          rw [grayChargedSpendSlots_filter_root_length, if_pos hi,
+          rw [grayChargedSpendSlots_filter_root_length, ite_eq_left hi,
             grayChargedSpendPairs_length (q := q) (L := L) hae hpass]
     have hsum :
         grayChargedRootIncrement (grayTailSlotEntries slots move) i =
@@ -268,11 +268,11 @@ lemma grayCharged_advantage_root_cap
     intro c
     by_cases hc : c.val < grayChargedSourceCount a e
     · unfold grayChargedSonRequest grayTailSonRequest
-      simp only [if_pos hc]
+      simp only [ite_eq_left hc]
       by_cases hlarge :
           grayChargedThreshold q e < grayTailSonBase entries i c
-      · rw [if_pos hlarge]
-      · rw [if_neg hlarge]
+      · rw [ite_eq_left hlarge]
+      · rw [ite_eq_right hlarge]
         exact hbase c hc
     · have hzero : grayTailSonBase entries i c = 0 := by
         exact grayTailSonBase_eq_zero_of_sourceInvariant
@@ -385,7 +385,7 @@ theorem grayCharged_display_root_cap
             | cons x xs => exact Nat.succ_pos _
           intro j hj
           dsimp [current]
-          rw [if_neg hempty]
+          rw [ite_eq_right hempty]
           exact hcurrent rfl hne j hj
       exact grayCharged_advantage_root_cap
         hae hsource hcore.shape

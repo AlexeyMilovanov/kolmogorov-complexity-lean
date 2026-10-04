@@ -40,10 +40,10 @@ theorem partrec_codedWindow_decoder {α : Type} [Primcodable α]
     intro x
     by_cases h : (W x.1 x.2).Nonempty
     · have hd : decide (W x.1 x.2).Nonempty = true := by simp [h]
-      simp only [hd, cond_true, dif_pos h, PFun.coe_val]
+      simp only [hd, Bool.cond_true, dite_eq_left h, PFun.coe_val]
       rw [canonicalUniformCodeOfList_canonicalFinsetList _ h]
     · have hd : decide (W x.1 x.2).Nonempty = false := by simp [h]
-      simp only [hd, cond_false, dif_neg h]
+      simp only [hd, Bool.cond_false, dite_eq_right h]
 
 /- G3: The decoder is partial recursive.
 

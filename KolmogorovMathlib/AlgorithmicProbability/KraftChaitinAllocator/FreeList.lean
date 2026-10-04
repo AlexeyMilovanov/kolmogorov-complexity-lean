@@ -1,11 +1,16 @@
 import KolmogorovMathlib.Prefix.Basic
 import Mathlib.Algebra.Field.GeomSum
-import Mathlib.Data.ENNReal.Basic
+import Mathlib.Basic.ENNReal.Basic
 import Mathlib.Tactic.NormNum
 import Mathlib.Tactic.Ring
 import Mathlib.Topology.Algebra.InfiniteSum.ENNReal
 
+/-!
+# Kraft-Chaitin allocator: free lists
 
+Free-list operations (node splitting and allocation) underlying the Kraft-Chaitin
+allocator.
+-/
 
 namespace Kolmogorov
 namespace KraftChaitin
@@ -902,9 +907,9 @@ theorem take_eq_rev {α} (n : ℕ) (l : List α) :
 theorem findIdx?_eq_ite {α} (p : α → Bool) (l : List α) :
     l.findIdx? p = if l.findIdx p < l.length then some (l.findIdx p) else none := by
   by_cases h : l.findIdx p < l.length
-  · simp only [h, if_true]
+  · simp only [h, ite_true]
     rw [List.findIdx?_eq_some_iff_findIdx_eq]; exact ⟨h, rfl⟩
-  · simp only [h, if_false]
+  · simp only [h, ite_false]
     rw [List.findIdx?_eq_none_iff]
     have hlen : l.findIdx p = l.length := le_antisymm List.findIdx_le_length (not_lt.mp h)
     rw [List.findIdx_eq_length] at hlen

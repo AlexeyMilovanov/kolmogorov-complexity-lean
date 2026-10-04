@@ -33,7 +33,7 @@ output-indexed sum, which equals `domainWeight M y`
 theorem aprioriMeasure_le_domainWeight (M : Map) (x y : BitString) :
     aprioriMeasure M x y ≤ domainWeight M y := by
   rw [← tsum_aprioriMeasure_eq_domainWeight]
-  exact ENNReal.le_tsum x
+  exact ENNReal.le_tsum (f := fun x => aprioriMeasure M x y) x
 
 /-- **Pointwise bound by `1`.** For a prefix machine, every value of the a priori
 semimeasure is at most `1`. Combines the pointwise domain-weight bound with the
@@ -90,7 +90,7 @@ theorem aprioriMeasure_const_none (x y : BitString) :
   have hzero : ∀ p : BitString,
       (if produces (fun _ => Part.none) p y x then progWeight p else 0) = 0 := by
     intro p
-    rw [if_neg]
+    rw [ite_eq_right]
     exact Part.notMem_none x
   rw [tsum_congr hzero, tsum_zero]
 

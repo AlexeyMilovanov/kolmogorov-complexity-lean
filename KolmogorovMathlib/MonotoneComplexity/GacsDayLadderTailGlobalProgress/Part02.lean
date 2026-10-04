@@ -29,7 +29,7 @@ lemma grayTail_active_base_le_step_global
           (grayTailStep q L a e sigma A st sm).frozen s.1 s.2.1 <=
         dyadicScale e - dyadicScale e / (6 * halfAmplification q) := by
   unfold grayTailStep
-  simp only [grayTailWaitingB, Bool.false_eq_true, if_false]
+  simp only [grayTailWaitingB, Bool.false_eq_true, ite_false]
   split
   · exact hprev
   · split
@@ -89,7 +89,7 @@ lemma grayTail_all_frozen_base_le_step
       grayTailFrozenSonBase
         (grayTailStep q L a e sigma A st sm).frozen i c <= dyadicScale e := by
   unfold grayTailStep
-  simp only [grayTailWaitingB, Bool.false_eq_true, if_false]
+  simp only [grayTailWaitingB, Bool.false_eq_true, ite_false]
   split
   · exact hprev
   · split

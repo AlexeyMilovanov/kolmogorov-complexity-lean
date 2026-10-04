@@ -361,7 +361,7 @@ lemma coveredCount_eq_sum (c : Nat.Partrec.Code) (s : ℕ) (x : BitString) :
           (fun ext => if decide (p ++ ext = z) then 1 else 0) (boundedPrograms s)).sum)) = true
   · have hh2 := h_eq.mp hh
     simp only [Bool.and_eq_true, decide_eq_true_eq, List.any_eq_true] at hh hh2 ⊢
-    rw [if_pos hh, if_pos hh2]
+    rw [ite_eq_left hh, ite_eq_left hh2]
   · have hh_false : ((boundedPrograms s).any fun p =>
       (Nat.Partrec.Code.evaln s c (Encodable.encode (p, x))).isSome &&
         decide (0 < (List.map
@@ -376,7 +376,7 @@ lemma coveredCount_eq_sum (c : Nat.Partrec.Code) (s : ℕ) (x : BitString) :
           else 0).sum >
       0) := fun hh3 => hh (h_eq.mpr hh3)
     simp only [Bool.and_eq_true, decide_eq_true_eq, List.any_eq_true] at hh hh2 ⊢
-    rw [if_neg hh, if_neg hh2]
+    rw [ite_eq_right hh, ite_eq_right hh2]
 
 
 

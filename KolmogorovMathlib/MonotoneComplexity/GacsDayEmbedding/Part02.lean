@@ -83,7 +83,7 @@ private lemma intermediateRequestSum_eq (m : ℕ) (hm : 0 < m) (f : GacsDayNode 
       = sumExtensions (if y.length % m = 0 then 0 else m - y.length % m)
           (fun w => f (chunkNat m w)) y := by
   unfold intermediateRequestSum
-  rw [if_neg hm.ne']
+  rw [ite_eq_right hm.ne']
 
 /-- Off-block-boundary, the number of remaining bits to a block boundary drops by one. -/
 private lemma child_blockGap (l m : ℕ) (hm : 0 < m) :
@@ -93,10 +93,10 @@ private lemma child_blockGap (l m : ℕ) (hm : 0 < m) :
     rw [Nat.add_right_comm, Nat.add_mul_mod_self_left]
   have hlt : l % m < m := Nat.mod_lt _ hm
   rcases Nat.lt_or_ge (l % m + 1) m with h | h
-  · rw [key, Nat.mod_eq_of_lt h, if_neg (by omega)]
+  · rw [key, Nat.mod_eq_of_lt h, ite_eq_right (by omega)]
     omega
   · have h' : l % m + 1 = m := by omega
-    rw [key, h', Nat.mod_self, if_pos rfl]
+    rw [key, h', Nat.mod_self, ite_eq_left rfl]
     omega
 
 /-- A nonnegative weight function that vanishes outside `[0, b)` has all its
@@ -161,7 +161,7 @@ lemma requestCoherent_intermediate (m b d : ℕ) (req req_bin : ClientMove)
       exact sumExtensions_nonneg _ hfnn _ _
     · rw [h_bin, intermediateRequestSum_eq m hm]
       have hnil : ([] : GacsDayNode).length % m = 0 := by simp
-      rw [if_pos hnil, sumExtensions_zero, chunkNat_nil]
+      rw [ite_eq_left hnil, sumExtensions_zero, chunkNat_nil]
       exact hroot
     · rw [Fin.sum_univ_two]
       simp only [h_bin]
@@ -171,11 +171,11 @@ lemma requestCoherent_intermediate (m b d : ℕ) (req req_bin : ClientMove)
         Fin.isValue, Fin.val_zero, Fin.val_one]
       rw [child_blockGap x.length m hm]
       by_cases hr : x.length % m = 0
-      · rw [if_pos hr, sumExtensions_zero, hr]
+      · rw [ite_eq_left hr, sumExtensions_zero, hr]
         have hm1 : m - 0 - 1 + 1 = m := by omega
         rw [ge_iff_le, ← sumExtensions_succ (m - 0 - 1), hm1]
         exact sumExtensions_block_le m b hm req hpos hchild h_range x (Nat.dvd_of_mod_eq_zero hr)
-      · rw [if_neg hr]
+      · rw [ite_eq_right hr]
         have hlt : x.length % m < m := Nat.mod_lt _ hm
         have hm1 : m - x.length % m - 1 + 1 = m - x.length % m := by omega
         rw [ge_iff_le, ← sumExtensions_succ (m - x.length % m - 1), hm1]
@@ -280,10 +280,10 @@ private lemma exists_blockCount (m : ℕ) (hm : 0 < m) (l : ℕ) :
   have hmod : m * (l / m) + l % m = l := Nat.div_add_mod l m
   have hrlt : l % m < m := Nat.mod_lt _ hm
   by_cases hr : l % m = 0
-  · exact ⟨l / m, by rw [if_pos hr]; omega⟩
+  · exact ⟨l / m, by rw [ite_eq_left hr]; omega⟩
   · refine ⟨l / m + 1, ?_⟩
     have hexp : m * (l / m + 1) = m * (l / m) + m := by ring
-    rw [if_neg hr, hexp]
+    rw [ite_eq_right hr, hexp]
     omega
 
 /-- Off the finite support determined by the base client move, the intermediate
@@ -357,7 +357,7 @@ lemma intermediateRequestSum_blockCode (m : ℕ) (hm : 0 < m) (f : GacsDayNode �
   have hlen : (blockCode m x).length % m = 0 := by
     rw [blockCode_length]
     simp [Nat.mul_mod_right]
-  rw [if_pos hlen, sumExtensions_zero, chunkNat_blockCode m hm x hx]
+  rw [ite_eq_left hlen, sumExtensions_zero, chunkNat_blockCode m hm x hx]
 
 /-- The interpolated request assignment is monotone in the base assignment. -/
 lemma intermediateRequestSum_mono (m : ℕ) {f g : GacsDayNode → ℚ} (hfg : ∀ x, f x ≤ g x)
@@ -446,7 +446,7 @@ private lemma intermediateRequestSum_eq_rangeSum (m : ℕ) (f : GacsDayNode → 
             (y ++ bitsOfNat (if y.length % m = 0 then 0 else m - y.length % m) n)) := by
   rcases Nat.eq_zero_or_pos m with rfl | hm
   · simp [intermediateRequestSum]
-  · rw [if_neg (by omega), intermediateRequestSum_eq m hm f y, sumExtensions_eq_sum]
+  · rw [ite_eq_right (by omega), intermediateRequestSum_eq m hm f y, sumExtensions_eq_sum]
 
 private lemma primrec_padLen : Primrec (fun z : (ℕ × ClientMove) × GacsDayNode =>
     if z.2.length % z.1.1 = 0 then 0 else z.1.1 - z.2.length % z.1.1) := by
@@ -510,7 +510,7 @@ theorem treeSupported_embeddedClientStrategy {h b m : ℕ} {σ : ClientStrategy}
   rcases Nat.eq_zero_or_pos m with rfl | hm
   · simp [embeddedClientStrategy, getReq_intermediateClientMove, intermediateRequestSum]
   rw [embeddedClientStrategy, getReq_intermediateClientMove,
-    intermediateRequestSum_eq_rangeSum, if_neg hm.ne']
+    intermediateRequestSum_eq_rangeSum, ite_eq_right hm.ne']
   refine Finset.sum_eq_zero fun n _ => ?_
   set k : ℕ := if y.length % m = 0 then 0 else m - y.length % m with hk
   have hdm : y.length = m * (y.length / m) + y.length % m := (Nat.div_add_mod _ _).symm

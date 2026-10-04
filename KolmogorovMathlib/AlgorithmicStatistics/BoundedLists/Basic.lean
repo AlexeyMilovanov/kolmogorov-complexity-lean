@@ -255,7 +255,7 @@ theorem boundedOutputCompletionTime_spec (c : Code) (m : ℕ) :
       (completedBoundedOutput c m).length :=
     ⟨maxHaltingStage c m, rfl⟩
   unfold boundedOutputCompletionTime
-  rw [dif_pos hex]
+  rw [dite_eq_left hex]
   exact Nat.find_spec hex
 
 open Classical in

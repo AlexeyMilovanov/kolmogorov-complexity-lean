@@ -13,7 +13,12 @@ import Mathlib.Computability.PartrecCode
 import KolmogorovMathlib.Complexity.Incompressibility
 import KolmogorovMathlib.Complexity.EnumerableFamilies.CountingBounds
 
+/-!
+# Block computability for the Theorem 9 decompressor
 
+Computability of the block pools and allocations that define the decompressor of
+Theorem 9 for enumerable families.
+-/
 
 namespace Kolmogorov
 open Nat.Partrec (Code)
@@ -69,7 +74,7 @@ theorem firstAppearsAt_spec (c_V : Code) (n : ℕ) (x : BitString) (s_0 : ℕ)
           have h2 : x.length ≤ s' := by simpa using h_and.2
           exact False.elim (h_prev ⟨h1, h2⟩)
       have h_succ_ne : s' + 1 ≠ 0 := Nat.succ_ne_zero s'
-      simp only [h_succ_ne, if_false, Nat.add_sub_cancel]
+      simp only [h_succ_ne, ite_false, Nat.add_sub_cancel]
       rw [h_f]
       rfl
 
@@ -361,7 +366,7 @@ theorem enumV_list_nodup (c_V : Code) (n : ℕ) (s : ℕ) :
           decide (z.length ≤ s')) = false := by
         have h2 := (Bool.and_eq_true _ _).mp hz_step.2 |>.2
         have h_succ_ne : s' + 1 ≠ 0 := Nat.succ_ne_zero s'
-        simp only [h_succ_ne, if_false, Nat.add_sub_cancel] at h2
+        simp only [h_succ_ne, ite_false, Nat.add_sub_cancel] at h2
         cases h_b : ((Code.evaln s' c_V (Encodable.encode (n, z))).isSome && decide (z.length ≤ s'))
         · rfl
         · rw [h_b] at h2; contradiction

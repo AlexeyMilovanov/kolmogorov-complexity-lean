@@ -233,7 +233,8 @@ theorem not_isMartinLofRandomReal_iff_ratioTendstoZero_two_pow_neg {m : ℕ → 
   -- the real sum of the series `2^{-f(n)}` is `α`
   have hposα : 0 < ENNReal.ofReal α := by
     rw [hα]
-    exact lt_of_lt_of_le (pos_iff_ne_zero.2 (pow_ne_zero (f 0) (by simp))) (ENNReal.le_tsum 0)
+    exact lt_of_lt_of_le (pos_iff_ne_zero.2 (pow_ne_zero (f 0) (by simp)))
+      (ENNReal.le_tsum (f := fun n => (2 : ℝ≥0∞)⁻¹ ^ f n) 0)
   have hαpos : 0 < α := ENNReal.ofReal_pos.1 hposα
   have hsummable : Summable (fun n : ℕ => ((2 : ℝ)⁻¹) ^ f n) := by
     refine (ENNReal.summable_toReal hfin).congr (fun n => ?_)

@@ -150,20 +150,20 @@ lemma isLowerSemicomputableFun_mlTestValue {U : ℕ → Set CantorSeq}
         · unfold mlTestValue at h
           obtain ⟨n, hn⟩ := lt_iSup_iff.1 h
           by_cases hw : w ∈ U n
-          · rw [if_pos hw] at hn
+          · rw [ite_eq_left hw] at hn
             have hqn : q < 2 ^ n := (ofReal_lt_two_pow_iff q n).1 hn
             have hwU : w ∈ ⋃ j, (f n j).elim ∅ cantorCylinder := by
               rw [← hUspec n]; exact hw
             obtain ⟨j, hj⟩ := Set.mem_iUnion.1 hwU
             refine ⟨Nat.pair n j, ?_⟩
-            simp only [Nat.unpair_pair, if_neg hq1, if_pos hqn]
+            simp only [Nat.unpair_pair, ite_eq_right hq1, ite_eq_left hqn]
             exact hj
-          · rw [if_neg hw] at hn
+          · rw [ite_eq_right hw] at hn
             exact absurd (lt_of_le_of_lt hone_le hn) (lt_irrefl 1)
       · rintro ⟨i, hi⟩
-        simp only [if_neg hq1] at hi
+        simp only [ite_eq_right hq1] at hi
         by_cases h2 : q < (2 : ℚ) ^ (Nat.unpair i).1
-        · rw [if_pos h2] at hi
+        · rw [ite_eq_left h2] at hi
           have hwU : w ∈ U (Nat.unpair i).1 := by
             rw [hUspec (Nat.unpair i).1]
             exact Set.mem_iUnion.2 ⟨(Nat.unpair i).2, hi⟩
@@ -173,8 +173,8 @@ lemma isLowerSemicomputableFun_mlTestValue {U : ℕ → Set CantorSeq}
           refine lt_of_lt_of_le hlt ?_
           unfold mlTestValue
           refine le_iSup_of_le (Nat.unpair i).1 ?_
-          rw [if_pos hwU]
-        · rw [if_neg h2] at hi
+          rw [ite_eq_left hwU]
+        · rw [ite_eq_right h2] at hi
           exact absurd hi (Set.notMem_empty w)
 
 /-- The set where the test value exceeds `2^n` is the union of the levels of the test beyond
@@ -210,7 +210,7 @@ lemma setOf_two_pow_lt_mlTestValue (U : ℕ → Set CantorSeq) (n : ℕ) :
     unfold mlTestValue
     have h_le : (2 : ℝ≥0∞) ^ (n + m + 1) ≤ ⨆ k, if w ∈ U k then (2 : ℝ≥0∞) ^ k else 1 := by
       apply le_iSup_of_le (n + m + 1)
-      rw [if_pos hm]
+      rw [ite_eq_left hm]
     have h_lt : (2 : ℝ≥0∞) ^ n < (2 : ℝ≥0∞) ^ (n + m + 1) := by
       have h_coe1 : (2 : ℝ≥0∞) ^ n = ((2 ^ n : ℕ) : ℝ≥0∞) := by norm_num
       have h_coe2 : (2 : ℝ≥0∞) ^ (n + m + 1) = ((2 ^ (n + m + 1) : ℕ) : ℝ≥0∞) := by norm_num
@@ -311,7 +311,7 @@ lemma le_mlTestValue_superlevel (v : CantorSeq → ℝ≥0∞) (w : CantorSeq) :
         have h_mem : w ∈ U M := by
           simp only [U, Set.mem_ofPred_eq, h_inf]
           exact ENNReal.coe_lt_top
-        rw [if_pos h_mem]
+        rw [ite_eq_left h_mem]
       have hM_pow : (M : ℝ≥0∞) ≤ (2 : ℝ≥0∞) ^ M := by
         have h1 : M ≤ 2 ^ M := k_le_two_pow_k M
         have h1_coe : (M : ℝ≥0∞) = ((M : ℕ) : ℝ≥0∞) := rfl
@@ -373,7 +373,7 @@ lemma le_mlTestValue_superlevel (v : CantorSeq → ℝ≥0∞) (w : CantorSeq) :
       have h_val : (2 : ℝ≥0∞) ^ n ≤ mlTestValue U w := by
         unfold mlTestValue
         apply le_iSup_of_le n
-        rw [if_pos h_mem]
+        rw [ite_eq_left h_mem]
       calc
         v w ≤ (2 : ℝ≥0∞) ^ min_k := h_min_k
         _ = (2 : ℝ≥0∞) ^ (n + 2) := by rw [hn]
@@ -411,7 +411,7 @@ lemma mlTestValue_top_of_mlDeficiency_top {U : ℕ → Set CantorSeq} {w : Canto
   rcases h_unb k with ⟨m, hm, hwm⟩
   have h_bound : (2 : ℝ≥0∞) ^ m ≤ ⨆ n, if w ∈ U n then (2 : ℝ≥0∞) ^ n else 1 := by
     apply le_iSup_of_le m
-    rw [if_pos hwm]
+    rw [ite_eq_left hwm]
   have h_m : (k : ℝ≥0∞) ≤ (2 : ℝ≥0∞) ^ m := by
     have h1 : (k : ℝ≥0∞) ≤ (2 : ℝ≥0∞) ^ k := by
       have hk_le : k ≤ 2 ^ k := k_le_two_pow_k k
@@ -493,7 +493,7 @@ lemma mlTestValue_le_of_mlDeficiency_le {U V : ℕ → Set CantorSeq} {c : ℕ}
           exact one_le_mlTestValue U w
         · unfold mlTestValue
           apply le_iSup_of_le m
-          rw [if_pos hmem]
+          rw [ite_eq_left hmem]
       have h_mul : (2 : ℝ≥0∞) ^ c * (2 : ℝ≥0∞) ^ m ≤ (2 : ℝ≥0∞) ^ c * mlTestValue U w := by
         apply mul_le_mul' le_rfl h_m
       exact le_trans h_pow h_mul

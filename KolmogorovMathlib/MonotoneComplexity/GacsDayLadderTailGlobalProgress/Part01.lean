@@ -201,7 +201,7 @@ lemma grayTailSourceSlots_step {n b : Nat}
     GrayTailSourceSlots (2 ^ (e - a))
       (grayTailStep q L a e sigma A st sm) := by
   unfold grayTailStep
-  simp only [grayTailWaitingB, Bool.false_eq_true, if_false]
+  simp only [grayTailWaitingB, Bool.false_eq_true, ite_false]
   split
   · exact hst
   · split
@@ -377,7 +377,7 @@ lemma getReq_le_grayTailSonBase_of_mem_global {n b : Nat}
           grayTailSonBase_nonneg_global (fun q hq => hreq q (by simp [hq]))
         unfold grayTailSonBase
         simp only [List.foldr_cons]
-        rw [if_pos ⟨hi, hc⟩]
+        rw [ite_eq_left ⟨hi, hc⟩]
         exact le_add_of_nonneg_right htail
       · have htail : ∀ q ∈ entries, 0 ≤ getReq q.2 [] := by
           intro q hq

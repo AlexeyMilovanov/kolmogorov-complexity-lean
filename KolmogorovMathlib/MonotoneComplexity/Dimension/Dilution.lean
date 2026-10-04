@@ -170,10 +170,10 @@ lemma cantorPrefix_dilate (p q : ℕ) (hq : 0 < q) (w : CantorSeq) (n : ℕ) :
     simp [dilExpand]
   rw [hL, hR, dilate]
   by_cases hsel : dilSel p q i = true
-  · rw [if_pos hsel, if_pos hsel,
+  · rw [ite_eq_left hsel, ite_eq_left hsel,
       getD_cantorPrefix (dilCount_lt_of_dilSel hq hin hsel)]
   · simp only [Bool.not_eq_true] at hsel
-    rw [if_neg (by simp [hsel]), if_neg (by simp [hsel])]
+    rw [ite_eq_right (by simp [hsel]), ite_eq_right (by simp [hsel])]
 
 /-! ## The computable cover of the dilution set -/
 
@@ -296,8 +296,8 @@ private lemma dilWitness_length (p q : ℕ) (x : BitString) :
   classical
   unfold dilWitness
   by_cases h : ∃ v : CantorSeq, IsCantorPrefix x (dilate p q v)
-  · rw [dif_pos h]; simp
-  · rw [dif_neg h]; simp
+  · rw [dite_eq_left h]; simp
+  · rw [dite_eq_right h]; simp
 
 private lemma mem_cantorCylinder_dilWitness (p q : ℕ) (hq : 0 < q) (hpq : p ≤ q)
     {x : BitString} {v : CantorSeq} (hv : IsCantorPrefix x (dilate p q v)) :
@@ -306,7 +306,7 @@ private lemma mem_cantorCylinder_dilWitness (p q : ℕ) (hq : 0 < q) (hpq : p �
   have hex : ∃ u : CantorSeq, IsCantorPrefix x (dilate p q u) := ⟨v, hv⟩
   have hw := hex.choose_spec
   unfold dilWitness
-  rw [dif_pos hex]
+  rw [dite_eq_left hex]
   intro j hj
   have hjlt : j < dilCount p q x.length := by simpa using hj
   obtain ⟨i, hi, hsel, hval⟩ := exists_dilSel_dilCount_eq p q hq hpq x.length j hjlt

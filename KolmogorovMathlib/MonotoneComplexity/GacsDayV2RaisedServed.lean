@@ -65,14 +65,14 @@ theorem grayChargedRaisedServedB_eq_true_iff {n b : ℕ} {e used : ℕ}
     have hmem : z.2.val < used ∧ threshold < grayTailFrozenSonBase frozen z.1 z.2 :=
       (Finset.mem_filter.mp hz).2
     have hz' := h z.1 (List.mem_finRange _) z.2 (List.mem_finRange _)
-    rw [if_pos hmem] at hz'
+    rw [ite_eq_left hmem] at hz'
     exact servesB_eq_true_iff.mp hz'
   · intro h i _ j _
     by_cases hij : j.val < used ∧ threshold < grayTailFrozenSonBase frozen i j
-    · rw [if_pos hij]
+    · rw [ite_eq_left hij]
       exact servesB_eq_true_iff.mpr
         (h (i, j) (Finset.mem_filter.mpr ⟨Finset.mem_univ _, hij⟩))
-    · rw [if_neg hij]
+    · rw [ite_eq_right hij]
 
 /-- The test is monotone in the server time: service persists under legal
 server play (`serves_mono_time`). -/

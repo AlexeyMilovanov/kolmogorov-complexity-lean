@@ -565,7 +565,7 @@ theorem exists_robustMachine_of_isComputableStreamMap {f : BitStream → BitStre
   · funext x
     apply BitStream.eq_of_forall_finite_le_iff
     intro y
-    rw [robustDenotation, dif_pos hmono, BitStream.finite_le_ofPrefixSet_iff]
+    rw [robustDenotation, dite_eq_left hmono, BitStream.finite_le_ofPrefixSet_iff]
     exact hchar x (canonicalTiming x) (canonicalTiming_realizes x).1
       (canonicalTiming_realizes x).2 y
 

@@ -380,12 +380,12 @@ theorem rawSlots_eq (n b used r : ℕ) :
     rawSlots n b used r = (grayTailSlots n b used r).map toRawSlot := by
   unfold rawSlots grayTailSlots
   by_cases hr : r < b
-  · rw [dif_pos hr, if_pos hr, List.map_flatMap]
+  · rw [dite_eq_left hr, ite_eq_left hr, List.map_flatMap]
     refine (flatMap_finRange_eq_flatMap_range n _ _ ?_).symm
     intro i
     rw [List.map_map, ← filter_finRange_map_val b (fun c => decide (c < used)), List.map_map]
     rfl
-  · rw [dif_neg hr, if_neg hr, List.map_nil]
+  · rw [dite_eq_right hr, ite_eq_right hr, List.map_nil]
 
 /-- The erased entries of the frozen rounds are the erasure of the indexed ones. -/
 theorem rawFrozenEntries_eq {n b : ℕ} (frozen : GrayTailFrozen n b) :
@@ -482,21 +482,21 @@ theorem rawFamilyMove_eq {n b : ℕ} (done : Bool) (targetFloor threshold eps : 
       fun c => if c < b then rawSonRequest threshold eps (toRawEntries entries) i.val c else 0 := by
     funext c
     by_cases hc : c < b
-    · rw [dif_pos hc, if_pos hc]
+    · rw [dite_eq_left hc, ite_eq_left hc]
       exact (rawSonRequest_eq threshold eps entries i ⟨c, hc⟩).symm
-    · rw [dif_neg hc, if_neg hc]
+    · rw [dite_eq_right hc, ite_eq_right hc]
   have h3 : (fun c c' => if hc : c < b then
         (if hc' : c' < b then grayTailEntryMove entries (i, ⟨c, hc⟩, ⟨c', hc'⟩) else []) else []) =
       fun c c' => if c < b then
         (if c' < b then rawEntryMove (toRawEntries entries) (i.val, c, c') else []) else [] := by
     funext c c'
     by_cases hc : c < b
-    · rw [dif_pos hc, if_pos hc]
+    · rw [dite_eq_left hc, ite_eq_left hc]
       by_cases hc' : c' < b
-      · rw [dif_pos hc', if_pos hc']
+      · rw [dite_eq_left hc', ite_eq_left hc']
         exact (rawEntryMove_eq entries (i, ⟨c, hc⟩, ⟨c', hc'⟩)).symm
-      · rw [dif_neg hc', if_neg hc']
-    · rw [dif_neg hc, if_neg hc]
+      · rw [dite_eq_right hc', ite_eq_right hc']
+    · rw [dite_eq_right hc, ite_eq_right hc]
   rw [h1, h2, h3]
 
 /-- The erased localisation of a server move agrees with the indexed one. -/
@@ -523,7 +523,7 @@ theorem rawNextSlots_eq {n b : ℕ} (e used round : ℕ) (threshold : ℚ) (A : 
       (grayTailNextSlots e used round threshold A frozen sm).map toRawSlot := by
   unfold rawNextSlots grayTailNextSlots
   by_cases hr : round < b
-  · rw [dif_pos hr, if_pos hr, List.map_flatMap]
+  · rw [dite_eq_left hr, ite_eq_left hr, List.map_flatMap]
     refine (flatMap_finRange_eq_flatMap_range n _ _ ?_).symm
     intro i
     rw [List.map_map,
@@ -544,7 +544,7 @@ theorem rawNextSlots_eq {n b : ℕ} (e used round : ℕ) (threshold : ℚ) (A : 
       rw [rawFrozenSonBase_eq]
     simp only [Function.comp_def, hpred]
     rfl
-  · rw [dif_neg hr, if_neg hr, List.map_nil]
+  · rw [dite_eq_right hr, ite_eq_right hr, List.map_nil]
 /-- The erased retained slots are the erasure of the indexed retained slots. -/
 theorem rawRetainedSlots_eq {n b : ℕ}
     (current candidates : List (GrayTailSlot n b)) :
@@ -657,10 +657,10 @@ theorem rawWaitingFamilyMove_eq {n b : ℕ}
           threshold eps (toRawEntries entries) i.val c else 0 := by
     funext c
     by_cases hc : c < b
-    · rw [dif_pos hc, if_pos hc]
+    · rw [dite_eq_left hc, ite_eq_left hc]
       exact (rawWaitingSonRequest_eq forceSlots threshold eps
         entries i ⟨c, hc⟩).symm
-    · rw [dif_neg hc, if_neg hc]
+    · rw [dite_eq_right hc, ite_eq_right hc]
   have h3 : (fun c c' => if hc : c < b then
         (if hc' : c' < b then
           grayTailEntryMove entries (i, ⟨c, hc⟩, ⟨c', hc'⟩)
@@ -671,13 +671,13 @@ theorem rawWaitingFamilyMove_eq {n b : ℕ}
         else []) else [] := by
     funext c c'
     by_cases hc : c < b
-    · rw [dif_pos hc, if_pos hc]
+    · rw [dite_eq_left hc, ite_eq_left hc]
       by_cases hc' : c' < b
-      · rw [dif_pos hc', if_pos hc']
+      · rw [dite_eq_left hc', ite_eq_left hc']
         exact (rawEntryMove_eq entries
           (i, ⟨c, hc⟩, ⟨c', hc'⟩)).symm
-      · rw [dif_neg hc', if_neg hc']
-    · rw [dif_neg hc, if_neg hc]
+      · rw [dite_eq_right hc', ite_eq_right hc']
+    · rw [dite_eq_right hc, ite_eq_right hc]
   rw [h1, h2, h3]
 
 /-- The erased count of slots at a root agrees with the indexed one. -/
@@ -751,21 +751,21 @@ theorem rawStepWith_eq {n b : ℕ} (q L a e : ℕ) (sigma : FamilyStrategyScheme
   unfold rawStepWith grayTailStep
   rw [rawWaitingB_eq]
   by_cases hw : grayTailWaitingB st = true
-  · rw [if_pos hw, if_pos hw]
+  · rw [ite_eq_left hw, ite_eq_left hw]
     simp only [toRawState]
     simp only [rawAllAnchoredB_eq]
     by_cases ha : grayTailAllAnchoredB e A st.anchoringSlots sm = true
-    · rw [if_pos ha, if_pos ha]
+    · rw [ite_eq_left ha, ite_eq_left ha]
       rfl
-    · rw [if_neg ha, if_neg ha]
-  · rw [if_neg hw, if_neg hw]
+    · rw [ite_eq_right ha, ite_eq_right ha]
+  · rw [ite_eq_right hw, ite_eq_right hw]
     simp only [toRawState, List.isEmpty_map]
     by_cases hd : st.done = true
-    · rw [if_pos hd, if_pos hd]
-    · rw [if_neg hd, if_neg hd]
+    · rw [ite_eq_left hd, ite_eq_left hd]
+    · rw [ite_eq_right hd, ite_eq_right hd]
       by_cases hs : st.slots.isEmpty = true
-      · rw [if_pos hs, if_pos hs]
-      · rw [if_neg hs, if_neg hs]
+      · rw [ite_eq_left hs, ite_eq_left hs]
+      · rw [ite_eq_right hs, ite_eq_right hs]
         simp only [List.length_map]
         rw [rawLocalServerMove_eq]
         by_cases hgoal : familyRobustGrayGoalAtB (halfAmplification q)
@@ -776,7 +776,7 @@ theorem rawStepWith_eq {n b : ℕ} (q L a e : ℕ) (sigma : FamilyStrategyScheme
             (grayTailCurrentMove q L e sigma st)
             (grayTailLocalServerMove
               (grayTailRoundDelta q L e st.frozen.length) st.slots sm) = true
-        · rw [if_pos hgoal, if_pos hgoal]
+        · rw [ite_eq_left hgoal, ite_eq_left hgoal]
           have hfr : (st.frozen.map toRawRound ++
                 [((st.frozen.length, st.time,
                     grayTailRoundEps q L e st.frozen.length),
@@ -792,7 +792,7 @@ theorem rawStepWith_eq {n b : ℕ} (q L a e : ℕ) (sigma : FamilyStrategyScheme
             simp [grayTailStepRound, toRawRound]
           rw [hfr, rawNextSlots_eq, rawGlobalQuarterB_eq]
           simp [grayTailStepRound]
-        · rw [if_neg hgoal, if_neg hgoal]
+        · rw [ite_eq_right hgoal, ite_eq_right hgoal]
 
 /-- The erased controller output agrees with the indexed one. -/
 theorem rawOutput_eq {n b : ℕ} (q L a e : ℕ) (sigma : FamilyStrategyScheme)

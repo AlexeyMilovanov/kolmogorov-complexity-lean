@@ -640,7 +640,7 @@ theorem getElem_mem_standardBlock_of_bounds
     (completedBoundedOutput c m)[k] ∈ standardBlock c m r x := by
   have hbit := standardBlock_testBit_of_mem c m r x hxB
   unfold standardBlock
-  rw [if_pos hbit, List.mem_toFinset, List.mem_take_iff_getElem]
+  rw [ite_eq_left hbit, List.mem_toFinset, List.mem_take_iff_getElem]
   let start :=
     omegaCount c m / 2 ^ (r + 1) * 2 ^ (r + 1)
   refine ⟨k - start, ?_, ?_⟩
@@ -663,7 +663,7 @@ private theorem idxOf_completedBoundedOutput_mem_standardBlock
   let p := 2 ^ r
   have hbit := standardBlock_testBit_of_mem c m r x hxB
   unfold standardBlock at hxB
-  rw [if_pos hbit, List.mem_toFinset] at hxB
+  rw [ite_eq_left hbit, List.mem_toFinset] at hxB
   have hnodupL : L.Nodup := boundedOutputStage_nodup c m (maxHaltingStage c m)
   obtain ⟨k, hk, hkx⟩ := List.mem_take_iff_getElem.mp hxB
   have hkP : k < p := Nat.lt_of_lt_of_le hk (Nat.min_le_left _ _)
@@ -743,7 +743,7 @@ theorem exists_betterStandard_stage (c : Code) (m r : ℕ)
       exact (Nat.find_spec hex).symm
     · intro t ht
       rw [Part.mem_some_iff, hkey flag]
-      exact (eq_false_of_ne_true (Nat.find_min hex ht)).symm
+      exact (Bool.eq_false_of_ne_true (Nat.find_min hex ht)).symm
   · intro y hy
     have hyModel : y ∈ betterStandardModelList ACode := by
       rw [hModelList, mem_canonicalFinsetList]

@@ -197,7 +197,7 @@ cylinder intersected with the deficiency set. -/
 lemma defMeasure_of_ne_nil {P : Measure CantorSeq} {k : ℕ} {y : BitString} (hy : y ≠ []) :
     defMeasure P k y
       = (2 : ℝ≥0∞) ^ k * P (cantorCylinder y ∩ prefixHitSet (aPrioriDeficiencySet P k)) :=
-  if_neg hy
+  ite_eq_right hy
 
 /-- Each level-`k` deficiency measure is a continuous tree semimeasure. -/
 lemma isContinuousTreeSemimeasure_defMeasure {P : Measure CantorSeq} [IsProbabilityMeasure P]
@@ -209,7 +209,7 @@ lemma isContinuousTreeSemimeasure_defMeasure {P : Measure CantorSeq} [IsProbabil
     ← measure_inter_split P x (measurableSet_prefixHitSet _)]
   by_cases hx : x = []
   · subst hx
-    rw [defMeasure, if_pos rfl, cantorCylinder_nil, Set.univ_inter]
+    rw [defMeasure, ite_eq_left rfl, cantorCylinder_nil, Set.univ_inter]
     calc (2 : ℝ≥0∞) ^ k * P (prefixHitSet (aPrioriDeficiencySet P k))
         ≤ (2 : ℝ≥0∞) ^ k * ((2 : ℝ≥0∞)⁻¹) ^ k := by
           gcongr
@@ -242,14 +242,14 @@ lemma exists_uniform_approx_defMeasure {P : Measure CantorSeq} [IsProbabilityMea
   · intro k s y ctx
     by_cases hy : y = []
     · simp [hy, dyadicValue_two_pow_self]
-    · simp only [if_neg hy, dyadicValue_nat_mul]
+    · simp only [ite_eq_right hy, dyadicValue_nat_mul]
       have hcast : ((2 ^ k : ℕ) : ℝ≥0∞) = (2 : ℝ≥0∞) ^ k := by push_cast; ring
       rw [hcast]
       exact mul_le_mul_right (hmono s (defParam k y) ctx) _
   · intro k y ctx
     by_cases hy : y = []
     · simp [hy, dyadicValue_two_pow_self, defMeasure]
-    · simp only [if_neg hy, dyadicValue_nat_mul, defMeasure_of_ne_nil hy]
+    · simp only [ite_eq_right hy, dyadicValue_nat_mul, defMeasure_of_ne_nil hy]
       have hcast : ((2 ^ k : ℕ) : ℝ≥0∞) = (2 : ℝ≥0∞) ^ k := by push_cast; ring
       rw [hcast, ← ENNReal.mul_iSup]
       have hs := hsup (defParam k y) ctx
@@ -331,7 +331,7 @@ lemma dyadicValue_blockApprox {A : ℕ → ℕ → BitString → BitString → �
       = ((2 : ℝ≥0∞)⁻¹) ^ i
         * ∑ j ∈ Finset.range (2 ^ i), dyadicValue (A (2 ^ i + j) (s - i) y ctx) (s - i) := by
   obtain ⟨t, rfl⟩ : ∃ t, s = t + i := ⟨s - i, by omega⟩
-  rw [blockApprox, if_neg (by omega)]
+  rw [blockApprox, ite_eq_right (by omega)]
   simp only [Nat.add_sub_cancel]
   rw [dyadicValue_stage_add, dyadicValue_sum_range_dim]
 
@@ -365,7 +365,7 @@ lemma blockApprox_mono {A : ℕ → ℕ → BitString → BitString → ℕ}
     rw [hstep]
     gcongr with j hj
     exact hmono (2 ^ i + j) (s - i) y ctx
-  · rw [blockApprox, if_pos (by omega)]
+  · rw [blockApprox, ite_eq_left (by omega)]
     simp [dyadicValue]
 
 /-- The block approximation converges to the block average. -/
@@ -382,7 +382,7 @@ lemma blockApprox_sup {P : Measure CantorSeq} [IsProbabilityMeasure P]
       gcongr with j hj
       rw [← hsup (2 ^ i + j) y ctx]
       exact le_iSup (fun t => dyadicValue (A (2 ^ i + j) t y ctx) t) (s - i)
-    · rw [blockApprox, if_pos (by omega)]
+    · rw [blockApprox, ite_eq_left (by omega)]
       simp [dyadicValue]
   · rw [blockAverage]
     have hswap : ∑ j ∈ Finset.range (2 ^ i), defMeasure P (2 ^ i + j) y

@@ -12,18 +12,16 @@ import Mathlib.Data.Nat.Dist
 import Mathlib.Analysis.SpecialFunctions.Log.Base
 import Mathlib.Computability.Reduce
 
+/-!
+# Counting bounds for enumerable families
 
+Theorem 7: enumerable families and complexity bounds obtained by counting.
+-/
 
 namespace Kolmogorov
 
 open Nat.Partrec (Code)
-
-/-! ### Theorem 7: enumerable families and complexity bounds -/
-
 open Kolmogorov.CodedFiniteDistribution
-open Nat.Partrec (Code)
-
-/-! ### Theorem 7: enumerable families and complexity bounds -/
 
 /-- **Theorem 7(a).** The family `S n = {x | C(x) < n}` is an enumerable family of
 sets and `|S n| < 2 ^ n`. -/
@@ -185,7 +183,7 @@ theorem isUpperSemicomputable_plainK_and_card_lt_two_pow (U : Map) (hU : isOptim
       have hpOf_spec : ∀ x ∈ S, pOf x ∈ boundedPrograms m ∧ produces U (pOf x) [] x := by
         intro x hx
         dsimp [pOf]
-        rw [dif_pos hx]
+        rw [dite_eq_left hx]
         exact Classical.choose_spec hx
       have hpOf_maps : Set.MapsTo pOf S ((boundedPrograms m).toFinset : Set BitString) := by
         intro x hx
@@ -635,8 +633,8 @@ lemma plainK_le_of_isUpperSemicomputable_of_card_le_two_pow (U : Map)
       exact (Partrec.cond h_cond.to₂ h_f_comp Partrec.none).of_eq (by
         intro p; dsimp [g]
         cases h : decide (c₂ + 1 < p.2)
-        · dsimp; rw [if_neg (of_decide_eq_false h)]
-        · dsimp; rw [if_pos (of_decide_eq_true h)])
+        · rw [ite_eq_right (of_decide_eq_false h)]; rfl
+        · rw [ite_eq_left (of_decide_eq_true h)]; rfl)
     use g
     refine ⟨hg_part, fun p => ?_⟩
     dsimp [g]

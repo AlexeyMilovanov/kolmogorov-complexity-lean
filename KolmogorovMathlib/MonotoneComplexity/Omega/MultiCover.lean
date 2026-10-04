@@ -148,11 +148,11 @@ theorem cntGE_eq (b : ℕ → ℚ) (i j : ℕ) :
     · have hle : b i ≤ b i' := by
         rw [ratLtPair] at hlt
         exact not_lt.1 (of_decide_eq_false hlt)
-      rw [cond_false, if_pos hle]
+      rw [Bool.cond_false, ite_eq_left hle]
     · have hnle : ¬ (b i ≤ b i') := by
         rw [ratLtPair] at hlt
         exact not_le.2 (of_decide_eq_true hlt)
-      rw [cond_true, if_neg hnle]
+      rw [Bool.cond_true, ite_eq_right hnle]
   rw [Finset.sum_congr rfl hterm, Finset.sum_boole]
 
 /-- The counting function of a computable sequence is computable. -/
@@ -177,10 +177,10 @@ theorem topCand_cases (b : ℕ → ℚ) (c₀ : ℚ) (q : ℕ × ℕ) (i : ℕ) 
     (topCand b c₀ q i = c₀ ∧ cntGE b i q.2 < (q.1 : ℚ)) ∨
       (topCand b c₀ q i = b i ∧ (q.1 : ℚ) ≤ cntGE b i q.2) := by
   rcases hlt : ratLtPair (cntGE b i q.2, (q.1 : ℚ)) with _ | _
-  · refine Or.inr ⟨by rw [topCand, hlt, cond_false], ?_⟩
+  · refine Or.inr ⟨by rw [topCand, hlt, Bool.cond_false], ?_⟩
     rw [ratLtPair] at hlt
     exact not_lt.1 (of_decide_eq_false hlt)
-  · refine Or.inl ⟨by rw [topCand, hlt, cond_true], ?_⟩
+  · refine Or.inl ⟨by rw [topCand, hlt, Bool.cond_true], ?_⟩
     rw [ratLtPair] at hlt
     exact of_decide_eq_true hlt
 

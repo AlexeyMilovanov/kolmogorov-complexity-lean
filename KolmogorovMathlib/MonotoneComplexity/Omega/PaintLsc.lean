@@ -162,8 +162,8 @@ theorem not_isMartinLofRandomReal_of_stagePaint
   · obtain ⟨i₀, hi₀⟩ := hcov ε hε
     refine ⟨i₀, le_trans hi₀ (le_of_eq (tsum_congr (fun i => ?_)))⟩
     by_cases hle : i₀ ≤ i
-    · rw [if_pos hle, if_pos hle, tsum_stagePaint h0 hvmono (ε, i)]
-    · rw [if_neg hle, if_neg hle]
+    · rw [ite_eq_left hle, ite_eq_left hle, tsum_stagePaint h0 hvmono (ε, i)]
+    · rw [ite_eq_right hle, ite_eq_right hle]
 
 /-! ### The lower semicomputable family -/
 
@@ -234,7 +234,7 @@ theorem not_isMartinLofRandomReal_of_lscPaint
   · obtain ⟨i₀, hi₀⟩ := hcov ε hε
     refine ⟨i₀, le_trans hi₀ (le_of_eq (tsum_congr (fun i => ?_)))⟩
     by_cases hle : i₀ ≤ i
-    · rw [if_pos hle, if_pos hle, iSup_ofReal_lscFamilyVal hsup ε i]
-    · rw [if_neg hle, if_neg hle]
+    · rw [ite_eq_left hle, ite_eq_left hle, iSup_ofReal_lscFamilyVal hsup ε i]
+    · rw [ite_eq_right hle, ite_eq_right hle]
 
 end Kolmogorov

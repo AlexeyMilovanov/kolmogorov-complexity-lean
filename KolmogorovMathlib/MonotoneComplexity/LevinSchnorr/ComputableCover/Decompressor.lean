@@ -1,5 +1,12 @@
 import KolmogorovMathlib.MonotoneComplexity.LevinSchnorr.ComputableCover.PaddedCover
 
+/-!
+# Computable cover: decompressor
+
+The decompressor built from a computable cover enumeration, under the standing
+hypotheses on the enumeration.
+-/
+
 namespace Kolmogorov
 open MeasureTheory Set
 open scoped ENNReal
@@ -52,7 +59,8 @@ lemma le_length_coverStr (d s : ℕ) : d ≤ (coverStr E d s).length := by
         calc (2 : ℝ≥0∞)⁻¹ ^ x.length = (E d s).elim 0 (cantorMass uniformMeasure) := by
               rw [h]
               simp [cantorMass_uniformMeasure]
-          _ ≤ ∑' t : ℕ, (E d t).elim 0 (cantorMass uniformMeasure) := ENNReal.le_tsum s
+          _ ≤ ∑' t : ℕ, (E d t).elim 0 (cantorMass uniformMeasure) :=
+            ENNReal.le_tsum (f := fun t => (E d t).elim 0 (cantorMass uniformMeasure)) s
           _ ≤ (2 : ℝ≥0∞)⁻¹ ^ d := hsum d
       have hx : coverStr E d s = x := by simp [coverStr, h]
       rw [hx]
@@ -118,7 +126,8 @@ theorem tsum_inv_two_pow_coverExponent_ne_top :
     obtain ⟨c, hc⟩ := exists_coverExponent_eq (E := E) n
     calc (2 : ℝ≥0∞)⁻¹ ^ coverExponent E n = (2 : ℝ≥0∞)⁻¹ ^ coverCand E n c := by rw [hc]
       _ ≤ (2 : ℝ≥0∞)⁻¹ ^ (n + c) + coverTerm E c n := inv_two_pow_coverCand_le n c
-      _ ≤ ∑' c : ℕ, ((2 : ℝ≥0∞)⁻¹ ^ (n + c) + coverTerm E c n) := ENNReal.le_tsum c
+      _ ≤ ∑' c : ℕ, ((2 : ℝ≥0∞)⁻¹ ^ (n + c) + coverTerm E c n) :=
+        ENNReal.le_tsum (f := fun c => (2 : ℝ≥0∞)⁻¹ ^ (n + c) + coverTerm E c n) c
   have hbound : (∑' n : ℕ, (2 : ℝ≥0∞)⁻¹ ^ coverExponent E n) ≤ 8 := by
     calc (∑' n : ℕ, (2 : ℝ≥0∞)⁻¹ ^ coverExponent E n)
         ≤ ∑' n : ℕ, ∑' c : ℕ, ((2 : ℝ≥0∞)⁻¹ ^ (n + c) + coverTerm E c n) :=

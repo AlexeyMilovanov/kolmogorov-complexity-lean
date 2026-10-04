@@ -188,7 +188,7 @@ lemma grayTailOutput_current_req
     simp [s.1.isLt, current, entries]
   rw [getFamilyReq, hfamily]
   rw [getReq_graftTwoLevel_grandson s.2.1.isLt s.2.2.isLt]
-  rw [dif_pos s.2.1.isLt, dif_pos s.2.2.isLt]
+  rw [dite_eq_left s.2.1.isLt, dite_eq_left s.2.2.isLt]
   unfold getFamilyReq
   exact congrArg (fun m => getReq m x)
     (grayTailEntryMove_current hshape current j)
@@ -352,7 +352,7 @@ lemma grayTailSameRound_step_false
       apply hactive
       simp [hs]
   simp only [grayTailStep, grayTailWaitingB, Bool.false_eq_true,
-    if_false, hsame.done, hslots, hgoal]
+    ite_false, hsame.done, hslots, hgoal]
   exact ⟨by simp,
     by simpa using hsame.frozen,
     by simpa using hsame.unavailable,
@@ -566,7 +566,6 @@ theorem grayTail_round_positive_of_not_gray
       simpa [jT] using hmin)
     hfailT hposT
   convert hout using 1
-  omega
 
 /-- If the recursive game reaches its gray alternative, the outer controller
 detects its first such time and freezes the round on the following step. -/
@@ -664,7 +663,7 @@ theorem grayTail_freezes_of_round_gray
       simp [hs]
   rw [hnext]
   simp only [grayTailStep, grayTailWaitingB, Bool.false_eq_true,
-    if_false, hdoneT, hslotsT, htest, if_true]
+    ite_false, hdoneT, hslotsT, htest, ite_true]
   by_cases hu :
       grayTailHasUnanchoredReserveB e A stT.slots (sm (t + T)) = true <;>
     simp [hsame.frozen, htime]

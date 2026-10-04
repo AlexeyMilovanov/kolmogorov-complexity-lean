@@ -66,7 +66,7 @@ theorem condK_prefixExtensionMap_le_condK_V {V : Map} {code : Code}
     simp only [Nat.unpair_pair]
     have hdec : decide (p.length ≤ p.length) = true := decide_eq_true (le_refl _)
     rw [hdec]
-    simp only [if_true, List.take_length, ht, Option.bind_some, Encodable.encodek]
+    simp only [ite_true, List.take_length, ht, Option.bind_some, Encodable.encodek]
   have hcheck : prefixExtensionCheck code p y (Nat.pair p.length t) = true := by
     unfold prefixExtensionCheck; rw [hn_out]; rfl
   have hrdom : (Nat.rfind (show ℕ →. Bool from fun m =>
@@ -178,7 +178,8 @@ private def minimalRestrictWitnessFun (x : BitString) : Part BitString :=
     Part.none
 
 private lemma primrec_not : Primrec (!· : Bool → Bool) :=
-  Primrec.cond Primrec.id (Primrec.const false) (Primrec.const true)
+  (Primrec.cond Primrec.id (Primrec.const false) (Primrec.const true)).of_eq
+    fun b => by cases b <;> rfl
 
 private lemma dropWhile_eq_drop_takeWhile_length {α : Type*}
     (p : α → Bool) (l : List α) :
@@ -287,14 +288,14 @@ private theorem minimalRestrictWitnessFun_prefix_stable :
   have h_tail_pre := dropWhile_not_prefix_of_prefix hpre
   cases hd_x : isDoubleTrue (List.dropWhile (!·) x)
   · rw [hd_x] at hz
-    simp only [cond_false] at hz
+    simp only [Bool.cond_false] at hz
     cases hs_x : isSingleTrue (List.dropWhile (!·) x)
     · rw [hs_x] at hz
-      simp only [cond_false] at hz
+      simp only [Bool.cond_false] at hz
       obtain ⟨h_dom, _⟩ := hz
       exact False.elim h_dom
     · rw [hs_x] at hz
-      simp only [cond_true] at hz
+      simp only [Bool.cond_true] at hz
       rw [Part.mem_map_iff] at hz
       obtain ⟨a, h_diag_x, rfl⟩ := hz
       have hs_y := isSingleTrue_of_prefix h_tail_pre hs_x
@@ -305,21 +306,21 @@ private theorem minimalRestrictWitnessFun_prefix_stable :
       have h_len_eq := takeWhile_not_length_eq_of_prefix hpre h_nonempty
       rw [h_len_eq] at h_diag_x
       cases hd_y : isDoubleTrue (List.dropWhile (!·) y)
-      · simp only [cond_false]
+      · simp only [Bool.cond_false]
         rw [hs_y]
-        simp only [cond_true]
+        simp only [Bool.cond_true]
         exact Part.mem_map (fun _ => [false]) h_diag_x
-      · simp only [cond_true]
+      · simp only [Bool.cond_true]
         exact Part.mem_some [false]
   · rw [hd_x] at hz
-    simp only [cond_true] at hz
+    simp only [Bool.cond_true] at hz
     have hz_eq : z = [false] := Part.mem_some_iff.mp hz
     rw [hz_eq]
     have hd_y := isDoubleTrue_of_prefix h_tail_pre hd_x
     cases hd_y' : isDoubleTrue (List.dropWhile (!·) y)
     · rw [hd_y] at hd_y'
       contradiction
-    · simp only [cond_true]
+    · simp only [Bool.cond_true]
       exact Part.mem_some [false]
 
 private lemma take_append_self {α : Type*} (r t : List α) :
@@ -434,7 +435,7 @@ private lemma minimalRestrict_s_n_dom (n : ℕ) :
       exact h_not_diag
     · exfalso
       have h_r_eq : r = List.replicate n false ++ [true, true] := by
-        rw [hr_eq, take_s_n, if_neg h1, if_neg h2]
+        rw [hr_eq, take_s_n, ite_eq_right h1, ite_eq_right h2]
       exact hne h_r_eq
 
 private lemma computable_s_n :

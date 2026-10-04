@@ -174,7 +174,7 @@ lemma concreteIncidentEdgeCodePairs_mem_iff (n : Nat) (pair : BitString × BitSt
       List.mem_map] at h
     rcases h with ⟨m, hm, b, hb, x, hx, hp⟩
     let pt : AffineIncidence.Point (ConcreteField n) :=
-      (x, (m * x + b) % concretePrime n)
+      (x, (((m * x + b) % concretePrime n : ℕ) : ConcreteField n))
     let ell : AffineIncidence.Line (ConcreteField n) := (m, b)
     have hinc : AffineIncidence.Incident pt ell := by
       simp [pt, ell, AffineIncidence.Incident, ZMod.natCast_mod]
@@ -194,7 +194,7 @@ lemma concreteIncidentEdgeCodePairs_mem_iff (n : Nat) (pair : BitString × BitSt
       AffineIncidence.mem_incidentEdges_iff.mp e.2
     have hpoint :
         ((x : ConcreteField n),
-          ((m * x + b) % concretePrime n : ConcreteField n)) = e.1.1 := by
+          (((m * x + b) % concretePrime n : ℕ) : ConcreteField n)) = e.1.1 := by
       apply Prod.ext
       · simp [x]
       · simpa [m, b, x, ZMod.natCast_mod] using hinc.symm

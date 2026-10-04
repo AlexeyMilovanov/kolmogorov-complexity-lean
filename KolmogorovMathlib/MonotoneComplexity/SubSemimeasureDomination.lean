@@ -55,7 +55,7 @@ lemma isContinuousTreeSemimeasure_rootNormalize {f : BitString → ℝ≥0∞}
     exact le_trans h hroot
   · have hf : ¬ (x ++ [false] : BitString) = [] := by simp
     have ht : ¬ (x ++ [true] : BitString) = [] := by simp
-    simp only [rootNormalize, if_neg hf, if_neg ht, if_neg hx]
+    simp only [rootNormalize, ite_eq_right hf, ite_eq_right ht, ite_eq_right hx]
     exact hcoh x
 
 /-- Root normalisation preserves lower semicomputability. -/
@@ -65,13 +65,13 @@ lemma isLSC_rootNormalize {f : BitString → ℝ≥0∞} (hlsc : IsLSC fun x _ =
   refine ⟨fun s out ctx => if out = [] then 2 ^ s else approx s out ctx, ?_, ?_, ?_⟩
   · intro s out ctx
     by_cases h : out = []
-    · simp only [if_pos h, dyadicValue_two_pow_self, le_refl]
-    · simp only [if_neg h]
+    · simp only [ite_eq_left h, dyadicValue_two_pow_self, le_refl]
+    · simp only [ite_eq_right h]
       exact hmono s out ctx
   · intro out ctx
     by_cases h : out = []
-    · simp only [if_pos h, dyadicValue_two_pow_self, rootNormalize, iSup_const]
-    · simp only [if_neg h, rootNormalize]
+    · simp only [ite_eq_left h, dyadicValue_two_pow_self, rootNormalize, iSup_const]
+    · simp only [ite_eq_right h, rootNormalize]
       exact hsup out ctx
   · have hpred : Computable (fun p : ℕ × BitString × BitString => (p.2.1.length == 0)) :=
       (Primrec.beq.comp (Primrec.list_length.comp (Primrec.fst.comp Primrec.snd))

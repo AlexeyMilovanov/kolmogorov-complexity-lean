@@ -41,7 +41,7 @@ private lemma nodup_findIdx_getElem {α : Type*} [DecidableEq α] {l : List α} 
         exact ha_not h_mem
       rw [h_neq]
       change (if false then 0 else List.findIdx (fun q => decide (q = tail[i])) tail + 1) = i + 1
-      rw [if_neg (by decide)]
+      rw [ite_eq_right (by decide)]
       congr 1
       exact ih h_nodup i hi_tail
 
@@ -254,11 +254,11 @@ private lemma enum_mono (c_code : Nat.Partrec.Code) (p y : BitString) (M1 M2 : �
       by_cases h_mem : x ∈ t19_enum c_code p y M1 ++ rest
       · have h_dec : decide (x ∈ t19_enum c_code p y M1 ++ rest) = true :=
           decide_eq_true h_mem
-        simp only [h_dec, cond_true]
+        simp only [h_dec, Bool.cond_true]
         refine ⟨rest, rfl⟩
       · have h_dec : decide (x ∈ t19_enum c_code p y M1 ++ rest) = false :=
           decide_eq_false h_mem
-        simp only [h_dec, cond_false]
+        simp only [h_dec, Bool.cond_false]
         refine ⟨rest ++ [x], by rw [List.append_assoc]⟩
 
 private lemma enum_nodup (c_code : Nat.Partrec.Code) (p y : BitString) (M : ℕ) :
@@ -277,10 +277,10 @@ private lemma enum_nodup (c_code : Nat.Partrec.Code) (p y : BitString) (M : ℕ)
     · dsimp only
       by_cases h_mem : x ∈ t19_enum c_code p y M
       · have h_dec : decide (x ∈ t19_enum c_code p y M) = true := decide_eq_true h_mem
-        simp only [h_dec, cond_true]
+        simp only [h_dec, Bool.cond_true]
         exact ih
       · have h_dec : decide (x ∈ t19_enum c_code p y M) = false := decide_eq_false h_mem
-        simp only [h_dec, cond_false]
+        simp only [h_dec, Bool.cond_false]
         rw [List.nodup_append]
         refine ⟨ih, List.nodup_singleton x, ?_⟩
         rintro z hz1 z2 hz2
@@ -357,10 +357,10 @@ private lemma t19_enum_sound (k : BitString → BitString → ℕ∞)
       dsimp only at hz
       by_cases h_z_in : z' ∈ t19_enum c_code p y M
       · have h_dec : decide (z' ∈ t19_enum c_code p y M) = true := decide_eq_true h_z_in
-        simp only [h_dec, cond_true] at hz
+        simp only [h_dec, Bool.cond_true] at hz
         exact ih hz
       · have h_dec : decide (z' ∈ t19_enum c_code p y M) = false := decide_eq_false h_z_in
-        simp only [h_dec, cond_false] at hz
+        simp only [h_dec, Bool.cond_false] at hz
         rw [List.mem_append] at hz
         rcases hz with h1 | h2
         · exact ih h1
@@ -379,10 +379,10 @@ private lemma mem_t19_enum_succ_of_cand (c_code : Nat.Partrec.Code) (p y x : Bit
   dsimp only
   by_cases h_in : x ∈ t19_enum c_code p y M
   · have h_dec : decide (x ∈ t19_enum c_code p y M) = true := decide_eq_true h_in
-    simp only [h_dec, cond_true]
+    simp only [h_dec, Bool.cond_true]
     exact h_in
   · have h_dec : decide (x ∈ t19_enum c_code p y M) = false := decide_eq_false h_in
-    simp only [h_dec, cond_false]
+    simp only [h_dec, Bool.cond_false]
     exact List.mem_append_right _ (by simp)
 
 /-- `t19_cand` depends on the program `p` only through its length. -/

@@ -169,7 +169,7 @@ lemma lscApprox_prefix_mono (enum : ℚ → ℕ → Option BitString) (w : Canto
       have hle : 2 * k ≤ lscApprox enum (s + 1) (cantorPrefix w (s + 1)) := by
         have hmax := lscLe_bMax
           (fun k' => if lscFound enum (s + 1) (cantorPrefix w (s + 1)) k' then k' else 0) hb
-        simp only [hfound', if_true] at hmax
+        simp only [hfound', ite_true] at hmax
         exact hmax
       calc dyadicValue (lscApprox enum s (cantorPrefix w s)) s
           = dyadicValue (2 * k) (s + 1) := by rw [← hkeq, dyadicValue_two_mul_succ]
@@ -262,7 +262,7 @@ lemma lscLe_iSup_approx
     have hle : k ≤ lscApprox enum s (cantorPrefix w s) := by
       have hmax := lscLe_bMax
         (fun k' => if lscFound enum s (cantorPrefix w s) k' then k' else 0) hkbound
-      simp only [hfound, if_true] at hmax
+      simp only [hfound, ite_true] at hmax
       exact hmax
     have hchain : ENNReal.ofReal ((d : ℝ)) ≤
         ⨆ s, dyadicValue (lscApprox enum s (cantorPrefix w s)) s := by

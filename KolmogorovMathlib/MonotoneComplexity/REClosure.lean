@@ -58,9 +58,9 @@ lemma IsRE.and_computable {α : Type*} [Primcodable α] {R : α → Prop}
     · rintro ⟨h1, h2⟩
       by_cases hpa : p a = true
       · exact ⟨hpa, (hdom a).mp h1⟩
-      · rw [if_neg hpa] at h2; simp at h2
+      · rw [ite_eq_right hpa] at h2; simp at h2
     · rintro ⟨hpa, hRa⟩
-      exact ⟨(hdom a).mpr hRa, by rw [if_pos hpa]; trivial⟩
+      exact ⟨(hdom a).mpr hRa, by rw [ite_eq_left hpa]; trivial⟩
 
 private lemma decodeDovetailCheckComputable {α β : Type*} [Primcodable α] [Primcodable β]
     (c : Nat.Partrec.Code) :

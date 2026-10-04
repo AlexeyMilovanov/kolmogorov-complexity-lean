@@ -51,10 +51,10 @@ theorem optFirst_cases (E : α → ℕ → Bool) (p : α) (i : ℕ) :
       cases h : E p 0 with
       | true =>
           refine Or.inr ⟨0, ?_, le_rfl, h, fun l hl => absurd hl (Nat.not_lt_zero l)⟩
-          simp only [optFirst, h, cond_true]
+          simp only [optFirst, h, Bool.cond_true]
       | false =>
           refine Or.inl ⟨?_, fun j hj => ?_⟩
-          · simp only [optFirst, h, cond_false]
+          · simp only [optFirst, h, Bool.cond_false]
           · rw [Nat.le_zero.mp hj]; exact h
   | succ i ih =>
       rcases ih with ⟨hnone, hall⟩ | ⟨j, hj, hjle, hjtrue, hjmin⟩
@@ -62,15 +62,15 @@ theorem optFirst_cases (E : α → ℕ → Bool) (p : α) (i : ℕ) :
         cases h : E p (i + 1) with
         | true =>
             refine Or.inr ⟨i + 1, ?_, le_rfl, h, fun l hl => hall l (Nat.lt_succ_iff.mp hl)⟩
-            simp only [optFirst, hsome, cond_false, h, cond_true]
+            simp only [optFirst, hsome, Bool.cond_false, h, Bool.cond_true]
         | false =>
             refine Or.inl ⟨?_, fun m hm => ?_⟩
-            · simp only [optFirst, hsome, cond_false, h, cond_false]
+            · simp only [optFirst, hsome, Bool.cond_false, h, Bool.cond_false]
             · rcases Nat.eq_or_lt_of_le hm with heq | hlt
               · rw [heq]; exact h
               · exact hall m (Nat.lt_succ_iff.mp hlt)
       · refine Or.inr ⟨j, ?_, Nat.le_succ_of_le hjle, hjtrue, hjmin⟩
-        simp only [optFirst, hj, Option.isSome_some, cond_true]
+        simp only [optFirst, hj, Option.isSome_some, Bool.cond_true]
 
 /-- The bounded first-hit search fails exactly when the test is false up to the bound. -/
 theorem optFirst_eq_none_iff (E : α → ℕ → Bool) (p : α) (i : ℕ) :
@@ -96,7 +96,7 @@ theorem optFirst_stable {E : α → ℕ → Bool} {p : α} {i j : ℕ} (h : optF
   intro i' hi'
   induction i', hi' using Nat.le_induction with
   | base => exact h
-  | succ n _ ih => simp only [optFirst, ih, Option.isSome_some, cond_true]
+  | succ n _ ih => simp only [optFirst, ih, Option.isSome_some, Bool.cond_true]
 
 /-- If the test has fired at some `j ≤ i`, then `optFirst` has an answer at `i`. -/
 theorem optFirst_isSome_of {E : α → ℕ → Bool} {p : α} {i j : ℕ} (hj : j ≤ i)
@@ -310,8 +310,8 @@ theorem coverCharge_nonneg (p : ℚ × ℕ) (i : ℕ) : 0 ≤ coverCharge cover 
   · rw [coverCharge_some cover a hj]
     obtain ⟨_, h2⟩ := coverEnter_spec cover a (coverFirst_spec cover a hj).2.1
     cases hb : (p.2 + j == i) with
-    | false => rw [cond_false]
-    | true => rw [cond_true]; linarith
+    | false => rw [Bool.cond_false]
+    | true => rw [Bool.cond_true]; linarith
 
 /-- Interval `k` cannot charge a step `i < k`, because its charging step is `k + j`. -/
 theorem coverCharge_eq_zero_of_lt {p : ℚ × ℕ} {i : ℕ} (h : i < p.2) :
@@ -319,7 +319,7 @@ theorem coverCharge_eq_zero_of_lt {p : ℚ × ℕ} {i : ℕ} (h : i < p.2) :
   rcases Option.eq_none_or_eq_some (coverFirst cover a p i) with hn | ⟨j, hj⟩
   · exact coverCharge_none cover a hn
   · rw [coverCharge_some cover a hj,
-      beq_eq_false_iff_ne.mpr (by omega : ¬ (p.2 + j = i)), cond_false]
+      beq_eq_false_iff_ne.mpr (by omega : ¬ (p.2 + j = i)), Bool.cond_false]
 
 /-- The prediction sequence is nonnegative. -/
 theorem coverH_nonneg (ε : ℚ) (i : ℕ) : 0 ≤ coverH cover a ε i :=
@@ -342,17 +342,17 @@ theorem tsum_ofReal_coverCharge_le (ε : ℚ) (k : ℕ) :
       · have hnone : coverFirst cover a (ε, k) i = none :=
           (coverFirst_eq_none_iff cover a _ _).mpr
             (fun m hm => hj0min m (lt_of_le_of_lt hm hlt))
-        rw [coverCharge_none cover a hnone, if_neg (by omega : ¬ (k + j0 = i))]
+        rw [coverCharge_none cover a hnone, ite_eq_right (by omega : ¬ (k + j0 = i))]
       · rw [coverCharge_some cover a (coverFirst_stable cover a hbase i hge)]
         cases hb : (k + j0 == i) with
-        | false => rw [cond_false, if_neg (beq_eq_false_iff_ne.mp hb)]
-        | true => rw [cond_true, if_pos (beq_iff_eq.mp hb)]
+        | false => rw [Bool.cond_false, ite_eq_right (beq_eq_false_iff_ne.mp hb)]
+        | true => rw [Bool.cond_true, ite_eq_left (beq_iff_eq.mp hb)]
     have hsingle : (∑' i, ENNReal.ofReal ((coverCharge cover a (ε, k) i : ℚ) : ℝ))
         = ENNReal.ofReal (((covPair cover (ε, k)).2 - a j0 : ℚ) : ℝ) := by
       refine (tsum_eq_single (k + j0) (fun i hi => ?_)).trans ?_
-      · rw [hval i, if_neg (fun hc => hi hc.symm)]
+      · rw [hval i, ite_eq_right (fun hc => hi hc.symm)]
         simp
-      · rw [hval (k + j0), if_pos rfl]
+      · rw [hval (k + j0), ite_eq_left rfl]
     rw [hsingle, cover_eq_some_of_enter cover a hj0true]
     obtain ⟨h1, h2⟩ := coverEnter_spec cover a hj0true
     have h1R : (((covPair cover (ε, k)).1 : ℚ) : ℝ) < ((a j0 : ℚ) : ℝ) := by exact_mod_cast h1

@@ -110,11 +110,11 @@ lemma grayChargedBlockRoundSonBase_le_callScale {n b q L e r : Nat}
     apply List.sum_le_sum
     intro q hq
     by_cases hm : q.1.1 = i ∧ q.1.2.1 = c
-    · simp only [if_pos hm]
+    · simp only [ite_eq_left hm]
       obtain ⟨j, hj⟩ := List.mem_ofFn.mp hq
       rw [← hj]
       exact (grayChargedBlockGoalAtB_root_bounds hgoal j).2
-    · simp [if_neg hm]
+    · simp [ite_eq_right hm]
   refine le_trans hle ?_
   -- the guarded-constant sum = α · countP
   rw [sum_map_ite_eq_countP es (fun q => q.1.1 = i ∧ q.1.2.1 = c) α]
@@ -199,7 +199,7 @@ lemma grayChargedBlockTail_active_base_le_step
           (grayChargedBlockTailStep q L a e sigma A st sm).frozen s.1 s.2.1 <=
         dyadicScale e - dyadicScale e / (6 * halfAmplification q) := by
   unfold grayChargedBlockTailStep
-  simp only [grayTailWaitingB, Bool.false_eq_true, if_false]
+  simp only [grayTailWaitingB, Bool.false_eq_true, ite_false]
   split
   · exact hprev
   · split
@@ -245,7 +245,7 @@ lemma grayChargedBlockTail_all_frozen_base_le_step
         (grayChargedBlockTailStep q L a e sigma A st sm).frozen i c <=
           dyadicScale e := by
   unfold grayChargedBlockTailStep
-  simp only [grayTailWaitingB, Bool.false_eq_true, if_false]
+  simp only [grayTailWaitingB, Bool.false_eq_true, ite_false]
   split
   · exact hprev
   · split
@@ -318,7 +318,7 @@ lemma grayBlockNextSlots_length {n b : ℕ}
       (grayTailNextSlots e used round threshold A frozen sm).length *
         (grayAdvBlockGrandsons b q L round).length := by
   unfold grayBlockNextSlots grayTailNextSlots
-  rw [dif_pos hr]
+  rw [dite_eq_left hr]
   simp only [List.length_flatMap, List.length_map, list_sum_map_const]
   rw [list_sum_map_mul_const]
 

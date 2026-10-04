@@ -365,14 +365,14 @@ theorem lengthSection_isLSC : IsLSC lengthSection := by
   · intro s out ctx
     dsimp only
     by_cases h : ctx = natCode out.length
-    · rw [if_pos h, if_pos h]
+    · rw [ite_eq_left h, ite_eq_left h]
       exact hmono s out ctx
     · simp [h, dyadicValue]
   · intro out ctx
     dsimp only
     by_cases h : ctx = natCode out.length
-    · rw [lengthSection, if_pos h]
-      simp only [if_pos h]
+    · rw [lengthSection, ite_eq_left h]
+      simp only [ite_eq_left h]
       simpa using hsup out ctx
     · simp [h, lengthSection, dyadicValue]
   · have hdec : Computable (fun p : ℕ × BitString × BitString =>
@@ -419,7 +419,7 @@ theorem tsum_lengthSection_le_one (ctx : BitString) :
     split <;> simp
   · push Not at hctx
     have hz : ∀ x : BitString, lengthSection x ctx = 0 :=
-      fun x => if_neg (fun h => hctx x.length h)
+      fun x => ite_eq_right (fun h => hctx x.length h)
     simp [hz]
 
 /-- A sequence whose distinct members are pairwise non-prefixes has prefix-free
@@ -497,7 +497,7 @@ theorem rangeSection_isLSC {x : ℕ → BitString} (hx : Computable x) :
   · intro s out ctx
     dsimp only
     by_cases h : hitUpTo x s out = true
-    · rw [if_pos h, if_pos (hitUpTo_succ_of_true h)]
+    · rw [ite_eq_left h, ite_eq_left (hitUpTo_succ_of_true h)]
       exact hmono s out ctx
     · simp [h, dyadicValue]
   · intro out ctx
@@ -513,7 +513,7 @@ theorem rangeSection_isLSC {x : ℕ → BitString} (hx : Computable x) :
         apply le_antisymm
         · refine iSup_le fun s => ?_
           by_cases h : hitUpTo x s out = true
-          · rw [if_pos h]
+          · rw [ite_eq_left h]
             exact le_iSup (fun s => dyadicValue (approx s out ctx) s) s
           · simp [h, dyadicValue]
         · refine iSup_le fun s => ?_
@@ -524,7 +524,7 @@ theorem rangeSection_isLSC {x : ℕ → BitString} (hx : Computable x) :
           have := hhit (max s i) (le_max_right s i)
           calc dyadicValue (approx (max s i) out ctx) (max s i)
               = dyadicValue (if hitUpTo x (max s i) out then approx (max s i) out ctx else 0)
-                  (max s i) := by rw [if_pos this]
+                  (max s i) := by rw [ite_eq_left this]
             _ ≤ _ := le_iSup
                   (fun s => dyadicValue (if hitUpTo x s out then approx s out ctx else 0) s)
                   (max s i)
@@ -537,7 +537,7 @@ theorem rangeSection_isLSC {x : ℕ → BitString} (hx : Computable x) :
         exact hmem ⟨i, hi⟩
       have hzero : ∀ s, dyadicValue (if hitUpTo x s out then approx s out ctx else 0) s = 0 := by
         intro s
-        rw [if_neg (hfalse s), dyadicValue]
+        rw [ite_eq_right (hfalse s), dyadicValue]
         simp
       rw [rangeSection, Set.indicator_of_notMem hmem]
       simp [hzero]
@@ -760,7 +760,7 @@ theorem branchMeasure_isLSC (w : CantorSeq) (hw : Computable w) :
     change (⨆ s, dyadicValue (branchMeasureApprox w s out []) s) =
       branchMeasure w out
     by_cases hp : cantorPrefix w out.length = out
-    · rw [branchMeasure, if_pos hp]
+    · rw [branchMeasure, ite_eq_left hp]
       apply le_antisymm
       · refine iSup_le fun s => ?_
         by_cases hs : out.length ≤ s

@@ -295,11 +295,11 @@ theorem t3BoundaryDRun_invariant
       by_cases hreach :
           t3BoundaryDQuotaReached c n k epsilon delta (t + 1)
             (t3BoundaryDRun c n k epsilon delta t) = true
-      · rw [t3BoundaryDStep, if_pos hreach]
+      · rw [t3BoundaryDStep, ite_eq_left hreach]
         apply t3BoundaryDRebuild_preserves_invariant c n k epsilon (t + 1)
           (2 ^ (k - epsilon - delta)) _ ih
         simpa [t3BoundaryDQuotaReached] using hreach
-      · rw [t3BoundaryDStep, if_neg hreach]
+      · rw [t3BoundaryDStep, ite_eq_right hreach]
         exact ih
 
 /-- Every accumulated D mark is a genuine length-`n` string of plain
@@ -318,13 +318,13 @@ theorem t3BoundaryDRun_dSeen_sound
       by_cases hreach :
           t3BoundaryDQuotaReached c n k epsilon delta (t + 1)
             (t3BoundaryDRun c n k epsilon delta t) = true
-      · rw [t3BoundaryDStep, if_pos hreach,
+      · rw [t3BoundaryDStep, ite_eq_left hreach,
           t3BoundaryDRebuild] at hx
         rcases List.mem_append.mp (mem_eraseDups_bitString.mp hx) with hold | hnew
         · exact ih x hold
         · exact t1DStage_sound hc (by
             simpa using (List.mem_filter.mp hnew).2)
-      · rw [t3BoundaryDStep, if_neg hreach] at hx
+      · rw [t3BoundaryDStep, ite_eq_right hreach] at hx
         exact ih x hx
 
 /-- Availability keeps every historical boundary model at the exact target
@@ -352,7 +352,7 @@ theorem t3BoundaryDRun_current_length
       by_cases hreach :
           t3BoundaryDQuotaReached c n k epsilon delta (t + 1)
             (t3BoundaryDRun c n k epsilon delta t) = true
-      · rw [t3BoundaryDStep, if_pos hreach, t3BoundaryDRebuild,
+      · rw [t3BoundaryDStep, ite_eq_left hreach, t3BoundaryDRebuild,
           List.length_take]
         apply Nat.min_eq_left
         apply havailable n k epsilon _ hc0 hepsilon hkn
@@ -360,7 +360,7 @@ theorem t3BoundaryDRun_current_length
         exact not_le_of_gt (hsound x (by
           simpa [t3BoundaryDRun, t3BoundaryDStep, hreach,
             t3BoundaryDRebuild] using hx)).2
-      · rw [t3BoundaryDStep, if_neg hreach]
+      · rw [t3BoundaryDStep, ite_eq_right hreach]
         exact ih
 
 /-- Every historical current model stays inside the length-`n` cube. -/
@@ -379,12 +379,12 @@ theorem t3BoundaryDRun_current_subset_cube
       by_cases hreach :
           t3BoundaryDQuotaReached c n k epsilon delta (t + 1)
             (t3BoundaryDRun c n k epsilon delta t) = true
-      · rw [t3BoundaryDStep, if_pos hreach]
+      · rw [t3BoundaryDStep, ite_eq_left hreach]
         intro x hx
         rw [List.mem_toFinset] at hx
         exact mem_canonicalFinsetList.mp
           (List.mem_of_mem_filter (List.mem_of_mem_take hx))
-      · rw [t3BoundaryDStep, if_neg hreach]
+      · rw [t3BoundaryDStep, ite_eq_right hreach]
         exact ih
 
 /-- Each rebuild discards a full quota of strings, so the number of rebuilds times the quota is at
@@ -519,7 +519,7 @@ theorem t3BoundaryDRun_rebuilds_succ_of_reached
       (t3BoundaryDRun c n k epsilon delta t) = true) :
     (t3BoundaryDRun c n k epsilon delta (t + 1)).rebuilds =
       (t3BoundaryDRun c n k epsilon delta t).rebuilds + 1 := by
-  rw [t3BoundaryDRun, t3BoundaryDStep, if_pos h, t3BoundaryDRebuild]
+  rw [t3BoundaryDRun, t3BoundaryDStep, ite_eq_left h, t3BoundaryDRebuild]
 
 /-- Without a quota hit the run state is unchanged. -/
 theorem t3BoundaryDRun_eq_of_not_reached
@@ -528,7 +528,7 @@ theorem t3BoundaryDRun_eq_of_not_reached
       (t3BoundaryDRun c n k epsilon delta t) = false) :
     t3BoundaryDRun c n k epsilon delta (t + 1) =
       t3BoundaryDRun c n k epsilon delta t := by
-  rw [t3BoundaryDRun, t3BoundaryDStep, if_neg (by simp [h])]
+  rw [t3BoundaryDRun, t3BoundaryDStep, ite_eq_right (by simp [h])]
 
 /-- The version counter is monotone in the stage index. -/
 theorem t3BoundaryDRun_rebuilds_mono (c : Nat.Partrec.Code) (n k epsilon delta : ℕ) :

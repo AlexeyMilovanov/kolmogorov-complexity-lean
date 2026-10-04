@@ -20,7 +20,7 @@ import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.SlackArith
 import Mathlib.Analysis.SpecialFunctions.Log.Base
 import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 import Mathlib.Algebra.BigOperators.Field
-import Mathlib.Data.ENNReal.Inv
+import Mathlib.Basic.ENNReal.Inv
 import KolmogorovMathlib.AlgorithmicStatistics.Selector
 import KolmogorovMathlib.CommonInformation.Counting
 import KolmogorovMathlib.Complexity.ConditionalComplexity.Continuity
@@ -534,7 +534,7 @@ private lemma exists_step_evalDAt_eq (D : Map) (c_D : Code)
   refine ⟨maxStep, fun p hp => ?_⟩
   have hpS : p ∈ hfin.toFinset := hfin.mem_toFinset.mpr hp
   have h_le_sup : step_fn p ≤ maxStep := Finset.le_sup hpS
-  have h_eq_step : step_fn p = stepOf p hp := dif_pos hpS
+  have h_eq_step : step_fn p = stepOf p hp := dite_eq_left hpS
   have h_le : stepOf p hp ≤ maxStep := h_eq_step ▸ h_le_sup
   obtain ⟨val, hval⟩ := Option.isSome_iff_exists.mp (hstepOf p hp)
   have hmono := Nat.Partrec.Code.evaln_mono h_le (Option.mem_def.mp hval)

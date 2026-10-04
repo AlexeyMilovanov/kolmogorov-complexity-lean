@@ -547,7 +547,7 @@ lemma grayChargedBlockTailStepV2_done_stable {n b : Nat}
     (st : GrayTailStateV2 n b) (sm : FamilyServerMove)
     (h : st.done = true) :
     (grayChargedBlockTailStepV2 q L a e sigma A st sm).done = true := by
-  simp only [grayChargedBlockTailStepV2, h, if_true]
+  simp only [grayChargedBlockTailStepV2, h, ite_true]
 
 /-- The V2 step never shrinks the frozen list. -/
 lemma grayChargedBlockTailStepV2_frozen_length_le {n b : Nat}

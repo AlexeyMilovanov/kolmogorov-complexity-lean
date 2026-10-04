@@ -1,13 +1,6 @@
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.T1Run.Part03
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.T1Run
 
-
-
-namespace Kolmogorov
-
-open Kolmogorov.CodedFiniteDistribution
-open Nat.Partrec (Code)
-
 /-!
 # Structural semantics of the executable `t1` run
 
@@ -16,6 +9,10 @@ statements below explicitly include `x.length = n`; omitting this guard would
 make the statements false for models that also contain strings of other
 lengths.
 -/
+
+namespace Kolmogorov
+open Kolmogorov.CodedFiniteDistribution
+open Nat.Partrec (Code)
 
 /-- Exact histories of the four marking streams.  The two `C` histories are
 kept separately in the state, while `cMarked` records precisely the points
@@ -339,7 +336,7 @@ private theorem t1RunStep_dString_preserves_history
     by_cases hw : w.length = n
     · simp only [List.mem_toFinset, List.mem_cons,
         List.not_mem_nil, or_false,
-        T1MarkEvent.dString.injEq, hw, if_true]
+        T1MarkEvent.dString.injEq, hw, ite_true]
       constructor
       · rintro (⟨hxn, hold⟩ | hxw)
         · exact ⟨hxn, Or.inl hold⟩
@@ -349,7 +346,7 @@ private theorem t1RunStep_dString_preserves_history
         · exact Or.inl ⟨hxn, hold⟩
         · exact Or.inr hxw
     · simp only [List.mem_toFinset, List.not_mem_nil, or_false,
-        T1MarkEvent.dString.injEq, hw, if_false]
+        T1MarkEvent.dString.injEq, hw, ite_false]
       constructor
       · rintro ⟨hxn, hold⟩
         exact ⟨hxn, Or.inl hold⟩

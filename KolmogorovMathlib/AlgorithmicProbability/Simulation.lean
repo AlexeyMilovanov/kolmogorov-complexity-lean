@@ -61,9 +61,9 @@ theorem aprioriMeasure_dominates_of_simulation
   refine ENNReal.summable.tsum_le_tsum_of_inj t ht (fun _ _ => zero_le) (fun p => ?_)
     ENNReal.summable
   by_cases hp : produces N p y x
-  · rw [if_pos hp, if_pos (hsim p y x hp)]
+  · rw [ite_eq_left hp, ite_eq_left (hsim p y x hp)]
     exact progWeight_translate_ge (hlen p)
-  · rw [if_neg hp, mul_zero]
+  · rw [ite_eq_right hp, mul_zero]
     exact zero_le
 
 /-- **Semimeasure domination from simulation**, packaged in the `Dominates`

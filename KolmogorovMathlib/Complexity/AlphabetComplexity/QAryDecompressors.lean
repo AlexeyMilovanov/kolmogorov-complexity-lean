@@ -130,10 +130,10 @@ theorem D_bin_partrec (D : QMap 4) (hD : Partrec D) : Partrec (D_bin D) := by
     dsimp [D_bin]
     by_cases h : p.length % 2 = 0
     · have hc : (p.length % 2 == 0) = true := decide_eq_true h
-      rw [if_pos h, hc]
+      rw [ite_eq_left h, hc]
       rfl
     · have hc : (p.length % 2 == 0) = false := decide_eq_false h
-      rw [if_neg h, hc]
+      rw [ite_eq_right h, hc]
       rfl
   rw [h_eq]
   exact Partrec.cond h_cond h_then h_else
@@ -266,7 +266,7 @@ theorem plainK_fourLetterAlphabet_eq_half (U : Map) (hU : isOptimalConditional U
             change x ∈ (if (0 : Fin 4) = 0 then U (fin4ListToBits (bitsToFin4List p_opt), [])
               else if (0 : Fin 4) = 1 then U ((fin4ListToBits (bitsToFin4List p_opt)).dropLast, [])
               else Part.none)
-            rw [if_pos rfl]
+            rw [ite_eq_left rfl]
             have h_bits : fin4ListToBits (bitsToFin4List p_opt) = p_opt :=
               fin4ListToBits_bitsToFin4List_of_even p_opt h_even
             rw [h_bits]
@@ -298,7 +298,7 @@ theorem plainK_fourLetterAlphabet_eq_half (U : Map) (hU : isOptimalConditional U
                 U ((fin4ListToBits (bitsToFin4List p_opt')).dropLast, [])
               else Part.none)
             have h01 : ¬(1 : Fin 4) = 0 := by decide
-            rw [if_neg h01, if_pos rfl]
+            rw [ite_eq_right h01, ite_eq_left rfl]
             have h_bits : fin4ListToBits (bitsToFin4List p_opt') = p_opt' :=
               fin4ListToBits_bitsToFin4List_of_even p_opt' h_opt'_even
             rw [h_bits]
@@ -353,7 +353,7 @@ theorem plainK_fourLetterAlphabet_eq_half (U : Map) (hU : isOptimalConditional U
           omega
         have h_in : x ∈ D_bin D (p_bin, []) := by
           dsimp [D_bin]
-          rw [if_pos h_even]
+          rw [ite_eq_left h_even]
           dsimp [p_bin]
           rw [bitsToFin4List_fin4ListToBits]
           exact h_p_opt

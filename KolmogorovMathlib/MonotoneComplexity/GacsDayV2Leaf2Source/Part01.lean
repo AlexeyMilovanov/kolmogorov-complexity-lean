@@ -97,18 +97,18 @@ lemma grayCharged_sum_map_ite_owner_mem {β : Type _} [DecidableEq β]
       have har : a ∉ rest := (List.nodup_cons.mp hI).1
       rw [List.map_cons, List.sum_cons, ih hnr]
       by_cases hoa : owner = a
-      · rw [if_pos hoa]
+      · rw [ite_eq_left hoa]
         have hor : owner ∉ rest := by rw [hoa]; exact har
-        rw [if_neg hor, add_zero]
+        rw [ite_eq_right hor, add_zero]
         have hmem : owner ∈ a :: rest := by rw [hoa]; exact List.mem_cons_self
-        rw [if_pos hmem]
-      · rw [if_neg hoa, zero_add]
+        rw [ite_eq_left hmem]
+      · rw [ite_eq_right hoa, zero_add]
         by_cases hor : owner ∈ rest
-        · rw [if_pos hor, if_pos (List.mem_cons_of_mem a hor)]
-        · rw [if_neg hor]
+        · rw [ite_eq_left hor, ite_eq_left (List.mem_cons_of_mem a hor)]
+        · rw [ite_eq_right hor]
           have hnm : owner ∉ a :: rest := by
             rw [List.mem_cons]; push Not; exact ⟨hoa, hor⟩
-          rw [if_neg hnm]
+          rw [ite_eq_right hnm]
 
 /-- Swap a list sum of finset sums. -/
 lemma grayCharged_list_sum_finset_sum_comm {β γ : Type _}
@@ -186,8 +186,8 @@ lemma grayChargeMass_transportRound_filter_eq
     Finset.sum_filter]
   refine Finset.sum_congr rfl (fun j _ => ?_)
   by_cases h : (slots.get j).1.val ∈ I
-  · rw [if_pos h, if_pos ((hJkmem j).mpr h)]
-  · rw [if_neg h, if_neg (fun hc => h ((hJkmem j).mp hc))]
+  · rw [ite_eq_left h, ite_eq_left ((hJkmem j).mpr h)]
+  · rw [ite_eq_right h, ite_eq_right (fun hc => h ((hJkmem j).mp hc))]
 
 /-- **Per-round source mass equation**: the mass of one transported source
 round filtered by outer roots `I` equals the local round charge filtered by
@@ -731,8 +731,8 @@ lemma grayChargedV2_totalReqOnList_ownerFilter {n b : Nat}
     Finset.sum_filter]
   refine Finset.sum_congr rfl (fun j _ => ?_)
   by_cases h : (slots.get j).1.val ∈ I
-  · rw [if_pos h, if_pos ((hJkmem j).mpr h)]
-  · rw [if_neg h, if_neg (fun hc => h ((hJkmem j).mp hc))]
+  · rw [ite_eq_left h, ite_eq_left ((hJkmem j).mpr h)]
+  · rw [ite_eq_right h, ite_eq_right (fun hc => h ((hJkmem j).mp hc))]
 
 /-- Swap a finset sum of list sums. -/
 lemma grayCharged_finset_sum_list_sum_comm {β γ : Type _}

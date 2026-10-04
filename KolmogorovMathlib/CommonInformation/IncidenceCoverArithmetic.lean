@@ -1,5 +1,5 @@
 import Mathlib.Data.Finset.Basic
-import Mathlib.Data.Rel
+import Mathlib.Basic.Rel
 import KolmogorovMathlib.CommonInformation.RectangleCover
 import KolmogorovMathlib.CommonInformation.NoFourCycleDensity
 import KolmogorovMathlib.CommonInformation.WorstCaseCounting

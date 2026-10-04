@@ -3,8 +3,6 @@ import KolmogorovMathlib.Encoding.Tuples
 import Mathlib.Analysis.Normed.Ring.Lemmas
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.T1MarkingRun
 
-namespace Kolmogorov
-
 /-!
 # Arithmetic leaves for the `t1` chronological run
 
@@ -12,6 +10,8 @@ These lemmas contain only the cancellation and power arithmetic used after a
 reachable run has supplied its event-count and charging inequalities.  They do
 not quantify over an unconstrained run state.
 -/
+
+namespace Kolmogorov
 
 /-- External rebuilds are logarithmically absorbable once they are charged to
 the `B` events and `C″` batches. -/

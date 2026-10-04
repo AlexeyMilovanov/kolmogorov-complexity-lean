@@ -3,6 +3,12 @@ import KolmogorovMathlib.AlgorithmicRandomness.Disjointify
 import KolmogorovMathlib.Foundation.PrimrecExtras
 import KolmogorovMathlib.AlgorithmicRandomness.Enumeration
 
+/-!
+# Normal form for effectively open sets
+
+Computable finite snapshots of enumerations and the resulting normal form of effectively
+open sets.
+-/
 
 namespace Kolmogorov
 

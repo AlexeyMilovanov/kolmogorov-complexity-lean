@@ -50,10 +50,10 @@ theorem hammingDist_cons (b c : Bool) (xs ys : BitString) :
   unfold hammingDist
   rw [List.zip_cons_cons]
   by_cases h : b = c
-  · rw [List.filter_cons_of_neg, if_pos h]
+  · rw [List.filter_cons_of_neg, ite_eq_left h]
     · simp
     · simp [h]
-  · rw [List.filter_cons_of_pos, if_neg h]
+  · rw [List.filter_cons_of_pos, ite_eq_right h]
     · simp [List.length_cons]; ring
     · simp [h]
 

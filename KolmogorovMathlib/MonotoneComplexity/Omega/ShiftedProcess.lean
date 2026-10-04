@@ -130,8 +130,8 @@ theorem procFirst_some {k t i : ℕ} (h : procFirst as bs w k t = some i) :
   | succ t =>
       rw [procFirst] at h
       rcases hp : (procIdx as bs w k t).isSome with _ | _
-      · rw [hp, cond_false] at h; exact h
-      · rw [hp, cond_true] at h; exact absurd h (by simp)
+      · rw [hp, Bool.cond_false] at h; exact h
+      · rw [hp, Bool.cond_true] at h; exact absurd h (by simp)
 
 /-- Each `k` is emitted at most once. -/
 theorem procFirst_unique {k t t' i i' : ℕ} (h : procFirst as bs w k t = some i)
@@ -144,7 +144,7 @@ theorem procFirst_unique {k t t' i i' : ℕ} (h : procFirst as bs w k t = some i
       have hs : (procIdx as bs w k t').isSome = true := by
         rw [procIdx_stable (procFirst_some h) (by omega : t ≤ t')]
         rfl
-      rw [hs, cond_true] at h'
+      rw [hs, Bool.cond_true] at h'
       exact absurd h' (by simp)
   · have hlt : t' < t := by omega
     rcases t with _ | t
@@ -153,7 +153,7 @@ theorem procFirst_unique {k t t' i i' : ℕ} (h : procFirst as bs w k t = some i
       have hs : (procIdx as bs w k t).isSome = true := by
         rw [procIdx_stable (procFirst_some h') (by omega : t' ≤ t)]
         rfl
-      rw [hs, cond_true] at h
+      rw [hs, Bool.cond_true] at h
       exact absurd h (by simp)
 
 /-- If the process ever reaches `k`, then some step emits it. -/
@@ -376,8 +376,8 @@ theorem tsum_length_shiftCover_le {α β : ℝ} (a : LowerApprox α) (b : LowerA
   have hrow : ∀ n, shiftCharge a.seq b.seq w n
       = ∑' k, (if (Nat.unpair n).1 = k then shiftCharge a.seq b.seq w n else 0) := by
     intro n
-    rw [tsum_eq_single (Nat.unpair n).1 (fun k hk => if_neg (fun hc2 => hk hc2.symm)),
-      if_pos rfl]
+    rw [tsum_eq_single (Nat.unpair n).1 (fun k hk => ite_eq_right (fun hc2 => hk hc2.symm)),
+      ite_eq_left rfl]
   have hcol : ∀ k, (∑' n, (if (Nat.unpair n).1 = k then shiftCharge a.seq b.seq w n else 0))
       ≤ ENNReal.ofReal ((shiftStep a.seq w k : ℚ) : ℝ) := by
     intro k
@@ -389,27 +389,27 @@ theorem tsum_length_shiftCover_le {α β : ℝ} (a : LowerApprox α) (b : LowerA
         intro n hn
         by_cases hk : (Nat.unpair n).1 = k
         · rcases hf : procFirst a.seq b.seq w (Nat.unpair n).1 (Nat.unpair n).2 with _ | i
-          · rw [if_pos hk, shiftCharge_none hf] at hn
+          · rw [ite_eq_left hk, shiftCharge_none hf] at hn
             exact absurd rfl hn
           · have ht : (Nat.unpair n).2 = (Nat.unpair n0).2 :=
               procFirst_unique (k := k) (hk ▸ hf) (hk0 ▸ hi0)
             have hp : Nat.unpair n = Nat.unpair n0 := Prod.ext (hk.trans hk0.symm) ht
             have hq := congrArg (fun p : ℕ × ℕ => Nat.pair p.1 p.2) hp
             simpa [Nat.pair_unpair] using hq
-        · rw [if_neg hk] at hn
+        · rw [ite_eq_right hk] at hn
           exact absurd rfl hn
       rw [tsum_eq_single n0 (fun n hn => by
         by_contra hcon
         exact hn (huniq n hcon))]
-      rw [if_pos hk0, shiftCharge_some hi0, hk0]
+      rw [ite_eq_left hk0, shiftCharge_some hi0, hk0]
     · push Not at hex
       have hz : ∀ n, (if (Nat.unpair n).1 = k then shiftCharge a.seq b.seq w n else 0) = 0 := by
         intro n
         by_cases hk : (Nat.unpair n).1 = k
         · rcases hf : procFirst a.seq b.seq w (Nat.unpair n).1 (Nat.unpair n).2 with _ | i
-          · rw [if_pos hk, shiftCharge_none hf]
+          · rw [ite_eq_left hk, shiftCharge_none hf]
           · exact absurd hf (hex n hk i)
-        · rw [if_neg hk]
+        · rw [ite_eq_right hk]
       simp [hz]
   calc (∑' n, shiftCharge a.seq b.seq w n)
       = ∑' n, ∑' k, (if (Nat.unpair n).1 = k then shiftCharge a.seq b.seq w n else 0) :=

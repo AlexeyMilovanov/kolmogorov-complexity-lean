@@ -143,21 +143,21 @@ theorem IsEffectivelyNull.union {μ : Measure CantorSeq} {A B : Set CantorSeq}
       exact Computable.cond hcond (hf.comp hsnd Computable.snd) (hg.comp hsnd Computable.snd)
     · intro m
       by_cases hm : (Nat.unpair m).1 = 0
-      · simp only [hm, beq_self_eq_true, cond_true]
+      · simp only [hm, beq_self_eq_true, Bool.cond_true]
         exact hUeq _
       · have hbeq : ((Nat.unpair m).1 == 0) = false := beq_eq_false_iff_ne.2 hm
-        simp only [hm, hbeq, cond_false]
+        simp only [hm, hbeq, Bool.cond_false]
         exact hVeq _
     · intro k
       by_cases hk : k = 0
       · subst hk
         simpa [Nat.unpair_pair] using hAU
-      · simpa only [if_neg hk, Nat.unpair_pair] using hBV
+      · simpa only [ite_eq_right hk, Nat.unpair_pair] using hBV
     · intro k n
       by_cases hk : k = 0
       · subst hk
         simpa [Nat.unpair_pair] using hAbound n
-      · simpa only [Nat.unpair_pair, if_neg hk] using hBbound n
+      · simpa only [Nat.unpair_pair, ite_eq_right hk] using hBbound n
   refine huniform.isEffectivelyNull_iUnion.mono ?_
   rintro x (hx | hx)
   · exact Set.mem_iUnion.2 ⟨0, by simpa using hx⟩

@@ -311,7 +311,7 @@ theorem prop_nonstochastic_counting_improved
           obtain ⟨hxn, hnstoch⟩ := hcond
           exact hnstoch
             (((hsingD x hxn).mono_alpha (by omega)).mono_beta (Nat.zero_le S))
-        · rw [if_neg hcond]
+        · rw [ite_eq_right hcond]
       rw [hμ0, mul_zero]
       exact zero_le
     · -- Intermediate `alpha`: use the dilemma at `i₀ = alpha - SD ≤ n`, then the
@@ -328,7 +328,7 @@ theorem prop_nonstochastic_counting_improved
         rw [hνdef]
         refine ENNReal.tsum_le_tsum (fun x => ?_)
         by_cases hc1 : x.length = n ∧ ¬ IsStochastic U x alpha S
-        · rw [if_pos hc1]
+        · rw [ite_eq_left hc1]
           have hcondB :
               KP U x (omegaFixedCode c n) + (d' : ENat) ≤ KPPlain U x := by
             obtain ⟨hxn, hnstoch⟩ := hc1
@@ -339,8 +339,8 @@ theorem prop_nonstochastic_counting_improved
               rw [hi0SD] at hst
               exact hst.mono_beta hSD_le_S
             · rw [hd'def]; exact hkp
-          exact le_of_eq (if_pos hcondB).symm
-        · rw [if_neg hc1]; exact zero_le
+          exact le_of_eq (ite_eq_left hcondB).symm
+        · rw [ite_eq_right hc1]; exact zero_le
       have hCrare_S : Crare ≤ S := by omega
       have hSν : (2 : ℝ≥0∞)⁻¹ ^ S * ν ≤ (2 : ℝ≥0∞)⁻¹ ^ alpha := by
         calc (2 : ℝ≥0∞)⁻¹ ^ S * ν

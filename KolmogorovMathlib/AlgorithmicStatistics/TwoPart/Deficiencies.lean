@@ -7,11 +7,6 @@ import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.ModelsToSets2
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.GapCounting
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.SlackArith
 
-namespace Kolmogorov
-
-open CodedFiniteDistribution
-open scoped ENNReal
-
 /-!
 # Deficiencies and Affine Equivalence (Phase E interfaces)
 
@@ -21,6 +16,10 @@ project; they do not introduce a separate abstract conditional set-complexity
 API.  These gates are isolated interfaces; they can be discharged once the required
 Levin-Gacs and improving-descriptions infrastructure has been connected.
 -/
+
+namespace Kolmogorov
+open CodedFiniteDistribution
+open scoped ENNReal
 
 /- Gate for Theorem 3 (`thm:improving-descriptions`): stochasticity via an
 arbitrary probability model can be converted to optimal stochasticity via a

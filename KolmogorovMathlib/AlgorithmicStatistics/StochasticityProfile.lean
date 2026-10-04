@@ -447,10 +447,10 @@ theorem tailAfter_eq_foldr (L : List BitString) (y : BitString) :
     rw [List.foldr_cons]
     rw [foldr_length_step zs y, ih]
     by_cases hzy : z = y
-    · rw [if_pos hzy, hzy]
+    · rw [ite_eq_left hzy, hzy]
       have : (y == y) = true := beq_self_eq_true y
       rw [this]; rfl
-    · rw [if_neg hzy]
+    · rw [ite_eq_right hzy]
       have hbeq : (z == y) = false := beq_eq_false_iff_ne.mpr hzy
       rw [hbeq]; rfl
 

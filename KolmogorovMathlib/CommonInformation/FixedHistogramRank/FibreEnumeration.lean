@@ -287,9 +287,9 @@ theorem count_map_fst_eq_sum (v : List (A × B)) (a : A) :
         by_cases h : a' = a
         · subst h
           simp [Prod.ext_iff]
-        · rw [Finset.sum_eq_zero, if_neg h]
+        · rw [Finset.sum_eq_zero, ite_eq_right h]
           intro b _
-          rw [if_neg (by simp [Prod.ext_iff, h])]
+          rw [ite_eq_right (by simp [Prod.ext_iff, h])]
       rw [this]
       congr 1
       by_cases h : a' = a <;> simp [h]

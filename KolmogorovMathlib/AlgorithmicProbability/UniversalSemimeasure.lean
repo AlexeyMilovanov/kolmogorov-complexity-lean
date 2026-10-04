@@ -3,10 +3,6 @@ import KolmogorovMathlib.AlgorithmicProbability.KraftChaitin
 import KolmogorovMathlib.AlgorithmicProbability.UniversalMixture
 import KolmogorovMathlib.Prefix.Optimal
 
-namespace Kolmogorov
-
-open scoped ENNReal
-
 /-!
 # Universal Lower-Semicomputable Semimeasures
 
@@ -17,6 +13,9 @@ obtained by summing program weights for a fixed map `M`; it is a useful source o
 examples and coding bounds, but not the primary definition of the universal
 semimeasure in this chapter.
 -/
+
+namespace Kolmogorov
+open scoped ENNReal
 
 /-- A unary semimeasure on strings is a function `m : BitString → ℝ≥0∞` whose
 total mass is at most `1`. Nonnegativity is built into `ℝ≥0∞`. -/
@@ -70,7 +69,8 @@ theorem unaryMixture_isSemimeasure (w : ℕ → ℝ≥0∞)
 theorem unaryMixture_dominates_component (w : ℕ → ℝ≥0∞)
     (μ : ℕ → BitString → ℝ≥0∞) (i : ℕ) :
     DominatesUnary (unaryMixture w μ) (μ i) (w i) :=
-  fun x => show w i * μ i x ≤ unaryMixture w μ x from ENNReal.le_tsum i
+  fun x => show w i * μ i x ≤ unaryMixture w μ x from
+    ENNReal.le_tsum (f := fun j => w j * μ j x) i
 
 /-- Universality for a fixed countable family of unary semimeasures. -/
 def IsUniversalForUnary (ν : BitString → ℝ≥0∞)

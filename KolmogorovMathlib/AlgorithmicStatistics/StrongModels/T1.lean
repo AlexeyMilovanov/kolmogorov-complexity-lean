@@ -295,7 +295,7 @@ private theorem t1_plain_profile_subset_plain_polygon_boundary
       let q' : Nat × Nat := (q.1, n - q.1)
       refine ⟨q', ?_, ?_⟩
       · unfold t1PlainPolygon
-        simp only [Set.mem_ofPred_eq, q', if_pos hqepsilon]
+        simp only [Set.mem_ofPred_eq, q', ite_eq_left hqepsilon]
         omega
       · unfold natPairLInfDistance
         simp only [q', Nat.sub_self, zero_add]
@@ -305,12 +305,12 @@ private theorem t1_plain_profile_subset_plain_polygon_boundary
         omega
     · have hsum : q.1 + q.2 < k := by
         unfold t1PlainPolygon at hpolygon
-        simp only [Set.mem_ofPred_eq, if_neg hqepsilon, not_le] at hpolygon
+        simp only [Set.mem_ofPred_eq, ite_eq_right hqepsilon, not_le] at hpolygon
         exact hpolygon
       let q' : Nat × Nat := (q.1, k - q.1)
       refine ⟨q', ?_, ?_⟩
       · unfold t1PlainPolygon
-        simp only [Set.mem_ofPred_eq, q', if_neg hqepsilon]
+        simp only [Set.mem_ofPred_eq, q', ite_eq_right hqepsilon]
         omega
       · unfold natPairLInfDistance
         simp only [q', Nat.sub_self, zero_add]
@@ -396,8 +396,8 @@ private theorem t1_plain_polygon_subset_plain_profile_boundary
         omega
       · unfold t1PlainPolygon at hq
         by_cases hqepsilon : q.1 < epsilon
-        · simp only [Set.mem_ofPred_eq, if_pos hqepsilon] at hq; omega
-        · simp only [Set.mem_ofPred_eq, if_neg hqepsilon] at hq; omega
+        · simp only [Set.mem_ofPred_eq, ite_eq_left hqepsilon] at hq; omega
+        · simp only [Set.mem_ofPred_eq, ite_eq_right hqepsilon] at hq; omega
     refine ⟨(q.1 + logSlack cProfile n, q.2 + 3), hshifted', ?_⟩
     unfold natPairLInfDistance
     rw [Nat.sub_eq_zero_of_le (Nat.le_add_right _ _), Nat.add_sub_cancel_left,
@@ -661,7 +661,7 @@ theorem t1PlainPolygon_to_t1StrongPolygon_boundary
     have hqepsilon : ¬ q.1 < epsilon := by
       intro hlt
       unfold t1PlainPolygon at hq
-      simp only [Set.mem_ofPred_eq, if_pos hlt] at hq
+      simp only [Set.mem_ofPred_eq, ite_eq_left hlt] at hq
       omega
     have hkline : k ≤ q.1 + q.2 := by
       unfold t1PlainPolygon at hq

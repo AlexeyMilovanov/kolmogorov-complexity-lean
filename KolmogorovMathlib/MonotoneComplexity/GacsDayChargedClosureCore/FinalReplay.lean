@@ -5,14 +5,15 @@ import KolmogorovMathlib.MonotoneComplexity.GacsDayChargedReplay
 import KolmogorovMathlib.MonotoneComplexity.GacsDayChargedTailGlobalProgress
 import KolmogorovMathlib.MonotoneComplexity.GacsDayChargedClosureCore.TailStep
 
-namespace Kolmogorov
-
-/-! ## Final replay and provenance interfaces
+/-!
+# Final replay and provenance interfaces
 
 These records fix the representation used by the remaining leaves.  In
 particular, a charge is checked against one common late server move, while the
 client display is transported from the last useful controller transition.
 -/
+
+namespace Kolmogorov
 
 /-- Source of one transported recursive charge.  The round and slot retain
 the owner information that would be lost by flattening the final charge. -/
@@ -313,9 +314,9 @@ lemma grayChargedStateAt_core_eq_tailStateAt {n b : Nat}
           by_cases hdone : (grayChargedTailStep q L a e sigma A
               (grayChargedStateAt (n := n) (b := b)
                 q L a e sigma A sm t).core (sm t)).done = true
-          · rw [if_pos hdone] at hphase
+          · rw [ite_eq_left hdone] at hphase
             exact absurd hphase (grayChargedStartSpend_phase_ne_advantage _ _ _ _ _ _ _)
-          · rw [if_neg hdone, hcore]
+          · rw [ite_eq_right hdone, hcore]
 
 
 /-- In the `advantage` phase the underlying tail run has not finished. -/

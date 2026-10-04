@@ -87,12 +87,12 @@ theorem serves_iff_exists_length_le {a : Allocation} {r : ℚ} (hr : 0 < r) (hr_
       Nat.le_findGreatest (P := fun k =>
       (r : ℚ) ≤ (1 / 2 : ℚ)^k) h_le_den (rat_le_half_pow_iff_real r c.length |>.mpr hc_le)
     unfold dyadicLevel
-    rw [if_pos hr]
+    rw [ite_eq_left hr]
     exact h_greatest
   · rintro ⟨c, hc_in, hc_le⟩
     use c, hc_in
     unfold dyadicLevel at hc_le
-    rw [if_pos hr] at hc_le
+    rw [ite_eq_left hr] at hc_le
     rw [← rat_le_half_pow_iff_real]
     by_cases h0 : Nat.findGreatest (fun k => r ≤ (1 / 2) ^ k) r.den = 0
     · rw [h0] at hc_le
@@ -118,7 +118,7 @@ theorem serves_imp_exists_mass_ge {a : Allocation} {r : ℚ} (hr : 0 < r) (hServ
   have h_greatest := Nat.le_findGreatest (P := fun k => (r : ℚ) ≤ (1 / 2 : ℚ)^k) h_le_den hc_le_rat
   have h_dyadic : dyadicLevel r = Nat.findGreatest (fun k => (r : ℚ) ≤ (1 / 2)^k) r.den := by
     unfold dyadicLevel
-    rw [if_pos hr]
+    rw [ite_eq_left hr]
   rw [h_dyadic]
   have h1 : -(Nat.findGreatest (fun k => r ≤ (1 / 2) ^ k) r.den : ℤ) ≤ -(c.length : ℤ) :=
     neg_le_neg (by exact_mod_cast h_greatest)
@@ -131,7 +131,7 @@ theorem two_pow_neg_dyadicLevel_gt_of_lt_two_mul {m : ℕ} {r : ℚ}
     have h_pow_pos : (0 : ℚ) < (2 : ℚ) ^ (-(m + 1 : ℤ)) := by positivity
     exact lt_trans h_pow_pos hr
   unfold dyadicLevel
-  rw [if_pos h_pos]
+  rw [ite_eq_left h_pos]
   by_contra h_gt
   push Not at h_gt
   have h_find_pos : 0 < Nat.findGreatest (fun k => r ≤ (1 / 2) ^ k) r.den := by omega

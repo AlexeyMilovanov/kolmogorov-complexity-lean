@@ -275,7 +275,7 @@ lemma tailAvoidsOthersB_eq_true_iff
         | true =>
             exact False.elim
               (hincp ((nodeComparableB_eq_true_iff x p.1).mp hnb))
-    rw [if_pos hguard, Bool.not_eq_true'] at hall
+    rw [ite_eq_left hguard, Bool.not_eq_true'] at hall
     apply (comparableB_eq_false_iff _ _).mp hall
     refine ⟨c, ?_, hcomp⟩
     simpa [hp1] using hc
@@ -339,7 +339,7 @@ lemma tailFamilyReserveAtB_eq_true_iff
     refine ⟨hR, ?_⟩
     intro j hj hji c hc hcomp
     have htest := (List.all_eq_true.mp hall) j (by simp [hj])
-    rw [if_neg hji] at htest
+    rw [ite_eq_right hji] at htest
     rw [Bool.not_eq_true', comparableB_eq_false_iff] at htest
     exact htest ⟨c, hc, hcomp⟩
   · rintro ⟨hR, hcross⟩

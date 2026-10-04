@@ -120,7 +120,7 @@ lemma serverMoveBelow_eq_flatMap (i : ℕ) (m : ServerMove) :
     | cons j z =>
       by_cases hj : j = i <;>
         simp only [serverMoveBelow, List.filterMap_cons, List.flatMap_cons, hj,
-          if_true, if_false] <;>
+          ite_true, ite_false] <;>
         simp only [serverMoveBelow] at ih <;> simp [ih]
 
 /-- Restricting a server move below a child is primitive recursive. -/

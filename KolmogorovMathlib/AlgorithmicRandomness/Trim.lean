@@ -107,12 +107,12 @@ lemma trimPartial_succ (w : ℕ → ℕ) (k : ℕ) :
 /-- On an accepted stage the accumulator doubles and absorbs the new weight. -/
 lemma trimPartial_succ_of_accept {w : ℕ → ℕ} {k : ℕ} (h : trimAccept w k = true) :
     trimPartial w (k + 1) = 2 * trimPartial w k + w k := by
-  rw [trimPartial_succ, h, cond_true]
+  rw [trimPartial_succ, h, Bool.cond_true]
 
 /-- On a rejected stage the accumulator merely doubles. -/
 lemma trimPartial_succ_of_not_accept {w : ℕ → ℕ} {k : ℕ} (h : trimAccept w k = false) :
     trimPartial w (k + 1) = 2 * trimPartial w k := by
-  rw [trimPartial_succ, h, cond_false]
+  rw [trimPartial_succ, h, Bool.cond_false]
 
 /-- The accumulator stays below the budget `2^{k+1}`, which is what makes trimming keep the
 total mass finite. -/
@@ -170,7 +170,7 @@ lemma sum_trimTerm (w : ℕ → ℕ) (n k : ℕ) :
       rw [trimPartial_succ_of_not_accept hacc]
       unfold trimTerm
       rw [hacc]
-      simp only [Bool.false_eq_true, if_false, add_zero]
+      simp only [Bool.false_eq_true, ite_false, add_zero]
       have hshift : (2 : ℝ≥0∞) * (2 : ℝ≥0∞)⁻¹ ^ (n + k + 3) = (2 : ℝ≥0∞)⁻¹ ^ (n + k + 2) := by
         have h := two_mul_inv_two_pow_succ (n + k + 2)
         rwa [show n + k + 2 + 1 = n + k + 3 by ring] at h
@@ -217,10 +217,10 @@ lemma measure_coverSet_trimEnum_le {a : BitString → ℕ → ℕ}
   cases hacc : trimAccept w k with
   | false => simp
   | true =>
-    simp only [cond_true]
+    simp only [Bool.cond_true]
     unfold trimTerm
     rw [hacc]
-    simp only [if_true]
+    simp only [ite_true]
     cases hek : e k with
     | none => simp
     | some u =>
@@ -373,7 +373,7 @@ theorem trimEnum_eq_self_of_tsum_le {a : BitString → ℕ → ℕ}
   have hacc := (trimAccept_of_partial_le ha hsmall
     (trimPartial_mul_le_sum_mass ha hsmall k)).1
   unfold trimEnum
-  rw [hacc, cond_true]
+  rw [hacc, Bool.cond_true]
 
 /-! ## Computability of the trimmed enumeration -/
 

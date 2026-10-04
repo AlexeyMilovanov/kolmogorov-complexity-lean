@@ -1,4 +1,4 @@
-import Mathlib.Data.ENNReal.Basic
+import Mathlib.Basic.ENNReal.Basic
 import Mathlib.Tactic.Linarith
 import KolmogorovMathlib.Core.Basic
 import Mathlib.Topology.Algebra.InfiniteSum.ENNReal

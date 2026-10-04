@@ -171,15 +171,9 @@ lemma bitsG_valid (u : Unit) (n : ℕ) :
       · rfl
       · have := beq_iff_eq.mp h_eq; contradiction
     have h_n_eq : n = Nat.bit (n % 2 == 1) (n / 2) := by
-      simp [Nat.bit]
       by_cases h_odd : n % 2 = 1
-      · simp [h_odd]; omega
-      · have h_even : n % 2 = 0 := by omega
-        have h_false : (n % 2 == 1) = false := by
-          cases h_eq : (n % 2 == 1)
-          · rfl
-          · have := beq_iff_eq.mp h_eq; omega
-        simp [h_false]; omega
+      · simp [Nat.bit, h_odd]; omega
+      · simp [Nat.bit, h_odd]; omega
     have h_bits : Nat.bits (Nat.bit (n % 2 == 1) (n / 2)) = (n % 2 == 1) :: Nat.bits (n / 2) := by
       apply Nat.bits_append_bit
       intro h_zero

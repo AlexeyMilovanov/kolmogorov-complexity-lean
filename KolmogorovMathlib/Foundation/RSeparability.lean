@@ -345,11 +345,12 @@ private lemma upperGraph_separable_of_bounded (U : Map) (N : ℕ)
     have h_sub : Computable (fun p : BitString × ℕ => p.2 - N) :=
       (Primrec.to_comp Primrec.nat_sub).comp (Computable.pair Computable.snd (Computable.const N))
     have h_le : Computable (fun p : BitString × ℕ => p.2 - N == 0) :=
-      Computable.of_eq ((Primrec.to_comp Primrec.beq).comp (Computable.pair h_sub (Computable.const
-                                                                                    0)))
+      Computable.of_eq
+        ((Primrec.to_comp Primrec.beq).comp (Computable.pair h_sub (Computable.const 0)))
         (by intro p; rfl)
     have h_notF : Computable (fun p : BitString × ℕ => !(chk_F p)) :=
-      Computable.cond hchk_F_comp (Computable.const false) (Computable.const true)
+      (Computable.cond hchk_F_comp (Computable.const false) (Computable.const true)).of_eq
+        fun p => by cases chk_F p <;> rfl
     have h_and : Computable (fun p : BitString × ℕ =>
                               bif p.2 - N == 0 then !(chk_F p) else false) :=
       Computable.cond h_le h_notF (Computable.const false)
@@ -605,10 +606,10 @@ private lemma exists_bounded_of_disjoint_upperGraph (U : Map) (hU : isOptimalCon
         simp only [hdec] at h_check
         by_cases he : (Nat.Partrec.Code.evaln ((Nat.unpair (search_V M)).2 + 1) c
             (Encodable.encode q)).isSome = true
-        · rw [if_pos he] at h_check
+        · rw [ite_eq_left he] at h_check
           have hq : q = p := Option.some_inj.mp h_check
           rwa [hq] at he
-        · rw [if_neg he] at h_check
+        · rw [ite_eq_right he] at h_check
           exact absurd h_check (by simp)
     have h_p_in_V : p ∈ V := by
       refine (hgV_dom p).mp ?_

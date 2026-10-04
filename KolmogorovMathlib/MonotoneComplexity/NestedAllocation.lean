@@ -46,7 +46,7 @@ def TreeAllocation.stageZero (q : BitString → ℕ)
       simp [hq_front x h1]
   atoms_root p hp := by
     change p ∈ (if [] = ([] : BitString) then [[]] else [])
-    rw [if_pos rfl]
+    rw [ite_eq_left rfl]
     have hp' : p = [] := by cases p <;> simp_all
     subst hp'
     exact List.mem_singleton.mpr rfl
@@ -54,12 +54,12 @@ def TreeAllocation.stageZero (q : BitString → ℕ)
     change p ∈ (if x ++ [b] = [] then [[]] else []) at hp
     change p ∈ (if x = [] then [[]] else [])
     have h1 : ¬(x ++ [b] = []) := by simp
-    rw [if_neg h1] at hp
+    rw [ite_eq_right h1] at hp
     contradiction
   atoms_disjoint x p hp := by
     change p ∈ (if x ++ [false] = [] then [[]] else []) at hp
     have h1 : ¬(x ++ [false] = []) := by simp
-    rw [if_neg h1] at hp
+    rw [ite_eq_right h1] at hp
     contradiction
 
 /-- The numerators of a simple tree approximation at least double from one stage to the next. -/
@@ -345,9 +345,9 @@ theorem pathChild_eq {a : BitString → ENNReal} {q : ℕ → BitString → ℕ}
         = (canonicalStage hq s).extendAtoms (q s) (q (s + 1)) s y from rfl,
       TreeAllocation.extendAtoms_eq]
   by_cases hcp : s + 1 < cp.length + 1
-  · rw [if_pos hcp, hatoms (cp ++ [c]), if_pos (by simpa using hcp)]
-  · rw [if_neg hcp, hatoms (cp ++ [c]), if_neg (by simpa using hcp)]
-    rw [hparent, hatoms cp, if_neg (by omega)]
+  · rw [ite_eq_left hcp, hatoms (cp ++ [c]), ite_eq_left (by simpa using hcp)]
+  · rw [ite_eq_right hcp, hatoms (cp ++ [c]), ite_eq_right (by simpa using hcp)]
+    rw [hparent, hatoms cp, ite_eq_right (by omega)]
     rw [TreeAllocation.runAlloc_append]
     simp
 

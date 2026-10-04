@@ -427,38 +427,38 @@ theorem rawChargedStepV2With_eq_cond (q L a e n b : ℕ) (A : Allocation)
   unfold rawChargedStepV2With
   by_cases h1 : tag = 1
   · simp [h1]
-  · rw [if_neg h1]
+  · rw [ite_eq_right h1]
     by_cases h0 : tag = 0
-    · rw [if_pos h0]
-      simp only [h0, decide_true, cond_true]
+    · rw [ite_eq_left h0]
+      simp only [h0, decide_true, Bool.cond_true]
       by_cases hd : (rawChargedBlockTailStepV2 q L a e n b A st sm current).1.2.2 = true
-      · rw [if_pos hd]
-        simp only [hd, cond_true]
+      · rw [ite_eq_left hd]
+        simp only [hd, Bool.cond_true]
         by_cases hw : rawChargedWaitServedB q a e n b
             (rawChargedBlockTailStepV2 q L a e n b A st sm current) sm = true
-        · rw [if_pos hw]
+        · rw [ite_eq_left hw]
           simp [hw]
         · simp only [Bool.not_eq_true] at hw
-          rw [if_neg (by simp [hw])]
+          rw [ite_eq_right (by simp [hw])]
           simp [hw]
       · simp only [Bool.not_eq_true] at hd
-        rw [if_neg (by simp [hd])]
+        rw [ite_eq_right (by simp [hd])]
         simp [hd]
-    · rw [if_neg h0]
-      simp only [h1, h0, decide_false, cond_false]
+    · rw [ite_eq_right h0]
+      simp only [h1, h0, decide_false, Bool.cond_false]
       by_cases hs : st.2.2.2.1.isEmpty = true
       · simp [hs]
       · simp only [Bool.not_eq_true] at hs
-        rw [if_neg (by simp [hs])]
-        simp only [hs, cond_false]
+        rw [ite_eq_right (by simp [hs])]
+        simp only [hs, Bool.cond_false]
         by_cases hg : grayChargedBlockSpendGoalAtB q L a e (tag - 2)
             st.2.2.2.1.length st.2.2.1 current
             (rawLocalServerMove (grayChargedSpendDelta a L e (tag - 2)) b
               st.2.2.2.1 sm) = true
-        · rw [if_pos hg]
-          simp only [hg, cond_true, rawSpendAcceptV2, rawSpendFrozenV2]
+        · rw [ite_eq_left hg]
+          simp only [hg, Bool.cond_true, rawSpendAcceptV2, rawSpendFrozenV2]
           by_cases hp : tag - 2 + 1 < 8
-          · rw [if_pos hp]
+          · rw [ite_eq_left hp]
             by_cases hemp : (rawChargedSlotsForPassV2 q L a e n b (tag - 2 + 1)
                 (st.2.1 ++
                   [((st.2.1.length, st.1.1, grayChargedSpendEps a L e (tag - 2),
@@ -475,7 +475,7 @@ theorem rawChargedStepV2With_eq_cond (q L a e n b : ℕ) (A : Allocation)
               simp [hp, hemp]
           · simp [hp]
         · simp only [Bool.not_eq_true] at hg
-          rw [if_neg (by simp [hg])]
+          rw [ite_eq_right (by simp [hg])]
           simp [hg, rawSpendRejectV2]
 
 /-! ### Computability of the phase-tagged transition -/

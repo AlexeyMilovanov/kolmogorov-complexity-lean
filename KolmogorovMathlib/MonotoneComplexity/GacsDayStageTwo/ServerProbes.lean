@@ -1,6 +1,10 @@
 import KolmogorovMathlib.MonotoneComplexity.GacsDayHalfAmplification
 
+/-!
+# Gacs-Day stage two: server probes
 
+Prefix helpers and probe lemmas for the stage-two server of the Gacs-Day construction.
+-/
 
 namespace Kolmogorov
 
@@ -102,10 +106,10 @@ lemma firstProbe_spec {a : ℕ} {l : List ServerMove} {v : ServerMove}
   | nil => simp [firstProbe] at h
   | cons m ms ih =>
     by_cases hm : probeReady a m
-    · rw [firstProbe, if_pos hm] at h
+    · rw [firstProbe, ite_eq_left hm] at h
       cases h
       exact ⟨hm, by simp⟩
-    · rw [firstProbe, if_neg hm] at h
+    · rw [firstProbe, ite_eq_right hm] at h
       obtain ⟨h1, h2⟩ := ih h
       exact ⟨h1, by simp [h2]⟩
 
@@ -116,10 +120,10 @@ lemma firstProbe_append_of_some {a : ℕ} {l l' : List ServerMove} {v : ServerMo
   | nil => simp [firstProbe] at h
   | cons m ms ih =>
     by_cases hm : probeReady a m
-    · rw [firstProbe, if_pos hm] at h
+    · rw [firstProbe, ite_eq_left hm] at h
       cases h
       simp [firstProbe, hm]
-    · rw [firstProbe, if_neg hm] at h
+    · rw [firstProbe, ite_eq_right hm] at h
       simp [firstProbe, hm, ih h]
 
 /-- A probe-ready move in the history guarantees that a first probe is found. -/
@@ -223,7 +227,7 @@ lemma stageTwoReq_le_of_choice_mono {a D : ℕ} {j j' : Option ℕ} (i : ℕ)
   have hp : (0 : ℚ) < (1 / 2 : ℚ) ^ D := by positivity
   rcases h with rfl | rfl
   · unfold stageTwoReq
-    rw [if_neg (by simp)]
+    rw [ite_eq_right (by simp)]
     split <;> linarith
   · exact le_rfl
 

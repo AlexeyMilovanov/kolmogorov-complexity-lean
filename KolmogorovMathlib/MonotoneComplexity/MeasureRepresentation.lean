@@ -149,8 +149,7 @@ theorem exists_measure_bitStream_of_isLowerSemicomputableContinuousSemimeasure
     ∃ μ : Measure BitStream, IsProbabilityMeasure μ ∧ ∀ x, bitStreamMass μ x = a x := by
   obtain ⟨G, hG⟩ := exists_probabilisticGenerator_generatedTreeSemimeasure_eq ha
   let μ := Measure.map G.output uniformMeasure
-  have hμ : IsProbabilityMeasure μ :=
-    Measure.isProbabilityMeasure_map G.measurable_output.aemeasurable
+  have hμ : IsProbabilityMeasure μ := inferInstance
   refine ⟨μ, hμ, fun x => ?_⟩
   rw [bitStreamMass, Measure.map_apply G.measurable_output
     (isOpen_bitStreamCylinder x).measurableSet]

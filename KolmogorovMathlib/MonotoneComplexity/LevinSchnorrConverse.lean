@@ -370,7 +370,9 @@ lemma exists_le_testDeficiencyMass_cantorPrefix {g : ℕ → ℕ → Option BitS
       _ = (2 : ℝ≥0∞) ^ m * ((2 : ℝ≥0∞)⁻¹) ^ n := by rw [hsplit]
       _ ≤ ((2 ^ m : ℕ) : ℝ≥0∞) * coverMass g (2 * m + 2) (cantorPrefix w n) := by
           rw [hcast]; exact mul_le_mul_right hlow _
-  exact hterm.trans (ENNReal.le_tsum m)
+  exact hterm.trans
+    (ENNReal.le_tsum (f := fun m => ((2 ^ m : ℕ) : ℝ≥0∞) * coverMass g (2 * m + 2)
+      (cantorPrefix w n)) m)
 
 /-! ### The criterion -/
 

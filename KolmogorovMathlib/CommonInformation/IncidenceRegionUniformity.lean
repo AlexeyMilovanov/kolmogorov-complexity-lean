@@ -281,7 +281,7 @@ lemma condK_concretePoint_given_coverRank_le (V : Map) (hV : isOptimalConditiona
   have hwCanonical := hw
   dsimp only [codes] at hwCanonical
   rw [incidenceCapacityShearCoverCode,
-    if_neg (Nat.ne_of_gt hcap), List.mem_map] at hwCanonical
+    ite_eq_right (Nat.ne_of_gt hcap), List.mem_map] at hwCanonical
   obtain ⟨g, _hg, hgw⟩ := hwCanonical
   let R := shearRectangle g (incidenceCapacityRectangle n (2 ^ β) (2 ^ γ))
   have hgw' : concreteIncidenceRectangleCode n R = w := by
@@ -375,7 +375,7 @@ lemma condK_concreteLine_given_coverRank_le (V : Map) (hV : isOptimalConditional
   have hwCanonical := hw
   dsimp only [codes] at hwCanonical
   rw [incidenceCapacityShearCoverCode,
-    if_neg (Nat.ne_of_gt hcap), List.mem_map] at hwCanonical
+    ite_eq_right (Nat.ne_of_gt hcap), List.mem_map] at hwCanonical
   obtain ⟨g, _hg, hgw⟩ := hwCanonical
   let R := shearRectangle g (incidenceCapacityRectangle n (2 ^ β) (2 ^ γ))
   have hgw' : concreteIncidenceRectangleCode n R = w := by
@@ -508,7 +508,7 @@ lemma incidenceCapacityShearCoverCode_length_mul_le (n b c : Nat) :
   · simp [hK]
   have hcodeLength : (incidenceCapacityShearCoverCode n b c).length =
       (incidenceCapacityShearParams n b c).length := by
-    rw [incidenceCapacityShearCoverCode, if_neg hK, List.length_map]
+    rw [incidenceCapacityShearCoverCode, ite_eq_right hK, List.length_map]
   have hparamLength : (incidenceCapacityShearParams n b c).length ≤
       (incidentEdges (ConcreteField n)).card *
         (Nat.log2 (incidentEdges (ConcreteField n)).card + 1) /

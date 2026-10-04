@@ -123,7 +123,7 @@ lemma dyadicValue_eventTerm_mono {M : ℕ → BitString → BitString → ℕ}
     (F : Finset ℕ) (Z : BitString) (s : ℕ) (x : BitString) :
     dyadicValue (eventTerm M F Z s x) s ≤ dyadicValue (eventTerm M F Z (s + 1) x) (s + 1) := by
   by_cases h : restrictStr F x = Z
-  · simp only [eventTerm, if_pos h]
+  · simp only [eventTerm, ite_eq_left h]
     exact hMmono s x []
   · simp [eventTerm, h, dyadicValue]
 
@@ -135,7 +135,7 @@ lemma iSup_dyadicValue_eventTerm {μ : Measure CantorSeq} {M : ℕ → BitString
     (⨆ s, dyadicValue (eventTerm M F Z s x) s)
       = if restrictStr F x = Z then cantorMass μ x else 0 := by
   by_cases h : restrictStr F x = Z
-  · simp only [eventTerm, if_pos h]
+  · simp only [eventTerm, ite_eq_left h]
     exact hMsup x []
   · simp [eventTerm, h, dyadicValue]
 

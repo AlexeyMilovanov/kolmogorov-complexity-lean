@@ -20,12 +20,17 @@ import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.SlackArith
 import Mathlib.Analysis.SpecialFunctions.Log.Base
 import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 import Mathlib.Algebra.BigOperators.Field
-import Mathlib.Data.ENNReal.Inv
+import Mathlib.Basic.ENNReal.Inv
 import KolmogorovMathlib.AlgorithmicStatistics.Selector
 import KolmogorovMathlib.CommonInformation.Counting
 import KolmogorovMathlib.Complexity.ConditionalComplexity.AverageBounds
 
+/-!
+# Token game: board machinery
 
+Exercise 45, part C: counting and shifting on the game board, and the upper bound
+`C(C(x) | x) ≤ log |x| + O(1)`.
+-/
 
 namespace Kolmogorov
 open Nat.Partrec (Code)
@@ -141,11 +146,11 @@ lemma mem_gameTokens (c : Code) (i T : ℕ) (x : BitString) :
   · rintro ⟨n, hn, hval⟩
     refine ⟨n, List.mem_range.mp hn, ?_, ?_⟩ <;>
       · by_cases hr : gameRow c n T = i
-        · simp only [hr, if_true] at hval
+        · simp only [hr, ite_true] at hval
           first
           | exact hr
           | exact Option.some_inj.mp hval
-        · simp only [hr, if_false] at hval
+        · simp only [hr, ite_false] at hval
           exact absurd hval (by simp)
   · rintro ⟨n, hn, hr, hs⟩
     exact ⟨n, List.mem_range.mpr hn, by simp [hr, hs]⟩
@@ -479,7 +484,7 @@ private lemma gameWCol_stable {U : Map} {c : Code} (hc : IsCodeFor c U) (n T : �
           le_trans h hpk
         have : gameRow c n T ≤ gameRow c n k - 1 := by exact_mod_cast hchain
         omega
-      rw [gameWCol, if_neg (by rw [show gameCol n (gameWCol c n k) = gameStr c n k from rfl,
+      rw [gameWCol, ite_eq_right (by rw [show gameCol n (gameWCol c n k) = gameStr c n k from rfl,
         show gameTop c n (gameStr c n k) k = gameRow c n k from rfl, hnotdead]; simp), ihk]
     · rw [le_antisymm hT' hk]
 
@@ -544,7 +549,7 @@ theorem exists_game_winner {U : Map} {c : Code} (hc : IsCodeFor c U) (n : ℕ) (
         (gameTop c n (gameCol n (gameWCol c n T0)) (max T0 T1)) (S + 1) = true :=
       gameDead_mono c _ _ (le_trans (le_max_right (max T0 T1) T) (Nat.le_succ S)) hT
     have hmove : gameWCol c n (S + 1) = gameWCol c n S + 1 := by
-      rw [gameWCol, hcolS, if_pos (by rw [htopS]; exact hdeadS)]
+      rw [gameWCol, hcolS, ite_eq_left (by rw [htopS]; exact hdeadS)]
     omega
   · -- the token is alive : the cell is not blackened
     intro hb

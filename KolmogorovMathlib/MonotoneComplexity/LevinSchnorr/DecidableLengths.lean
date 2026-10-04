@@ -155,9 +155,9 @@ lemma extendPad_eq_some {nx : ℕ → ℕ} {j : ℕ} {x u : BitString}
       u = x ++ (bitStringsOfLength (nx x.length - x.length)).getD j [] := by
   rw [extendPad] at h
   by_cases hc : j < 2 ^ (nx x.length - x.length)
-  · rw [if_pos hc] at h
+  · rw [ite_eq_left hc] at h
     exact ⟨hc, (Option.some_inj.mp h).symm⟩
-  · rw [if_neg hc] at h
+  · rw [ite_eq_right hc] at h
     simp at h
 
 /-- An entry of the padded enumeration comes from an entry of the original one, extended to the
@@ -222,7 +222,7 @@ lemma coverSet_extendEnum_iUnion (nx : ℕ → ℕ) (f : ℕ → Option BitStrin
       have h1 : extendEnum nx f (Nat.pair i j) = extendPad nx j x := by
         simp only [extendEnum, Nat.unpair_pair, hf, Option.bind_some]
       have hval : extendEnum nx f (Nat.pair i j) = some (x ++ y) := by
-        rw [h1, extendPad, if_pos hjlt', List.getD_eq_getElem _ _ hjlt, hjy]
+        rw [h1, extendPad, ite_eq_left hjlt', List.getD_eq_getElem _ _ hjlt, hjy]
       rw [coverSet, hval]
       exact hwy
 

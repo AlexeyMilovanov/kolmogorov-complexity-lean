@@ -5,11 +5,8 @@ import Mathlib.Data.Nat.Choose.Vandermonde
 import Mathlib.Logic.Equiv.Fintype
 import KolmogorovMathlib.Restricted.Examples.HammingBalls.Part01
 
-namespace Kolmogorov
-open Kolmogorov.CodedFiniteDistribution
-
 /-!
-### Sphere-wise Hamming cover
+# Sphere-wise Hamming cover
 
 This is Proposition 26's actual proof architecture.  For `r > n / 2`, cover
 the whole cube using `hamming_probabilistic_cover`.  Otherwise decompose
@@ -29,6 +26,9 @@ at most `n + 1` shell covers.  Ball/sphere cardinality differs by at most an
 
 In particular, centers are not required to belong to the original ball.
 -/
+
+namespace Kolmogorov
+open Kolmogorov.CodedFiniteDistribution
 
 /-- Flips the bits of `x` at the indices in `S`. -/
 def flipPositions (n : ℕ) (x : BitString) (S : Finset ℕ) : BitString :=
@@ -666,7 +666,7 @@ lemma hammingBall_cover_centers_of_le_half
         (∀ y ∈ hammingSphere n z a, ∃ x ∈ f a, hammingDist x y ≤ r_c) ∧
         (f a).card * (hammingSphere n z r_c).card ≤ (n + 1)^2 * (hammingSphere n z a).card := by
       intro a ha
-      simp only [f, dif_pos ha]
+      simp only [f, dite_eq_left ha]
       have :=
           Classical.choose_spec (hammingSphere_cover_centers n z r_c a hz
             (h_a_rc a ha) (h_a_n a ha))

@@ -305,8 +305,9 @@ private lemma extractPrograms_spec (px qy : BitString) :
     induction List.range (w.length + 1) with
     | nil => rfl
     | cons head tail ih =>
+      simp at ih
       simp [ih]
-      cases h : head + head.bits.length + 1 == w.length <;> simp [h]
+      by_cases h : head + head.bits.length + 1 = w.length <;> simp [h]
   change (findS w.length).bind (fun S => extractFromS w S) = some (px, qy)
   rw [h_foldr_findS, h_find]
   unfold extractFromS
@@ -323,7 +324,7 @@ private lemma extractPrograms_spec (px qy : BitString) :
     have h_k_eq : (Nat.bits S).length + 1 = hdr.length := h_hdr_len.symm
     dsimp [w]
     rw [h_k_eq, List.append_assoc, List.drop_left]
-  rw [Bool.cond_eq_ite, if_neg (by simp [h_not_gt]), h_drop]
+  rw [Bool.cond_eq_ite, ite_eq_right (by simp [h_not_gt]), h_drop]
   dsimp only [lx]
   rw [List.take_left, List.drop_left]
 

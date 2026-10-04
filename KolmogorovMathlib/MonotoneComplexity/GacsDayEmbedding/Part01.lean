@@ -4,10 +4,6 @@ import KolmogorovMathlib.MonotoneComplexity.GacsDayBinaryEncoding
 import KolmogorovMathlib.MonotoneComplexity.GacsDayBlockCode
 import KolmogorovMathlib.AlgorithmicRandomness.RatComputable
 
-
-
-namespace Kolmogorov
-
 /-!
 # Gacs-Day Game Binary Embedding
 
@@ -16,6 +12,8 @@ from the standard Gacs-Day game statement. The original game is played on a tree
 of depth `O(d)` with branching factor `2 ^ ((O(d)) ^ (O(d)))`. By encoding each
 branch index into a fixed-width binary block, we embed this into a binary tree.
 -/
+
+namespace Kolmogorov
 
 /-- The total depth of the binary embedding is bounded by the original height
 times the block width (which is `ceil(log2 b)`). -/
@@ -231,7 +229,7 @@ lemma primrec_getReq : Primrec₂ (fun (req : ClientMove) (n : GacsDayNode) => g
     · have hb : (n == p.1) = false := by
         simp only [beq_eq_false_iff_ne, ne_eq]
         exact fun hq => hp hq.symm
-      rw [if_neg hp]
+      rw [ite_eq_right hp]
       simp only [hb]
       exact ih
 
@@ -252,7 +250,7 @@ lemma chunkNat_eq_nil (m : ℕ) (l : List ℕ) (h : ¬ (0 < m ∧ m ≤ l.length
   cases l with
   | nil => exact chunkNat_nil m
   | cons a t =>
-    rw [chunkNat, dif_neg h]
+    rw [chunkNat, dite_eq_right h]
     simp
 
 /-- One step of the block-splitting loop: peel off the first `m` bits. -/
@@ -293,12 +291,12 @@ private lemma chunkStep_fst (m : ℕ) :
     by_cases hc : 0 < m ∧ m ≤ rest.length
     · have hstep : chunkStep (m, acc, rest)
           = (m, acc ++ [bitsToNatLocal (rest.take m)], rest.drop m) := by
-        simp only [chunkStep, if_pos hc]
+        simp only [chunkStep, ite_eq_left hc]
       rw [hstep, ih _ _ (by simp only [List.length_drop]; omega)]
       rw [chunkNat_eq m hc.1 rest hc.2]
       simp
     · have hstep : chunkStep (m, acc, rest) = (m, acc, rest) := by
-        simp only [chunkStep, if_neg hc]
+        simp only [chunkStep, ite_eq_right hc]
       have hfix : ∀ k, chunkStep^[k] (m, acc, rest) = (m, acc, rest) := by
         intro k
         induction k with
@@ -401,13 +399,13 @@ private lemma lookup_filter_fst (P : GacsDayNode → Bool) (l : ClientMove) (y :
   | cons a t ih =>
     obtain ⟨k, q⟩ := a
     by_cases hk : P k
-    · simp only [List.filter_cons, hk, if_true, List.lookup]
+    · simp only [List.filter_cons, hk, ite_true, List.lookup]
       by_cases hy : y = k
       · subst hy; simp [hk]
       · have hyk : (y == k) = false := by simpa using hy
         simp [hyk, ih]
     · have hk' : P k = false := by simpa using hk
-      simp only [List.filter_cons, hk', Bool.false_eq_true, if_false]
+      simp only [List.filter_cons, hk', Bool.false_eq_true, ite_false]
       rw [ih]
       by_cases hy : y = k
       · subst hy; simp [hk']
@@ -438,14 +436,14 @@ lemma requestCoherent_truncMove (b d : ℕ) (req : ClientMove)
   · intro x
     rw [getReq_truncMove]
     by_cases hx : x.all (fun i => decide (i < b))
-    · simp only [hx, if_true]
+    · simp only [hx, ite_true]
       refine le_trans (le_of_eq ?_) (h3 x)
       refine Finset.sum_congr rfl (fun c _ => ?_)
       rw [getReq_truncMove]
       have hxc : ((x ++ [c.val]).all (fun i => decide (i < b))) = true := by
         simp [List.all_append, hx, c.isLt]
       simp [hxc]
-    · simp only [hx, Bool.false_eq_true, if_false]
+    · simp only [hx, Bool.false_eq_true, ite_false]
       have hz : ∀ c : Fin b, getReq (truncMove b req) (x ++ [c.val]) = 0 := by
         intro c
         rw [getReq_truncMove]
@@ -505,8 +503,8 @@ lemma isWinningStrategyUnserved_truncStrategy (h b d : ℕ) (σ : ClientStrategy
     exact requestCoherent_truncMove b d _ (hcoh t)
   · rw [playClient_truncStrategy, playClient_truncStrategy, getReq_truncMove, getReq_truncMove]
     by_cases hx : x.all (fun i => decide (i < b))
-    · simp only [hx, if_true]; exact hmono t x
-    · simp only [hx, Bool.false_eq_true, if_false]
+    · simp only [hx, ite_true]; exact hmono t x
+    · simp only [hx, Bool.false_eq_true, ite_false]
       exact le_refl 0
   · obtain ⟨T, x, hlen, hin, hfail⟩ := hw
     refine ⟨T, x, hlen, hin, fun t => ?_⟩
@@ -514,7 +512,7 @@ lemma isWinningStrategyUnserved_truncStrategy (h b d : ℕ) (σ : ClientStrategy
     have hx : (x.all (fun i => decide (i < b))) = true := by
       simp only [List.all_eq_true, decide_eq_true_eq]
       exact hin
-    rw [if_pos hx]
+    rw [ite_eq_left hx]
     exact hfail t
 
 private lemma primrec_natLtPred (b : ℕ) : Primrec (fun i : ℕ => decide (i < b)) := by

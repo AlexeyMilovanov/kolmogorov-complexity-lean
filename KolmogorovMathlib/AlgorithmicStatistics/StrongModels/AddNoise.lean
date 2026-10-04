@@ -121,7 +121,7 @@ theorem conditionalPlainLengthDecompressor_produces
   have hlen' : p.length == decodeBits (decodeSecond (pairCode y (Nat.bits k))) := by
     rw [decodeSecond_pairCode, decodeBits_natBits, hlen]
     exact beq_self_eq_true k
-  rw [hlen', cond_true, decodeFirst_pairCode]
+  rw [hlen', Bool.cond_true, decodeFirst_pairCode]
   exact hprod
 
 /-- Exact conditional plain complexity becomes an upper bound for conditional

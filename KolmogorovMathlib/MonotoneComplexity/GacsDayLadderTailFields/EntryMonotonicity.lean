@@ -328,14 +328,14 @@ lemma getFamilyReq_grayTailOutput_mono
       (fun c => grayTailSonRequest_mono (grayTailThreshold_le_eps q e) ⟨i, hi⟩ c (hbase c))
   · by_cases hc : c < b
     · rw [getReq_graftTwoLevel_son hc, getReq_graftTwoLevel_son hc]
-      simp only [dif_pos hc]
+      simp only [dite_eq_left hc]
       exact grayTailSonRequest_mono (grayTailThreshold_le_eps q e) ⟨i, hi⟩ ⟨c, hc⟩ (hbase ⟨c, hc⟩)
     · have hc' : b ≤ c := not_lt.mp hc
       rw [getReq_graftTwoLevel_of_ge hc', getReq_graftTwoLevel_of_ge hc']
   · by_cases hc : c < b
     · by_cases hc' : c' < b
       · rw [getReq_graftTwoLevel_grandson hc hc', getReq_graftTwoLevel_grandson hc hc']
-        simp only [dif_pos hc, dif_pos hc']
+        simp only [dite_eq_left hc, dite_eq_left hc']
         exact hentry (⟨i, hi⟩, ⟨c, hc⟩, ⟨c', hc'⟩) y
       · have hc'' : b ≤ c' := not_lt.mp hc'
         rw [getReq_graftTwoLevel_of_son_ge hc hc'', getReq_graftTwoLevel_of_son_ge hc hc'']

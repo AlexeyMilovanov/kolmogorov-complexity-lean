@@ -165,7 +165,7 @@ theorem isLSC_testRequestWeight {μ : Measure CantorSeq} (hμ : IsComputableMeas
     · simp [h, dyadicValue]
   · intro n x
     by_cases h : disjEnum (g (2 * (Nat.unpair n).1 + 2)) (Nat.unpair n).2 = some x
-    · simp only [h, if_pos, testRequestTerm]
+    · simp only [h, ite_eq_left, testRequestTerm]
       exact hMsup x []
     · simp [h, testRequestTerm, dyadicValue]
   · have hlevel : Computable fun p : ℕ × ℕ × BitString => 2 * (Nat.unpair p.1).1 + 2 :=

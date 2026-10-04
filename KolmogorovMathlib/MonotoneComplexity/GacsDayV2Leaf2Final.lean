@@ -67,7 +67,7 @@ private theorem grayChargedV2_leaf2_totalBaseSum_eq
   rw [grayChargedV2_totalReqOnList_ownerFilter]
   unfold totalRootRequest
   refine Finset.sum_congr rfl (fun j _ => ?_)
-  rw [if_pos (List.mem_range.mpr (Fin.isLt _))]
+  rw [ite_eq_left (List.mem_range.mpr (Fin.isLt _))]
 
 /-- The sum of raised indicators over roots in `I` equals the cardinality of raised
 sources restricted to `I`. -/

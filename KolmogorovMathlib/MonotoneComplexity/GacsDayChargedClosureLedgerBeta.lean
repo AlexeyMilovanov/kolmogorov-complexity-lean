@@ -37,7 +37,7 @@ lemma sum_map_ite_const_rat {alpha : Type _} (l : List alpha)
   | cons x xs ih =>
       rw [List.map_cons, List.sum_cons, ih, List.countP_cons]
       by_cases h : p x = true
-      · simp only [h, Nat.cast_add, Nat.cast_one, if_pos]
+      · simp only [h, Nat.cast_add, Nat.cast_one, ite_eq_left]
         ring
       · simp [h]
 
@@ -59,8 +59,8 @@ lemma grayChargeMass_grayChargeAtRoot_reserveCharge
   intro r _
   rw [grayChargeAtRoot_of_single_owner r.cells_owner]
   by_cases h : r.coordinate.1.val = i
-  · rw [if_pos h, if_pos h]
-  · rw [if_neg h, if_neg h, grayChargeMass_nil]
+  · rw [ite_eq_left h, ite_eq_left h]
+  · rw [ite_eq_right h, ite_eq_right h, grayChargeMass_nil]
 
 /-- **Reserve half of the H5 per-root cap, geometric form.**  The reserve mass
 displayed at one outer root is at most one root scale per reserve sitting at
@@ -78,7 +78,7 @@ lemma grayChargedReserveCharge_perRoot_mass_le
   refine List.sum_le_sum ?_
   intro r _
   by_cases h : r.coordinate.1.val = i
-  · simp only [h, decide_true, if_true]
+  · simp only [h, decide_true, ite_true]
     exact r.root_upper
   · simp [h]
 

@@ -20,11 +20,18 @@ import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.SlackArith
 import Mathlib.Analysis.SpecialFunctions.Log.Base
 import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 import Mathlib.Algebra.BigOperators.Field
-import Mathlib.Data.ENNReal.Inv
+import Mathlib.Basic.ENNReal.Inv
 import KolmogorovMathlib.AlgorithmicStatistics.Selector
 import KolmogorovMathlib.CommonInformation.Counting
 import KolmogorovMathlib.Complexity.ConditionalComplexity.AverageBounds
 import KolmogorovMathlib.Complexity.SelfComplexity.TokenGame.BoardMachinery
+
+/-!
+# Token game: lower bound
+
+Exercise 45: every white token is cheap, the lower bound of the token game, and the
+assembled exercise.
+-/
 
 namespace Kolmogorov
 open Nat.Partrec (Code)

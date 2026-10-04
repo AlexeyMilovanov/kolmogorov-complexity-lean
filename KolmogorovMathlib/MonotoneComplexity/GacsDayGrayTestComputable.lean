@@ -418,14 +418,12 @@ lemma getAlloc_eq_foldr (sm : ServerMove) (A : GacsDayNode) :
   induction sm with
   | nil => rfl
   | cons p t ih =>
+    simp at ih
     simp [List.lookup]
     by_cases h : p.1 = A
-    · have h1 : (A == p.1) = true := beq_iff_eq.mpr h.symm
-      have h2 : (p.1 == A) = true := beq_iff_eq.mpr h
-      simp [h1, h2]
+    · simp [h]
     · have h1 : (A == p.1) = false := beq_eq_false_iff_ne.mpr (fun hh => h hh.symm)
-      have h2 : (p.1 == A) = false := beq_eq_false_iff_ne.mpr h
-      simp [h1, h2, ih]
+      simp [h1, h, ih]
 /-- Reading the allocation of a node out of a server move is computable. -/
 theorem computable₂_getAlloc :
     Computable₂ (fun (sm : ServerMove) (A : GacsDayNode) => getAlloc sm A) := by

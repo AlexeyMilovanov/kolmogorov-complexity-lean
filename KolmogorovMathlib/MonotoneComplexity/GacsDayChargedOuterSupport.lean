@@ -262,16 +262,16 @@ lemma grayChargedTailStep_frozen_avoidsSmall
   dsimp only
   by_cases hd : st.done
   case pos =>
-    rw [if_pos hd]
+    rw [ite_eq_left hd]
     exact hst
   case neg =>
-    rw [if_neg hd]
+    rw [ite_eq_right hd]
     by_cases hempty : st.slots.isEmpty
     case pos =>
-      rw [if_pos hempty]
+      rw [ite_eq_left hempty]
       exact hst
     case neg =>
-      rw [if_neg hempty]
+      rw [ite_eq_right hempty]
       by_cases hgoal : grayChargedTailGoalAtB q e
           (grayTailRoundEps q L e st.frozen.length)
           (grayTailRoundDelta q L e st.frozen.length)
@@ -280,14 +280,14 @@ lemma grayChargedTailStep_frozen_avoidsSmall
           (grayTailLocalServerMove
             (grayTailRoundDelta q L e st.frozen.length) st.slots m) = true
       case pos =>
-        rw [if_pos hgoal]
+        rw [ite_eq_left hgoal]
         have hne : 1 <= st.slots.length := by
           cases hs : st.slots with
           | nil => simp [hs] at hempty
           | cons x xs => exact Nat.succ_pos _
         exact grayChargedFrozenAvoidsSmall_append st hst (hcur hne)
       case neg =>
-        rw [if_neg hgoal]
+        rw [ite_eq_right hgoal]
         exact hst
 
 /-- A charged step keeps the frozen rounds free of small requests, given that the move of each
@@ -320,20 +320,20 @@ lemma grayChargedFrozenAvoidsSmall_step
       by_cases hdone :
           (grayChargedTailStep q L a e sigma A st.core m).done
       case pos =>
-        rw [if_pos hdone]
+        rw [ite_eq_left hdone]
         rw [grayChargedStartSpend_frozen]
         exact hnext
       case neg =>
-        rw [if_neg hdone]
+        rw [ite_eq_right hdone]
         exact hnext
   | spend pass =>
       dsimp only
       by_cases hempty : st.core.slots.isEmpty
       case pos =>
-        rw [if_pos hempty]
+        rw [ite_eq_left hempty]
         exact hst
       case neg =>
-        rw [if_neg hempty]
+        rw [ite_eq_right hempty]
         by_cases hgoal : grayChargedSpendGoalAtB q L a e pass
             st.core.slots.length st.core.unavailable
             (grayChargedSpendMove q L a e pass sigma st.core)
@@ -341,7 +341,7 @@ lemma grayChargedFrozenAvoidsSmall_step
               (grayChargedSpendDelta a L e pass)
               st.core.slots m) = true
         case pos =>
-          rw [if_pos hgoal]
+          rw [ite_eq_left hgoal]
           have hne : 1 <= st.core.slots.length := by
             cases hs : st.core.slots with
             | nil => simp [hs] at hempty
@@ -350,7 +350,7 @@ lemma grayChargedFrozenAvoidsSmall_step
             (pass := pass) st.core hst (hcurSpend pass hphase hne) (m := m)
           by_cases hpass : pass + 1 < 8
           case pos =>
-            rw [if_pos hpass]
+            rw [ite_eq_left hpass]
             by_cases hnextempty :
                 (grayChargedSlotsForPass q a e (pass + 1)
                   (st.core.frozen ++
@@ -365,16 +365,16 @@ lemma grayChargedFrozenAvoidsSmall_step
                            st.core.slots m)
                        unavailable := st.core.unavailable }])).isEmpty
             case pos =>
-              rw [if_pos hnextempty]
+              rw [ite_eq_left hnextempty]
               exact happ
             case neg =>
-              rw [if_neg hnextempty]
+              rw [ite_eq_right hnextempty]
               exact happ
           case neg =>
-            rw [if_neg hpass]
+            rw [ite_eq_right hpass]
             exact happ
         case neg =>
-          rw [if_neg hgoal]
+          rw [ite_eq_right hgoal]
           exact hst
 
 
@@ -450,13 +450,13 @@ lemma grayChargedTailStep_frozen_supported
   unfold grayChargedTailStep grayTailWaitingB
   dsimp only
   by_cases hd : st.done
-  · rw [if_pos hd]
+  · rw [ite_eq_left hd]
     exact hst
-  · rw [if_neg hd]
+  · rw [ite_eq_right hd]
     by_cases hempty : st.slots.isEmpty
-    · rw [if_pos hempty]
+    · rw [ite_eq_left hempty]
       exact hst
-    · rw [if_neg hempty]
+    · rw [ite_eq_right hempty]
       by_cases hgoal : grayChargedTailGoalAtB q e (grayTailRoundEps q L e
                                                     st.frozen.length) (grayTailRoundDelta q L e
                                                                         st.frozen.length)
@@ -464,11 +464,11 @@ lemma grayChargedTailStep_frozen_supported
                                                                               (grayTailRoundDelta q
                                                                                 L e
         st.frozen.length) st.slots m) = true
-      · rw [if_pos hgoal]
+      · rw [ite_eq_left hgoal]
         have hne : 1 ≤ st.slots.length := by
           cases hs : st.slots <;> [simp [hs] at hempty; exact Nat.succ_pos _]
         exact grayChargedFrozenSupported_append hB hRung st hst hne
-      · rw [if_neg hgoal]
+      · rw [ite_eq_right hgoal]
         exact hst
 
 /-- A charged step keeps the frozen rounds supported. -/
@@ -488,26 +488,26 @@ lemma grayChargedFrozenSupported_step
       dsimp only
       have hnext := grayChargedTailStep_frozen_supported (A := A) hB hRung st.core hst (m := m)
       by_cases hdone : (grayChargedTailStep q L a e sigma A st.core m).done
-      · rw [if_pos hdone]
+      · rw [ite_eq_left hdone]
         rw [grayChargedStartSpend_frozen]
         exact hnext
-      · rw [if_neg hdone]
+      · rw [ite_eq_right hdone]
         exact hnext
   | spend pass =>
       dsimp only
       by_cases hempty : st.core.slots.isEmpty
-      · rw [if_pos hempty]
+      · rw [ite_eq_left hempty]
         exact hst
-      · rw [if_neg hempty]
+      · rw [ite_eq_right hempty]
         by_cases hgoal : grayChargedSpendGoalAtB q L a e pass st.core.slots.length
           st.core.unavailable (grayChargedSpendMove q L a e pass sigma
                                 st.core) (grayTailLocalServerMove (grayChargedSpendDelta a L e
                                                                     pass) st.core.slots m) = true
-        · rw [if_pos hgoal]
+        · rw [ite_eq_left hgoal]
           have hne : 1 ≤ st.core.slots.length := by
             cases hs : st.core.slots <;> [simp [hs] at hempty; exact Nat.succ_pos _]
           by_cases hpass : pass + 1 < 8
-          · rw [if_pos hpass]
+          · rw [ite_eq_left hpass]
             by_cases hnextempty :
               (grayChargedSlotsForPass q a e (pass + 1)
                   (st.core.frozen ++
@@ -518,13 +518,13 @@ lemma grayChargedFrozenSupported_step
                          (grayTailLocalServerMove (grayChargedSpendDelta a L e pass)
                            st.core.slots m),
                        unavailable := st.core.unavailable }])).isEmpty
-            · rw [if_pos hnextempty]
+            · rw [ite_eq_left hnextempty]
               exact grayChargedFrozenSupported_append_spend hB hRung st.core hst hne
-            · rw [if_neg hnextempty]
+            · rw [ite_eq_right hnextempty]
               exact grayChargedFrozenSupported_append_spend hB hRung st.core hst hne
-          · rw [if_neg hpass]
+          · rw [ite_eq_right hpass]
             exact grayChargedFrozenSupported_append_spend hB hRung st.core hst hne
-        · rw [if_neg hgoal]
+        · rw [ite_eq_right hgoal]
           exact hst
 
 /-- At every time of a charged run the frozen rounds are supported. -/
@@ -647,10 +647,10 @@ theorem grayChargedStrategy_rangeSupported
             else grayChargedSpendMove q L a e pass sigma st.core)) j) (x ++ [i]) = 0
   unfold grayChargedTailFamilyMove familyClientMoveAt
   rw [List.getD_eq_getElem?_getD, List.getElem?_ofFn]
-  rw [dif_pos hj]
+  rw [dite_eq_left hj]
   refine getReq_graftTwoLevel_eq_zero_of_range ?_ x hi
   intro c hc c' hc' y k hk
-  simp only [hc, hc', dif_pos]
+  simp only [hc, hc', dite_eq_left]
   exact (grayCharged_entryMove_supported
     (fun pr hpr => grayChargedFold_entries_supported hB hRung hist.2 pr hpr) _).1 y k hk
 
@@ -678,10 +678,10 @@ theorem grayChargedStrategy_treeSupported
             else grayChargedSpendMove q L a e pass sigma st.core)) j) x = 0
   unfold grayChargedTailFamilyMove familyClientMoveAt
   rw [List.getD_eq_getElem?_getD, List.getElem?_ofFn]
-  rw [dif_pos hj]
+  rw [dite_eq_left hj]
   refine getReq_graftTwoLevel_eq_zero_of_length (h := 2 * q) ?_ x (by omega)
   intro c hc c' hc' y hy
-  simp only [hc, hc', dif_pos]
+  simp only [hc, hc', dite_eq_left]
   exact (grayCharged_entryMove_supported
     (fun pr hpr => grayChargedFold_entries_supported hB hRung hist.2 pr hpr) _).2 y hy
 

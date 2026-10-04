@@ -20,10 +20,17 @@ import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.SlackArith
 import Mathlib.Analysis.SpecialFunctions.Log.Base
 import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 import Mathlib.Algebra.BigOperators.Field
-import Mathlib.Data.ENNReal.Inv
+import Mathlib.Basic.ENNReal.Inv
 import KolmogorovMathlib.AlgorithmicStatistics.Selector
 import KolmogorovMathlib.CommonInformation.Counting
 import KolmogorovMathlib.Complexity.IncompressibleStrings.Deficiency
+
+/-!
+# Conservation of information under random processes
+
+Bounds showing that randomized processes do not increase algorithmic information
+(SUV Problem 59 and related exercises).
+-/
 
 namespace Kolmogorov
 open Nat.Partrec (Code)

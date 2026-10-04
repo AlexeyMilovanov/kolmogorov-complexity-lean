@@ -173,7 +173,7 @@ lemma iUnion_pullbackEnum {E : BitString → ℕ → Option BitString} {f : BitS
     refine Set.mem_iUnion.2 ⟨0, ?_⟩
     have hval : pullbackEnum E enum q₀ 0 = some [] := by
       unfold pullbackEnum
-      rw [if_pos hneg]
+      rw [ite_eq_left hneg]
     rw [hval]
     change w ∈ cantorCylinder ([] : BitString)
     intro i hi
@@ -199,7 +199,7 @@ lemma iUnion_pullbackEnum {E : BitString → ℕ → Option BitString} {f : BitS
       have e2 : (Nat.unpair (Nat.pair n k)).2 = k := by rw [Nat.unpair_pair]
       have hval : pullbackEnum E enum q₀ (Nat.pair n k) = E u k := by
         unfold pullbackEnum
-        rw [if_neg hneg, e1, e2, hn, if_pos hlt, heq]
+        rw [ite_eq_right hneg, e1, e2, hn, ite_eq_left hlt, heq]
         rfl
       rw [hval]
       exact hk
@@ -211,7 +211,7 @@ lemma iUnion_pullbackEnum {E : BitString → ℕ → Option BitString} {f : BitS
       · have hval : pullbackEnum E enum q₀ j = (enum p.1 p.2).bind
             fun u => E u (Nat.unpair j).2 := by
           unfold pullbackEnum
-          rw [if_neg hneg, ← hp, if_pos hlt]
+          rw [ite_eq_right hneg, ← hp, ite_eq_left hlt]
         rw [hval] at hj
         cases heq : enum p.1 p.2 with
         | none =>
@@ -226,7 +226,7 @@ lemma iUnion_pullbackEnum {E : BitString → ℕ → Option BitString} {f : BitS
             exact this
       · have hval : pullbackEnum E enum q₀ j = none := by
           unfold pullbackEnum
-          rw [if_neg hneg, ← hp, if_neg hlt]
+          rw [ite_eq_right hneg, ← hp, ite_eq_right hlt]
         rw [hval] at hj
         simp at hj
 

@@ -365,7 +365,7 @@ lemma grayChargedHistoryOK_step {n b q L a e : Nat}
         have hstep : grayChargedStep q L a e sigma A st m
             = { phase := .advantage,
                 core := grayChargedTailStep q L a e sigma A st.core m } := by
-          simp only [grayChargedStep, hphase, if_neg hne]
+          simp only [grayChargedStep, hphase, ite_eq_right hne]
         rw [hstep]
         exact hnext
   | spend pass =>

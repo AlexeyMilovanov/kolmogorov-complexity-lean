@@ -67,7 +67,7 @@ theorem grayChargedOwnerFibreV2_mass_le
       grayChargedLocalChargeOfBlockGoal
         (grayChargedRunStateV2_frozen_adv_goal q L a e sigma A sm t hp
           hae hadv) := by
-    rw [grayChargedRoundLocalChargeV2, dif_pos hadv]
+    rw [grayChargedRoundLocalChargeV2, dite_eq_left hadv]
   -- pointwise: each guarded slot contributes at most `4κ·req_j`
   rw [grayChargedOwnerFibreV2, grayChargeMass_flatMap]
   have hstep : ((List.finRange p.slots.length).map fun j =>
@@ -83,10 +83,10 @@ theorem grayChargedOwnerFibreV2_mass_le
     apply List.sum_le_sum
     intro j _
     by_cases hm : (p.slots.get j).1 = z.1 ∧ (p.slots.get j).2.1 = z.2
-    · rw [if_pos hm, if_pos hm, hcharge,
+    · rw [ite_eq_left hm, ite_eq_left hm, hcharge,
         grayChargedTransportRoot_mass_of_charge hdeltaLe hvalid]
       exact (familyGrayChargeAtB.root hvalid j.isLt).2.2
-    · rw [if_neg hm, if_neg hm]
+    · rw [ite_eq_right hm, ite_eq_right hm]
       simp [grayChargeMass, grayMassOfCount]
   refine le_trans hstep ?_
   -- the guarded request sum is `4κ`·(the fibre son base)
@@ -103,11 +103,11 @@ theorem grayChargedOwnerFibreV2_mass_le
     intro j _
     simp only [Function.comp]
     by_cases hm : (p.slots.get j).1 = z.1 ∧ (p.slots.get j).2.1 = z.2
-    · rw [if_pos hm]
-      rw [if_pos hm]
+    · rw [ite_eq_left hm]
+      rw [ite_eq_left hm]
       rfl
-    · rw [if_neg hm]
-      rw [if_neg hm, mul_zero]
+    · rw [ite_eq_right hm]
+      rw [ite_eq_right hm, mul_zero]
   rw [hbridge]
   have hcall := (grayCallDepth_scale_bounds q e).2
   have hkpos : (0 : Rat) < halfAmplification q := halfAmplification_pos q
@@ -138,7 +138,7 @@ lemma grayChargedOwnerFibreV2_cell_length
   rw [grayChargedOwnerFibreV2, List.mem_flatMap] at hu
   obtain ⟨j, -, hu⟩ := hu
   by_cases hm : (p.slots.get j).1 = z.1 ∧ (p.slots.get j).2.1 = z.2
-  · rw [if_pos hm, mem_grayChargedTransportRoot] at hu
+  · rw [ite_eq_left hm, mem_grayChargedTransportRoot] at hu
     obtain ⟨source, hsource, hu⟩ := hu
     rw [List.mem_map] at hu
     obtain ⟨w, hw, rfl⟩ := hu
@@ -151,7 +151,7 @@ lemma grayChargedOwnerFibreV2_cell_length
     have hub := grayChargedRunStateV2_frozen_depth_ub hp hae
     simp only [List.length_append, hwlen, hslen]
     omega
-  · rw [if_neg hm] at hu
+  · rw [ite_eq_right hm] at hu
     simp at hu
 
 /-- Constant-depth lists convert their dyadic sum to the charge mass. -/

@@ -723,7 +723,7 @@ private lemma restrictedEffectiveSampledRun_step_density_suffix
         sizes.getD (q + i) 0 := by
     by_cases hi0 : i = 0
     · simp [hi0]
-    · rw [if_neg hi0]
+    · rw [ite_eq_right hi0]
       congr 1
       omega
   have hsSucc : s + 1 = q + 1 + i := by omega

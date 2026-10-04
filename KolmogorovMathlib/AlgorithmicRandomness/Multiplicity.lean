@@ -48,11 +48,12 @@ lemma bitPrefixCheck_iff (s t : BitString) : bitPrefixCheck s t = true ↔ s <+:
       by_cases hbc : c = b
       · subst hbc
         simp only [bitPrefixCheck, List.foldl_cons, bitPrefixDrop, Option.bind_some,
-          List.head?_cons, List.tail_cons, if_pos]
+          List.head?_cons, List.tail_cons, ite_eq_left]
         rw [show (List.foldl bitPrefixDrop (some t) s).isSome = bitPrefixCheck s t from rfl]
         simp [ih t]
       · have hne : (List.head? (c :: t)) ≠ some b := by simp [hbc]
-        simp only [bitPrefixCheck, List.foldl_cons, bitPrefixDrop, Option.bind_some, if_neg hne,
+        simp only [bitPrefixCheck, List.foldl_cons, bitPrefixDrop, Option.bind_some,
+          ite_eq_right hne,
           foldl_bitPrefixDrop_none, Option.isSome_none]
         simp only [Bool.false_eq_true, false_iff]
         intro h
@@ -111,10 +112,10 @@ lemma natCount_eq_card (c : ℕ → Bool) (j : ℕ) :
     have hsucc : natCount c (j + 1) = natCount c j + (bif c j then 1 else 0) := rfl
     rw [hsucc, ih, Finset.range_add_one, Finset.filter_insert]
     by_cases hb : c j = true
-    · rw [if_pos hb, Finset.card_insert_of_notMem (by simp), hb]
+    · rw [ite_eq_left hb, Finset.card_insert_of_notMem (by simp), hb]
       simp
     · have hb' : c j = false := by simpa using hb
-      rw [if_neg hb, hb']
+      rw [ite_eq_right hb, hb']
       simp
 
 /-- The bounded count vanishes exactly when the predicate fails below the bound. -/
@@ -344,7 +345,7 @@ lemma multiplicitySet_subset {f : ℕ → Option BitString} {N : ℕ → ℕ} (m
     | false => rw [hc] at hi; simp at hi
     | true =>
       rw [hc] at hi
-      simp only [cond_true, Option.elim_some] at hi
+      simp only [Bool.cond_true, Option.elim_some] at hi
       exact le_coverMultiplicity_of_coverCount (of_decide_eq_true hc) hi
 
 /-- A point of a cylinder whose covering count reaches the threshold lies in the corresponding

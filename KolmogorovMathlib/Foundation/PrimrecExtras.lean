@@ -181,7 +181,7 @@ theorem list_any_primrec {α β} [Primcodable α] [Primcodable β] {f : α → L
   rw [heq]
   have hstep : Primrec₂ (fun (a : α) (q : β × Bool) => p a q.1 || q.2) :=
     (Primrec.cond (hp.comp Primrec.fst (Primrec.fst.comp Primrec.snd)) (Primrec.const true)
-      (Primrec.snd.comp Primrec.snd)).to₂
+      (Primrec.snd.comp Primrec.snd)).to₂.of_eq fun a q => by cases p a q.1 <;> rfl
   exact Primrec.list_foldr hf (Primrec.const false) hstep
 
 /-- `List.all` with a primrec list and primrec predicate is primrec. -/
@@ -259,8 +259,8 @@ theorem primrec₂_max_of_le {α : Type*} [Primcodable α] [LinearOrder α]
     Primrec.snd Primrec.fst).of_eq
     (fun p => by
       by_cases h : p.1 ≤ p.2
-      · rw [if_pos h, max_eq_right h]
-      · rw [if_neg h, max_eq_left (not_le.mp h).le])
+      · rw [ite_eq_left h, max_eq_right h]
+      · rw [ite_eq_right h, max_eq_left (not_le.mp h).le])
 
 /-- **The minimum of a linear order is primitive recursive as soon as its order relation
 is**, by the same selection as `Kolmogorov.primrec₂_max_of_le`. -/
@@ -270,8 +270,8 @@ theorem primrec₂_min_of_le {α : Type*} [Primcodable α] [LinearOrder α]
     Primrec.fst Primrec.snd).of_eq
     (fun p => by
       by_cases h : p.1 ≤ p.2
-      · rw [if_pos h, min_eq_left h]
-      · rw [if_neg h, min_eq_right (not_le.mp h).le])
+      · rw [ite_eq_left h, min_eq_left h]
+      · rw [ite_eq_right h, min_eq_right (not_le.mp h).le])
 
 end Kolmogorov
 

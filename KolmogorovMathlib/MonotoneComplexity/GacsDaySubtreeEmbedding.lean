@@ -143,7 +143,7 @@ lemma getAlloc_serverMoveBelow (i : ℕ) (m : ServerMove) (x : GacsDayNode) :
         · subst hx; simp
         · have h1 : (x == z) = false := by simpa using hx
           simpa [List.lookup_cons, h1, hx] using ih
-      · simp only [serverMoveBelow, List.filterMap_cons, if_neg hj] at *
+      · simp only [serverMoveBelow, List.filterMap_cons, ite_eq_right hj] at *
         simp only [getAlloc, List.lookup_cons] at *
         have h2 : ((i :: x) == (j :: z)) = false := by simp [Ne.symm hj]
         simpa [h2] using ih
@@ -254,7 +254,7 @@ lemma getReq_clientMoveBelow (i : ℕ) (m : ClientMove) (x : GacsDayNode) :
         · subst hx; simp
         · have h1 : (x == z) = false := by simpa using hx
           simpa [List.lookup_cons, h1, hx] using ih
-      · simp only [clientMoveBelow, List.filterMap_cons, if_neg hj] at *
+      · simp only [clientMoveBelow, List.filterMap_cons, ite_eq_right hj] at *
         simp only [getReq, List.lookup_cons] at *
         have h2 : ((i :: x) == (j :: z)) = false := by simp [Ne.symm hj]
         simpa [h2] using ih
@@ -285,7 +285,7 @@ lemma lookup_flatMap_blocks_of_not_mem (l : List ℕ) (f : ℕ → ClientMove)
   | cons j l ih =>
     have hj : j ≠ i := by intro h; exact hi (by simp [h])
     have hi' : i ∉ l := fun h => hi (List.mem_cons_of_mem _ h)
-    rw [List.flatMap_cons, List.lookup_append, lookup_map_cons, if_neg hj, ih hi']
+    rw [List.flatMap_cons, List.lookup_append, lookup_map_cons, ite_eq_right hj, ih hi']
     rfl
 
 /-- Below a child of the block list, the assembled move reproduces that block. -/
@@ -298,13 +298,13 @@ lemma lookup_flatMap_blocks (l : List ℕ) (f : ℕ → ClientMove)
   | cons j l ih =>
     rw [List.flatMap_cons, List.lookup_append, lookup_map_cons]
     rcases eq_or_ne j i with rfl | hj
-    · rw [if_pos rfl]
+    · rw [ite_eq_left rfl]
       cases hx : List.lookup x (f j) with
       | some q => rfl
       | none =>
         rw [lookup_flatMap_blocks_of_not_mem l f j x (List.nodup_cons.mp hnd).1]
         rfl
-    · rw [if_neg hj]
+    · rw [ite_eq_right hj]
       have hi' : i ∈ l := by
         rcases List.mem_cons.mp hi with h | h
         · exact absurd h.symm hj

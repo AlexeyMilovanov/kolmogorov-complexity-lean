@@ -105,11 +105,11 @@ lemma grayChargedReplay_advantageTerminal_frozen_eq
   by_cases hdone : (grayChargedTailStep q L a e sigma A
       (grayChargedRunState q L a e n sigma A sm
         replay.advantageExitTime).core (sm replay.advantageExitTime)).done = true
-  · simp only [hdone, if_pos]
+  · simp only [hdone, ite_eq_left]
     unfold grayChargedStartSpend
     dsimp only
     split <;> rfl
-  · simp only [hdone, Bool.false_eq_true, if_false]
+  · simp only [hdone, Bool.false_eq_true, ite_false]
 
 /-- After the controller is done, the displayed son request is exactly the
 charged son request read off the frozen entries. -/
@@ -165,8 +165,8 @@ theorem grayChargedReplay_raised_display_eq
         (grayChargedRunState q L a e n sigma A sm U).core.frozen) z.1 z.2 :=
     lt_of_lt_of_le hraise hmono
   rw [grayChargedRunMove_son_eq_of_done hdone z.1 z.2]
-  simp only [grayChargedSonRequest, hsrc, if_pos, grayTailSonRequest]
-  rw [if_pos hfinal]
+  simp only [grayChargedSonRequest, hsrc, ite_eq_left, grayTailSonRequest]
+  rw [ite_eq_left hfinal]
 
 /-- Section 8.2 of the plan.  On the non-positive branch every resolved source
 carries a genuine tail family reserve: a threshold-raised source displays a

@@ -7,7 +7,11 @@ import KolmogorovMathlib.MonotoneComplexity.GacsDayV2SpendCore
 import KolmogorovMathlib.MonotoneComplexity.GacsDayV2Minimum
 import KolmogorovMathlib.MonotoneComplexity.GacsDayChargedCoherence
 
+/-!
+# Gacs-Day coherence, part 1
 
+Scale bounds for the coherence argument of the Gacs-Day construction.
+-/
 
 namespace Kolmogorov
 
@@ -239,12 +243,12 @@ lemma grayChargedFrozenCoherentV2_step
       simp only [grayChargedStepV2, hphase]
       by_cases hdone :
           (grayChargedBlockTailStepV2 q L a e sigma A st.core m).done = true
-      · rw [if_pos hdone]
+      · rw [ite_eq_left hdone]
         by_cases hserved : grayChargedWaitServedB q a e
             (grayChargedBlockTailStepV2 q L a e sigma A st.core m) m = true
-        · rw [if_pos hserved, grayChargedStartSpendV2_frozen]
+        · rw [ite_eq_left hserved, grayChargedStartSpendV2_frozen]
           exact hnext
-        · rw [if_neg hserved]
+        · rw [ite_eq_right hserved]
           exact hnext
       · simpa [hdone] using hnext
   | spend pass =>
@@ -329,17 +333,17 @@ lemma grayChargedRunStateV2_displayedCurrent_coherent
   | advantage =>
       by_cases hd : (grayChargedRunStateV2 (n := n) (b := grayTailBranch q L a e)
           q L a e sigma A sm t).core.done = true
-      · rw [if_pos (by simp [hd])]
+      · rw [ite_eq_left (by simp [hd])]
         exact requestCoherentCap_familyClientMoveAt_nil _ hpos j
       · have hd' : (grayChargedRunStateV2 (n := n) (b := grayTailBranch q L a e)
             q L a e sigma A sm t).core.done = false := by simpa using hd
         by_cases hempty : (grayChargedRunStateV2 (n := n) (b := grayTailBranch q L a e)
             q L a e sigma A sm t).core.slots.isEmpty = true
-        · rw [if_pos (by simp [hempty])]
+        · rw [ite_eq_left (by simp [hempty])]
           exact requestCoherentCap_familyClientMoveAt_nil _ hpos j
         · have hempty' : (grayChargedRunStateV2 (n := n) (b := grayTailBranch q L a e)
               q L a e sigma A sm t).core.slots.isEmpty = false := by simpa using hempty
-          rw [if_neg (by simp [hd', hempty'])]
+          rw [ite_eq_right (by simp [hd', hempty'])]
           exact (grayChargedRunStateV2_advantageMove_coherent ha hae hL hRung hsm hphase
             hd' hne j hj).mono_cap (grayTailRoundEps_scale_le_spendAlpha hae _)
   | spend pass =>
@@ -374,9 +378,9 @@ lemma grayChargedRunStateV2_displayedCurrent_coherent_display
   intro j hj
   by_cases hd : (grayChargedRunStateV2 (n := n) (b := grayTailBranch q L a e)
       q L a e sigma A sm t).core.done = true
-  · rw [if_pos hd] at hj
+  · rw [ite_eq_left hd] at hj
     simp at hj
-  · rw [if_neg hd] at hj
+  · rw [ite_eq_right hd] at hj
     exact grayChargedRunStateV2_displayedCurrent_coherent ha hae hL hRung hsm t j hj
 
 /-- All entries of a projected ledger with a coherent current move are
@@ -453,11 +457,11 @@ lemma grayChargedBlockCurrentSonBase_le_callScale {n b q L e r : ℕ}
     apply List.sum_le_sum
     intro z hz
     by_cases hm : z.1.1 = i ∧ z.1.2.1 = c
-    · simp only [if_pos hm]
+    · simp only [ite_eq_left hm]
       obtain ⟨j, hj⟩ := List.mem_ofFn.mp hz
       rw [← hj]
       exact hcap j.val j.isLt
-    · simp [if_neg hm]
+    · simp [ite_eq_right hm]
   refine le_trans hle ?_
   rw [sum_map_ite_eq_countP es (fun z => z.1.1 = i ∧ z.1.2.1 = c) α]
   have hmapfst : es.map Prod.fst = slots := by
@@ -660,7 +664,7 @@ theorem grayChargedRunStateV2_display_sonBase_le
       simp only [grayChargedCurrentMoveV2, hact, Bool.false_or, Bool.false_eq_true, ↓reduceIte]
       by_cases hempty : core.slots.isEmpty = true
       · have hnil : core.slots = [] := List.isEmpty_iff.mp hempty
-        rw [if_pos hempty, hnil]
+        rw [ite_eq_left hempty, hnil]
         simp only [grayTailEntries, grayTailSlotEntries, List.length_nil, List.ofFn_zero,
           List.append_nil]
         exact hsourceCap i c hc
@@ -676,7 +680,7 @@ theorem grayChargedRunStateV2_display_sonBase_le
             (r := core.frozen.length) (fun j hj => (hcur j hj).2.1)
             (fun i c => grayInAdvBlock_fibre_count_le hcore.shape.slots_nodup
               hcore.shape.slots_range i c) i c
-        rw [if_neg hempty, grayTailEntries, grayTailSonBase_append_globalEntries]
+        rw [ite_eq_right hempty, grayTailEntries, grayTailSonBase_append_globalEntries]
         by_cases hhas : GrayTailHasKey core.slots i c
         · obtain ⟨s, hs, hi, hc'⟩ := hhas
           have hfrozen : grayTailFrozenSonBase (core.frozen.map GrayTailRoundV2.toV1) i c ≤
@@ -692,7 +696,7 @@ theorem grayChargedRunStateV2_display_sonBase_le
       have hcur : grayChargedCurrentMoveV2 q L a e sigma
           { phase := .advantage, core := core } = [] := by
         simp [grayChargedCurrentMoveV2, hdone]
-      rw [hcur, if_pos hdone]
+      rw [hcur, ite_eq_left hdone]
       simp only [grayTailEntries, grayTailSlotEntries, List.length_nil, List.ofFn_zero,
         List.append_nil]
       exact hsourceCap i c hc
@@ -720,7 +724,7 @@ theorem grayChargedRunStateV2_display_sonBase_le
       exact hsourceCap i c hc
   | done core hdone =>
       simp only [grayChargedCurrentMoveV2]
-      rw [if_pos hdone.done_true]
+      rw [ite_eq_left hdone.done_true]
       simp only [grayTailEntries, grayTailSlotEntries, List.length_nil, List.ofFn_zero,
         List.append_nil]
       exact hsourceCap i c hc
@@ -744,13 +748,13 @@ lemma grayChargedRootRequest_le_of_sonBase_bounds {n b q a e : ℕ} (hae : a ≤
     intro c
     by_cases hc : c.val < grayChargedSourceCount a e
     · unfold grayChargedSonRequest grayTailSonRequest
-      simp only [if_pos hc]
+      simp only [ite_eq_left hc]
       by_cases hlarge : grayChargedThreshold q e < grayTailSonBase entries i c
-      · rw [if_pos hlarge]
-      · rw [if_neg hlarge]
+      · rw [ite_eq_left hlarge]
+      · rw [ite_eq_right hlarge]
         exact hbase c hc
     · have hge : grayChargedSourceCount a e ≤ c.val := Nat.le_of_not_gt hc
-      simp only [grayChargedSonRequest_spare i c hge, hspare c hge, if_neg hc, le_refl]
+      simp only [grayChargedSonRequest_spare i c hge, hspare c hge, ite_eq_right hc, le_refl]
   unfold grayChargedRootRequest
   calc
     (∑ c : Fin b, grayChargedSonRequest (grayChargedSourceCount a e)
@@ -822,7 +826,7 @@ lemma grayBlockRootIncrementV2_spend_upper_of_cap {q L a n pass : ℕ}
         rootslots.card = (slots.filter fun s => decide (s.1 = i)).length := by
           simpa [rootslots, List.get_eq_getElem] using grayCharged_filter_index_card slots i
         _ = graySpendMult L pass := by
-          rw [hslotsDef, grayBlockSpendSlotsV2_filter_root_length, if_pos hi,
+          rw [hslotsDef, grayBlockSpendSlotsV2_filter_root_length, ite_eq_left hi,
             grayBlockSpendPairs_length_pinned rfl hpass]
     have hsum : grayChargedRootIncrement (grayTailSlotEntries slots move) i =
         ∑ j ∈ rootslots, getFamilyReq move j.val [] := by
@@ -869,9 +873,9 @@ lemma grayChargedV2_advantage_spare_sonBase_eq_zero {n b a e : ℕ}
     rcases grayChargedV2_entries_slot_mem hz with ⟨p, hp, hzp⟩ | hzs
     · exact hsource.frozen p hp z.1 hzp
     · by_cases hd : core.done = true
-      · rw [if_pos hd] at hzs
+      · rw [ite_eq_left hd] at hzs
         simp at hzs
-      · rw [if_neg hd] at hzs
+      · rw [ite_eq_right hd] at hzs
         exact hsource.current z.1 hzs
   omega
 

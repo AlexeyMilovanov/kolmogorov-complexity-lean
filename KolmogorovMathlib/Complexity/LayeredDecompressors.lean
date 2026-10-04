@@ -136,7 +136,7 @@ theorem exists_isOptimalConditional_infinite_empty_complexityLayer :
           have h2 : (true :: false :: q).head? = some true := rfl
           have h3 : (true :: false :: q).take 2 = [true, false] := rfl
           have h4 : (true :: false :: q).drop 2 = q := rfl
-          rw [h1, if_neg (by decide), h2, if_neg (by decide), h3, if_pos rfl, h4]
+          rw [h1, ite_eq_right (by decide), h2, ite_eq_right (by decide), h3, ite_eq_left rfl, h4]
           exact hq_prod
         have h_condK_V : condK (layerEmptyV U) x y ≤ ((N + c + 2 : ℕ) : ℕ∞) := by
           rw [condK_le_iff]
@@ -161,7 +161,7 @@ theorem exists_isOptimalConditional_infinite_empty_complexityLayer :
           have h1 : (false :: q).length % 2 = 0 := hw_even
           have h2 : (false :: q).head? = some false := rfl
           have h3 : (false :: q).tail = q := rfl
-          rw [h1, if_neg (by decide), h2, if_pos rfl, h3]
+          rw [h1, ite_eq_right (by decide), h2, ite_eq_left rfl, h3]
           exact hq_prod
         have h_condK_V : condK (layerEmptyV U) x y ≤ ((N + c + 1 : ℕ) : ℕ∞) := by
           rw [condK_le_iff]

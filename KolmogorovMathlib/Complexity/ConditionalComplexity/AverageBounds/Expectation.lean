@@ -1,5 +1,11 @@
 import KolmogorovMathlib.Complexity.ConditionalComplexity.AverageBounds.Tail
 
+/-!
+# Average conditional complexity: expectation
+
+Machinery for Exercise 42: bounds on the expectation of conditional complexity.
+-/
+
 namespace Kolmogorov
 open Nat.Partrec (Code)
 open StagedEnumeration CodedFiniteDistribution
@@ -47,7 +53,7 @@ private lemma avgCond_sum_ite_zero_le (T : ℕ) (A : ℝ) (hA : 0 ≤ A) :
     rcases Nat.eq_zero_or_pos T with h | h
     · subst h
       simp
-    · rw [if_neg (by omega)]
+    · rw [ite_eq_right (by omega)]
       simpa using ih
 
 /-- Layer-cake identity for a truncated difference summed over a list. -/
@@ -69,9 +75,9 @@ private lemma avgCond_layer_cake (L : List BitString) (a : BitString → ℕ) (T
     refine Finset.sum_congr rfl (fun d _ => ?_)
     rw [List.filter_cons]
     by_cases h : a y + d < T
-    · rw [if_pos h, if_pos (by simpa using h), List.length_cons]
+    · rw [ite_eq_left h, ite_eq_left (by simpa using h), List.length_cons]
       omega
-    · rw [if_neg h, if_neg (by simpa using h)]
+    · rw [ite_eq_right h, ite_eq_right (by simpa using h)]
       omega
 
 private lemma avgCond_split_sum (L : List BitString) (a : BitString → ℕ) (T : ℕ) :
@@ -112,7 +118,7 @@ theorem average_condK_eq_condK_length (U : Map) (hU : isOptimalConditional U) :
     unfold condCVal
     rw [Nat.cast_add, ENat.natCast_toNat hne]
   have hsum_upper : (L.map a).sum ≤ 2 ^ n * (T + c1) := by
-    have h := List.sum_le_card_nsmul (L.map a) (T + c1) (by
+    have h := List.sum_le_length_nsmul (L.map a) (T + c1) (by
       intro v hv
       obtain ⟨y, hy, rfl⟩ := List.mem_map.mp hv
       exact hupper y hy)
@@ -123,7 +129,7 @@ theorem average_condK_eq_condK_length (U : Map) (hU : isOptimalConditional U) :
             + (ct : ℝ) * (d : ℝ) ^ 2 / 2 ^ d * 2 ^ n := by
     intro d _
     rcases Nat.eq_zero_or_pos d with hd | hd
-    · rw [if_pos hd]
+    · rw [ite_eq_left hd]
       have hb : (L.filter (fun y => decide (a y + d < T))).length ≤ 2 ^ n := by
         calc (L.filter _).length ≤ L.length := List.length_filter_le _ _
           _ = 2 ^ n := hlen
@@ -131,7 +137,7 @@ theorem average_condK_eq_condK_length (U : Map) (hU : isOptimalConditional U) :
         exact_mod_cast hb
       have hnn : (0 : ℝ) ≤ (ct : ℝ) * (d : ℝ) ^ 2 / 2 ^ d * 2 ^ n := by positivity
       linarith
-    · rw [if_neg (by omega)]
+    · rw [ite_eq_right (by omega)]
       have := hct x n d hd
       have hnn : (0 : ℝ) ≤ (ct : ℝ) * (d : ℝ) ^ 2 / 2 ^ d * 2 ^ n := by positivity
       linarith

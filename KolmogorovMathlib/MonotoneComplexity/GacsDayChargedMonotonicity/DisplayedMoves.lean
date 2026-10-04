@@ -41,9 +41,9 @@ lemma grayChargedSonRequest_mono {n b : Nat}
       grayChargedSonRequest source threshold eps entries2 i c := by
   unfold grayChargedSonRequest
   by_cases hc : c.val < source
-  · simp only [hc, if_true]
+  · simp only [hc, ite_true]
     exact grayTailSonRequest_mono htheps i c hbase
-  · simp only [hc, if_false]
+  · simp only [hc, ite_false]
     exact hbase
 
 /-- The displayed move is monotone in its entries: growing every son base and every entry move
@@ -68,7 +68,7 @@ lemma getFamilyReq_grayChargedDisplayedMove_mono
   unfold grayChargedDisplayedMove grayChargedTailFamilyMove familyClientMoveAt
   rw [List.getD_eq_getElem?_getD, List.getElem?_ofFn]
   rw [List.getD_eq_getElem?_getD, List.getElem?_ofFn]
-  rw [dif_pos hi, dif_pos hi]
+  rw [dite_eq_left hi, dite_eq_left hi]
   simp only [Option.getD_some]
   rcases x with _ | ⟨c, _ | ⟨c', y⟩⟩
   · rw [getReq_graftTwoLevel_root, getReq_graftTwoLevel_root]
@@ -78,7 +78,7 @@ lemma getFamilyReq_grayChargedDisplayedMove_mono
         ⟨i, hi⟩ c (hbase c)
   · by_cases hc : c < b
     · rw [getReq_graftTwoLevel_son hc, getReq_graftTwoLevel_son hc]
-      simp only [dif_pos hc]
+      simp only [dite_eq_left hc]
       exact grayChargedSonRequest_mono (grayChargedThreshold_le_eps q e)
         ⟨i, hi⟩ ⟨c, hc⟩ (hbase ⟨c, hc⟩)
     · have hc' : b <= c := Nat.le_of_not_gt hc
@@ -87,7 +87,7 @@ lemma getFamilyReq_grayChargedDisplayedMove_mono
     · by_cases hc' : c' < b
       · rw [getReq_graftTwoLevel_grandson hc hc',
           getReq_graftTwoLevel_grandson hc hc']
-        simp only [dif_pos hc, dif_pos hc']
+        simp only [dite_eq_left hc, dite_eq_left hc']
         exact hentry (⟨i, hi⟩, ⟨c, hc⟩, ⟨c', hc'⟩) y
       · have hc'' : b <= c' := Nat.le_of_not_gt hc'
         rw [getReq_graftTwoLevel_of_son_ge hc hc'',

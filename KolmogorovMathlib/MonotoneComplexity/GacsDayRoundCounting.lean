@@ -257,7 +257,7 @@ lemma getAlloc_inTreeServerMove_of_mem {b : ℕ} (m : ServerMove) {x : GacsDayNo
     · have hb : (x == y) = false := by simpa using hxy
       by_cases hy : ∀ c ∈ y, c < b
       · have hkeep : (decide (∀ c ∈ y, c < b)) = true := by simpa using hy
-        simp only [inTreeServerMove, List.filter_cons, hkeep, if_true, getAlloc,
+        simp only [inTreeServerMove, List.filter_cons, hkeep, ite_true, getAlloc,
           List.lookup_cons, hb]
         simpa [inTreeServerMove, getAlloc] using ih
       · have hdrop : (decide (∀ c ∈ y, c < b)) = false := by simpa using hy
@@ -279,7 +279,7 @@ lemma getAlloc_inTreeServerMove_of_not_mem {b : ℕ} (m : ServerMove) {x : GacsD
         by_contra hcon
         have : x = y := by simpa using hcon
         exact hx (this ▸ hy)
-      simp only [inTreeServerMove, List.filter_cons, hkeep, if_true, getAlloc,
+      simp only [inTreeServerMove, List.filter_cons, hkeep, ite_true, getAlloc,
         List.lookup_cons, hb]
       simpa [inTreeServerMove, getAlloc] using ih
     · have hdrop : (decide (∀ c ∈ y, c < b)) = false := by simpa using hy

@@ -501,7 +501,7 @@ theorem colU_nonneg (e m : ℕ) : 0 ≤ colU e m := by
 /-- On the index `Nat.pair e j`, the `e`-th column carries the `j`-th increment of the `e`-th
 approximation. -/
 theorem colU_pair (e j : ℕ) : colU e (Nat.pair e j) = lscInc e j := by
-  rw [colU, Nat.unpair_pair, if_pos rfl]
+  rw [colU, Nat.unpair_pair, ite_eq_left rfl]
 
 /-- Each column of the universal series is computable. -/
 theorem computable_colU (e : ℕ) : Computable (colU e) := by
@@ -517,8 +517,8 @@ theorem computable_colU (e : ℕ) : Computable (colU e) := by
   refine h.of_eq (fun m => ?_)
   rw [colU]
   cases hb : ((Nat.unpair m).1 == e) with
-  | false => rw [cond_false, if_neg (beq_eq_false_iff_ne.mp hb)]
-  | true => rw [cond_true, if_pos (beq_iff_eq.mp hb)]
+  | false => rw [Bool.cond_false, ite_eq_right (beq_eq_false_iff_ne.mp hb)]
+  | true => rw [Bool.cond_true, ite_eq_left (beq_iff_eq.mp hb)]
 
 /-- The `e`-th column is term-by-term below `2 ^ (e + 1)` times the universal series. -/
 theorem colU_le_scaled (e m : ℕ) : colU e m ≤ (2 ^ (e + 1) : ℚ) * bigU m := by

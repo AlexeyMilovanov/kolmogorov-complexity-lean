@@ -331,7 +331,7 @@ lemma ofReal_bandPartial_le_bandTransform {u : CantorSeq → ℝ≥0∞} {w : Ca
     (ENNReal.sum_le_tsum (f := fun k : ℕ => Set.indicator {x | (2 : ℝ≥0∞) ^ k < u x}
       (fun _ => ENNReal.ofReal ((bandWeight k : ℝ)) * 2 ^ k) w) (Finset.range m))
   refine Finset.sum_congr rfl (fun k hk => ?_)
-  exact (Set.indicator_of_mem (h k (Finset.mem_range.1 hk)) _).symm
+  rw [Set.indicator_of_mem (s := {x | (2 : ℝ≥0∞) ^ k < u x}) (h k (Finset.mem_range.1 hk))]
 
 /-- Conversely, any value strictly below the band transform is strictly below
 one of the partial values realised at `w`. -/
@@ -362,7 +362,7 @@ lemma exists_bandPartial_gt {u : CantorSeq → ℝ≥0∞} {w : CantorSeq} {q : 
         intro hlt'
         exact h0 (lt_of_le_of_lt hmono hlt')
       rw [hg]
-      exact Set.indicator_of_notMem this _
+      exact Set.indicator_of_notMem (s := {x | (2 : ℝ≥0∞) ^ k < u x}) this _
     set m' := min m m₀ with hm'
     have hsum : ∑ k ∈ Finset.range m, g k = ∑ k ∈ Finset.range m', g k := by
       have hsub : Finset.range m' ⊆ Finset.range m := by
@@ -382,7 +382,7 @@ lemma exists_bandPartial_gt {u : CantorSeq → ℝ≥0∞} {w : CantorSeq} {q : 
       refine Finset.sum_congr rfl (fun k hk => ?_)
       have hk' : k < m' := Finset.mem_range.1 hk
       rw [hg]
-      exact Set.indicator_of_mem (hlt k (by omega)) _
+      exact Set.indicator_of_mem (s := {x | (2 : ℝ≥0∞) ^ k < u x}) (hlt k (by omega)) _
     rw [hsum, hval] at hm
     have hq : q < bandPartial m' := by
       have := (ENNReal.ofReal_lt_ofReal_iff (bandPartial_pos m')).1 hm
@@ -397,7 +397,7 @@ lemma exists_bandPartial_gt {u : CantorSeq → ℝ≥0∞} {w : CantorSeq} {q : 
       congr 1
       refine Finset.sum_congr rfl (fun k _ => ?_)
       rw [hg]
-      exact Set.indicator_of_mem (hex k) _
+      exact Set.indicator_of_mem (s := {x | (2 : ℝ≥0∞) ^ k < u x}) (hex k) _
     rw [hval] at hm
     have hq : q < bandPartial m := by
       have := (ENNReal.ofReal_lt_ofReal_iff (bandPartial_pos m)).1 hm
@@ -497,7 +497,7 @@ lemma isLowerSemicomputableFun_bandTransform {u : CantorSeq → ℝ≥0∞}
       by_cases hm0 : m = 0
       · refine ⟨Nat.pair 0 0, ?_⟩
         subst hm0
-        simp only [Nat.unpair_pair, if_pos hqm]
+        simp only [Nat.unpair_pair, ite_eq_left hqm]
         simp [hcyl]
       · have hmpos : 0 < m := Nat.pos_of_ne_zero hm0
         have hlt : (2 : ℝ≥0∞) ^ (m - 1) < u w := hband (m - 1) (by omega)
@@ -507,7 +507,7 @@ lemma isLowerSemicomputableFun_bandTransform {u : CantorSeq → ℝ≥0∞}
           rwa [ofReal_rat_two_pow]
         obtain ⟨j, hj⟩ := Set.mem_iUnion.1 hmem
         refine ⟨Nat.pair m j, ?_⟩
-        simp only [Nat.unpair_pair, if_pos hqm, if_neg hm0]
+        simp only [Nat.unpair_pair, ite_eq_left hqm, ite_eq_right hm0]
         exact hj
     · rintro ⟨i, hi⟩
       set m := (Nat.unpair i).1 with hmdef
@@ -525,7 +525,7 @@ lemma isLowerSemicomputableFun_bandTransform {u : CantorSeq → ℝ≥0∞}
           rw [bandTransform]
           exact self_le_add_right 1 _
         · refine Or.inr ?_
-          rw [if_pos h1, if_neg hm0] at hi
+          rw [ite_eq_left h1, ite_eq_right hm0] at hi
           have hmem : w ∈ ⋃ j, (enum ((2 : ℚ) ^ (m - 1)) j).elim ∅ cantorCylinder :=
             Set.mem_iUnion.2 ⟨(Nat.unpair i).2, hi⟩
           rw [← hspec ((2 : ℚ) ^ (m - 1))] at hmem
@@ -544,7 +544,7 @@ lemma isLowerSemicomputableFun_bandTransform {u : CantorSeq → ℝ≥0∞}
           refine lt_of_lt_of_le ?_ (ofReal_bandPartial_le_bandTransform hall)
           refine (ENNReal.ofReal_lt_ofReal_iff (bandPartial_pos m)).2 ?_
           exact_mod_cast h1
-      · rw [if_neg h1] at hi
+      · rw [ite_eq_right h1] at hi
         simp at hi
 
 
@@ -651,7 +651,7 @@ private lemma bandWeight_mul_two_pow_le_bandTransform {u : CantorSeq → ℝ≥0
   have h1 : Set.indicator {x | (2 : ℝ≥0∞) ^ K < u x}
       (fun _ => ENNReal.ofReal ((bandWeight K : ℝ)) * 2 ^ K) w
       = ENNReal.ofReal ((bandWeight K : ℝ)) * 2 ^ K :=
-    Set.indicator_of_mem hmem _
+    Set.indicator_of_mem (s := {x | (2 : ℝ≥0∞) ^ K < u x}) hmem _
   have h2 := ENNReal.le_tsum (f := fun k : ℕ => Set.indicator {x | (2 : ℝ≥0∞) ^ k < u x}
       (fun _ => ENNReal.ofReal ((bandWeight k : ℝ)) * 2 ^ k) w) K
   rw [h1] at h2
@@ -697,7 +697,7 @@ lemma le_bandTransform_mul_logarithmicCorrection {u : CantorSeq → ℝ≥0∞}
     · exact ENNReal.one_le_rpow (ENNReal.one_le_ofReal.2 (le_max_left _ _)) ha0
   by_cases hinf : u w = ∞
   · have hcorr : logarithmicCorrection a (u w) = ∞ := by
-      rw [logarithmicCorrection, if_pos hinf]
+      rw [logarithmicCorrection, ite_eq_left hinf]
     have hne : (c : ℝ≥0∞) * bandTransform u w ≠ 0 := by
       have : (1:ℝ≥0∞) ≤ (c : ℝ≥0∞) * bandTransform u w := by
         simpa using mul_le_mul' hc1' hbT1
@@ -738,7 +738,7 @@ lemma le_bandTransform_mul_logarithmicCorrection {u : CantorSeq → ℝ≥0∞}
       -- the constant bound
       have hcorr : logarithmicCorrection a (u w)
           = (ENNReal.ofReal (max 1 (Real.log r))) ^ a := by
-        rw [logarithmicCorrection, if_neg hinf, hrdef]
+        rw [logarithmicCorrection, ite_eq_right hinf, hrdef]
       have hlogK : (K : ℝ) * Real.log 2 ≤ max 1 (Real.log r) := by
         have h1 : Real.log ((2:ℝ) ^ K) ≤ Real.log r :=
           Real.log_le_log (by positivity) h2Kr.le

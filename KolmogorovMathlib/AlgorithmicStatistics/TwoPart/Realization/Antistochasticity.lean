@@ -94,7 +94,7 @@ theorem exists_antistochastic_curve_code (U : Map) (hU : IsOptimalPrefixConditio
     · push Not at hi
       rw [decodeCurve_curveEncode_out_of_bounds _ _ hi]
       have : ¬ (i < k) := by omega
-      rw [if_neg this]
+      rw [ite_eq_right this]
   rw [(antiCurveOfTriple_triple n k K).symm]
   set w := pairCode (natCode n) (pairCode (natCode k) (natCode K)) with hw
   have hwbound : KPPlain U w
@@ -213,7 +213,7 @@ theorem exists_antistochastic (U : Map) (hU : IsOptimalPrefixConditional U) :
       · intro i j hij; simp only [hfunc]; split <;> split <;> omega
       · intro i; simp only [hfunc]; split <;> split <;> omega
       · simp only [hfunc]; split <;> omega
-      · simp only [hfunc]; rw [if_neg (by omega)]
+      · simp only [hfunc]; rw [ite_eq_right (by omega)]
       · intro i; simp only [hfunc]; split <;> omega
     obtain ⟨x, hx_len, hx_up, hx_low⟩ := h_real c_real n k m h_func h_curve
     -- `KPPlain U x` is finite, so name it `kx`.
@@ -227,7 +227,7 @@ theorem exists_antistochastic (U : Map) (hU : IsOptimalPrefixConditional U) :
     refine ⟨x, hx_len, ?_, ?_, ?_⟩
     · -- Upper complexity bound: `K(x) ≤ k + O(log n)`.
       have h_k := hx_up k
-      have h_func_k : h_func k = 0 := by simp only [hfunc]; rw [if_neg (by omega)]
+      have h_func_k : h_func k = 0 := by simp only [hfunc]; rw [ite_eq_right (by omega)]
       rw [h_func_k, zero_add] at h_k
       have h_plain_k := h_plain x n (k + m + s) s hx_len h_k
       refine le_trans h_plain_k ?_
@@ -243,7 +243,7 @@ theorem exists_antistochastic (U : Map) (hU : IsOptimalPrefixConditional U) :
         by_cases hik : (kx + logSlack c_sing n) < k
         · -- `h_func i0 = n - i0`; the singleton forbids the small-description escape.
           have hfi : h_func (kx + logSlack c_sing n) = n - (kx + logSlack c_sing n) := by
-            simp only [hfunc]; rw [if_pos hik]
+            simp only [hfunc]; rw [ite_eq_left hik]
           rw [hfi] at hlow
           rcases hlow with hno | hle
           · exact absurd (h_i0.mono_j (Nat.zero_le _)) hno
@@ -254,7 +254,7 @@ theorem exists_antistochastic (U : Map) (hU : IsOptimalPrefixConditional U) :
     · -- Profile stays above the sufficiency line `n - O(log n)` below budget `k`.
       intro i j hij hprof
       have hik : i < k := by omega
-      have hfi : h_func i = n - i := by simp only [hfunc]; rw [if_pos hik]
+      have hfi : h_func i = n - i := by simp only [hfunc]; rw [ite_eq_left hik]
       have hlow := hx_low i
       rw [hfi] at hlow
       rcases hlow with hno | hle

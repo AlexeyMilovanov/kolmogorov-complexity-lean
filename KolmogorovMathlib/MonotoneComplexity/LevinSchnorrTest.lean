@@ -93,7 +93,7 @@ theorem isUniformlyEffectiveOpen_aPrioriExcessSet :
         rw [hxlen]
         exact (two_pow_mul_inv_two_pow_lt_dyadicValue_iff c n (approx s x []) s).1 hs
       refine ⟨Encodable.encode ((s, x) : ℕ × BitString), ?_⟩
-      simp only [Encodable.encodek, Option.bind_some, hcond, if_pos]
+      simp only [Encodable.encodek, Option.bind_some, hcond, ite_eq_left]
       have : w ∈ cantorCylinder x := by
         rw [hx]
         exact (isCantorPrefix_iff_cantorPrefix_eq _ w).2 (by rw [cantorPrefix_length])
@@ -104,7 +104,7 @@ theorem isUniformlyEffectiveOpen_aPrioriExcessSet :
       · rw [hdecode] at hi
         simp only [Option.bind_some] at hi
         by_cases hcond : 2 ^ c * 2 ^ p.1 < approx p.1 p.2 [] * 2 ^ p.2.length
-        · rw [if_pos hcond] at hi
+        · rw [ite_eq_left hcond] at hi
           simp only [Option.elim_some] at hi
           have hpref : cantorPrefix w p.2.length = p.2 :=
             (isCantorPrefix_iff_cantorPrefix_eq _ w).1 hi
@@ -117,7 +117,7 @@ theorem isUniformlyEffectiveOpen_aPrioriExcessSet :
           refine lt_of_lt_of_le hlt ?_
           rw [← hsup' p.2]
           exact le_iSup (fun s => dyadicValue (approx s p.2 []) s) p.1
-        · rw [if_neg hcond] at hi; simp at hi
+        · rw [ite_eq_right hcond] at hi; simp at hi
 
 /-- The deficiency sets form a Martin-Löf test for the uniform measure. -/
 theorem isMartinLofTest_aPrioriExcessSet :

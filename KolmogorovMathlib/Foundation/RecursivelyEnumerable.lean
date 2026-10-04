@@ -50,12 +50,12 @@ lemma Partrec.graphIsRe {α β : Type*} [Primcodable α] [Primcodable β]
       by_cases heq : (f a).get hdom = b
       · exact heq
       · exfalso
-        rw [if_neg heq] at hstep
+        rw [ite_eq_right heq] at hstep
         cases hstep
     · rintro ⟨hdom, heq⟩
       rw [Part.bind_dom]
       refine ⟨hdom, ?_⟩
-      rw [if_pos heq]
+      rw [ite_eq_left heq]
       trivial
 
 /-! ### Bounded Search and Dovetailing -/

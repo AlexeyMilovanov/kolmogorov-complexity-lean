@@ -133,23 +133,23 @@ private noncomputable def restrictedSampledRunState_rebuild
   mem_family := by
     intro s hs
     by_cases hsq : s ≤ q
-    · simp only [if_pos hsq]
+    · simp only [ite_eq_left hsq]
       exact state.mem_family s hs
-    · simp only [if_neg hsq]
+    · simp only [ite_eq_right hsq]
       exact hmem s (Nat.lt_of_not_ge hsq) hs
   size_bound := by
     intro s hs
     by_cases hsq : s ≤ q
-    · simp only [if_pos hsq]
+    · simp only [ite_eq_left hsq]
       exact state.size_bound s hs
-    · simp only [if_neg hsq]
+    · simp only [ite_eq_right hsq]
       exact hsize s (Nat.lt_of_not_ge hsq) hs
   live_subset := by
     intro s hs
     by_cases hsq : s ≤ q
-    · simp only [if_pos hsq]
+    · simp only [ite_eq_left hsq]
       exact Finset.sdiff_subset.trans (state.live_subset s hs)
-    · simp only [if_neg hsq]
+    · simp only [ite_eq_right hsq]
       have hqi : q ≤ s := Nat.le_of_lt (Nat.lt_of_not_ge hsq)
       induction hqi with
       | refl =>
@@ -161,9 +161,9 @@ private noncomputable def restrictedSampledRunState_rebuild
   live_ambient := by
     intro s hs x hx
     by_cases hsq : s ≤ q
-    · simp only [if_pos hsq] at hx
+    · simp only [ite_eq_left hsq] at hx
       exact state.live_ambient s hs x (Finset.mem_sdiff.mp hx).1
-    · simp only [if_neg hsq] at hx
+    · simp only [ite_eq_right hsq] at hx
       have hxq : x ∈ Cnew q :=
         restricted_rebuild_cnew_subset_root hinter s (Nat.le_of_lt (Nat.lt_of_not_ge hsq)) hs hx
       rw [hCq] at hxq
@@ -172,7 +172,7 @@ private noncomputable def restrictedSampledRunState_rebuild
     intro s hsN
     by_cases hsuccq : s + 1 ≤ q
     · have hsq : s ≤ q := by omega
-      simp only [if_pos hsq, if_pos hsuccq]
+      simp only [ite_eq_left hsq, ite_eq_left hsuccq]
       intro x hx
       exact Finset.mem_sdiff.mpr
         ⟨state.live_monotonic s hsN (Finset.mem_sdiff.mp hx).1,
@@ -181,10 +181,10 @@ private noncomputable def restrictedSampledRunState_rebuild
       by_cases hsq : s ≤ q
       · have hsqeq : s = q := by omega
         subst s
-        simp only [if_pos le_rfl, if_neg (by omega : ¬q + 1 ≤ q)]
+        simp only [ite_eq_left le_rfl, ite_eq_right (by omega : ¬q + 1 ≤ q)]
         rw [hinter q le_rfl hq_lt, hCq]
         exact Finset.inter_subset_left
-      · simp only [if_neg hsq, if_neg hsuccq]
+      · simp only [ite_eq_right hsq, ite_eq_right hsuccq]
         rw [hinter s hqs hsN]
         exact Finset.inter_subset_left
   density := by
@@ -192,7 +192,7 @@ private noncomputable def restrictedSampledRunState_rebuild
     by_cases hsq : s < q
     · have hsuccq : s + 1 ≤ q := by omega
       have hsle : s ≤ q := Nat.le_of_lt hsq
-      simp only [if_pos hsle, if_pos hsuccq]
+      simp only [ite_eq_left hsle, ite_eq_left hsuccq]
       exact Nat.le_of_not_gt (hprefix s hsq)
     · have hqs : q ≤ s := Nat.le_of_not_gt hsq
       have hsucc_not : ¬s + 1 ≤ q := by omega
@@ -201,10 +201,10 @@ private noncomputable def restrictedSampledRunState_rebuild
       by_cases hseq : s ≤ q
       · have hsqeq : s = q := by omega
         subst s
-        simp only [if_pos le_rfl, if_neg (by omega : ¬q + 1 ≤ q)]
+        simp only [ite_eq_left le_rfl, ite_eq_right (by omega : ¬q + 1 ≤ q)]
         rw [← hCq]
         exact hd.trans (Nat.mul_le_mul_right _ (Nat.mul_le_mul_right _ hover_one))
-      · simp only [if_neg hseq, if_neg hsucc_not]
+      · simp only [ite_eq_right hseq, ite_eq_right hsucc_not]
         exact hd.trans (Nat.mul_le_mul_right _ (Nat.mul_le_mul_right _ hover_one))
 
 /-- Constructs the updated state when no scale density condition fails. -/
@@ -268,10 +268,10 @@ lemma restrictedSampledRun_step_preserves
     · intro s hsq
       have hlive : next.live s = state.live s \ bad := by
         change (if s ≤ q then state.live s \ bad else Cnew s) = state.live s \ bad
-        rw [if_pos hsq]
+        rw [ite_eq_left hsq]
       have hB : next.B s = state.B s := by
         change (if s ≤ q then state.B s else Bnew s) = state.B s
-        rw [if_pos hsq]
+        rw [ite_eq_left hsq]
       exact ⟨hB, hlive⟩
     · intro s hqs hsN
       have hs_as_Cnew : next.live s = Cnew s := by
@@ -279,9 +279,9 @@ lemma restrictedSampledRun_step_preserves
         · have hsqeq : s = q := by omega
           subst s
           change (if q ≤ q then state.live q \ bad else Cnew q) = Cnew q
-          rw [if_pos le_rfl, hCq]
+          rw [ite_eq_left le_rfl, hCq]
         · change (if s ≤ q then state.live s \ bad else Cnew s) = Cnew s
-          rw [if_neg hsq]
+          rw [ite_eq_right hsq]
       rw [hs_as_Cnew, ← hCq]
       exact restricted_rebuild_cnew_subset_root hinter s hqs hsN
     · intro s hqs hsN
@@ -291,12 +291,12 @@ lemma restrictedSampledRun_step_preserves
         · have hsqeq : s = q := by omega
           subst s
           change (if q ≤ q then state.live q \ bad else Cnew q) = Cnew q
-          rw [if_pos le_rfl, hCq]
+          rw [ite_eq_left le_rfl, hCq]
         · change (if s ≤ q then state.live s \ bad else Cnew s) = Cnew s
-          rw [if_neg hsq]
+          rw [ite_eq_right hsq]
       have hsucc_as_Cnew : next.live (s + 1) = Cnew (s + 1) := by
         change (if s + 1 ≤ q then state.live (s + 1) \ bad else Cnew (s + 1)) = Cnew (s + 1)
-        rw [if_neg hsucc_not]
+        rw [ite_eq_right hsucc_not]
       rw [hs_as_Cnew, hsucc_as_Cnew]
       exact restricted_rebuild_density_doubled hover (hdensity s hqs hsN)
   · let next := restrictedSampledRunState_noFail 𝒜 N ambientLength overheadBound t state bad hfail

@@ -129,20 +129,20 @@ theorem diagSum_add_mass_le_of_stage_le {A : ℕ → ℕ → ℕ} {m : ℕ → �
     intro k
     rw [hfval k, hgval k]
     by_cases hk : k = i
-    · rw [if_pos hk, if_neg (by omega : ¬ k < s), zero_add]
-    · rw [if_neg hk, add_zero]
+    · rw [ite_eq_left hk, ite_eq_right (by omega : ¬ k < s), zero_add]
+    · rw [ite_eq_right hk, add_zero]
       by_cases hks : k < s
-      · rw [if_pos hks]
+      · rw [ite_eq_left hks]
         exact hle s k
-      · rw [if_neg hks]
+      · rw [ite_eq_right hks]
         exact zero_le
   have hsum : (∑' k, f k) + (∑' k, g k) ≤ ∑' k, m k := by
     rw [← ENNReal.tsum_add]
     exact ENNReal.tsum_le_tsum hfg
   have hfsum : (∑' k, f k) = ∑ k ∈ Finset.range s, dyadicValue (A s k) s := by
     rw [tsum_eq_sum (s := Finset.range s)
-      (fun k hk => by rw [hfval k, if_neg (by simpa using hk)])]
-    exact Finset.sum_congr rfl (fun k hk => by rw [hfval k, if_pos (Finset.mem_range.1 hk)])
+      (fun k hk => by rw [hfval k, ite_eq_right (by simpa using hk)])]
+    exact Finset.sum_congr rfl (fun k hk => by rw [hfval k, ite_eq_left (Finset.mem_range.1 hk)])
   have hgsum : (∑' k, g k) = m i := by
     have := tsum_ite_eq i m
     rw [hg]

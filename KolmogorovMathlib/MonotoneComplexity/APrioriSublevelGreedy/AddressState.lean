@@ -4,7 +4,12 @@ import KolmogorovMathlib.MonotoneComplexity.ContinuousStreamMap
 import KolmogorovMathlib.MonotoneComplexity.NestedAllocation
 import KolmogorovMathlib.MonotoneComplexity.REClosure
 
+/-!
+# Greedy address state
 
+The state of the greedy address assignment for a priori sublevel sets: a finite list of
+`(address, node)` pairs together with its basic accessors.
+-/
 
 namespace Kolmogorov
 
@@ -464,8 +469,8 @@ theorem insertNode_subset (k : ℕ) (R : AddrList) (x : BitString) {q : BitStrin
   | true => simpa using hq
   | false =>
     cases h2 : (!decide (x.dropLast = []) && isLeafIn R x.dropLast) with
-    | true => simp only [cond_false, cond_true, List.mem_cons]; exact Or.inr hq
-    | false => simp only [cond_false, List.mem_append]; exact Or.inr hq
+    | true => simp only [Bool.cond_false, Bool.cond_true, List.mem_cons]; exact Or.inr hq
+    | false => simp only [Bool.cond_false, List.mem_append]; exact Or.inr hq
 
 /-- Recording a list of nodes keeps every earlier pair. -/
 theorem foldl_insertNode_subset (k : ℕ) (xs : List BitString) (R : AddrList)
@@ -504,17 +509,17 @@ theorem mem_addrNodes_insertNode (k : ℕ) (R : AddrList) {x : BitString} (hxne 
   unfold insertNode
   cases h1 : (decide (x = []) || decide (x ∈ addrNodes R)) with
   | true =>
-    simp only [cond_true]
+    simp only [Bool.cond_true]
     rcases Bool.or_eq_true .. |>.mp h1 with h | h
     · exact absurd (of_decide_eq_true h) hxne
     · exact of_decide_eq_true h
   | false =>
     cases h2 : (!decide (x.dropLast = []) && isLeafIn R x.dropLast) with
     | true =>
-      simp only [cond_false, cond_true]
+      simp only [Bool.cond_false, Bool.cond_true]
       exact mem_addrNodes.mpr ⟨_, List.mem_cons_self ..⟩
     | false =>
-      simp only [cond_false]
+      simp only [Bool.cond_false]
       exact mem_addrNodes.mpr
         ⟨freshAddr k R, mem_freshList.mpr (Or.inl ⟨rfl, List.prefix_refl _, hxne⟩)⟩
 

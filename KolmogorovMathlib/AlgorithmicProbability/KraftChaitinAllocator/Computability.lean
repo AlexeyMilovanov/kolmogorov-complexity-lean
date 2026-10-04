@@ -1,6 +1,6 @@
 import KolmogorovMathlib.Prefix.Basic
 import Mathlib.Algebra.Field.GeomSum
-import Mathlib.Data.ENNReal.Basic
+import Mathlib.Basic.ENNReal.Basic
 import Mathlib.Tactic.NormNum
 import Mathlib.Tactic.Ring
 import Mathlib.Topology.Algebra.InfiniteSum.ENNReal

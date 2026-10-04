@@ -83,7 +83,7 @@ lemma hardKAPrefix_getElem (x : BitString) (n m : ℕ) (h_le : n ≤ m) (i : ℕ
   rw [← hl]
   intro h2
   rw [List.getElem_append]
-  rw [dif_pos h1]
+  rw [dite_eq_left h1]
 
 /-- The infinite sequence whose prefixes are the stages of the halving descent started at `x`. -/
 noncomputable def hardKASeq (x : BitString) : CantorSeq :=

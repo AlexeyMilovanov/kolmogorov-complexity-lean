@@ -2,7 +2,7 @@ import KolmogorovMathlib.Complexity.Incompressibility
 import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 import KolmogorovMathlib.Prefix.Encoding
 import KolmogorovMathlib.Prefix.TwoStage
-import Mathlib.Data.ENNReal.Inv
+import Mathlib.Basic.ENNReal.Inv
 import Mathlib.Topology.Algebra.InfiniteSum.Basic
 import Mathlib.Topology.Order.Real
 import KolmogorovMathlib.AlgorithmicStatistics.Basic
@@ -94,7 +94,7 @@ noncomputable def uniformOn (S : Finset BitString) (hS : S.Nonempty) (code : Bit
     have h_eq : ∑ x ∈ S, (if x ∈ S then (S.card : ℝ≥0∞)⁻¹ else 0) = ∑ x ∈ S, (S.card : ℝ≥0∞)⁻¹ := by
       apply Finset.sum_congr rfl
       intro x hx
-      exact if_pos hx
+      exact ite_eq_left hx
     rw [h_eq]
     simp only [Finset.sum_const, nsmul_eq_mul]
     exact ENNReal.mul_inv_cancel hcard (ENNReal.natCast_ne_top _)
@@ -104,14 +104,14 @@ noncomputable def uniformOn (S : Finset BitString) (hS : S.Nonempty) (code : Bit
     (x : BitString) (hx : x ∈ S) :
     (uniformOn S hS code).mass x = (S.card : ℝ≥0∞)⁻¹ := by
   dsimp [uniformOn]
-  rw [if_pos hx]
+  rw [ite_eq_left hx]
 
 /-- The uniform distribution on `S` gives points outside `S` mass zero. -/
 @[simp] theorem uniformOn_mass_of_not_mem (S : Finset BitString) (hS : S.Nonempty)
     (code : BitString) (x : BitString) (hx : x ∉ S) :
     (uniformOn S hS code).mass x = 0 := by
   dsimp [uniformOn]
-  rw [if_neg hx]
+  rw [ite_eq_right hx]
 
 /-! ### Uniform Distribution on Strings of a Fixed Length -/
 

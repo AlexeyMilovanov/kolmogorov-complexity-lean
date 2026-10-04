@@ -94,12 +94,12 @@ lemma grayChargedStepV2_frozen_prefix {n b : Nat}
       simp only [grayChargedStepV2, hphase]
       by_cases hdone :
           (grayChargedBlockTailStepV2 q L a e sigma A st.core m).done = true
-      · rw [if_pos hdone]
+      · rw [ite_eq_left hdone]
         by_cases hserved : grayChargedWaitServedB q a e
             (grayChargedBlockTailStepV2 q L a e sigma A st.core m) m = true
-        · rw [if_pos hserved, grayChargedStartSpendV2_frozen]
+        · rw [ite_eq_left hserved, grayChargedStartSpendV2_frozen]
           exact grayChargedBlockTailStepV2_frozen_prefix q L a e sigma A st.core m
-        · rw [if_neg hserved]
+        · rw [ite_eq_right hserved]
           exact grayChargedBlockTailStepV2_frozen_prefix q L a e sigma A st.core m
       · simpa [hdone] using
           grayChargedBlockTailStepV2_frozen_prefix q L a e sigma A st.core m

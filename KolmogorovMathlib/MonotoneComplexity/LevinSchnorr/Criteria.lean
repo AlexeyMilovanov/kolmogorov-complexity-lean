@@ -509,7 +509,9 @@ theorem isMartinLofRandom_uniform_iff_tsum_prefixExcess_ne_top {U : Map}
   rw [isMartinLofRandom_uniform_iff_le_KPPlain_cantorPrefix hU]
   refine ⟨m, fun n => ?_⟩
   have hterm : (2 : ℝ≥0∞) ^ n * complexityWeight (KPPlain U (cantorPrefix w n))
-      ≤ (2 : ℝ≥0∞) ^ m := le_trans (ENNReal.le_tsum n) hSle
+      ≤ (2 : ℝ≥0∞) ^ m :=
+    le_trans (ENNReal.le_tsum
+      (f := fun n => (2 : ℝ≥0∞) ^ n * complexityWeight (KPPlain U (cantorPrefix w n))) n) hSle
   rcases eq_or_ne (KPPlain U (cantorPrefix w n)) ⊤ with htop | hfin
   · rw [htop]
     simp

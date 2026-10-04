@@ -60,7 +60,7 @@ the coding theorem. -/
 theorem weight_mul_le_mixture (w : ℕ → ℝ≥0∞) (μ : ℕ → BitString → BitString → ℝ≥0∞)
     (i : ℕ) (x y : BitString) :
     w i * μ i x y ≤ mixture w μ x y :=
-  ENNReal.le_tsum i
+  ENNReal.le_tsum (f := fun i => w i * μ i x y) i
 
 /-- **A mixture of conditional semimeasures is a conditional semimeasure.** If the
 weights are subnormalized (`∑_i w i ≤ 1`) and every component is a conditional

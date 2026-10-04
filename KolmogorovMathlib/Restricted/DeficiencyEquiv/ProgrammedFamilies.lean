@@ -3,19 +3,15 @@ import KolmogorovMathlib.Restricted.GapCountingIn
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.Deficiencies
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.PaperTheorems
 
-
-
-namespace Kolmogorov
-
-open CodedFiniteDistribution
-open scoped ENNReal
-open Kolmogorov.CodedFiniteDistribution
-open Nat.Partrec (Code)
-
 /-!
 # Restricted Deficiency Equivalence
 -/
 
+namespace Kolmogorov
+open CodedFiniteDistribution
+open scoped ENNReal
+open Kolmogorov.CodedFiniteDistribution
+open Nat.Partrec (Code)
 
 /-
 From a *given* family member `A ∋ x` (with `setComplexity ≤ alpha` and randomness

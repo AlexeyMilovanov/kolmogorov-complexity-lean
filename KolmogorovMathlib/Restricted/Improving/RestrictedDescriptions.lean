@@ -88,10 +88,10 @@ theorem nonempty_of_mem_descriptionsWithComplexityLe {U : Map} {i : ℕ}
   rw [Finset.mem_biUnion] at hS
   obtain ⟨c, _, hc⟩ := hS
   by_cases hcanon : isCanonicalUniformCode c
-  · rw [if_pos hcanon, Finset.mem_singleton] at hc
+  · rw [ite_eq_left hcanon, Finset.mem_singleton] at hc
     obtain ⟨hne, _⟩ := hcanon
     rw [hc]; exact hne
-  · rw [if_neg hcanon] at hc; simp at hc
+  · rw [ite_eq_right hcanon] at hc; simp at hc
 
 /-- The code of the uniform distribution on a finite set determines the set. -/
 theorem codedUniformOn_code_injective {S T : Finset BitString}

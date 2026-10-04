@@ -105,7 +105,7 @@ theorem bitsValue_add_le_cantorReal {w : CantorSeq} {n k : ℕ} (hnk : n ≤ k)
   have hsum : ∑ i ∈ insert k (Finset.range n), (if w i then (1 : ℝ) / 2 ^ (i + 1) else 0)
       = (1 : ℝ) / 2 ^ (k + 1)
         + ∑ i ∈ Finset.range n, (if w i then (1 : ℝ) / 2 ^ (i + 1) else 0) := by
-    rw [Finset.sum_insert hknot, hwk, if_pos rfl]
+    rw [Finset.sum_insert hknot, hwk, ite_eq_left rfl]
   have hle := hS.sum_le_tsum (insert k (Finset.range n)) fun i _ => hnn i
   rw [hsum] at hle
   rw [hcast]
@@ -389,14 +389,14 @@ theorem tsum_zeroRunCover_le {B : ℕ}
               ratOfDyadic j n + ((2 : ℚ)⁻¹) ^ (n + (zeroRunLen n + k + B))) := by
         simp [zeroRunCover, zeroRunIdx, zeroRunCell, zeroRunLeft, zeroRunExp,
           Nat.unpair_pair, hj]
-      rw [hc, if_pos hj]
+      rw [hc, ite_eq_left hj]
       change ratIntervalLength (ratOfDyadic j n,
           ratOfDyadic j n + ((2 : ℚ)⁻¹) ^ (n + (zeroRunLen n + k + B))) = _
       rw [ratIntervalLength_add]
       exact ofReal_rat_inv_two_pow _
     · have hc : zeroRunCover B k (Nat.pair n j) = none := by
         simp [zeroRunCover, zeroRunIdx, Nat.unpair_pair, hj]
-      rw [hc, if_neg hj]
+      rw [hc, ite_eq_right hj]
       rfl
   have hcol : ∀ n : ℕ,
       (∑' j : ℕ, (zeroRunCover B k (Nat.pair n j)).elim (0 : ℝ≥0∞) ratIntervalLength)
@@ -404,8 +404,8 @@ theorem tsum_zeroRunCover_le {B : ℕ}
     intro n
     rw [tsum_congr (fun j => hterm n j),
       tsum_eq_sum (s := Finset.range (2 ^ n))
-        (fun j hj => if_neg (by simpa using hj)),
-      Finset.sum_congr rfl (fun j hj => if_pos (Finset.mem_range.1 hj)),
+        (fun j hj => ite_eq_right (by simpa using hj)),
+      Finset.sum_congr rfl (fun j hj => ite_eq_left (Finset.mem_range.1 hj)),
       Finset.sum_const, Finset.card_range, nsmul_eq_mul]
     push_cast
     exact two_pow_mul_inv_two_pow_add n _

@@ -145,7 +145,7 @@ lemma grayChargedBlockSameRoundV2_step_false
     · exfalso
       apply hactive
       simp [hs]
-  simp only [grayChargedBlockTailStepV2, Bool.false_eq_true, if_false,
+  simp only [grayChargedBlockTailStepV2, Bool.false_eq_true, ite_false,
     hsame.done, hslots, hgoal]
   exact ⟨by simp,
     by simpa using hsame.frozen,
@@ -322,8 +322,8 @@ theorem grayChargedBlockV2_freezes_of_round_gray
       apply hactiveT
       simp [hs]
   rw [hnext]
-  simp only [grayChargedBlockTailStepV2, Bool.false_eq_true, if_false,
-    hdoneT, hslotsT, htest, if_true]
+  simp only [grayChargedBlockTailStepV2, Bool.false_eq_true, ite_false,
+    hdoneT, hslotsT, htest, ite_true]
   simp [hsame.frozen, htime]
 
 end Kolmogorov

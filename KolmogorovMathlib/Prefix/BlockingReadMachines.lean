@@ -380,9 +380,9 @@ private lemma actMap_mem_and_blocks {f : BitString →. BitString} (hpf : IsPref
         decide ((x : BitString).take (x : BitString).length = (x : BitString)) = true :=
       decide_eq_true h_take_self
     have h_dec_eq : decide ((x : BitString) = (x : BitString)) = true := decide_eq_true rfl
-    rw [h_dec_self, cond_true, ht1_some]
+    rw [h_dec_self, Bool.cond_true, ht1_some]
     dsimp; rw [Encodable.encodek]; dsimp
-    rw [h_dec_eq, cond_true]
+    rw [h_dec_eq, Bool.cond_true]
   have h_isSome : (actSearchOut c x n1).isSome = true := by
     rw [h_act1]; rfl
   have h_rfind : (Nat.rfind (show ℕ →. Bool from
@@ -403,7 +403,7 @@ private lemma actMap_mem_and_blocks {f : BitString →. BitString} (hpf : IsPref
   · rw [h_cond1] at h_rest_min
     contradiction
   · rw [h_cond1] at h_rest_min
-    rw [cond_true] at h_rest_min
+    rw [Bool.cond_true] at h_rest_min
     rw [Option.bind_eq_some_iff] at h_rest_min
     obtain ⟨e_min, he_eval, h_rest_min2⟩ := h_rest_min
     rw [Option.bind_eq_some_iff] at h_rest_min2
@@ -430,7 +430,7 @@ private lemma actMap_mem_and_blocks {f : BitString →. BitString} (hpf : IsPref
     have hy_in_f' : y_min ∈ f x := h_eq_xx ▸ hx_in_eq ▸ hy_in_eq ▸ hy_in_f
     have hy_min_eq : y_min = y := Part.mem_unique hy_in_f' hy
     have h_dec_cond2 : decide (x = x_min) = true := decide_eq_true h_eq_xx
-    rw [h_dec_cond2, cond_true] at h_rest_min3
+    rw [h_dec_cond2, Bool.cond_true] at h_rest_min3
     have ho_min_eq : o_min = some y_min := Option.some.inj h_rest_min3.symm
     have h_act_map_x : some y ∈ actMap c x := by
       unfold actMap
@@ -450,9 +450,9 @@ private lemma actMap_mem_and_blocks {f : BitString →. BitString} (hpf : IsPref
       have h_dec1 : decide (x.take r.length = r) = true := decide_eq_true hr_take
       have h_ne_rx : r ≠ x := hne
       have h_dec2 : decide (r = x) = false := decide_eq_false h_ne_rx
-      rw [h_dec1, cond_true, ht1_some]
+      rw [h_dec1, Bool.cond_true, ht1_some]
       dsimp; rw [Encodable.encodek]; dsimp
-      rw [h_dec2, cond_false]
+      rw [h_dec2, Bool.cond_false]
     have h_isSome_r : (actSearchOut c r n_r).isSome = true := by
       rw [h_act_r]; rfl
     have h_rfind_r : (Nat.rfind (show ℕ →. Bool from
@@ -473,14 +473,14 @@ private lemma actMap_mem_and_blocks {f : BitString →. BitString} (hpf : IsPref
     · rw [h_rcond1] at h_rrest
       contradiction
     · rw [h_rcond1] at h_rrest
-      rw [cond_true] at h_rrest
+      rw [Bool.cond_true] at h_rrest
       rw [Option.bind_eq_some_iff] at h_rrest
       obtain ⟨e_rmin, he_reval, h_rrest2⟩ := h_rrest
       rw [Option.bind_eq_some_iff] at h_rrest2
       obtain ⟨y_rmin, hy_rdec, h_rrest3⟩ := h_rrest2
       cases h_rcond2 : decide (r = x_rmin)
       · rw [h_rcond2] at h_rrest3
-        rw [cond_false] at h_rrest3
+        rw [Bool.cond_false] at h_rrest3
         injection h_rrest3 with ho_rmin_eq
         subst ho_rmin_eq
         unfold actMap
@@ -530,7 +530,7 @@ private lemma blockingComputes_of_partrec_of_prefixFree {f : BitString →. BitS
     · rw [h_cond1] at h_rest_min
       contradiction
     · rw [h_cond1] at h_rest_min
-      rw [cond_true] at h_rest_min
+      rw [Bool.cond_true] at h_rest_min
       rw [Option.bind_eq_some_iff] at h_rest_min
       obtain ⟨e_min, he_eval, h_rest_min2⟩ := h_rest_min
       rw [Option.bind_eq_some_iff] at h_rest_min2
@@ -549,10 +549,10 @@ private lemma blockingComputes_of_partrec_of_prefixFree {f : BitString →. BitS
       have hy_eq : y_min = y_in := (Option.some.inj hy_dec_eq).symm
       cases h_cond2 : decide (x = x_min)
       · rw [h_cond2] at h_rest_min3
-        rw [cond_false] at h_rest_min3
+        rw [Bool.cond_false] at h_rest_min3
         cases h_rest_min3
       · rw [h_cond2] at h_rest_min3
-        rw [cond_true] at h_rest_min3
+        rw [Bool.cond_true] at h_rest_min3
         injection h_rest_min3 with hy_eq'
         have h_x_eq : x = x_min := of_decide_eq_true h_cond2
         injection hy_eq' with hy_min_y

@@ -1,4 +1,4 @@
-import Mathlib.Data.ENNReal.Basic
+import Mathlib.Basic.ENNReal.Basic
 import KolmogorovMathlib.Core.Basic
 import KolmogorovMathlib.Foundation.RecursivelyEnumerable
 import Mathlib.Algebra.BigOperators.Group.Finset.Basic

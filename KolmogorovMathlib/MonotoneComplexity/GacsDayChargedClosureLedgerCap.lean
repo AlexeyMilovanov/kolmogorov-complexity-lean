@@ -87,12 +87,12 @@ lemma grayChargedSonRequest_eq_base_add_raise {n b : Nat}
           eps - grayTailSonBase entries i c else 0) := by
   unfold grayChargedSonRequest grayTailSonRequest
   by_cases hc : c.val < source
-  · rw [if_pos hc]
+  · rw [ite_eq_left hc]
     by_cases hr : threshold < grayTailSonBase entries i c
-    · simp only [hr, hc, and_self, if_true]
+    · simp only [hr, hc, and_self, ite_true]
       ring
     · simp [hr]
-  · rw [if_neg hc]
+  · rw [ite_eq_right hc]
     simp [hc]
 
 /-- **The exact aggregate request split.**  The displayed aggregate of a
@@ -282,7 +282,7 @@ theorem grayChargedReserveCharge_perRoot_cap_of_contrib
     refine List.sum_le_sum ?_
     intro r hr
     by_cases h : r.coordinate.1.val = i
-    · simp only [h, decide_true, if_true]
+    · simp only [h, decide_true, ite_true]
       exact hmass r hr
     · simp [h]
   exact le_trans hcount
@@ -417,7 +417,7 @@ theorem grayCharged_late_reserve_family_unit
           zz.1.2.isLt zz'.1.2.isLt hR hR' hpair
       exact grayChargedReserveCylinder_disjoint hR.1.1 hR'.1.1 hne'
   · rw [grayChargedReserveCharge, grayChargeMass_flatMap]
-    refine (List.sum_eq_card_nsmul _ (dyadicScale e) ?_).trans ?_
+    refine (List.sum_eq_length_nsmul _ (dyadicScale e) ?_).trans ?_
     · intro x hx
       obtain ⟨r, hr, rfl⟩ := List.mem_map.mp hx
       obtain ⟨zz, -, rfl⟩ := List.mem_map.mp hr
@@ -460,7 +460,7 @@ lemma grayChargedReserveCharge_perRoot_mass_le_of_unit
   refine List.sum_le_sum ?_
   intro r hr
   by_cases h : r.coordinate.1.val = i
-  · simp only [h, decide_true, if_true]
+  · simp only [h, decide_true, ite_true]
     exact hunit r hr
   · simp [h]
 

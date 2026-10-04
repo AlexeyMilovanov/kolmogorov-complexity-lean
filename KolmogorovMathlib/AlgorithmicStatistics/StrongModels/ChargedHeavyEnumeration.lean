@@ -23,7 +23,7 @@ open Kolmogorov.CodedFiniteDistribution
 theorem dedup_toFinset_bitString (L : List BitString) :
     L.dedup.toFinset = L.toFinset := by
   ext z
-  simp [List.mem_dedup]
+  simp
 
 /-! ### Primitive recursiveness of the heavy output list -/
 

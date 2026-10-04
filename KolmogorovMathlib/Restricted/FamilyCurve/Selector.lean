@@ -35,9 +35,9 @@ private lemma coverArgmax_foldl_mem {C : Finset BitString}
   | cons B cover ih =>
       simp only [List.foldl_cons]
       by_cases h : (B ∩ C).card > (seed ∩ C).card
-      · simp only [if_pos h]
+      · simp only [ite_eq_left h]
         exact List.mem_cons_of_mem seed (ih (seed := B))
-      · simp only [if_neg h]
+      · simp only [ite_eq_right h]
         have hi := List.mem_cons.mp (ih (seed := seed))
         exact List.mem_cons.mpr (hi.elim Or.inl
           (fun hcover => Or.inr (List.mem_cons.mpr (Or.inr hcover))))
@@ -65,12 +65,12 @@ private lemma coverArgmax_foldl_max {C : Finset BitString}
   | cons B' cover ih =>
       simp only [List.foldl_cons]
       by_cases h : (B' ∩ C).card > (seed ∩ C).card
-      · simp only [if_pos h]
+      · simp only [ite_eq_left h]
         rcases List.mem_cons.mp hB with hBseed | hBtail
         · rw [hBseed]
           exact (Nat.le_of_lt h).trans (ih (seed := B') (B := B') (by simp))
         · exact ih (seed := B') (B := B) hBtail
-      · simp only [if_neg h]
+      · simp only [ite_eq_right h]
         rcases List.mem_cons.mp hB with hBseed | hBtail
         · rw [hBseed]
           exact ih (seed := seed) (B := seed) (by simp)
@@ -266,7 +266,7 @@ theorem restrictedCoverValidBool_computable (𝒜 : DescriptionFamily) :
       restrictedCoverValidBoolF3Fun, restrictedCoverValidBoolF3Arg,
       restrictedCoverValidBoolF4Fun, restrictedCoverValidBoolF4Arg,
       restrictedCoverValidBoolF5Fun, restrictedCoverValidBoolF5Arg]
-  simp [restrictedCoverValidBool, Bool.and_assoc]
+  simp [restrictedCoverValidBool, Bool.and_assoc, List.all_eq]
 
 /-- Cardinality of the intersection of two decoded code lists.  The explicit
 deduplicated-list form is extensionally the corresponding finset cardinality
@@ -322,9 +322,9 @@ private lemma coverCodeArgmax_foldl_mem {Ccode seed : BitString}
       simp only [List.foldl_cons]
       by_cases h : decodedCoverIntersectionCard Ccode w >
           decodedCoverIntersectionCard Ccode seed
-      · simp only [if_pos h]
+      · simp only [ite_eq_left h]
         exact List.mem_cons_of_mem seed (ih (seed := w))
-      · simp only [if_neg h]
+      · simp only [ite_eq_right h]
         have hi := List.mem_cons.mp (ih (seed := seed))
         exact List.mem_cons.mpr (hi.elim Or.inl
           (fun hcover => Or.inr (List.mem_cons.mpr (Or.inr hcover))))
@@ -352,12 +352,12 @@ private lemma coverCodeArgmax_foldl_max {Ccode seed w : BitString}
       simp only [List.foldl_cons]
       by_cases h : decodedCoverIntersectionCard Ccode w' >
           decodedCoverIntersectionCard Ccode seed
-      · simp only [if_pos h]
+      · simp only [ite_eq_left h]
         rcases List.mem_cons.mp hw with hwseed | hwtail
         · rw [hwseed]
           exact (Nat.le_of_lt h).trans (ih (seed := w') (w := w') (by simp))
         · exact ih (seed := w') (w := w) hwtail
-      · simp only [if_neg h]
+      · simp only [ite_eq_right h]
         rcases List.mem_cons.mp hw with hwseed | hwtail
         · rw [hwseed]
           exact ih (seed := seed) (w := seed) (by simp)

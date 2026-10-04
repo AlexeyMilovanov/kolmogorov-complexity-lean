@@ -266,13 +266,13 @@ lemma haltingProbability_isLSC (a : ℝ) (h0 : 0 ≤ a) (ha : IsLowerSemicomputa
         simp only [stageDyadicValue_eq]
         exact ENNReal.ofReal_le_ofReal (dyadicApprox_mono hqm hij)
       exact hm (Nat.le_succ s)
-    · simp only [if_neg hout, dyadicValue_zero, le_refl]
+    · simp only [ite_eq_right hout, dyadicValue_zero, le_refl]
   · intro out ctx
     by_cases hout : out = ([] : BitString)
     · subst hout
       simp only [emptyStringPointMass]
       exact stageApprox_iSup_eq h0 hqm hqt
-    · simp only [emptyStringPointMass, if_neg hout, dyadicValue_zero]
+    · simp only [emptyStringPointMass, ite_eq_right hout, dyadicValue_zero]
       simp
   · have hc : Computable
         (fun p : ℕ × BitString × BitString => decide (p.2.1 = ([] : BitString))) :=
@@ -479,7 +479,7 @@ theorem semimeasure_realization (m : BitString → ℝ≥0∞)
         have hn_supp : g n ≠ 0 := by
           dsimp [g, allocatedWeight]
           rw [hreq]
-          simp only [if_true]
+          simp only [ite_true]
           exact ENNReal.pow_ne_zero (ENNReal.inv_ne_zero.mpr (by norm_num)) _
         refine ⟨⟨n, hn_supp⟩, ?_⟩
         dsimp [i]
@@ -496,11 +496,11 @@ theorem semimeasure_realization (m : BitString → ℝ≥0∞)
       have hM : produces (requestMachine req alloc) (i ⟨n, hn⟩) [] x := by
         rw [h_prod]
         exact ⟨n, l, hreq, halloc⟩
-      rw [if_pos hM]
+      rw [ite_eq_left hM]
       dsimp [progWeight, programLength, g, allocatedWeight]
       rw [hreq, hlen]
       dsimp
-      rw [if_pos rfl]
+      rw [ite_eq_left rfl]
     exact tsum_eq_tsum_of_ne_zero_bij i hi hf_supp hfg
   exact h_fg
 
@@ -643,7 +643,7 @@ private lemma wTerm_mul_pow (c : Code) {n : ℕ} {p : BitString} (hp : p.length 
   | true =>
       have h0 : ((2 : ℝ≥0∞) ^ p.length) ≠ 0 := pow_ne_zero _ (by norm_num)
       have ht : ((2 : ℝ≥0∞) ^ p.length) ≠ ⊤ := ENNReal.pow_ne_top (by norm_num)
-      simp only [wTerm, nTerm, hb, cond_true, progWeight, programLength]
+      simp only [wTerm, nTerm, hb, Bool.cond_true, progWeight, programLength]
       rw [← ENNReal.inv_pow, h2, ← mul_assoc, ENNReal.inv_mul_cancel h0 ht, one_mul]
       push_cast
       rfl
@@ -754,10 +754,10 @@ private lemma domainWeight_le_iSup {c : Code} {M : Map} (hc : IsCodeFor c M) :
   have hsub : s ⊆ bpFinset n := fun p hp => mem_bpFinset.mpr (hn p hp).1
   refine le_trans (Finset.sum_le_sum (fun p hp => ?_)) (Finset.sum_le_sum_of_subset hsub)
   by_cases hd : p ∈ domainAt M []
-  · rw [if_pos hd]
+  · rw [ite_eq_left hd]
     have hh := (hn p hp).2 hd
     simp [wTerm, hh]
-  · rw [if_neg hd]
+  · rw [ite_eq_right hd]
     exact zero_le
 
 /-- The stage approximations converge to the halting probability. -/

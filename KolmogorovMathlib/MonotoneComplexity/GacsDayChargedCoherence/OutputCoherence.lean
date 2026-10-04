@@ -74,7 +74,7 @@ lemma sum_grayChargedEntryMove_root_le_sonBase {n b : Nat}
       unfold grayTailSonBase
       simp only [List.foldr_cons]
       by_cases hmatch : i_p = i ∧ c1_p = c
-      · rw [if_pos hmatch]
+      · rw [ite_eq_left hmatch]
         have h_entry : ∀ c' : Fin b,
             grayTailEntryMove (((i_p, c1_p, c2_p), m_p) :: rest)
                 (i, c, c') =
@@ -86,7 +86,7 @@ lemma sum_grayChargedEntryMove_root_le_sonBase {n b : Nat}
           by_cases hc' : c2_p = c'
           · have hslot : (i_p, c1_p, c2_p) = (i, c, c') := by
               ext <;> simp [hmatch.1, hmatch.2, hc']
-            rw [if_pos hc']
+            rw [ite_eq_left hc']
             simp [hslot]
           · have hslot : (i_p, c1_p, c2_p) ≠ (i, c, c') := by
               intro h
@@ -94,7 +94,7 @@ lemma sum_grayChargedEntryMove_root_le_sonBase {n b : Nat}
                 injection h with _ h2
                 injection h2
               exact hc' this
-            rw [if_neg hc']
+            rw [ite_eq_right hc']
             simp [hslot]
         simp_rw [h_entry]
         have h_sum :
@@ -135,7 +135,7 @@ lemma sum_grayChargedEntryMove_root_le_sonBase {n b : Nat}
           exact grayChargedEntryMove_nonneg rest hrest_nonneg
             (i, c, c') []
         linarith
-      · rw [if_neg hmatch]
+      · rw [ite_eq_right hmatch]
         have h_entry : ∀ c' : Fin b,
             grayTailEntryMove (((i_p, c1_p, c2_p), m_p) :: rest)
                 (i, c, c') =
@@ -317,7 +317,7 @@ theorem grayCharged_display_source_base_cap
             exact (hcur j.val j.isLt).1 []
           · intro j
             exact (hcur j.val j.isLt).2.1
-        simp only [hempty, Bool.false_eq_true, if_false]
+        simp only [hempty, Bool.false_eq_true, ite_false]
         rw [grayTailEntries, grayTailSonBase_append_globalEntries]
         by_cases hhas : GrayTailHasKey core.slots i c
         · obtain ⟨s, hs, hi, hc'⟩ := hhas
@@ -359,7 +359,7 @@ theorem grayCharged_display_source_base_cap
         have hval : (core.slots.get j).2.1.val = c.val :=
           congrArg Fin.val heq
         omega
-      simp only [hempty, Bool.false_eq_true, if_false]
+      simp only [hempty, Bool.false_eq_true, ite_false]
       rw [grayTailEntries, grayTailSonBase_append_globalEntries, hzero, add_zero]
       exact hsourceCap i c hc
   | done core hdone =>
@@ -430,16 +430,16 @@ theorem grayCharged_output_coherentCap
         (dyadicScale e) entries ⟨i, hi⟩ c := by
     unfold grayChargedSonRequest
     by_cases hc : c.val < grayChargedSourceCount a e
-    · rw [if_pos hc]
+    · rw [ite_eq_left hc]
       unfold grayTailSonRequest
       by_cases hlarge : grayChargedThreshold q e <
           grayTailSonBase entries ⟨i, hi⟩ c
-      · rw [if_pos hlarge]
+      · rw [ite_eq_left hlarge]
         exact (dyadicScale_pos e).le
-      · rw [if_neg hlarge]
+      · rw [ite_eq_right hlarge]
         exact grayTailSonBase_nonneg_global
           (fun pr hpr => hentries_nonneg pr hpr [])
-    · rw [if_neg hc]
+    · rw [ite_eq_right hc]
       exact grayTailSonBase_nonneg_global
         (fun pr hpr => hentries_nonneg pr hpr [])
   have hbase_le_son (c : Fin b) :
@@ -452,9 +452,9 @@ theorem grayCharged_output_coherentCap
       unfold grayTailSonRequest
       by_cases hlarge : grayChargedThreshold q e <
           grayTailSonBase entries ⟨i, hi⟩ c
-      · rw [if_pos hlarge]
+      · rw [ite_eq_left hlarge]
         exact hsourceCap c hc
-      · rw [if_neg hlarge]
+      · rw [ite_eq_right hlarge]
     · rw [grayChargedSonRequest_spare _ _ (Nat.le_of_not_gt hc)]
   have hrootcap :
       grayChargedRootRequest
@@ -469,14 +469,14 @@ theorem grayCharged_output_coherentCap
         (dyadicScale e) st.core.frozen st.core.slots current) i)
   unfold grayChargedTailFamilyMove familyClientMoveAt
   rw [List.getD_eq_getElem?_getD, List.getElem?_ofFn]
-  rw [dif_pos hi]
+  rw [dite_eq_left hi]
   refine requestCoherentCap_graftTwoLevel
     ?hroot0 ?hcap ?hson0 ?hsum ?hsonsum ?hpos ?hchild
   · unfold grayChargedRootRequest
     exact Finset.sum_nonneg fun c _ => hson_nonneg c
   · exact hrootcap
   · intro c hc
-    rw [dif_pos hc]
+    rw [dite_eq_left hc]
     exact hson_nonneg ⟨c, hc⟩
   · have hsum_eq :
         (∑ c : Fin b, if hc : c.val < b then
@@ -488,23 +488,23 @@ theorem grayCharged_output_coherentCap
             (grayChargedSourceCount a e) (grayChargedThreshold q e)
             (dyadicScale e) entries ⟨i, hi⟩ c := by
       refine Finset.sum_congr rfl fun c _ => ?_
-      rw [dif_pos c.isLt]
+      rw [dite_eq_left c.isLt]
     rw [hsum_eq]
     exact le_rfl
   · intro c hc
-    rw [dif_pos hc]
+    rw [dite_eq_left hc]
     have hsum := (sum_grayChargedEntryMove_root_le_sonBase
       entries hentries_nonneg ⟨i, hi⟩ ⟨c, hc⟩).trans
         (hbase_le_son ⟨c, hc⟩)
     refine le_trans (le_of_eq ?_) hsum
     refine Finset.sum_congr rfl fun c' _ => ?_
-    rw [dif_pos hc, dif_pos c'.isLt]
+    rw [dite_eq_left hc, dite_eq_left c'.isLt]
   · intro c hc c' hc' x
-    rw [dif_pos hc, dif_pos hc']
+    rw [dite_eq_left hc, dite_eq_left hc']
     exact grayChargedEntryMove_nonneg entries hentries_nonneg
       (⟨i, hi⟩, ⟨c, hc⟩, ⟨c', hc'⟩) x
   · intro c hc c' hc' x
-    rw [dif_pos hc, dif_pos hc']
+    rw [dite_eq_left hc, dite_eq_left hc']
     exact grayChargedEntryMove_child_le entries hentries_child
       (⟨i, hi⟩, ⟨c, hc⟩, ⟨c', hc'⟩) x
 

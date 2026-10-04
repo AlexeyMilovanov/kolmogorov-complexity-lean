@@ -326,7 +326,7 @@ theorem exists_quadDist_condIndep_uniform_pair (c : ℝ)
       rw [highDist_prAlphaBeta h₁ h₂]
       by_cases hab : a = b
       · simp [hab, hcp]
-      · simp only [hab, if_false]
+      · simp only [hab, ite_false]
         nlinarith [hcp]
   · -- low-correlation branch: `c = 2p(1-p)` with `p = (1 + √(1-2c))/2`
     set r : ℝ := Real.sqrt (1 - 2 * c) with hr
@@ -346,7 +346,7 @@ theorem exists_quadDist_condIndep_uniform_pair (c : ℝ)
       rw [lowDist_prAlphaBeta h₁ h₂]
       by_cases hab : a = b
       · simp [hab, hcp]
-      · simp only [hab, if_false]
+      · simp only [hab, ite_false]
         nlinarith [hcp]
 
 /-- The pairs produced by `exists_quadDist_condIndep_uniform_pair`
@@ -358,7 +358,7 @@ theorem not_alphaBetaIndep_of_prAgree_ne_half {D : QuadDist} {c : ℝ} (hc : c �
     ¬ D.AlphaBetaIndep := by
   intro h
   have h00 := h false false
-  rw [hjoint false false, hα false, hβ false, if_pos rfl] at h00
+  rw [hjoint false false, hα false, hβ false, ite_eq_left rfl] at h00
   exact hc (by linarith)
 
 /-- (p. 342), the case `c = 5/8` of Exercise 314: there are two uniformly distributed,

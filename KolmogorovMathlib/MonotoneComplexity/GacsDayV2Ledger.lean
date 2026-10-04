@@ -124,14 +124,14 @@ lemma grayChargedFrozenSourcesV2_round_charge
   by_cases hfine : grayCallDepth q e <=
       ((grayChargedRunStateV2 (n := n) (b := grayTailBranch q L a e)
         q L a e sigma A sm (T + 1)).core.frozen[i.val]).blockAnchor
-  · rw [dif_pos hfine,
+  · rw [dite_eq_left hfine,
       grayChargedRoundSourcesAdvV2_charge_eq hsm replay hU _ hae hfine]
     congr 1
-    rw [grayChargedRoundLocalChargeV2, dif_pos hfine]
-  · rw [dif_neg hfine,
+    rw [grayChargedRoundLocalChargeV2, dite_eq_left hfine]
+  · rw [dite_eq_right hfine,
       grayChargedRoundSourcesSpendV2_charge_eq hsm replay hU _ hae hfine]
     congr 1
-    rw [grayChargedRoundLocalChargeV2, dif_neg hfine]
+    rw [grayChargedRoundLocalChargeV2, dite_eq_right hfine]
 
 /-- The full flattened charge in transport form. -/
 lemma grayChargedFrozenSourcesV2_charge_eq

@@ -254,9 +254,9 @@ lemma g_cons_measure_bound (b : Bool) (f : ℕ → Option BitString) (j : ℕ) :
     | cons c tail =>
       dsimp
       cases hc : c == b
-      · dsimp [hc]
+      · simp only [Bool.cond_false, Option.elim_none]
         exact bot_le
-      · dsimp [hc]
+      · simp only [Bool.cond_true, Option.elim_some]
         have h_eq : c = b := of_decide_eq_true hc
         have H_s : cantorMass uniformMeasure (c :: tail)
             = (2:ℝ≥0∞)⁻¹ * cantorMass uniformMeasure tail := by
@@ -315,7 +315,7 @@ lemma isMartinLofRandom_cons_of_isMartinLofRandom_uniform (b : Bool) {x : Cantor
           omega
         | cons c tail =>
           dsimp [cantorCylinder, IsCantorPrefix]
-          have h_x0 : (fun n => if n = 0 then b else x (n - 1)) 0 = b := if_pos rfl
+          have h_x0 : (fun n => if n = 0 then b else x (n - 1)) 0 = b := ite_eq_left rfl
           have h0_lt : 0 < (c :: tail).length := Nat.zero_lt_succ _
           have hk_0 : (fun n => if n = 0 then b else x (n - 1)) 0 = (c :: tail)[0]'h0_lt := by
             have H_mem := hi 0 h0_lt
@@ -325,7 +325,6 @@ lemma isMartinLofRandom_cons_of_isMartinLofRandom_uniform (b : Bool) {x : Cantor
             rw [← h_x0, hk_0, h_c_val]
           have hc_dec : (c == b) = true := decide_eq_true h_c_eq_b
           rw [hc_dec]
-          dsimp [cantorCylinder, IsCantorPrefix]
           intro k hk
           have hk_lt : k + 1 < (c :: tail).length := Nat.succ_lt_succ hk
           have hk_tail := hi (k + 1) hk_lt
@@ -385,7 +384,7 @@ lemma isMartinLofRandom_tail_of_isMartinLofRandom_uniform {x : CantorSeq}
           · rename_i hx0
             have : (2 * i) % 2 = 0 := by omega
             have h1 : ((2 * i) % 2 == 1) = false := by simp [this]
-            have hx0_false : x 0 = false := eq_false_of_ne_true hx0
+            have hx0_false : x 0 = false := Bool.eq_false_of_ne_true hx0
             rw [h1, hx0_false]
         rw [hj_div, hfi]
         simp only [Option.map, Option.elim_some]

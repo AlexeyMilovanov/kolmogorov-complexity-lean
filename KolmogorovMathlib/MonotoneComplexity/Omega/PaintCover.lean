@@ -152,22 +152,22 @@ theorem not_isMartinLofRandomReal_of_paint
       intro n
       simp only [haccval]
       by_cases h : i₀ ≤ n.unpair.1
-      · simp only [if_pos h]; exact hB0 ε n
-      · simp only [if_neg h]
+      · simp only [ite_eq_left h]; exact hB0 ε n
+      · simp only [ite_eq_right h]
         exact le_rfl
     have haccle : ∀ n, acc n ≤ B ε n := by
       intro n
       simp only [haccval]
       by_cases h : i₀ ≤ n.unpair.1
-      · simp only [if_pos h]
+      · simp only [ite_eq_left h]
         exact le_rfl
-      · simp only [if_neg h]; exact hB0 ε n
+      · simp only [ite_eq_right h]; exact hB0 ε n
     have hstart : ∀ n, 0 < acc n → a i₀ ≤ P ε n := by
       intro n hn
       simp only [hPval]
       refine hmono ?_
       by_contra hcon
-      simp only [haccval, if_neg hcon] at hn
+      simp only [haccval, ite_eq_right hcon] at hn
       exact absurd hn (lt_irrefl 0)
     have hn₀ : a i₀ ≤ P ε (Nat.pair i₀ 0) := by
       simp only [hPval, Nat.unpair_pair]
@@ -182,14 +182,14 @@ theorem not_isMartinLofRandomReal_of_paint
         refine tsum_congr (fun n => ?_)
         simp only [haccval]
         by_cases h : i₀ ≤ n.unpair.1
-        · simp only [if_pos h, hBval]
-        · simp only [if_neg h]
+        · simp only [ite_eq_left h, hBval]
+        · simp only [ite_eq_right h]
           simp
       rw [hkey]
       refine (tsum_congr (fun i => ?_)).symm
       by_cases h : i₀ ≤ i
-      · simp only [if_pos h]
-      · simp only [if_neg h]
+      · simp only [ite_eq_left h]
+      · simp only [ite_eq_right h]
         rw [tsum_zero]
     have hcα : ((a i₀ : ℚ) : ℝ) ≤ α := rat_le_of_monotone_tendsto hmono hlim i₀
     exact exists_mem_ratInterval_paint (n₀ := Nat.pair i₀ 0) (hB0 ε) (hDpos hε) hacc0 haccle

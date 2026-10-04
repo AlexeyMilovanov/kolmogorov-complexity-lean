@@ -106,7 +106,7 @@ theorem stageMissing_le_standardBlockTail
     List.getElem_mem hk
   have hyBlock : y ∈ standardBlock c m j x := by
     unfold standardBlock
-    rw [if_pos hbit, List.mem_toFinset]
+    rw [ite_eq_left hbit, List.mem_toFinset]
     simpa [L, start, p] using hySlice
   have hyS : y ∈ S := hcover y hyBlock
   have hprefix : S <+: L :=
@@ -885,7 +885,7 @@ theorem suffixCoordinate_lt_pow_succ_standardBlock
   let p := 2 ^ r
   -- Unfold standardBlock to get the structural information
   unfold standardBlock at hx
-  rw [if_pos hbit, List.mem_toFinset] at hx
+  rw [ite_eq_left hbit, List.mem_toFinset] at hx
   -- x is in (L.drop start).take p
   -- Get the index of x in L
   let idx := L.idxOf x

@@ -86,16 +86,16 @@ theorem isLowerSemicomputableReal_iff_re_lt (α : ℝ) :
         obtain ⟨n, hn⟩ := exists_rat_lt_of_tendsto halim hr
         refine ⟨Nat.pair (ratCode r) n, ?_⟩
         simp only [Nat.unpair_pair, ratOfCode_ratCode]
-        rw [if_pos hn]
+        rw [ite_eq_left hn]
       · rintro ⟨i, hi⟩
         simp only at hi
         by_cases hcase : ratOfCode i.unpair.1 < a i.unpair.2
-        · rw [if_pos hcase] at hi
+        · rw [ite_eq_left hcase] at hi
           have hr : r = ratOfCode i.unpair.1 := (Option.some_injective _ hi).symm
           have h1 : ((r : ℚ) : ℝ) < ((a i.unpair.2 : ℚ) : ℝ) := by
             rw [hr]; exact_mod_cast hcase
           exact lt_of_lt_of_le h1 (rat_le_of_monotone_tendsto hamono halim _)
-        · rw [if_neg hcase] at hi
+        · rw [ite_eq_right hcase] at hi
           exact absurd hi (by simp)
   · rintro ⟨e, he, hspec⟩
     obtain ⟨r0, hr0⟩ := exists_rat_lt α

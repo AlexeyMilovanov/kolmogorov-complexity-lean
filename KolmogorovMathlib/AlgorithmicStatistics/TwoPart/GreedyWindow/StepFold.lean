@@ -93,7 +93,7 @@ theorem step_deleted_eq (G : Finset α) (first : Finset α → Finset α)
     (st : Finset α × Finset α × ℕ) (d : Finset α) :
     (step G first st d).1 = st.1 ∪ (d ∩ G) := by
   unfold step
-  by_cases h : st.2.1 ⊆ st.1 ∪ (d ∩ G) <;> simp only [h, if_true, if_false]
+  by_cases h : st.2.1 ⊆ st.1 ∪ (d ∩ G) <;> simp only [h, ite_true, ite_false]
 
 /-- The deleted component is always a subset of the ground set. -/
 theorem step_deleted_subset (G : Finset α) (first : Finset α → Finset α)
@@ -174,7 +174,7 @@ theorem step_eq_of_covered_of_not_subset (G : Finset α) (first : Finset α → 
   unfold step
   have h_union : st.1 ∪ (d ∩ G) = st.1 := Finset.union_eq_left.mpr h_cov
   rw [h_union]
-  simp only [h_not_sub, if_false]
+  simp only [h_not_sub, ite_false]
 
 /-- **Version-count bound (multiplicative form).**  If every window along the process
 is a *full* block of size `W` — guaranteed here by the room hypothesis
@@ -221,7 +221,7 @@ theorem fold_count_mul_le
         · -- refresh: the current window is fully deleted and is abandoned into `P`.
           have hPunion : (P ∪ st.2.1) ⊆ st.1 ∪ (d ∩ G) :=
             Finset.union_subset (hP₁.trans Finset.subset_union_left) h
-          simp only [step, if_pos h]
+          simp only [step, ite_eq_left h]
           refine ⟨P ∪ st.2.1, hPunion, ?_, ?_, hsubG,
             (hsub _).trans Finset.sdiff_subset, ?_⟩
           · exact Finset.disjoint_of_subset_left (hsub _)
@@ -230,7 +230,7 @@ theorem fold_count_mul_le
             exact Nat.add_le_add_right hP₃ W
           · rw [hcard, min_eq_left hwin]
         · -- no refresh: state's deleted grows, window and count unchanged.
-          simp only [step, if_neg h]
+          simp only [step, ite_eq_right h]
           exact ⟨P, hP₁.trans Finset.subset_union_left, hP₂, hP₃, hsubG, hP₅, hP₆⟩
       · exact hroom
   -- Initial invariant and conclusion.
@@ -309,7 +309,7 @@ theorem fold_count_mul_le_of_survivor
               exact Finset.not_nonempty_empty hsurv_local
           have hPunion : (P ∪ st.2.1) ⊆ st.1 ∪ (d ∩ G) :=
             Finset.union_subset (hP₁.trans Finset.subset_union_left) h
-          simp only [step, if_pos h]
+          simp only [step, ite_eq_left h]
           refine ⟨P ∪ st.2.1, hPunion, ?_, ?_, hsubG, (hsub _).trans Finset.sdiff_subset, ?_⟩
           · exact Finset.disjoint_of_subset_left (hsub _)
               (Finset.disjoint_of_subset_right hPunion Finset.sdiff_disjoint)
@@ -327,7 +327,7 @@ theorem fold_count_mul_le_of_survivor
               · have hc' : (first (G \ (st.1 ∪ d ∩ G))).card = (G \ (st.1 ∪ d ∩ G)).card := hc
                 exact Finset.eq_of_subset_of_card_le (hsub _) hc'.ge
         · -- no refresh
-          simp only [step, if_neg h]
+          simp only [step, ite_eq_right h]
           refine ⟨P, hP₁.trans Finset.subset_union_left, hP₂, hP₃, hsubG, hP₅, ?_⟩
           rcases hP₆ with hw | ⟨D, hD₁, hD₂⟩
           · exact Or.inl hw
@@ -411,7 +411,7 @@ theorem fold_count_split_le
         by_cases h : st.2.1 ⊆ st.1 ∪ ( d ∩ G )
         · have hroom' := hroom
           simp only [List.foldl_cons] at hroom'
-          simp only [step, if_pos h] at hroom' ⊢
+          simp only [step, ite_eq_left h] at hroom' ⊢
           refine ⟨ P ∪ st.2.1, ?_, ?_, ?_, ?_, ?_, ?_ ⟩
           · exact Finset.union_subset (Finset.Subset.trans hP₁ Finset.subset_union_left) h
           · simp only [Finset.disjoint_left]
@@ -454,7 +454,7 @@ theorem fold_count_split_le
                     (if !p d then (d ∩ G).card else 0) = c + W := by simp [hp]
                 rw [h_rhs]
                 linarith
-              · have hp_false : p d = false := eq_false_of_ne_true hp
+              · have hp_false : p d = false := Bool.eq_false_of_ne_true hp
                 have h_rhs : c + (if p d then W else 0) +
                     (if !p d then (d ∩ G).card else 0) = c + (d ∩ G).card := by
                   simp [hp_false]
@@ -463,7 +463,7 @@ theorem fold_count_split_le
                   (Finset.card_le_card Finset.inter_subset_right)
                 rw [Finset.inter_eq_left.mpr h, hP₆] at h_union
                 linarith
-        · simp only [step, if_neg h] at hroom ⊢
+        · simp only [step, ite_eq_right h] at hroom ⊢
           refine ⟨ P, ?_, ?_, ?_, ?_, ?_, ?_, ?_ ⟩
           · exact Finset.Subset.trans hP₁ Finset.subset_union_left
           · exact hP₂
@@ -488,7 +488,7 @@ theorem fold_count_split_le
                   (st.2.1 ∩ (st.1 ∪ d ∩ G)).card ≤
                     (st.2.1 ∩ st.1).card + (d ∩ G).card :=
                 card_inter_union_le_add_bound _ _ _ hdel
-              have hp_false : p d = false := eq_false_of_ne_true hp
+              have hp_false : p d = false := Bool.eq_false_of_ne_true hp
               have h_rhs : c + (if p d then W else 0) +
                   (if !p d then (d ∩ G).card else 0) = c + (d ∩ G).card := by
                 simp [hp_false]

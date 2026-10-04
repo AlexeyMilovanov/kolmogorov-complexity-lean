@@ -113,7 +113,7 @@ lemma disjEnum_eq_some {h : ℕ → Option BitString} {i : ℕ} {u : BitString}
     | false => rw [hbit] at hu; simp at hu
     | true =>
       rw [hbit] at hu
-      simp only [cond_true, Option.some.injEq] at hu
+      simp only [Bool.cond_true, Option.some.injEq] at hu
       subst hu
       exact ⟨Encodable.decode₂_eq_some.mp hd, hbit⟩
 

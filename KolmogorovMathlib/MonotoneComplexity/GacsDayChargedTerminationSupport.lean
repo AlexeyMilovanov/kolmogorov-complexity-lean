@@ -218,7 +218,7 @@ lemma grayChargedTailFamilyMove_eq_grayTailFamilyMove_of_sourceInvariant
       hsource threshold eps hthreshold current i c
   · funext c
     by_cases hc : c < b
-    · simp only [dif_pos hc]
+    · simp only [dite_eq_left hc]
       rw [grayChargedSonRequest_eq_grayTailSonRequest_of_sourceInvariant
         hsource threshold eps hthreshold current i ⟨c, hc⟩]
     · simp [hc]

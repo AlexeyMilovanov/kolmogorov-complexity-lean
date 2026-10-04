@@ -268,7 +268,7 @@ lemma incidenceCapacityShearCover_covers (n b c : Nat) :
         List.mem_toFinset, List.mem_map]
       refine ⟨concreteIncidenceRectangleCode n (singletonIncidentRectangle x), ?_,
         concreteIncidenceRectangleDecode_code n _⟩
-      rw [incidenceCapacityShearCoverCode, if_pos hK, List.mem_map]
+      rw [incidenceCapacityShearCoverCode, ite_eq_left hK, List.mem_map]
       exact ⟨x, hxL, rfl⟩
     · rw [mem_interedges_iff_of_decidable]
       exact ⟨by simp [singletonIncidentRectangle], by simp [singletonIncidentRectangle], hxI⟩
@@ -297,7 +297,7 @@ lemma incidenceCapacityShearCover_covers (n b c : Nat) :
       refine ⟨concreteIncidenceRectangleCode n
         (shearRectangle g (incidenceCapacityRectangle n b c)), ?_,
         concreteIncidenceRectangleDecode_code n _⟩
-      rw [incidenceCapacityShearCoverCode, if_neg hK, List.mem_map]
+      rw [incidenceCapacityShearCoverCode, ite_eq_right hK, List.mem_map]
       exact ⟨g, hgparams, rfl⟩
     · rw [shearRectangleEdgeList, List.mem_filter, decide_eq_true_eq] at hgx
       rw [mem_interedges_iff_of_decidable] at hgx ⊢
@@ -315,7 +315,7 @@ lemma incidenceCapacityShearCover_member_spec (n b c : Nat)
   rw [incidenceCapacityShearCover, concreteIncidenceRectangleFamilyDecode,
     List.mem_toFinset, List.mem_map] at hR
   obtain ⟨w, hw, rfl⟩ := hR
-  rw [incidenceCapacityShearCoverCode, if_neg (Nat.ne_of_gt hcap), List.mem_map] at hw
+  rw [incidenceCapacityShearCoverCode, ite_eq_right (Nat.ne_of_gt hcap), List.mem_map] at hw
   obtain ⟨g, hg, rfl⟩ := hw
   rw [concreteIncidenceRectangleDecode_code]
   obtain ⟨hbase1, hbase2, hbaseEdges⟩ := incidenceCapacityRectangle_spec n b c
@@ -354,7 +354,7 @@ lemma incidenceCapacityShearCover_card_mul_le (n b c : Nat) :
   · simp [hK]
   have hcodeLen : (incidenceCapacityShearCoverCode n b c).length =
       (incidenceCapacityShearParams n b c).length := by
-    rw [incidenceCapacityShearCoverCode, if_neg hK, List.length_map]
+    rw [incidenceCapacityShearCoverCode, ite_eq_right hK, List.length_map]
   have hcardCode : (incidenceCapacityShearCover n b c).card ≤
       (incidenceCapacityShearCoverCode n b c).length := by
     simpa [incidenceCapacityShearCover, concreteIncidenceRectangleFamilyDecode] using
@@ -411,11 +411,11 @@ lemma incidenceCapacityShearCoverCode_eq (n b c : Nat) :
             codeIncidenceCapacity n b c) := by
   rw [incidenceCapacityShearCoverCode, codeIncidenceCapacity_eq]
   by_cases hK : concreteIncidenceCapacity n b c = 0
-  · rw [if_pos hK, if_pos hK, concreteIncidentEdgeCodePairs_eq_map, List.map_map]
+  · rw [ite_eq_left hK, ite_eq_left hK, concreteIncidentEdgeCodePairs_eq_map, List.map_map]
     refine List.map_congr_left ?_
     intro ed _
     exact concreteIncidenceRectangleCode_singleton n ed.1 ed.2
-  · rw [if_neg hK, if_neg hK, incidenceCapacityShearParams_eq,
+  · rw [ite_eq_right hK, ite_eq_right hK, incidenceCapacityShearParams_eq,
       concreteIncidentEdgeList_length, ← concreteIncidenceRectangleCode_capacityRectangle,
       codeShearRectangleCodes_eq, concreteIncidentEdgeCodePairs_eq_map]
     refine (computableGreedyCover_map _ _ _ _ _ (concreteEdgeCodePair n)

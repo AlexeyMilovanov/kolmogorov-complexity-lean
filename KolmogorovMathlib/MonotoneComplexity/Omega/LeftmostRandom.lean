@@ -126,7 +126,7 @@ theorem covR_le_extStep {x : ℚ} {k m : ℕ} (hk : k ≤ m) (hlt : covL k < x) 
   | zero =>
       have hk0 : k = 0 := Nat.le_zero.mp hk
       subst hk0
-      rw [extStep, ratLtPair, decide_eq_true_eq.mpr hlt, cond_true]
+      rw [extStep, ratLtPair, decide_eq_true_eq.mpr hlt, Bool.cond_true]
       exact le_max_right _ _
   | succ m ih =>
       rcases Nat.lt_or_ge k (m + 1) with hlt2 | hge
@@ -137,7 +137,7 @@ theorem covR_le_extStep {x : ℚ} {k m : ℕ} (hk : k ≤ m) (hlt : covL k < x) 
         | true => exact le_trans h (le_max_left _ _)
       · have hkeq : k = m + 1 := le_antisymm hk hge
         subst hkeq
-        rw [extStep, ratLtPair, decide_eq_true_eq.mpr hlt, cond_true]
+        rw [extStep, ratLtPair, decide_eq_true_eq.mpr hlt, Bool.cond_true]
         exact le_max_right _ _
 
 /-- The covered initial segment grows with the number of rounds. -/

@@ -28,17 +28,23 @@ SKIP = re.compile(r'^(@\[|open .* in$|omit .* in$|attribute)')
 # these to `--check`; add a directory here once it reaches full coverage.
 COMPLETE = [
     'KolmogorovMathlib/AlgorithmicProbability',
+    'KolmogorovMathlib/Combinatorics',
     'KolmogorovMathlib/AlgorithmicRandomness',
     'KolmogorovMathlib/AlgorithmicStatistics',
     'KolmogorovMathlib/CommonInformation',
     'KolmogorovMathlib/Complexity',
     'KolmogorovMathlib/Core',
     'KolmogorovMathlib/Encoding',
+    'KolmogorovMathlib/Entropy',
     'KolmogorovMathlib/Foundation',
     'KolmogorovMathlib/Interface',
+    'KolmogorovMathlib/InformationInequalities',
+    'KolmogorovMathlib/Multisource',
     'KolmogorovMathlib/MonotoneComplexity',
     'KolmogorovMathlib/Prefix',
     'KolmogorovMathlib/Restricted',
+    'KolmogorovMathlib/Solomonoff',
+    'KolmogorovMathlib/StoppingComplexity',
 ]
 
 

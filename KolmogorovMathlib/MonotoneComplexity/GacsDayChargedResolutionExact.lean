@@ -226,7 +226,7 @@ lemma grayChargedExactResolutionInvariant_step
       (grayChargedTailStep q L a e sigma A st (sm t)) := by
   intro i c hused
   unfold grayChargedTailStep
-  simp only [grayTailWaitingB, Bool.false_eq_true, if_false]
+  simp only [grayTailWaitingB, Bool.false_eq_true, ite_false]
   split
   next _ => exact hprev i c hused
   next hnotdone =>

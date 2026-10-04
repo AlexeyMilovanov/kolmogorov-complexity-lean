@@ -482,7 +482,7 @@ theorem edgeSteps_card_le_of_charges
       have hm₁ : m ∈ TL := hm
       rw [hTLdef, Finset.mem_filter] at hm₁
       obtain ⟨hmT, _hstart, hL'⟩ := hm₁
-      simp only [dif_pos hL']
+      simp only [dite_eq_left hL']
       obtain ⟨_h1, h2, h3⟩ := hL'.choose_spec
       exact Finset.mem_filter.mpr
         ⟨Finset.mem_range.mpr (by
@@ -496,7 +496,7 @@ theorem edgeSteps_card_le_of_charges
       obtain ⟨hmT', hstart', hLm'⟩ := hm₂
       have heq' : (if h : hasL m then h.choose else 0) =
           (if h : hasL m' then h.choose else 0) := heq
-      rw [dif_pos hLm, dif_pos hLm'] at heq'
+      rw [dite_eq_left hLm, dite_eq_left hLm'] at heq'
       by_contra hne
       obtain ⟨hc1, hc2, _⟩ := hLm.choose_spec
       obtain ⟨hc1', hc2', _⟩ := hLm'.choose_spec

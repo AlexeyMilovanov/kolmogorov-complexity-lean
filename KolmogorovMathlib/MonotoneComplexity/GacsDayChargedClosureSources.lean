@@ -291,7 +291,7 @@ lemma grayTailSonBase_single_le {n b : Nat}
       unfold grayTailSonBase
       simp only [List.foldr_cons]
       rcases List.mem_cons.mp hx with rfl | hx
-      · rw [if_pos ⟨hxi, hxc⟩]
+      · rw [ite_eq_left ⟨hxi, hxc⟩]
         have := hrest
         unfold grayTailSonBase at this
         linarith
@@ -342,7 +342,7 @@ theorem grayCharged_frozen_slot_req_le_final_root
     by_cases hcs : c.val < grayChargedSourceCount a e
     · rw [grayChargedSonRequest_source i c hcs, grayTailSonRequest]
       by_cases hraise : grayChargedThreshold q e < grayTailSonBase entries i c
-      · simp only [hraise, if_true]
+      · simp only [hraise, ite_true]
         rcases grayChargedStateAt_frozen_shape
             (n := n) (b := grayTailBranch q L a e) (q := q) (L := L)
             (a := a) (e := e) (t := T + 1) (sigma := sigma) (A := A)
@@ -356,7 +356,7 @@ theorem grayCharged_frozen_slot_req_le_final_root
               (hpSlots _ (List.get_mem _ _))
           rw [hc] at hcs
           omega
-      · simp only [hraise, if_false]
+      · simp only [hraise, ite_false]
         exact hterm
     · rw [grayChargedSonRequest_spare i c (Nat.not_lt.mp hcs)]
       exact hterm
@@ -368,9 +368,9 @@ theorem grayCharged_frozen_slot_req_le_final_root
     by_cases hds : d.val < grayChargedSourceCount a e
     · rw [grayChargedSonRequest_source i d hds, grayTailSonRequest]
       by_cases hraise : grayChargedThreshold q e < grayTailSonBase entries i d
-      · simp only [hraise, if_true]
+      · simp only [hraise, ite_true]
         exact (dyadicScale_pos e).le
-      · simp only [hraise, if_false]
+      · simp only [hraise, ite_false]
         exact grayTailSonBase_nonneg_global hreq
     · rw [grayChargedSonRequest_spare i d (Nat.not_lt.mp hds)]
       exact grayTailSonBase_nonneg_global hreq
@@ -523,7 +523,7 @@ lemma grayChargeAtRoot_length_sum {m : Nat} {G : FamilyGrayCharge}
         intro j
         by_cases hj : x.1 = j.val
         · simp only [grayChargeAtRoot, List.filter_cons, hj, beq_self_eq_true,
-            List.length_cons, if_pos]
+            List.length_cons, ite_eq_left]
           omega
         · simp [grayChargeAtRoot, hj]
       simp only [hsplit, Finset.sum_add_distrib, ih hxs, List.length_cons]

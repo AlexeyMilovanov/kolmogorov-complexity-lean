@@ -234,9 +234,9 @@ private lemma isSemimeasure_approxM2 (m : BitString → ℝ≥0∞) (hm : IsSemi
     · have h_spec := Nat.find_spec h
       symm
       rw [tsum_eq_single (Nat.find h)]
-      · rw [if_pos h_spec]
+      · rw [ite_eq_left h_spec]
       · intro b hb
-        rw [if_neg]
+        rw [ite_eq_right]
         intro h_b
         have h_fn_eq : f b = f (Nat.find h) := h_natToBits_inj (h_b.symm.trans h_spec)
         have h_b_eq : b = Nat.find h := hmono.injective h_fn_eq
@@ -244,7 +244,7 @@ private lemma isSemimeasure_approxM2 (m : BitString → ℝ≥0∞) (hm : IsSemi
     · symm
       rw [ENNReal.tsum_eq_zero]
       intro n
-      rw [if_neg]
+      rw [ite_eq_right]
       intro h_n
       exact h ⟨n, h_n⟩
   have h_sum1 : (∑' y : BitString, if h : ∃ n, y = natBits (f n) then
@@ -253,9 +253,9 @@ private lemma isSemimeasure_approxM2 (m : BitString → ℝ≥0∞) (hm : IsSemi
     rw [ENNReal.tsum_comm]
     refine tsum_congr (fun n => ?_)
     rw [tsum_eq_single (natBits (f n))]
-    · rw [if_pos rfl]
+    · rw [ite_eq_left rfl]
     · intro b hb
-      rw [if_neg hb]
+      rw [ite_eq_right hb]
   have h_sum2 : (∑' n : ℕ, m (natBits n)) ≤ ∑' x : BitString, m x :=
     ENNReal.tsum_comp_le_tsum_of_injective h_natToBits_inj (fun x => m x)
   calc (∑' y : BitString, if h : ∃ n, y = natBits (f n) then
@@ -278,11 +278,11 @@ private lemma approxM2_monotone (approx_m : ℕ → BitString → BitString → 
   refine le_trans (Finset.sup_mono (f := fun n => dyadicValue (if y = natBits (f n) then
     approx_m s (natBits n) [] else 0) s) h_sub) (Finset.sup_le (fun n hn => ?_))
   by_cases h_eq : y = natBits (f n)
-  · rw [if_pos h_eq]
+  · rw [ite_eq_left h_eq]
     refine le_trans (hmono_m s (natBits n) []) ?_
     refine le_trans ?_ (Finset.le_sup hn)
-    rw [dyadicValue_ite, if_pos h_eq]
-  · rw [if_neg h_eq, dyadicValue_zero]
+    rw [dyadicValue_ite, ite_eq_left h_eq]
+  · rw [ite_eq_right h_eq, dyadicValue_zero]
     exact zero_le
 
 /-- The stage enumeration `approx_m` approximates the semimeasure `m` from below: its dyadic
@@ -305,7 +305,7 @@ private lemma approxM2_iSup (m : BitString → ℝ≥0∞)
   obtain ⟨hmono_m, hsup_m⟩ := happrox
   have h_natToBits_inj : Function.Injective natBits := natBits_injective
   by_cases h : ∃ n, y = natBits (f n)
-  · rw [dif_pos h]
+  · rw [dite_eq_left h]
     set n0 := Nat.find h
     have h_spec : y = natBits (f n0) := Nat.find_spec h
     rw [h_spec]
@@ -316,13 +316,13 @@ private lemma approxM2_iSup (m : BitString → ℝ≥0∞)
       rw [dyadicValue_sup]
       refine Finset.sup_le (fun n hn => ?_)
       by_cases h_m : natBits (f n0) = natBits (f n)
-      · rw [dyadicValue_ite, if_pos h_m]
+      · rw [dyadicValue_ite, ite_eq_left h_m]
         have h_fn_eq : f n0 = f n := h_natToBits_inj h_m
         have h_n_eq : n = n0 := hmono.injective h_fn_eq.symm
         subst h_n_eq
         exact le_trans (le_iSup (fun s' => dyadicValue (approx_m s' (natBits n0) []) s') s)
           (le_of_eq (hsup_m (natBits n0) []))
-      · rw [dyadicValue_ite, if_neg h_m, dyadicValue_zero]
+      · rw [dyadicValue_ite, ite_eq_right h_m, dyadicValue_zero]
         exact zero_le
     · have h_in : n0 ∈ Finset.range (n0 + 1) := Finset.mem_range.mpr (Nat.lt_succ_self n0)
       have h_match : natBits (f n0) = natBits (f n0) := rfl
@@ -335,7 +335,7 @@ private lemma approxM2_iSup (m : BitString → ℝ≥0∞)
         dsimp [approxM2]
         rw [dyadicValue_sup]
         refine le_trans ?_ (Finset.le_sup h_in)
-        rw [dyadicValue_ite, if_pos h_match]
+        rw [dyadicValue_ite, ite_eq_left h_match]
       · have h_s0_le : n0 ≤ s := le_of_not_ge hs
         refine le_iSup_of_le s ?_
         dsimp [approxM2]
@@ -343,8 +343,8 @@ private lemma approxM2_iSup (m : BitString → ℝ≥0∞)
         have h_in_s : n0 ∈ Finset.range (s + 1) :=
           Finset.mem_range.mpr (Nat.lt_succ_of_le h_s0_le)
         refine le_trans ?_ (Finset.le_sup h_in_s)
-        rw [dyadicValue_ite, if_pos h_match]
-  · rw [dif_neg h]
+        rw [dyadicValue_ite, ite_eq_left h_match]
+  · rw [dite_eq_right h]
     apply le_antisymm
     · refine iSup_le (fun s => ?_)
       dsimp [approxM2]
@@ -353,7 +353,7 @@ private lemma approxM2_iSup (m : BitString → ℝ≥0∞)
       by_cases h_m : y = natBits (f n)
       · exfalso
         exact h ⟨n, h_m⟩
-      · rw [dyadicValue_ite, if_neg h_m, dyadicValue_zero]
+      · rw [dyadicValue_ite, ite_eq_right h_m, dyadicValue_zero]
     · exact zero_le
 
 open Classical in
@@ -375,15 +375,15 @@ private lemma isSemimeasure_approxM1 (m : BitString → ℝ≥0∞) (hm : IsSemi
     · have h_spec := Nat.find_spec h
       symm
       rw [tsum_eq_single (Nat.find h)]
-      · rw [if_pos h_spec]
+      · rw [ite_eq_left h_spec]
       · intro b hb
-        rw [if_neg]
+        rw [ite_eq_right]
         intro h_b
         exact hb (h_natToBits_inj (h_b.symm.trans h_spec))
     · symm
       rw [ENNReal.tsum_eq_zero]
       intro n
-      rw [if_neg]
+      rw [ite_eq_right]
       intro h_n
       exact h ⟨n, h_n⟩
   have h_sum1 : (∑' x : BitString, if h : ∃ n, x = natBits n then S (Nat.find h) else 0) =
@@ -392,9 +392,9 @@ private lemma isSemimeasure_approxM1 (m : BitString → ℝ≥0∞) (hm : IsSemi
     rw [ENNReal.tsum_comm]
     refine tsum_congr (fun n => ?_)
     rw [tsum_eq_single (natBits n)]
-    · rw [if_pos rfl]
+    · rw [ite_eq_left rfl]
     · intro b hb
-      rw [if_neg hb]
+      rw [ite_eq_right hb]
   have h_sum2 : (∑' n : ℕ, S n) ≤ ∑' k : ℕ, m (natBits k) := by
     dsimp [S]
     rw [ENNReal.tsum_comm]
@@ -402,9 +402,9 @@ private lemma isSemimeasure_approxM1 (m : BitString → ℝ≥0∞) (hm : IsSemi
     by_cases h_ex : ∃ n, f n ≤ k ∧ k < f (n + 1)
     · obtain ⟨nk, hnk⟩ := h_ex
       rw [tsum_eq_single nk]
-      · rw [if_pos hnk]
+      · rw [ite_eq_left hnk]
       · intro b hb
-        rw [if_neg]
+        rw [ite_eq_right]
         intro hbk
         have h_eq_nk : b = nk := by
           rcases lt_trichotomy b nk with h1 | h1 | h1
@@ -417,7 +417,7 @@ private lemma isSemimeasure_approxM1 (m : BitString → ℝ≥0∞) (hm : IsSemi
     · have h_zero : (∑' a : ℕ, if f a ≤ k ∧ k < f (a + 1) then m (natBits k) else 0) = 0 := by
         rw [ENNReal.tsum_eq_zero]
         intro a
-        rw [if_neg]
+        rw [ite_eq_right]
         rintro ⟨h1, h2⟩
         exact h_ex ⟨a, h1, h2⟩
       rw [h_zero]
@@ -445,12 +445,12 @@ private lemma approxM1_monotone (approx_m : ℕ → BitString → BitString → 
     ∑ k ∈ Finset.Ico (f n) (f (n + 1)), approx_m s (natBits k) [] else 0) s) h_sub)
     (Finset.sup_le (fun n hn => ?_))
   by_cases h_match : x = natBits n
-  · rw [if_pos h_match, dyadicValue_sum_range_dim]
+  · rw [ite_eq_left h_match, dyadicValue_sum_range_dim]
     refine le_trans (Finset.sum_le_sum (fun k _ => hmono_m s (natBits k) [])) ?_
     rw [← dyadicValue_sum_range_dim]
     refine le_trans ?_ (Finset.le_sup hn)
-    rw [dyadicValue_ite, if_pos h_match]
-  · rw [if_neg h_match, dyadicValue_zero]
+    rw [dyadicValue_ite, ite_eq_left h_match]
+  · rw [ite_eq_right h_match, dyadicValue_zero]
     exact zero_le
 
 open Classical in
@@ -485,24 +485,24 @@ private lemma approxM1_iSup (m : BitString → ℝ≥0∞)
           intro ⟨h1, h2⟩
           rw [Finset.mem_Ico, not_and_or, not_le, not_lt] at hk
           cases hk <;> omega
-        rw [if_neg h_not]
+        rw [ite_eq_right h_not]
       · refine Finset.sum_congr rfl (fun k hk => ?_)
         rw [Finset.mem_Ico] at hk
-        rw [if_pos hk]
+        rw [ite_eq_left hk]
     apply le_antisymm
     · refine iSup_le (fun s => ?_)
       dsimp [approxM1]
       rw [dyadicValue_sup]
       refine Finset.sup_le (fun n hn => ?_)
       by_cases h_m : natBits n0 = natBits n
-      · rw [dyadicValue_ite, if_pos h_m]
+      · rw [dyadicValue_ite, ite_eq_left h_m]
         have h_n_eq : n = n0 := h_natToBits_inj h_m.symm
         subst h_n_eq
         rw [h_S_eq, dyadicValue_sum_range_dim]
         exact Finset.sum_le_sum (fun k _ => le_trans
           (le_iSup (fun s' => dyadicValue (approx_m s' (natBits k) []) s') s)
           (le_of_eq (hsup_m (natBits k) [])))
-      · rw [dyadicValue_ite, if_neg h_m, dyadicValue_zero]
+      · rw [dyadicValue_ite, ite_eq_right h_m, dyadicValue_zero]
         exact zero_le
     · rw [h_S_eq]
       have h_sum_sup : (∑ k ∈ Finset.Ico (f n0) (f (n0 + 1)),
@@ -530,7 +530,7 @@ private lemma approxM1_iSup (m : BitString → ℝ≥0∞)
         dsimp [approxM1]
         rw [dyadicValue_sup]
         refine le_trans ?_ (Finset.le_sup h_in)
-        rw [dyadicValue_ite, if_pos h_match, dyadicValue_sum_range_dim]
+        rw [dyadicValue_ite, ite_eq_left h_match, dyadicValue_sum_range_dim]
       · have h_s0_le : n0 ≤ s := le_of_not_ge hs
         have h_in_s : n0 ∈ Finset.range (s + 1) :=
           Finset.mem_range.mpr (Nat.lt_succ_of_le h_s0_le)
@@ -538,7 +538,7 @@ private lemma approxM1_iSup (m : BitString → ℝ≥0∞)
         dsimp [approxM1]
         rw [dyadicValue_sup]
         refine le_trans ?_ (Finset.le_sup h_in_s)
-        rw [dyadicValue_ite, if_pos h_match, dyadicValue_sum_range_dim]
+        rw [dyadicValue_ite, ite_eq_left h_match, dyadicValue_sum_range_dim]
   · apply le_antisymm
     · refine iSup_le (fun s => ?_)
       dsimp [approxM1]
@@ -547,7 +547,7 @@ private lemma approxM1_iSup (m : BitString → ℝ≥0∞)
       by_cases h_match : x = natBits n
       · exfalso
         exact h ⟨n, h_match⟩
-      · rw [dyadicValue_ite, if_neg h_match, dyadicValue_zero]
+      · rw [dyadicValue_ite, ite_eq_right h_match, dyadicValue_zero]
     · exact zero_le
 
 open Classical in
@@ -561,7 +561,7 @@ private lemma aprioriMeasure_computable_grouping_upper (m : BitString → ℝ≥
   have h_natToBits_inj : Function.Injective natBits := natBits_injective
   have h_dom := hc0 (natBits n)
   have h_exist : ∃ n0, natBits n = natBits n0 := ⟨n, rfl⟩
-  rw [dif_pos h_exist] at h_dom
+  rw [dite_eq_left h_exist] at h_dom
   have h_spec := Nat.find_spec h_exist
   have h_n_eq : Nat.find h_exist = n := h_natToBits_inj h_spec.symm
   rw [h_n_eq] at h_dom
@@ -620,7 +620,7 @@ theorem aprioriMeasure_computable_grouping (m : BitString → ℝ≥0∞)
     have h_exist : ∃ n0, natBits (f n) = natBits (f n0) := ⟨n, rfl⟩
     have h_m2_val : m2 (natBits (f n)) = m (natBits n) := by
       dsimp [m2]
-      rw [dif_pos h_exist]
+      rw [dite_eq_left h_exist]
       have h_find_spec := Nat.find_spec h_exist
       have h_f_eq : f (Nat.find h_exist) = f n := h_natToBits_inj h_find_spec.symm
       rw [hmono.injective h_f_eq]
@@ -630,7 +630,7 @@ theorem aprioriMeasure_computable_grouping (m : BitString → ℝ≥0∞)
     have h_single : m (natBits (f n)) ≤ S n := by
       have h_le := ENNReal.le_tsum (f := fun k =>
         if f n ≤ k ∧ k < f (n + 1) then m (natBits k) else 0) (f n)
-      rw [if_pos h_fn_in] at h_le
+      rw [ite_eq_left h_fn_in] at h_le
       exact h_le
     exact le_trans h_dom h_single
   set m1 : BitString → ℝ≥0∞ := fun x =>

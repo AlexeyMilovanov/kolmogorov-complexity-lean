@@ -139,14 +139,14 @@ theorem pairMarginal_le_aprioriMeasure_projMap (U : Map) (x z : BitString) :
       exact (Prod.ext_iff.mp (@pairCode_injective (x, y) (x, y₀) hmem)).2
     have hsum : (∑' y, if produces U p z (pairCode x y) then progWeight p else 0)
         = progWeight p := by
-      rw [tsum_eq_single y₀ (fun y hy => by rw [if_neg (fun h => hy (huniq y h))])]
-      rw [if_pos hy₀]
+      rw [tsum_eq_single y₀ (fun y hy => by rw [ite_eq_right (fun h => hy (huniq y h))])]
+      rw [ite_eq_left hy₀]
     have hproj : produces (projMap U) p z x :=
       (produces_projMap_iff U p z x).mpr ⟨pairCode x y₀, hy₀, decodeFirst_pairCode x y₀⟩
-    rw [hsum, if_pos hproj]
+    rw [hsum, ite_eq_left hproj]
   · -- No second component is produced: the inner sum is zero.
     push Not at hp
-    rw [ENNReal.tsum_eq_zero.mpr (fun y => if_neg (hp y))]
+    rw [ENNReal.tsum_eq_zero.mpr (fun y => ite_eq_right (hp y))]
     exact bot_le
 
 /-- **Marginal coding bound at `k = K(x)`.** The scaled pair-output marginal is

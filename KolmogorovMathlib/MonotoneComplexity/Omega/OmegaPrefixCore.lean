@@ -93,11 +93,11 @@ theorem bitsValue_cantorPrefix (w : CantorSeq) (n : ℕ) :
       have h2 : ((2 : ℚ) ^ (n + 1)) ≠ 0 := by positivity
       have h2' : ((2 : ℚ) ^ n) ≠ 0 := by positivity
       by_cases hb : w n
-      · rw [if_pos hb, if_pos hb]
+      · rw [ite_eq_left hb, ite_eq_left hb]
         push_cast
         field_simp
         ring
-      · rw [if_neg hb, if_neg hb]
+      · rw [ite_eq_right hb, ite_eq_right hb]
         push_cast
         field_simp
         ring
@@ -480,25 +480,25 @@ theorem diagSum_add_mass_le {A : ℕ → ℕ → ℕ} {m : ℕ → ℝ≥0∞} {
     intro k
     rw [hfval k, hgval k]
     by_cases hk : k = i
-    · rw [if_pos hk]
+    · rw [ite_eq_left hk]
       have hz0 : (if k < s then dyadicValue (A s k) s else 0) = 0 := by
         by_cases hks : k < s
-        · rw [if_pos hks, hk, hz, dyadicValue_zero]
-        · rw [if_neg hks]
+        · rw [ite_eq_left hks, hk, hz, dyadicValue_zero]
+        · rw [ite_eq_right hks]
       rw [hz0, zero_add]
-    · rw [if_neg hk, add_zero]
+    · rw [ite_eq_right hk, add_zero]
       by_cases hks : k < s
-      · rw [if_pos hks]
+      · rw [ite_eq_left hks]
         exact hle s k
-      · rw [if_neg hks]
+      · rw [ite_eq_right hks]
         exact zero_le
   have hsum : (∑' k, f k) + (∑' k, g k) ≤ ∑' k, m k := by
     rw [← ENNReal.tsum_add]
     exact ENNReal.tsum_le_tsum hfg
   have hfsum : (∑' k, f k) = ∑ k ∈ Finset.range s, dyadicValue (A s k) s := by
     rw [tsum_eq_sum (s := Finset.range s)
-      (fun k hk => by rw [hfval k, if_neg (by simpa using hk)])]
-    exact Finset.sum_congr rfl (fun k hk => by rw [hfval k, if_pos (Finset.mem_range.1 hk)])
+      (fun k hk => by rw [hfval k, ite_eq_right (by simpa using hk)])]
+    exact Finset.sum_congr rfl (fun k hk => by rw [hfval k, ite_eq_left (Finset.mem_range.1 hk)])
   have hgsum : (∑' k, g k) = m i := by
     have := tsum_ite_eq i m
     rw [hg]

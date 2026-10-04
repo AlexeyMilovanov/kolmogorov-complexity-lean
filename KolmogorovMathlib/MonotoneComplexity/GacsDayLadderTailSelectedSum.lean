@@ -67,10 +67,10 @@ lemma mem_grayTailSelectedIndices_iff {n b : Nat}
   simp only [List.mem_filter, List.mem_range]
   constructor
   · rintro ⟨hj, hkeep⟩
-    rw [dif_pos hj] at hkeep
+    rw [dite_eq_left hj] at hkeep
     exact ⟨hj, hkeep⟩
   · rintro ⟨hj, hkeep⟩
-    exact ⟨hj, by rw [dif_pos hj]; exact hkeep⟩
+    exact ⟨hj, by rw [dite_eq_left hj]; exact hkeep⟩
 
 /-- **Leaf 2.** The selected root-request of a frozen round is the sum of the
 requests of exactly those slot positions the predicate keeps. -/
@@ -91,7 +91,7 @@ theorem grayTail_selected_request_eq {n b : Nat}
   refine List.filter_eq_self.2 ?_
   intro j hj
   simp only [List.mem_range] at hj
-  rw [dif_pos hj]
+  rw [dite_eq_left hj]
 
 /-- Selecting nothing yields no indices. -/
 @[simp] theorem grayTailSelectedIndices_false {n b : Nat}
@@ -101,7 +101,7 @@ theorem grayTail_selected_request_eq {n b : Nat}
   refine List.filter_eq_nil_iff.2 ?_
   intro j hj
   simp only [List.mem_range] at hj
-  simp [dif_pos hj]
+  simp [dite_eq_left hj]
 
 /-! ### Positive parts -/
 

@@ -95,7 +95,7 @@ theorem tsum_two_pow_neg_ne_top_of_KPPlain_le {U : Map} (hU : IsOptimalPrefixCon
       (tsum_aprioriMeasure_le_one U [] hU.isPrefixMachine)
   have hinj : (∑' n : ℕ, complexityWeight (KPPlain U (e n)))
       ≤ ∑' x : BitString, complexityWeight (KPPlain U x) :=
-    ENNReal.tsum_comp_le_tsum_of_injective he _
+    ENNReal.tsum_comp_le_tsum_of_injective he (fun x => complexityWeight (KPPlain U x))
   have hsum : (∑' n : ℕ, (2 : ℝ≥0∞)⁻¹ ^ f n) * (2 : ℝ≥0∞)⁻¹ ^ c ≤ 1 := by
     rw [← ENNReal.tsum_mul_right]
     exact le_trans (le_trans (ENNReal.tsum_le_tsum hpt) hinj) hkraft

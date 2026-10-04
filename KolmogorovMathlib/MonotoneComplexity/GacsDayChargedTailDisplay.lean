@@ -152,10 +152,10 @@ lemma grayChargedBaseSonRequest_avoidsSmall
   unfold grayTailSonRequest
   by_cases htr : threshold < grayTailSonBase entries i c
   · dsimp only
-    rw [if_pos htr]
+    rw [ite_eq_left htr]
     exact Or.inr hdelta_e
   · dsimp only
-    rw [if_neg htr]
+    rw [ite_eq_right htr]
     exact grayChargedSonBase_avoidsSmall hpos_delta hall i c
 
 /-- A charged son request built from entries that avoid small requests is either `0` or at least
@@ -250,7 +250,7 @@ lemma grayChargedTailFamilyMove_current_req
     simp [s.1.isLt, entries]
   rw [getFamilyReq, hfamily]
   rw [getReq_graftTwoLevel_grandson s.2.1.isLt s.2.2.isLt]
-  rw [dif_pos s.2.1.isLt, dif_pos s.2.2.isLt]
+  rw [dite_eq_left s.2.1.isLt, dite_eq_left s.2.2.isLt]
   unfold getFamilyReq
   apply congrArg (fun m => getReq m x)
   apply grayTailEntryMove_eq_of_mem

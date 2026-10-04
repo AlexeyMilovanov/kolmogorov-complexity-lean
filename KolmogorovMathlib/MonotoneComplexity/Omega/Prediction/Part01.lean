@@ -308,12 +308,12 @@ theorem exists_summable_slack_of_not_isMartinLofRandomReal_of_monotone
         intro n hn
         have hn' : i < n := by simpa using Finset.mem_range.not.mp hn
         simp only [hTdef]
-        rw [if_neg (by omega)]
+        rw [ite_eq_right (by omega)]
       have hTval : ∀ n ∈ Finset.range (i + 1),
           T n i = ENNReal.ofReal ((H (b n) (i - n) : ℚ) : ℝ) := by
         intro n hn
         simp only [hTdef]
-        rw [if_pos (Finset.mem_range.mp hn)]
+        rw [ite_eq_left (Finset.mem_range.mp hn)]
       have hnonneg : ∀ n ∈ Finset.range (i + 1), (0 : ℝ) ≤ ((H (b n) (i - n) : ℚ) : ℝ) :=
         fun n _ => by exact_mod_cast hnn n (i - n)
       have hcast : (((G i : ℚ)) : ℝ)
@@ -328,9 +328,9 @@ theorem exists_summable_slack_of_not_isMartinLofRandomReal_of_monotone
       have hshift : (∑' i, T n i) = ∑' m, ENNReal.ofReal ((H (b n) m : ℚ) : ℝ) := by
         refine tsum_shift_nat n (fun i hi => ?_) (fun m => ?_)
         · simp only [hTdef]
-          rw [if_neg (by omega)]
+          rw [ite_eq_right (by omega)]
         · simp only [hTdef]
-          rw [if_pos (by omega), Nat.add_sub_cancel]
+          rw [ite_eq_left (by omega), Nat.add_sub_cancel]
       rw [hshift]
       exact le_of_lt (hspec (b n) (hbpos n)).2.1
     have hbound : (∑' i, ENNReal.ofReal ((G i : ℚ) : ℝ))
@@ -683,15 +683,15 @@ theorem not_isMartinLofRandomReal_of_lscTailCover_of_monotone
   obtain ⟨i₀, hi₀⟩ := hcover ε hε
   refine ⟨i₀, ?_⟩
   have hshift : (∑' i : ℕ, (if i₀ ≤ i then h ε i else 0)) = ∑' k, h ε (i₀ + k) := by
-    refine tsum_shift_nat i₀ (fun i hi => if_neg (by omega)) (fun m => ?_)
-    rw [if_pos (Nat.le_add_left i₀ m), Nat.add_comm]
+    refine tsum_shift_nat i₀ (fun i hi => ite_eq_right (by omega)) (fun m => ?_)
+    rw [ite_eq_left (Nat.le_add_left i₀ m), Nat.add_comm]
   rw [hshift]
   have hle : (∑' k, h ε (i₀ + k)) ≤ ∑' i, h ε i := by
     rw [← hshift]
     refine ENNReal.tsum_le_tsum (fun i => ?_)
     by_cases hc : i₀ ≤ i
-    · rw [if_pos hc]
-    · rw [if_neg hc]
+    · rw [ite_eq_left hc]
+    · rw [ite_eq_right hc]
       exact zero_le
   have hne : (∑' k, h ε (i₀ + k)) ≠ ⊤ := (lt_of_le_of_lt hle (hsmall ε hε)).ne_top
   have hlt : α - ((a i₀ : ℚ) : ℝ) ≤ (∑' k, h ε (i₀ + k)).toReal := by linarith [hi₀]
@@ -751,15 +751,15 @@ lemma isUniformlyREFamily_coveredBlocks {cover : ℚ → ℕ → Option (ℚ × 
     constructor
     · rintro ⟨k, hk⟩
       refine ⟨Nat.pair n k, ?_⟩
-      simp only [Nat.unpair_pair, hk, cond_true]
+      simp only [Nat.unpair_pair, hk, Bool.cond_true]
     · rintro ⟨m, hm⟩
       have hm' : (cond (coverInside cover (ε / 2, (Nat.unpair m).2) (s (Nat.unpair m).1)
           (s ((Nat.unpair m).1 + 1))) (some (Nat.unpair m).1) none : Option ℕ) = some n := hm
       rcases hb : coverInside cover (ε / 2, (Nat.unpair m).2) (s (Nat.unpair m).1)
           (s ((Nat.unpair m).1 + 1)) with _ | _
-      · rw [hb, cond_false] at hm'
+      · rw [hb, Bool.cond_false] at hm'
         exact absurd hm' (by simp)
-      · rw [hb, cond_true] at hm'
+      · rw [hb, Bool.cond_true] at hm'
         have hn : (Nat.unpair m).1 = n := Option.some.inj hm'
         exact ⟨(Nat.unpair m).2, hn ▸ hb⟩
 

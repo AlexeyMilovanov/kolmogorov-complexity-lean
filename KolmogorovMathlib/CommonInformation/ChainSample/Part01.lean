@@ -963,7 +963,7 @@ theorem chain_pair_projection_plainK_lower_at
       have hor : ¬ (v i = (e.symm a).1 ∧ v j = (e.symm a).2) := by
         intro ⟨h1, h2⟩
         exact hb (Prod.ext h1 h2)
-      simp only [hne, if_false]
+      simp only [hne, ite_false]
       by_cases h1 : v i = (e.symm a).1 <;> by_cases h2 : v j = (e.symm a).2 <;>
         simp_all
   have htype : histogramTypeLog (fun a : Fin 4 =>

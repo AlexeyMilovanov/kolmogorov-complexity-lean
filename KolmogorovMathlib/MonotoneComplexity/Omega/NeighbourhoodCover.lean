@@ -213,7 +213,7 @@ theorem ofReal_heavyMass_le {m : ℕ → ℝ≥0∞} {a : ℕ → ℕ → ℚ}
             then m (ratCode q) else 0) := by
         refine (Finset.sum_congr rfl fun q hq => ?_).symm
         obtain ⟨t, ht, rfl⟩ := Finset.mem_image.1 hq
-        rw [if_pos (hin t ht)]
+        rw [ite_eq_left (hin t ht)]
     _ ≤ _ := ENNReal.sum_le_tsum _
 
 open scoped Classical in
@@ -360,7 +360,7 @@ theorem exists_computable_heavyInterval_enum {m : ℕ → ℝ≥0∞}
     | false => rw [hcond] at hJ; simp at hJ
     | true =>
         rw [hcond] at hJ
-        simp only [cond_true, Option.some.injEq] at hJ
+        simp only [Bool.cond_true, Option.some.injEq] at hJ
         subst hJ
         have hq : (2 : ℚ) ^ (j + 2) *
             ((ratIntervalOfCode i.unpair.1).2 - (ratIntervalOfCode i.unpair.1).1)
@@ -404,7 +404,7 @@ theorem exists_computable_heavyInterval_enum {m : ℕ → ℝ≥0∞}
           < 2 * heavyMass a (Nat.pair c r) := by
       rw [hu, hJc]
       exact_mod_cast hR
-    rw [heavyEnum, decide_eq_true hQ, cond_true, hu, hJc]
+    rw [heavyEnum, decide_eq_true hQ, Bool.cond_true, hu, hJc]
 
 /-! ### Two proved steps of that route -/
 
@@ -593,7 +593,7 @@ theorem exists_ratInterval_lt_tsum {w : ℚ → ℝ≥0∞} {x ε : ℝ} (hε : 
     have hsub : ∀ q ∈ S.filter (fun q : ℚ => |x - (q : ℝ)| < ε),
         w q = (if ((q : ℚ) : ℝ) ∈ ratInterval (l, r) then w q else 0) := by
       intro q hq
-      rw [if_pos]
+      rw [ite_eq_left]
       exact Set.mem_Ioo.2 ⟨lt_of_lt_of_le hlq (hq₀min q hq), lt_of_le_of_lt (hq₁max q hq) hqr⟩
     calc ∑ q ∈ S.filter (fun q : ℚ => |x - (q : ℝ)| < ε), w q
         = ∑ q ∈ S.filter (fun q : ℚ => |x - (q : ℝ)| < ε),

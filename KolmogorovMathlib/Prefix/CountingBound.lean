@@ -142,21 +142,21 @@ theorem lengthMarginal_le_aprioriMeasure_lenMap (U : Map) (n : ℕ) :
     have hsum : (∑ x ∈ stringsOfLength n, if produces U p [] x then progWeight p else 0)
         = progWeight p := by
       rw [Finset.sum_eq_single x₀]
-      · rw [if_pos hx₀]
+      · rw [ite_eq_left hx₀]
       · intro x _ hxne
         by_cases hpx : produces U p [] x
         · exact absurd (Part.mem_unique hpx hx₀) hxne
-        · rw [if_neg hpx]
+        · rw [ite_eq_right hpx]
       · intro hnot; exact absurd hx₀mem hnot
     rw [hsum]
     have hproj : produces (lenMap U) p [] (Nat.bits n) :=
       (produces_lenMap_iff U p [] (Nat.bits n)).mpr ⟨x₀, hx₀, by rw [hx₀len]⟩
-    rw [if_pos hproj]
+    rw [ite_eq_left hproj]
   · push Not at hp
     have hzero : (∑ x ∈ stringsOfLength n, if produces U p [] x then progWeight p else 0) = 0 := by
       apply Finset.sum_eq_zero
       intro x hxmem
-      rw [if_neg (hp x hxmem)]
+      rw [ite_eq_right (hp x hxmem)]
     rw [hzero]
     exact bot_le
 

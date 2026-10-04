@@ -402,13 +402,13 @@ lemma grayChargedTailStep_frozen_coherent
   unfold grayChargedTailStep grayTailWaitingB
   dsimp only
   by_cases hd : st.done
-  · rw [if_pos hd]
+  · rw [ite_eq_left hd]
     exact hst
-  · rw [if_neg hd]
+  · rw [ite_eq_right hd]
     by_cases hempty : st.slots.isEmpty
-    · rw [if_pos hempty]
+    · rw [ite_eq_left hempty]
       exact hst
-    · rw [if_neg hempty]
+    · rw [ite_eq_right hempty]
       by_cases hgoal : grayChargedTailGoalAtB q e
           (grayTailRoundEps q L e st.frozen.length)
           (grayTailRoundDelta q L e st.frozen.length)
@@ -416,14 +416,14 @@ lemma grayChargedTailStep_frozen_coherent
           (grayTailCurrentMove q L e sigma st)
           (grayTailLocalServerMove
             (grayTailRoundDelta q L e st.frozen.length) st.slots m) = true
-      · rw [if_pos hgoal]
+      · rw [ite_eq_left hgoal]
         have hne : 1 <= st.slots.length := by
           cases hs : st.slots with
           | nil => simp [hs] at hempty
           | cons x xs => exact Nat.succ_pos _
         exact grayChargedFrozenCoherent_append hae
           st hst (hcur hne)
-      · rw [if_neg hgoal]
+      · rw [ite_eq_right hgoal]
         exact hst
 
 /-- A charged step preserves coherence of the frozen rounds, given coherence of the current move
@@ -458,24 +458,24 @@ lemma grayChargedFrozenCoherent_step
         (a := a) (A := A) hae st.core hst (hcur hphase) m
       by_cases hdone :
           (grayChargedTailStep q L a e sigma A st.core m).done
-      · rw [if_pos hdone]
+      · rw [ite_eq_left hdone]
         rw [grayChargedStartSpend_frozen]
         exact hnext
-      · rw [if_neg hdone]
+      · rw [ite_eq_right hdone]
         exact hnext
   | spend pass =>
       dsimp only
       by_cases hempty : st.core.slots.isEmpty
-      · rw [if_pos hempty]
+      · rw [ite_eq_left hempty]
         exact hst
-      · rw [if_neg hempty]
+      · rw [ite_eq_right hempty]
         by_cases hgoal : grayChargedSpendGoalAtB q L a e pass
             st.core.slots.length st.core.unavailable
             (grayChargedSpendMove q L a e pass sigma st.core)
             (grayTailLocalServerMove
               (grayChargedSpendDelta a L e pass)
               st.core.slots m) = true
-        · rw [if_pos hgoal]
+        · rw [ite_eq_left hgoal]
           have hne : 1 <= st.core.slots.length := by
             cases hs : st.core.slots with
             | nil => simp [hs] at hempty
@@ -483,7 +483,7 @@ lemma grayChargedFrozenCoherent_step
           have happ := grayChargedFrozenCoherent_append_spend
             (pass := pass) st.core hst (hcurSpend pass hphase hne) (m := m)
           by_cases hpass : pass + 1 < 8
-          · rw [if_pos hpass]
+          · rw [ite_eq_left hpass]
             by_cases hnextempty :
                 (grayChargedSlotsForPass q a e (pass + 1)
                   (st.core.frozen ++
@@ -497,13 +497,13 @@ lemma grayChargedFrozenCoherent_step
                            (grayChargedSpendDelta a L e pass)
                            st.core.slots m)
                        unavailable := st.core.unavailable }])).isEmpty
-            · rw [if_pos hnextempty]
+            · rw [ite_eq_left hnextempty]
               exact happ
-            · rw [if_neg hnextempty]
+            · rw [ite_eq_right hnextempty]
               exact happ
-          · rw [if_neg hpass]
+          · rw [ite_eq_right hpass]
             exact happ
-        · rw [if_neg hgoal]
+        · rw [ite_eq_right hgoal]
           exact hst
 
 /-- Against a legal server play, every round the charged run freezes carries a request coherent
@@ -620,26 +620,26 @@ theorem grayChargedSourceBaseCap_stateAt
           simp only [grayChargedStep]
           by_cases hdone :
               (grayChargedTailStep q L a e sigma A core (sm t)).done
-          · rw [if_pos hdone]
+          · rw [ite_eq_left hdone]
             intro i c hc
             rw [grayChargedStartSpend_frozen]
             exact hnextAll i c
-          · rw [if_neg hdone]
+          · rw [ite_eq_right hdone]
             intro i c hc
             exact hnextAll i c
       | spend pass core hspend =>
           simp only [grayChargedStep]
           by_cases hempty : core.slots.isEmpty
-          · rw [if_pos hempty]
+          · rw [ite_eq_left hempty]
             exact ih
-          · rw [if_neg hempty]
+          · rw [ite_eq_right hempty]
             by_cases hgoal : grayChargedSpendGoalAtB q L a e pass
                 core.slots.length core.unavailable
                 (grayChargedSpendMove q L a e pass sigma core)
                 (grayTailLocalServerMove
                   (grayChargedSpendDelta a L e pass)
                   core.slots (sm t)) = true
-            · rw [if_pos hgoal]
+            · rw [ite_eq_left hgoal]
               let p : GrayTailRound n (grayTailBranch q L a e) :=
                 { serverTime := core.time
                   roundIndex := core.frozen.length
@@ -670,17 +670,17 @@ theorem grayChargedSourceBaseCap_stateAt
                       rw [hspend.slots_eq] at hsCore
                       exact hsCore))
               by_cases hpass : pass + 1 < 8
-              · rw [if_pos hpass]
+              · rw [ite_eq_left hpass]
                 by_cases hnextempty :
                     (grayChargedSlotsForPass q a e (pass + 1)
                       (core.frozen ++ [p])).isEmpty
-                · rw [if_pos hnextempty]
+                · rw [ite_eq_left hnextempty]
                   exact happ
-                · rw [if_neg hnextempty]
+                · rw [ite_eq_right hnextempty]
                   exact happ
-              · rw [if_neg hpass]
+              · rw [ite_eq_right hpass]
                 exact happ
-            · rw [if_neg hgoal]
+            · rw [ite_eq_right hgoal]
               exact ih
       | done core hdone =>
           exact ih

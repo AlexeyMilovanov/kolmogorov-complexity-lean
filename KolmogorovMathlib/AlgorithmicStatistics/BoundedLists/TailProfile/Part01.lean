@@ -159,10 +159,10 @@ theorem prefix_remainder_length_le_tailAfter
       subst hz
       unfold tailAfter
       by_cases h_yx : y = x
-      · rw [if_pos h_yx]
+      · rw [ite_eq_left h_yx]
         rw [← hzs]
         simp only [List.length_append, Nat.le_add_left]
-      · rw [if_neg h_yx]
+      · rw [ite_eq_right h_yx]
         have hx_in_ys : x ∈ ys := by
           cases List.mem_cons.mp hx with
           | inl h => exact False.elim (h_yx h.symm)
@@ -318,7 +318,7 @@ theorem findIdx_add_suffixCountIncluding_eq_length
           beq_eq_false_iff_ne.mpr hy
         rw [hbeq]
         unfold suffixCountIncluding
-        rw [if_neg hy]
+        rw [ite_eq_right hy]
         change
           (ys.findIdx (· == x) + 1) + suffixCountIncluding ys x =
             ys.length + 1
@@ -838,7 +838,7 @@ theorem tailAfter_eq_zero_of_not_mem
   | cons y ys ih =>
       simp only [List.mem_cons, not_or] at hx
       unfold tailAfter
-      rw [if_neg (Ne.symm hx.1)]
+      rw [ite_eq_right (Ne.symm hx.1)]
       exact ih hx.2
 
 /-- Source-facing converse direction, stated using the number of elements

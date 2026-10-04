@@ -235,7 +235,7 @@ theorem chain_triple_projection_plainK_lower_at
         rw [Bool.and_eq_true, Bool.and_eq_true, beq_iff_eq, beq_iff_eq,
           beq_iff_eq] at hc
         exact hb (Prod.ext (Prod.ext hc.1.1 hc.1.2) hc.2)
-      rw [if_neg hne, if_neg hcond]
+      rw [ite_eq_right hne, ite_eq_right hcond]
   have htype : histogramTypeLog (fun a : Fin 8 =>
       ∑ v ∈ Finset.univ.filter (fun v => pi v = a), chainHistogram D hQ N v) =
       histogramTypeLog (fun p : (Bool × Bool) × Bool =>

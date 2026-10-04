@@ -64,7 +64,7 @@ theorem grayFootprintRec_eq (n : ℕ) : grayFootprintRec n = grayFootprint n := 
       · rfl
       · rfl
       · simp only [grayFootprintRec] at ih ⊢
-        rw [if_neg (by omega), ih]
+        rw [ite_eq_right (by omega), ih]
         exact (grayFootprint_succ (by omega)).symm
 
 /-- The pinned footprint schedule is primitive recursive. -/

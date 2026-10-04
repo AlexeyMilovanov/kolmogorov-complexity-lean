@@ -264,12 +264,12 @@ lemma grayChargedFrozenAvoidsSmallV2_step
       simp only [grayChargedStepV2, hphase]
       by_cases hdone :
           (grayChargedBlockTailStepV2 q L a e sigma A st.core m).done = true
-      · rw [if_pos hdone]
+      · rw [ite_eq_left hdone]
         by_cases hserved : grayChargedWaitServedB q a e
             (grayChargedBlockTailStepV2 q L a e sigma A st.core m) m = true
-        · rw [if_pos hserved, grayChargedStartSpendV2_frozen]
+        · rw [ite_eq_left hserved, grayChargedStartSpendV2_frozen]
           exact hnext
-        · rw [if_neg hserved]
+        · rw [ite_eq_right hserved]
           exact hnext
       · simpa [hdone] using hnext
   | spend pass =>
@@ -363,17 +363,17 @@ lemma grayChargedRunStateV2_displayedCurrent_avoidsSmall
   | advantage =>
       by_cases hd : (grayChargedRunStateV2 (n := n) (b := grayTailBranch q L a e)
           q L a e sigma A sm t).core.done = true
-      · rw [if_pos (by simp [hd])]
+      · rw [ite_eq_left (by simp [hd])]
         exact requestAvoidsSmall_familyClientMoveAt_nil _ j
       · have hd' : (grayChargedRunStateV2 (n := n) (b := grayTailBranch q L a e)
             q L a e sigma A sm t).core.done = false := by simpa using hd
         by_cases hempty : (grayChargedRunStateV2 (n := n) (b := grayTailBranch q L a e)
             q L a e sigma A sm t).core.slots.isEmpty = true
-        · rw [if_pos (by simp [hempty])]
+        · rw [ite_eq_left (by simp [hempty])]
           exact requestAvoidsSmall_familyClientMoveAt_nil _ j
         · have hempty' : (grayChargedRunStateV2 (n := n) (b := grayTailBranch q L a e)
               q L a e sigma A sm t).core.slots.isEmpty = false := by simpa using hempty
-          rw [if_neg (by simp [hd', hempty'])]
+          rw [ite_eq_right (by simp [hd', hempty'])]
           exact grayChargedRunStateV2_advantageMove_avoidsSmall ha hae hL hRung hsm hphase
             hd' hne j hj
   | spend pass =>
@@ -405,9 +405,9 @@ lemma grayChargedRunStateV2_displayedCurrent_avoidsSmall_display
   intro j hj
   by_cases hd : (grayChargedRunStateV2 (n := n) (b := grayTailBranch q L a e)
       q L a e sigma A sm t).core.done = true
-  · rw [if_pos hd] at hj
+  · rw [ite_eq_left hd] at hj
     simp at hj
-  · rw [if_neg hd] at hj
+  · rw [ite_eq_right hd] at hj
     exact grayChargedRunStateV2_displayedCurrent_avoidsSmall ha hae hL hRung hsm t j hj
 
 /-! ### The minimum-request field -/
@@ -437,16 +437,16 @@ theorem grayChargedStrategyV2_avoidsSmall
   change requestAvoidsSmall (dyadicScale (e + grayTailNewLoss q L)) _
   unfold grayChargedTailFamilyMove familyClientMoveAt
   rw [List.getD_eq_getElem?_getD, List.getElem?_ofFn]
-  rw [dif_pos hi]
+  rw [dite_eq_left hi]
   refine grayCharged_requestAvoidsSmall_graftTwoLevel ?_ ?_ ?_
   · exact grayChargedRootRequest_avoidsSmall (dyadicScale_pos _) hdelta_e hall
       (grayChargedSourceCount a e) (grayChargedThreshold q e) ⟨i, hi⟩
   · intro c hc
-    rw [dif_pos hc]
+    rw [dite_eq_left hc]
     exact grayChargedSonRequest_avoidsSmall (dyadicScale_pos _) hdelta_e hall
       (grayChargedSourceCount a e) (grayChargedThreshold q e) ⟨i, hi⟩ ⟨c, hc⟩
   · intro c hc c' hc'
-    rw [dif_pos hc, dif_pos hc']
+    rw [dite_eq_left hc, dite_eq_left hc']
     exact grayCharged_entryMove_avoidsSmall hall (⟨i, hi⟩, ⟨c, hc⟩, ⟨c', hc'⟩)
 
 end Kolmogorov

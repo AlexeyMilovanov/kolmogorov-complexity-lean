@@ -87,7 +87,7 @@ private lemma exists_stage_ncard_le_enumVList_length {k : BitString → ℕ} {c_
     have h_le : stage x hx_fin ≤ s0 := by
       have h_le' : stage_fn x ≤ s0 := Finset.le_sup hx_fin
       dsimp [stage_fn] at h_le'
-      rwa [dif_pos hx_fin] at h_le'
+      rwa [dite_eq_left hx_fin] at h_le'
     have h_pre := enumV_list_prefix c_k n (stage x hx_fin) s0 h_le
     exact h_pre.subset (hstage x hx_fin)
   have h_sub_fin : (hfin n).toFinset ⊆ (enumVList c_k n s0).toFinset := by

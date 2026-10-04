@@ -119,7 +119,7 @@ lemma compVal_le_mixVal_mul {μ : Measure CantorSeq} (hμ : IsComputableMeasure 
     (w : CantorSeq) :
     compVal hμ.approx e w ≤ (2 : ℝ≥0∞) ^ (e + 2) * expUniversalMixture hμ w := by
   have hle : dyadicValue 1 (e + 2) * compVal hμ.approx e w ≤ expUniversalMixture hμ w :=
-    ENNReal.le_tsum e
+    ENNReal.le_tsum (f := fun e => dyadicValue 1 (e + 2) * compVal hμ.approx e w) e
   calc compVal hμ.approx e w
       = (2 : ℝ≥0∞) ^ (e + 2) * (dyadicValue 1 (e + 2) * compVal hμ.approx e w) := by
         rw [← mul_assoc, dyadicValue_eq_mul_inv_pow]

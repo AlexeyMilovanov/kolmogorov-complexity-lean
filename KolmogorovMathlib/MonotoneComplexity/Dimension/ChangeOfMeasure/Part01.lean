@@ -170,7 +170,7 @@ lemma deficiency_of_ne_zero {P : Measure CantorSeq} {x : BitString}
     (h : cantorMass P x ≠ 0) :
     deficiency P x = ((-Real.logb 2 (cantorMass P x).toReal - KA x : ℝ) : EReal) := by
   unfold deficiency
-  exact if_neg h
+  exact ite_eq_right h
 
 /-- **SUV §5.9.2, p. 184** (the infinite case of Theorem 124): "if `P(Ω_x) = 0`,
 then `P(Ω_y) = 0` for any `y` that has prefix `x`, and the deficiency of `y` is

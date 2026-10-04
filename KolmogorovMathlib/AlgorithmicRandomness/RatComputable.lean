@@ -57,8 +57,8 @@ lemma int_ofNat_eq (n : ℕ) :
     (ofNat ℤ n) = if n % 2 = 0 then ((n / 2 : ℕ) : ℤ) else -(((n / 2 : ℕ) : ℤ) + 1) := by
   have h : encode (if n % 2 = 0 then ((n / 2 : ℕ) : ℤ) else -(((n / 2 : ℕ) : ℤ) + 1)) = n := by
     by_cases h : n % 2 = 0
-    · rw [if_pos h, int_encode_natCast]; omega
-    · rw [if_neg h]
+    · rw [ite_eq_left h, int_encode_natCast]; omega
+    · rw [ite_eq_right h]
       have hneg : (-(((n / 2 : ℕ) : ℤ) + 1)) = Int.negSucc (n / 2) := by
         simp [Int.negSucc_eq]
       rw [hneg, int_encode_negSucc]; omega
@@ -88,14 +88,15 @@ lemma int_encode_neg (m : ℤ) :
       if (encode m : ℕ) % 2 = 0 then (encode m : ℕ) - 1 else (encode m : ℕ) + 1 := by
   rw [int_encode_eq m, int_encode_eq (-m)]
   by_cases h : (0 : ℤ) ≤ m
-  · simp only [if_pos h]
+  · simp only [ite_eq_left h]
     by_cases h0 : m = 0
     · subst h0; simp
-    · rw [if_neg (by omega : ¬ ((0 : ℤ) ≤ -m)), if_pos (by omega : (2 * m.toNat) % 2 = 0)]
+    · rw [ite_eq_right (by omega : ¬ ((0 : ℤ) ≤ -m)),
+        ite_eq_left (by omega : (2 * m.toNat) % 2 = 0)]
       omega
-  · rw [if_neg h, if_pos (by omega : (0 : ℤ) ≤ -m),
-      if_neg (by have : 1 ≤ m.natAbs := by omega
-                 omega : ¬ ((2 * m.natAbs - 1) % 2 = 0))]
+  · rw [ite_eq_right h, ite_eq_left (by omega : (0 : ℤ) ≤ -m),
+      ite_eq_right (by have : 1 ≤ m.natAbs := by omega
+                       omega : ¬ ((2 * m.natAbs - 1) % 2 = 0))]
     omega
 
 /-- The code of a difference of two natural numbers, in closed form. -/
@@ -103,8 +104,8 @@ lemma int_encode_subNat (a b : ℕ) :
     (encode ((a : ℤ) - (b : ℤ)) : ℕ) = if b ≤ a then 2 * (a - b) else 2 * (b - a) - 1 := by
   rw [int_encode_eq]
   by_cases h : b ≤ a
-  · rw [if_pos (by omega : (0 : ℤ) ≤ (a : ℤ) - b), if_pos h]; omega
-  · rw [if_neg (by omega : ¬ ((0 : ℤ) ≤ (a : ℤ) - b)), if_neg h]; omega
+  · rw [ite_eq_left (by omega : (0 : ℤ) ≤ (a : ℤ) - b), ite_eq_left h]; omega
+  · rw [ite_eq_right (by omega : ¬ ((0 : ℤ) ≤ (a : ℤ) - b)), ite_eq_right h]; omega
 
 /-! ### Primitive recursiveness of integer arithmetic -/
 
@@ -199,7 +200,7 @@ lemma isRatCode_ratCode (q : ℚ) : IsRatCode (ratCode q) := by
 
 /-- Decoding the code of a rational returns that rational. -/
 lemma ratOfCode_ratCode (q : ℚ) : ratOfCode (ratCode q) = q := by
-  rw [ratOfCode, if_pos (isRatCode_ratCode q), ratCode, Nat.unpair_pair,
+  rw [ratOfCode, ite_eq_left (isRatCode_ratCode q), ratCode, Nat.unpair_pair,
     Denumerable.ofNat_encode]
   exact Rat.mkRat_num_den' q
 
@@ -211,7 +212,7 @@ lemma ratCode_ratOfCode {m : ℕ} (h : IsRatCode m) : ratCode (ratOfCode m) = m 
   have hmk : mkRat (ofNat ℤ (Nat.unpair m).1) (Nat.unpair m).2 =
       ⟨ofNat ℤ (Nat.unpair m).1, (Nat.unpair m).2, by omega, hcop'⟩ :=
     (Rat.mk_eq_mkRat _ _ (by omega) hcop').symm
-  rw [ratOfCode, if_pos ⟨hpos, hcop⟩, ratCode, hmk]
+  rw [ratOfCode, ite_eq_left ⟨hpos, hcop⟩, ratCode, hmk]
   change Nat.pair (encode (ofNat ℤ (Nat.unpair m).1)) (Nat.unpair m).2 = m
   rw [Denumerable.encode_ofNat, Nat.pair_unpair]
 
@@ -324,10 +325,10 @@ counting function. -/
 lemma ratOfCode_eq_ofNat (m : ℕ) :
     ratOfCode m = ofNat ℚ (ratCount (if IsRatCode m then m else 1)) := by
   by_cases h : IsRatCode m
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     conv_lhs => rw [← ofNat_ratCount_ratCode (ratOfCode m)]
     rw [ratCode_ratOfCode h]
-  · rw [if_neg h, ratOfCode, if_neg h, ← ratCode_zero, ofNat_ratCount_ratCode]
+  · rw [ite_eq_right h, ratOfCode, ite_eq_right h, ← ratCode_zero, ofNat_ratCount_ratCode]
 
 /-- Decoding a natural number as a rational is computable. -/
 lemma computable_ratOfCode : Computable ratOfCode := by
@@ -363,7 +364,7 @@ lemma ratSearch_isSome_iff (q : ℚ) (m : ℕ) :
     · by_cases h2 : ratCount m = @encode ℚ (@Primcodable.toEncodable ℚ _) q
       · have h3 : ratCount m = ratCount (ratCode q) := by rw [h2, encode_eq_ratCount]
         have h4 : ratOfCode m = q := by
-          rw [ratOfCode_eq_ofNat, if_pos h1, h3, ofNat_ratCount_ratCode]
+          rw [ratOfCode_eq_ofNat, ite_eq_left h1, h3, ofNat_ratCount_ratCode]
         rw [← h4, ratCode_ratOfCode h1]
       · rw [ratSearch] at h; simp [h1, h2] at h
     · rw [ratSearch] at h; simp [h1] at h

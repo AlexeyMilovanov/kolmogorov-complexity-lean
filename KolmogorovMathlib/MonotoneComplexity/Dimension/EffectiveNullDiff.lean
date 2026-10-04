@@ -398,7 +398,7 @@ lemma diffCover_eq_iUnion (a : BitString → ℕ → ℕ) (h : ℕ → Option Bi
     obtain ⟨k, hk⟩ := List.mem_iff_getElem?.1 hy
     refine Set.mem_iUnion.2 ⟨Nat.pair L (Nat.pair t k), ?_⟩
     rw [coverSet, diffCoverEnum]
-    simp only [Nat.unpair_pair, hc, cond_true, hk]
+    simp only [Nat.unpair_pair, hc, Bool.cond_true, hk]
     exact hxy
   · intro hx
     obtain ⟨i, hi⟩ := Set.mem_iUnion.1 hx
@@ -413,7 +413,7 @@ lemma diffCover_eq_iUnion (a : BitString → ℕ → ℕ) (h : ℕ → Option Bi
         | false => rw [hc] at he; simp at he
         | true =>
             rw [hc] at he
-            simp only [cond_true] at he
+            simp only [Bool.cond_true] at he
             have hy : y ∈ diffLevelList h v (Nat.unpair i).1 := List.mem_of_getElem? he
             refine Set.mem_iUnion.2 ⟨(Nat.unpair i).1,
               Set.mem_iUnion.2 ⟨(Nat.unpair (Nat.unpair i).2).1, Set.mem_iUnion.2 ⟨hc, ?_⟩⟩⟩

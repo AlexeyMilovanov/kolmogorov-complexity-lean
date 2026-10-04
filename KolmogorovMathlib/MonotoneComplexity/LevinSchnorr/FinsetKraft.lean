@@ -242,7 +242,7 @@ lemma mem_compatList {Fi : Finset ℕ} {x Z : BitString} :
     | false => rw [hcase] at hmem; simp at hmem
     | true =>
       rw [hcase] at hmem
-      simp only [cond_true, List.mem_singleton] at hmem
+      simp only [Bool.cond_true, List.mem_singleton] at hmem
       subst hmem
       exact ⟨mem_levelList.1 hZ', hcase⟩
   · rintro ⟨hlen, hag⟩
@@ -632,7 +632,7 @@ theorem isLSC_kraftWeight {μ : Measure CantorSeq} (hμ : IsComputableMeasure μ
     | some p =>
       simp only [Option.map_some, Option.getD_some, kraftApproxAt]
       by_cases hm : pairCode (finsetCode p.1) p.2 = y
-      · simp only [if_pos hm]
+      · simp only [ite_eq_left hm]
         exact hA₀mono s p.1 p.2
       · simp [hm, dyadicValue]
   · intro n y
@@ -643,7 +643,7 @@ theorem isLSC_kraftWeight {μ : Measure CantorSeq} (hμ : IsComputableMeasure μ
     | some p =>
       simp only [Option.map_some, Option.getD_some, Option.elim_some, kraftApproxAt]
       by_cases hm : pairCode (finsetCode p.1) p.2 = y
-      · simp only [if_pos hm]
+      · simp only [ite_eq_left hm]
         exact hA₀sup p.1 p.2
       · simp [hm, dyadicValue]
   · have hKP : Computable fun q : ℕ × ℕ × BitString =>

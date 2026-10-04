@@ -3,6 +3,12 @@ import KolmogorovMathlib.MonotoneComplexity.GacsDayChargedCoherence
 import KolmogorovMathlib.MonotoneComplexity.GacsDayV2RequestWindow
 import KolmogorovMathlib.MonotoneComplexity.GacsDayV2Coherence.Part01
 
+/-!
+# Gacs-Day coherence: the graft
+
+Coherence of the two-level graft from the coherence of its entries.
+-/
+
 namespace Kolmogorov
 
 /-! ### The graft -/
@@ -30,14 +36,14 @@ lemma grayChargedTailFamilyMove_coherentCap {n b : ℕ} {source : ℕ}
       0 ≤ grayChargedSonRequest source threshold eps entries ⟨i, hi⟩ c := by
     unfold grayChargedSonRequest
     by_cases hc : c.val < source
-    · rw [if_pos hc]
+    · rw [ite_eq_left hc]
       unfold grayTailSonRequest
       by_cases hlarge : threshold < grayTailSonBase entries ⟨i, hi⟩ c
-      · rw [if_pos hlarge]
+      · rw [ite_eq_left hlarge]
         exact heps
-      · rw [if_neg hlarge]
+      · rw [ite_eq_right hlarge]
         exact grayTailSonBase_nonneg_global (fun pr hpr => hnonneg pr hpr [])
-    · rw [if_neg hc]
+    · rw [ite_eq_right hc]
       exact grayTailSonBase_nonneg_global (fun pr hpr => hnonneg pr hpr [])
   have hbase_le_son (c : Fin b) :
       grayTailSonBase entries ⟨i, hi⟩ c ≤
@@ -46,40 +52,40 @@ lemma grayChargedTailFamilyMove_coherentCap {n b : ℕ} {source : ℕ}
     · rw [grayChargedSonRequest_source _ _ hc]
       unfold grayTailSonRequest
       by_cases hlarge : threshold < grayTailSonBase entries ⟨i, hi⟩ c
-      · rw [if_pos hlarge]
+      · rw [ite_eq_left hlarge]
         exact hsourceCap c hc
-      · rw [if_neg hlarge]
+      · rw [ite_eq_right hlarge]
     · rw [grayChargedSonRequest_spare _ _ (Nat.le_of_not_gt hc)]
   unfold grayChargedTailFamilyMove familyClientMoveAt
   rw [List.getD_eq_getElem?_getD, List.getElem?_ofFn]
-  rw [dif_pos hi]
+  rw [dite_eq_left hi]
   refine requestCoherentCap_graftTwoLevel ?_ ?_ ?_ ?_ ?_ ?_ ?_
   · unfold grayChargedRootRequest
     exact Finset.sum_nonneg fun c _ => hson_nonneg c
   · exact hrootcap
   · intro c hc
-    rw [dif_pos hc]
+    rw [dite_eq_left hc]
     exact hson_nonneg ⟨c, hc⟩
   · have hsum_eq :
         (∑ c : Fin b, if hc : c.val < b then
           grayChargedSonRequest source threshold eps entries ⟨i, hi⟩ ⟨c.val, hc⟩ else 0) =
         ∑ c : Fin b, grayChargedSonRequest source threshold eps entries ⟨i, hi⟩ c := by
       refine Finset.sum_congr rfl fun c _ => ?_
-      rw [dif_pos c.isLt]
+      rw [dite_eq_left c.isLt]
     rw [hsum_eq]
     exact le_rfl
   · intro c hc
-    rw [dif_pos hc]
+    rw [dite_eq_left hc]
     have hsum := (sum_grayChargedEntryMove_root_le_sonBase entries hnonneg ⟨i, hi⟩
       ⟨c, hc⟩).trans (hbase_le_son ⟨c, hc⟩)
     refine le_trans (le_of_eq ?_) hsum
     refine Finset.sum_congr rfl fun c' _ => ?_
-    rw [dif_pos hc, dif_pos c'.isLt]
+    rw [dite_eq_left hc, dite_eq_left c'.isLt]
   · intro c hc c' hc' x
-    rw [dif_pos hc, dif_pos hc']
+    rw [dite_eq_left hc, dite_eq_left hc']
     exact grayChargedEntryMove_nonneg entries hnonneg (⟨i, hi⟩, ⟨c, hc⟩, ⟨c', hc'⟩) x
   · intro c hc c' hc' x
-    rw [dif_pos hc, dif_pos hc']
+    rw [dite_eq_left hc, dite_eq_left hc']
     exact grayChargedEntryMove_child_le entries hchild (⟨i, hi⟩, ⟨c, hc⟩, ⟨c', hc'⟩) x
 
 /-! ### The coherence field -/

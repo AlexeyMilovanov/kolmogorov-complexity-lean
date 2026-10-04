@@ -82,8 +82,8 @@ theorem eq_prependCantor_cantorPrefix (y : CantorSeq) (l : ℕ) :
   funext n
   simp only [prependCantor, cantorPrefix_length, cantorPrefix_getElem]
   rcases lt_or_ge n l with h | h
-  · rw [dif_pos h]
-  · rw [dif_neg (not_lt.mpr h)]
+  · rw [dite_eq_left h]
+  · rw [dite_eq_right (not_lt.mpr h)]
     congr 1
     omega
 

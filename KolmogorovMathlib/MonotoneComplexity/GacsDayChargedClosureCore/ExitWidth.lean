@@ -40,7 +40,7 @@ lemma grayChargedTailStep_width_or_roundCount_of_done {n b : Nat}
         (grayTailCurrentMove q L e sigma st)
         (grayTailLocalServerMove
           (grayTailRoundDelta q L e st.frozen.length) st.slots m) = true
-    · rw [if_neg (by simp [hactive, hslots]), if_pos hgoal] at hdone ⊢
+    · rw [ite_eq_right (by simp [hactive, hslots]), ite_eq_left hgoal] at hdone ⊢
       dsimp only at hdone ⊢
       rcases Bool.or_eq_true _ _ |>.mp hdone with h | h
       · exact Or.inl ((grayTailGlobalQuarterB_eq_true_iff _ _).mp h)

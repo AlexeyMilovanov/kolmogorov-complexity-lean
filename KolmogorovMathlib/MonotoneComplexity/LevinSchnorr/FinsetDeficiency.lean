@@ -116,7 +116,8 @@ theorem measure_prefixHitSet_le_of_finsetBad {μ : Measure CantorSeq} {U : Map}
     _ ≤ (2 : ℝ≥0∞)⁻¹ ^ c * ∑' p : Finset ℕ × BitString,
           complexityWeight (KPPair U (finsetCode p.1) p.2) := by
         gcongr
-        exact ENNReal.tsum_comp_le_tsum_of_injective Subtype.val_injective _
+        exact ENNReal.tsum_comp_le_tsum_of_injective Subtype.val_injective
+          (fun p : Finset ℕ × BitString => complexityWeight (KPPair U (finsetCode p.1) p.2))
     _ ≤ (2 : ℝ≥0∞)⁻¹ ^ c * 1 := by
         gcongr
         exact tsum_complexityWeight_KPPair_finsetCode_le_one hU
@@ -349,9 +350,9 @@ lemma finsetEventMass_le_dyadicValue_sliceApprox {μ : Measure CantorSeq}
   rw [finsetEventMass_eq_listSum μ hF Z, sliceApprox, dyadicValue_listMapSum]
   refine List.sum_le_sum fun x _ => ?_
   by_cases h : restrictStr F x = Z
-  · rw [if_pos h, sliceTerm, if_pos h, dyadicValue_add]
+  · rw [ite_eq_left h, sliceTerm, ite_eq_left h, dyadicValue_add]
     exact (ha x t).2
-  · rw [if_neg h, sliceTerm, if_neg h]
+  · rw [ite_eq_right h, sliceTerm, ite_eq_right h]
     exact bot_le
 
 /-- SUV p. 149: `sliceApprox` over-approximates `p_{F,Z}` by at most `2 · 2^N · 2^(-t)`. -/
@@ -366,13 +367,13 @@ lemma dyadicValue_sliceApprox_le {μ : Measure CantorSeq} {a : BitString → ℕ
         ≤ (if restrictStr F x = Z then cantorMass μ x else 0) + 2 * dyadicValue 1 t := by
     intro x _
     by_cases h : restrictStr F x = Z
-    · rw [if_pos h, sliceTerm, if_pos h, dyadicValue_add]
+    · rw [ite_eq_left h, sliceTerm, ite_eq_left h, dyadicValue_add]
       calc dyadicValue (a x t) t + dyadicValue 1 t
           ≤ (cantorMass μ x + dyadicValue 1 t) + dyadicValue 1 t := by
             gcongr
             exact (ha x t).1
         _ = cantorMass μ x + 2 * dyadicValue 1 t := by rw [add_assoc, two_mul]
-    · rw [if_neg h, sliceTerm, if_neg h]
+    · rw [ite_eq_right h, sliceTerm, ite_eq_right h]
       simp [dyadicValue]
   rw [finsetEventMass_eq_listSum μ hF Z, sliceApprox, dyadicValue_listMapSum]
   calc ((levelList N).map fun x => dyadicValue (sliceTerm a F Z t x) t).sum

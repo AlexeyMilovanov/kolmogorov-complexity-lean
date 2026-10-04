@@ -1,7 +1,12 @@
 import KolmogorovMathlib.AlgorithmicStatistics.BoundedLists.EnumerationTail.Part02
 import KolmogorovMathlib.AlgorithmicStatistics.BoundedLists.EnumerationTail
 
+/-!
+# Omega prefixes, part 1
 
+Little-endian bit readers (`bitsToNat`) and low-order truncation, used to read
+prefixes of Chaitin-style halting probabilities.
+-/
 
 namespace Kolmogorov
 

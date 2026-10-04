@@ -179,7 +179,7 @@ theorem sum_capTerm_le {a : ℕ → ℕ → ℚ} (h0 : ∀ i j, 0 ≤ a i j)
   | succ J ih =>
     rw [Finset.sum_range_succ]
     by_cases hc : (2 : ℚ) ^ (2 * n + 1) * groupPartial a i J < lscRatApprox A s i
-    · have hterm : capTerm a A s n i J = (2 : ℚ) ^ n * a i J := by rw [capTerm, if_pos hc]
+    · have hterm : capTerm a A s n i J = (2 : ℚ) ^ n * a i J := by rw [capTerm, ite_eq_left hc]
       have hdrop : ∑ j ∈ Finset.range J, capTerm a A s n i j
           ≤ ∑ j ∈ Finset.range J, (2 : ℚ) ^ n * a i j := by
         refine Finset.sum_le_sum fun j _ => ?_
@@ -202,7 +202,7 @@ theorem sum_capTerm_le {a : ℕ → ℕ → ℚ} (h0 : ∀ i j, 0 ≤ a i j)
           _ ≤ lscRatApprox A s i := le_of_lt hc
       rw [hterm]
       linarith [hdrop, hgp, hkey]
-    · have hterm : capTerm a A s n i J = 0 := by rw [capTerm, if_neg hc]
+    · have hterm : capTerm a A s n i J = 0 := by rw [capTerm, ite_eq_right hc]
       rw [hterm, add_zero]
       exact ih
 
@@ -214,8 +214,8 @@ theorem capTerm_mono {a : ℕ → ℕ → ℚ} (h0 : ∀ i j, 0 ≤ a i j)
     (hmono : ∀ s i, lscRatApprox A s i ≤ lscRatApprox A (s + 1) i) (s n i j : ℕ) :
     capTerm a A s n i j ≤ capTerm a A (s + 1) n i j := by
   by_cases hc : (2 : ℚ) ^ (2 * n + 1) * groupPartial a i j < lscRatApprox A s i
-  · rw [capTerm, if_pos hc, capTerm, if_pos (lt_of_lt_of_le hc (hmono s i))]
-  · rw [capTerm, if_neg hc]
+  · rw [capTerm, ite_eq_left hc, capTerm, ite_eq_left (lt_of_lt_of_le hc (hmono s i))]
+  · rw [capTerm, ite_eq_right hc]
     exact capTerm_nonneg h0 A (s + 1) n i j
 
 /-- The capped approximation is non-decreasing in the stage. -/
@@ -481,7 +481,7 @@ private theorem cappedScaling_dominate {m : ℕ → ℝ≥0∞} {a : ℕ → ℕ
   have hcond : (2 : ℚ) ^ (2 * n + 1) * groupPartial a i j < lscRatApprox A s i :=
     lt_of_lt_of_le hs₀' (hmonoS s₀ s (le_max_left _ _))
   have hns : n < s := lt_of_lt_of_le (Nat.lt_succ_self n) (le_max_right _ _)
-  have hterm : capTerm a A s n i j = (2 : ℚ) ^ n * a i j := by rw [capTerm, if_pos hcond]
+  have hterm : capTerm a A s n i j = (2 : ℚ) ^ n * a i j := by rw [capTerm, ite_eq_left hcond]
   have hle : (2 : ℚ) ^ n * a i j ≤ capApprox a A s (Nat.pair i j) := by
     rw [capApprox_eq_sum]
     simp only [Nat.unpair_pair]

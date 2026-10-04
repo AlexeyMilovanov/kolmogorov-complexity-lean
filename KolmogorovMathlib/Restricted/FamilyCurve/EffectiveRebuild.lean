@@ -92,14 +92,14 @@ lemma restrictedEffectiveRebuildStep_spec (𝒜 : DescriptionFamily)
     refine ⟨Bcode, B, ?_, hBcode, hBmem, hBcard, ?_⟩
     · unfold restrictedEffectiveRebuildStep
       simp only [restrictedSelectorField_input_zero,
-        restrictedSelectorField_input_two, hAcard_code, if_pos hcA]
+        restrictedSelectorField_input_two, hAcard_code, ite_eq_left hcA]
       exact hselect
     · exact hdensity.trans (Nat.mul_le_mul_right (B ∩ C).card
         (Nat.mul_le_mul_left (𝒜.overhead n) hAcard))
   · refine ⟨Acode, A, ?_, hAcode, hA, Nat.le_of_lt (Nat.lt_of_not_ge hcA), ?_⟩
     · unfold restrictedEffectiveRebuildStep
       simp only [restrictedSelectorField_input_zero,
-        restrictedSelectorField_input_two, hAcard_code, if_neg hcA]
+        restrictedSelectorField_input_two, hAcard_code, ite_eq_right hcA]
     · rw [Finset.inter_eq_right.mpr hC]
       have hover : 1 ≤ 𝒜.overhead n := 𝒜.overhead_pos n
       calc

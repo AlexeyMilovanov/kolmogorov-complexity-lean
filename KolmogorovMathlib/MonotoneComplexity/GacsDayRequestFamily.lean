@@ -39,7 +39,7 @@ lemma primrec_gacsDayNodeOfBitString : Primrec gacsDayNodeOfBitString := by
   induction x with
   | nil => rfl
   | cons b x ih =>
-      simp only [id_eq] at ih
+      simp only [id_eq, Bool.cond_eq_ite] at ih
       cases b <;> simp [gacsDayNodeOfBitString, ih]
 
 /-- The `t`-th client move only depends on the first `t` moves of both players. -/

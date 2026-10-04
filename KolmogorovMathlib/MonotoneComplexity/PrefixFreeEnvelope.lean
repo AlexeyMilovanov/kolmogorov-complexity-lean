@@ -179,9 +179,9 @@ theorem exists_lsc_continuousTreeSemimeasure_dominating_prefixFree
     monotone_nat_of_le_succ (fun k => hmono k x [])
   have hraw_le : approx s x [] ≤ simpleApprox approx s x := by
     unfold simpleApprox
-    rw [if_neg (not_lt.mpr (Nat.le_max_right t x.length))]
+    rw [ite_eq_right (not_lt.mpr (Nat.le_max_right t x.length))]
     by_cases hx : x = []
-    · rw [if_pos hx]
+    · rw [ite_eq_left hx]
       subst x
       apply le_two_pow_of_dyadicValue_le_one
       calc
@@ -192,7 +192,7 @@ theorem exists_lsc_continuousTreeSemimeasure_dominating_prefixFree
           have hsingleton : IsPrefixFree (({[]} : Finset BitString) : Set BitString) := by
             simpa only [Finset.coe_singleton] using isPrefixFree_singleton []
           simpa using hfree {[]} hsingleton
-    · rw [if_neg hx]
+    · rw [ite_eq_right hx]
       exact simpleApproxClosure_ge_raw approx s (s - x.length) x
   calc
     dyadicValue (approx t x []) t ≤ dyadicValue (approx s x []) s :=

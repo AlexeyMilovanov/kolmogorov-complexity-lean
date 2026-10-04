@@ -157,12 +157,12 @@ private theorem finiteSetSndFiber_list_toFinset
   constructor
   · rintro ⟨z, hz, hfz⟩
     by_cases hzx : decodeFirst z = x
-    · rw [if_pos hzx] at hfz
+    · rw [ite_eq_left hzx] at hfz
       exact ⟨z, ⟨hz, hzx⟩, by simpa using hfz⟩
-    · rw [if_neg hzx] at hfz
+    · rw [ite_eq_right hzx] at hfz
       exact absurd hfz (by simp)
   · rintro ⟨z, ⟨hz, hzx⟩, hv⟩
-    exact ⟨z, hz, by rw [if_pos hzx, hv]⟩
+    exact ⟨z, hz, by rw [ite_eq_left hzx, hv]⟩
 
 /-- Applied to the code of the uniform distribution on `B`, the fibre encoder returns the code of
 the uniform distribution on the fibre of `B` over `x`. -/

@@ -7,7 +7,7 @@ import KolmogorovMathlib.AlgorithmicProbability.KraftChaitinAllocator
 import KolmogorovMathlib.Prefix.Optimal
 import Mathlib.Algebra.Field.GeomSum
 import Mathlib.Analysis.SpecificLimits.Basic
-import Mathlib.Data.ENNReal.Basic
+import Mathlib.Basic.ENNReal.Basic
 import Mathlib.Tactic.IntervalCases
 import Mathlib.Tactic.Linarith
 

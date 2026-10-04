@@ -46,9 +46,9 @@ private theorem countP_range_ge (h : ℕ) : ∀ T : ℕ,
   | succ T ih =>
     rw [List.range_succ, List.countP_append, ih, List.countP_cons, List.countP_nil]
     by_cases hT : h ≤ T
-    · rw [if_pos (by simpa using hT)]
+    · rw [ite_eq_left (by simpa using hT)]
       omega
-    · rw [if_neg (by simpa using hT)]
+    · rw [ite_eq_right (by simpa using hT)]
       omega
 
 private theorem haltTimeLe_eq (c : Code) (T : ℕ) (p : BitString)
@@ -100,9 +100,9 @@ private theorem argAuxNat_mem {f : BitString → ℕ} {a : Option BitString} {b 
   | some cc =>
     simp only [argAuxNat] at hx
     by_cases hlt : f cc < f b
-    · rw [if_pos hlt] at hx
+    · rw [ite_eq_left hlt] at hx
       exact Or.inl (Option.some.inj hx).symm
-    · rw [if_neg hlt] at hx
+    · rw [ite_eq_right hlt] at hx
       exact Or.inr hx
 
 private theorem foldl_argAuxNat_congr {f g : BitString → ℕ} :
@@ -232,7 +232,7 @@ private theorem before_append {g : BitString} {l1 l2 : List BitString}
     have ht : g ∉ t := fun hh => h (List.mem_cons_of_mem _ hh)
     simp only [List.cons_append, beforeFirstOccurrence, List.foldr_cons] at *
     rw [show (decide (a = g)) = false from decide_eq_false ha]
-    simp only [cond_false]
+    simp only [Bool.cond_false]
     rw [ih ht]
 
 /-- First element of `l` that is not in `stage` (or `[]`). -/
@@ -251,7 +251,7 @@ private theorem firstNotIn_eq {l1 l2 stage : List BitString} {a : BitString}
       fun x hx => h1 x (List.mem_cons_of_mem _ hx)
     simp only [List.cons_append, firstNotIn, List.foldr_cons] at *
     rw [hb]
-    simp only [cond_true]
+    simp only [Bool.cond_true]
     exact ih ht
 
 private theorem memBool_primrec {α : Type} [Primcodable α]
@@ -578,10 +578,10 @@ theorem firstIncompressible_reduces_haltingList (U : Map) (hU : isOptimalConditi
     rw [hrf2, Part.map_some]
     by_cases hnk : n < K
     · rw [decide_eq_true hnk]
-      simp only [cond_true]
+      simp only [Bool.cond_true]
       rw [show n - K = 0 by omega]
     · rw [decide_eq_false hnk]
-      simp only [cond_false]
+      simp only [Bool.cond_false]
       simp only [not_lt] at hnk
       rw [filter_haltsWithin_eq_haltingProgramsBounded c (n - K) T0 (hK n hnk T0 hT0)]
       rfl

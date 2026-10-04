@@ -74,7 +74,7 @@ theorem t1RunStep_cPrime_charge_le
           t1CodeToSet]
       · simp [hx]
     rw [t1RunStep_cPrime_eq]
-    simp only [hw, if_true]
+    simp only [hw, ite_true]
     split <;>
       change s.totalC +
           (s.current.filter fun x =>
@@ -117,7 +117,7 @@ theorem t1RunStep_saturation_spends_quota
   | cPrimeModel w =>
       by_cases hw : w ∈ s.seenCDouble
       · rw [t1RunStep_cPrime_eq]
-        simp only [hw, if_true]
+        simp only [hw, ite_true]
         split
         · rename_i hsat
           intro _
@@ -127,7 +127,7 @@ theorem t1RunStep_saturation_spends_quota
               using hcurrent
           have h := (t1RunSaturated_iff
             (t1RunCPrimePrepared n s w) quota hprepared).mp hsat
-          simp only [t1RunChargePrepared, hw, if_true, t1RunPendingCharge]
+          simp only [t1RunChargePrepared, hw, ite_true, t1RunPendingCharge]
           exact h
         · change s.saturation < s.saturation → _
           simp
@@ -296,7 +296,7 @@ theorem t1RunStep_preserves_quota_charge
               prepared.totalC :=
           Nat.add_sub_of_le htotal
         rw [t1RunStep_cPrime_eq]
-        simp only [hw, if_true]
+        simp only [hw, ite_true]
         split
         · rename_i hsat
           have hspend :
@@ -320,7 +320,7 @@ theorem t1RunStep_preserves_quota_charge
           dsimp [prepared] at hpending htotal htotalEq ⊢
           omega
       · rw [t1RunStep_cPrime_eq]
-        simp only [hw, if_false]
+        simp only [hw, ite_false]
         simpa [T1RunQuotaChargeInvariant, t1RunPendingCharge,
           t1RunCPrimeSeenPrepared] using hcharge
   | dString x =>
@@ -390,7 +390,7 @@ theorem t1RunStep_current_nodup
   | cPrimeModel w =>
       rw [t1RunStep_cPrime_eq]
       by_cases hw : w ∈ s.seenCDouble
-      · simp only [hw, if_true]
+      · simp only [hw, ite_true]
         split
         · exact (t1RunRebuild_current_spec cSparse n k epsilon
             (t1RunCPrimePrepared n s w)).1
@@ -620,7 +620,7 @@ theorem t1RunStep_external_eq
   | cPrimeModel w =>
       rw [t1RunStep_cPrime_eq]
       by_cases hw : w ∈ s.seenCDouble
-      · simp only [hw, if_true]
+      · simp only [hw, ite_true]
         split
         · simpa [t1RunExternalEvent, t1RunCPrimePrepared,
             t1RunCPrimeSeenPrepared] using
@@ -657,7 +657,7 @@ theorem t1RunStep_totalD_le
   | cPrimeModel w =>
       rw [t1RunStep_cPrime_eq]
       by_cases hw : w ∈ s.seenCDouble
-      · simp only [hw, if_true]
+      · simp only [hw, ite_true]
         split
         · simpa [t1RunDEvent, t1RunCPrimePrepared,
             t1RunCPrimeSeenPrepared] using
@@ -743,7 +743,7 @@ theorem t1RunStep_totalC_le
               (.cPrimeModel w)).totalC := by
         rw [t1RunStep_cPrime_eq]
         by_cases hw : w ∈ s.seenCDouble
-        · simp only [hw, if_true]
+        · simp only [hw, ite_true]
           split
           · have hprepared :
                 s.totalC ≤

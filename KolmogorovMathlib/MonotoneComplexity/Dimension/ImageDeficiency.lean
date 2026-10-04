@@ -179,7 +179,7 @@ intersected with the deficiency set. -/
 lemma imgMeasure_of_ne_nil {μ ν : Measure CantorSeq} {f : BitStream → BitStream} {k : ℕ}
     {y : BitString} (hy : y ≠ []) :
     imgMeasure μ ν f k y = (2 : ℝ≥0∞) ^ k * μ (cantorCylinder y ∩ imgDeficiencySet ν f k) :=
-  if_neg hy
+  ite_eq_right hy
 
 /-- The level-`k` image measure is a continuous tree semimeasure. -/
 lemma isContinuousTreeSemimeasure_imgMeasure {μ ν : Measure CantorSeq} [IsProbabilityMeasure μ]
@@ -193,7 +193,7 @@ lemma isContinuousTreeSemimeasure_imgMeasure {μ ν : Measure CantorSeq} [IsProb
     ← measure_inter_split μ x (measurableSet_imgDeficiencySet hf k)]
   by_cases hx : x = []
   · subst hx
-    rw [imgMeasure, if_pos rfl, cantorCylinder_nil, Set.univ_inter]
+    rw [imgMeasure, ite_eq_left rfl, cantorCylinder_nil, Set.univ_inter]
     calc (2 : ℝ≥0∞) ^ k * μ (imgDeficiencySet ν f k)
         ≤ (2 : ℝ≥0∞) ^ k * ((2 : ℝ≥0∞)⁻¹) ^ k := by
           gcongr
@@ -220,14 +220,14 @@ lemma exists_uniform_approx_imgMeasure {μ ν : Measure CantorSeq} [IsProbabilit
   · intro k s y ctx
     by_cases hy : y = []
     · simp [hy, dyadicValue_two_pow_self]
-    · simp only [if_neg hy, dyadicValue_nat_mul]
+    · simp only [ite_eq_right hy, dyadicValue_nat_mul]
       have hcast : ((2 ^ k : ℕ) : ℝ≥0∞) = (2 : ℝ≥0∞) ^ k := by push_cast; ring
       rw [hcast]
       exact mul_le_mul_right (hmono s (defParam k y) ctx) _
   · intro k y ctx
     by_cases hy : y = []
     · simp [hy, dyadicValue_two_pow_self, imgMeasure]
-    · simp only [if_neg hy, dyadicValue_nat_mul, imgMeasure_of_ne_nil hy]
+    · simp only [ite_eq_right hy, dyadicValue_nat_mul, imgMeasure_of_ne_nil hy]
       have hcast : ((2 ^ k : ℕ) : ℝ≥0∞) = (2 : ℝ≥0∞) ^ k := by push_cast; ring
       rw [hcast, ← ENNReal.mul_iSup]
       have hs := hsup (defParam k y) ctx
@@ -293,7 +293,7 @@ lemma imgBlockApprox_sup {μ ν : Measure CantorSeq} [IsProbabilityMeasure μ]
       gcongr with j hj
       rw [← hsup (2 ^ i + j) y ctx]
       exact le_iSup (fun t => dyadicValue (A (2 ^ i + j) t y ctx) t) (s - i)
-    · rw [blockApprox, if_pos (by omega)]
+    · rw [blockApprox, ite_eq_left (by omega)]
       simp [dyadicValue]
   · rw [imgBlockAverage]
     have hswap : ∑ j ∈ Finset.range (2 ^ i), imgMeasure μ ν f (2 ^ i + j) y

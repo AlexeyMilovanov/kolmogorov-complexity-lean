@@ -38,7 +38,7 @@ lemma grayChargedSourceInvariant_step {n b : Nat}
     GrayTailSourceInvariant (grayChargedSourceCount a e)
       (grayChargedTailStep q L a e sigma A st sm) := by
   unfold grayChargedTailStep
-  simp only [grayTailWaitingB, Bool.false_eq_true, if_false]
+  simp only [grayTailWaitingB, Bool.false_eq_true, ite_false]
   split
   · exact ⟨hst.current, hst.frozen⟩
   · split
@@ -440,7 +440,7 @@ lemma grayChargedStartSpend_certified {n b q L a e t : Nat}
                     unavailable := A ++ grayHarvest (grayChargedSpendDelta a L e 0) slots n m } })
   by_cases hempty : slots.isEmpty = true
   · have hnil : slots = [] := by simpa using hempty
-    rw [if_pos hempty]
+    rw [ite_eq_left hempty]
     apply GrayChargedCertified.done
     refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
     · simpa [grayChargedStartSpend, slots, hempty] using
@@ -456,7 +456,7 @@ lemma grayChargedStartSpend_certified {n b q L a e t : Nat}
       exact le_trans hcert.frozen_bound.1 (by omega)
   · have hnonempty : slots.isEmpty = false := by
       cases h : slots.isEmpty <;> simp_all
-    rw [if_neg (by simpa using hnonempty)]
+    rw [ite_eq_right (by simpa using hnonempty)]
     apply GrayChargedCertified.spend 0
     refine ⟨?_, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
     · exact (hcert.toCore (a := a) hsource).withSlotsUnavailable false slots

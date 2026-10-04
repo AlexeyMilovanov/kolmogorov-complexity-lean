@@ -37,7 +37,7 @@ theorem IsLSC.indicator_range {m : BitString → BitString → ℝ≥0∞} (hm :
   · intro s out ctx
     dsimp only
     by_cases h : hitUpTo x s out = true
-    · rw [if_pos h, if_pos (hitUpTo_succ_of_true h)]
+    · rw [ite_eq_left h, ite_eq_left (hitUpTo_succ_of_true h)]
       exact hmono s out ctx
     · simp [h, dyadicValue]
   · intro out ctx
@@ -53,7 +53,7 @@ theorem IsLSC.indicator_range {m : BitString → BitString → ℝ≥0∞} (hm :
         apply le_antisymm
         · refine iSup_le fun s => ?_
           by_cases h : hitUpTo x s out = true
-          · rw [if_pos h]
+          · rw [ite_eq_left h]
             exact le_iSup (fun s => dyadicValue (approx s out ctx) s) s
           · simp [h, dyadicValue]
         · refine iSup_le fun s => ?_
@@ -64,7 +64,7 @@ theorem IsLSC.indicator_range {m : BitString → BitString → ℝ≥0∞} (hm :
           have := hhit (max s i) (le_max_right s i)
           calc dyadicValue (approx (max s i) out ctx) (max s i)
               = dyadicValue (if hitUpTo x (max s i) out then approx (max s i) out ctx else 0)
-                  (max s i) := by rw [if_pos this]
+                  (max s i) := by rw [ite_eq_left this]
             _ ≤ _ := le_iSup
                   (fun s => dyadicValue (if hitUpTo x s out then approx s out ctx else 0) s)
                   (max s i)
@@ -76,7 +76,7 @@ theorem IsLSC.indicator_range {m : BitString → BitString → ℝ≥0∞} (hm :
         exact hmem ⟨i, hi⟩
       have hzero : ∀ s, dyadicValue (if hitUpTo x s out then approx s out ctx else 0) s = 0 := by
         intro s
-        rw [if_neg (hfalse s), dyadicValue]
+        rw [ite_eq_right (hfalse s), dyadicValue]
         simp
       rw [Set.indicator_of_notMem hmem]
       simp [hzero]

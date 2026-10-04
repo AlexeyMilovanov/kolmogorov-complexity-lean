@@ -1,7 +1,5 @@
 import KolmogorovMathlib.MonotoneComplexity.GacsDayFamilyGame
 
-namespace Kolmogorov
-
 /-!
 # The ladder of SUV pp. 142-144, split into base, half-step and bookkeeping
 
@@ -31,6 +29,8 @@ The split:
   `halfStep_accounting`, `ladderRound_count_le`,
   `incomparable_of_alloc_anchor`.
 -/
+
+namespace Kolmogorov
 
 /-! ### The rung predicate -/
 
@@ -434,7 +434,7 @@ lemma getReserve_isSome_iff {e : ℕ} {A : Allocation} {m : ServerMove} {x : Gac
     have hmem : v ∈ getAlloc m x := List.mem_of_find?_eq_some hv
     have hpred := List.find?_some hv
     by_cases hlen : e ≤ v.length
-    · simp only [hlen, if_true, Bool.and_eq_true, List.all_eq_true,
+    · simp only [hlen, ite_true, Bool.and_eq_true, List.all_eq_true,
         decide_eq_true_eq] at hpred
       obtain ⟨hA, hoth⟩ := hpred
       refine ⟨v.take e, by simp [hlen], ⟨v, hmem, List.take_prefix _ _⟩, ?_, hA⟩
@@ -443,7 +443,7 @@ lemma getReserve_isSome_iff {e : ℕ} {A : Allocation} {m : ServerMove} {x : Gac
         (by intro hnil; rw [hnil] at hc; simp at hc)
       have hall := hoth p hp
       simp only [hpy] at hall
-      rw [if_neg (by simpa using hy)] at hall
+      rw [ite_eq_right (by simpa using hy)] at hall
       simpa using (List.all_eq_true.mp hall) c hc
     · simp [hlen] at hpred
   · rintro ⟨R, hRlen, ⟨v, hv, hRv⟩, hoth, hA⟩
@@ -453,12 +453,12 @@ lemma getReserve_isSome_iff {e : ℕ} {A : Allocation} {m : ServerMove} {x : Gac
       rw [hRlen] at this
       exact this.symm
     refine List.find?_isSome.mpr ⟨v, hv, ?_⟩
-    simp only [hlen, if_true, Bool.and_eq_true, List.all_eq_true, decide_eq_true_eq, hRtake]
+    simp only [hlen, ite_true, Bool.and_eq_true, List.all_eq_true, decide_eq_true_eq, hRtake]
     refine ⟨hA, ?_⟩
     intro p hp
     by_cases hcond : x <+: p.1 ∨ p.1 <+: x
-    · rw [if_pos (by simpa using hcond)]
-    · rw [if_neg (by simpa using hcond)]
+    · rw [ite_eq_left (by simpa using hcond)]
+    · rw [ite_eq_right (by simpa using hcond)]
       exact List.all_eq_true.mpr fun c hc => by simpa using hoth p.1 hcond c hc
 
 /-- The reserve predicate is decidable, via its computable implementation. -/

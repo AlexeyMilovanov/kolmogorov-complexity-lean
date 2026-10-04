@@ -65,7 +65,8 @@ summation, hence termwise bounded by the total). -/
 theorem pairMarginal_ne_top (M : Map) (x z : BitString) (hM : IsPrefixMachine M) :
     pairMarginal M x z ≠ ⊤ :=
   ne_top_of_le_ne_top ENNReal.one_ne_top
-    (le_trans (ENNReal.le_tsum x) (tsum_pairMarginal_le_one M z hM))
+    (le_trans (ENNReal.le_tsum (f := fun x => pairMarginal M x z) x)
+      (tsum_pairMarginal_le_one M z hM))
 
 /-! ### The scaled section semimeasure
 

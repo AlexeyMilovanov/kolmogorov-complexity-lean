@@ -58,8 +58,8 @@ theorem continuousTreeMixture_isContinuousTreeSemimeasure
 /-- The mixture dominates each component with the component's own dyadic weight. -/
 theorem continuousTreeMixture_dominates_component (b : ℕ → BitString → ℝ≥0∞) (i : ℕ)
     (x : BitString) :
-    dyadicWeight i * b i x ≤ continuousTreeMixture b x := by
-  apply ENNReal.le_tsum
+    dyadicWeight i * b i x ≤ continuousTreeMixture b x :=
+  ENNReal.le_tsum (f := fun j => dyadicWeight j * b j x) i
 
 /-- A mixture of continuous tree semimeasures with a uniformly computable monotone approximation is
 lower semicomputable. -/

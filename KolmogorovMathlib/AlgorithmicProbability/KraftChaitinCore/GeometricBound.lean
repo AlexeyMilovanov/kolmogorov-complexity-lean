@@ -3,7 +3,7 @@ import KolmogorovMathlib.AlgorithmicProbability.KraftChaitinAllocator
 import KolmogorovMathlib.Prefix.Optimal
 import Mathlib.Algebra.Field.GeomSum
 import Mathlib.Analysis.SpecificLimits.Basic
-import Mathlib.Data.ENNReal.Basic
+import Mathlib.Basic.ENNReal.Basic
 import Mathlib.Tactic.IntervalCases
 import Mathlib.Tactic.Linarith
 import KolmogorovMathlib.AlgorithmicProbability.KraftChaitinCore.RealizationEngine
@@ -252,7 +252,8 @@ lemma geomReq_geometric_bound {f : BitString → BitString → ℝ≥0∞}
     · interval_cases l ; norm_num at *;
       contrapose! h_contra;
       refine le_trans ?_ ( mul_le_mul_right h_emitted _ );
-      refine le_trans ( h_sum ctx |> le_trans ( ENNReal.le_tsum out ) ) ?_ ; norm_num;
+      refine le_trans
+        ( h_sum ctx |> le_trans ( ENNReal.le_tsum (f := fun out => f out ctx) out ) ) ?_ ; norm_num;
       rw [ ← ENNReal.toReal_le_toReal ] <;> norm_num;
       norm_num [ ENNReal.mul_eq_top ];
   -- Therefore, $f out ctx \leq 2⁻¹^(l-2)$.

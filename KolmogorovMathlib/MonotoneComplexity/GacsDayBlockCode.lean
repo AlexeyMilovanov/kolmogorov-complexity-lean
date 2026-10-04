@@ -83,7 +83,7 @@ lemma chunkNat_eq (m : ℕ) (hm : 0 < m) (l : List ℕ) (hl : m ≤ l.length) :
   cases l with
   | nil => simp at hl; omega
   | cons a t =>
-      rw [chunkNat, dif_pos ⟨hm, hl⟩]
+      rw [chunkNat, dite_eq_left ⟨hm, hl⟩]
       simp
 
 /-- A list of length exactly `m` chunks into the single value of that list. -/
@@ -441,7 +441,7 @@ lemma lookup_baseServerMove (m : ℕ) (hm : 0 < m) (S : ServerMove) (x : GacsDay
       by_cases hp : (∀ a ∈ p.1, a < 2) ∧ m ∣ p.1.length
       · have hfp : (fun p : GacsDayNode × Allocation =>
             if (∀ a ∈ p.1, a < 2) ∧ m ∣ p.1.length then some (chunkNat m p.1, p.2) else none) p
-            = some (chunkNat m p.1, p.2) := if_pos hp
+            = some (chunkNat m p.1, p.2) := ite_eq_left hp
         have hcons : baseServerMove m (p :: ps)
             = (chunkNat m p.1, p.2) :: baseServerMove m ps := by
           simp only [baseServerMove, List.filterMap_cons, hfp]
@@ -464,7 +464,7 @@ lemma lookup_baseServerMove (m : ℕ) (hm : 0 < m) (S : ServerMove) (x : GacsDay
           simpa using ih
       · have hfp : (fun p : GacsDayNode × Allocation =>
             if (∀ a ∈ p.1, a < 2) ∧ m ∣ p.1.length then some (chunkNat m p.1, p.2) else none) p
-            = none := if_neg hp
+            = none := ite_eq_right hp
         have hcons : baseServerMove m (p :: ps) = baseServerMove m ps := by
           simp only [baseServerMove, List.filterMap_cons, hfp]
         have hbc : blockCode m x ≠ p.1 := by
@@ -494,7 +494,7 @@ lemma getAlloc_baseServerMove_of_not_lt (m : ℕ) (hm : 0 < m) (S : ServerMove)
         by_cases hp : (∀ a ∈ p.1, a < 2) ∧ m ∣ p.1.length
         · have hfp : (fun p : GacsDayNode × Allocation =>
               if (∀ a ∈ p.1, a < 2) ∧ m ∣ p.1.length then some (chunkNat m p.1, p.2) else none) p
-              = some (chunkNat m p.1, p.2) := if_pos hp
+              = some (chunkNat m p.1, p.2) := ite_eq_left hp
           have hcons : baseServerMove m (p :: ps)
               = (chunkNat m p.1, p.2) :: baseServerMove m ps := by
             simp only [baseServerMove, List.filterMap_cons, hfp]
@@ -506,7 +506,7 @@ lemma getAlloc_baseServerMove_of_not_lt (m : ℕ) (hm : 0 < m) (S : ServerMove)
           simpa using ih
         · have hfp : (fun p : GacsDayNode × Allocation =>
               if (∀ a ∈ p.1, a < 2) ∧ m ∣ p.1.length then some (chunkNat m p.1, p.2) else none) p
-              = none := if_neg hp
+              = none := ite_eq_right hp
           have hcons : baseServerMove m (p :: ps) = baseServerMove m ps := by
             simp only [baseServerMove, List.filterMap_cons, hfp]
           rw [hcons]

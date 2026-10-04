@@ -2,13 +2,6 @@ import KolmogorovMathlib.AlgorithmicStatistics.Selector
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.ModelsToSets2
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.ImprovingDescriptions
 
-
-
-namespace Kolmogorov
-
-open Kolmogorov.CodedFiniteDistribution
-open Nat.Partrec (Code)
-
 /-!
 # Description Snapshot (Phase D infrastructure)
 
@@ -18,6 +11,10 @@ universe. It mirrors the `snapshotCodes` machinery to the level of
 showing that these rich elements can be isolated computably given the halting
 count.
 -/
+
+namespace Kolmogorov
+open Kolmogorov.CodedFiniteDistribution
+open Nat.Partrec (Code)
 
 /-- Computable test if a code represents a canonical uniform distribution. -/
 def isCanonicalUniformCodeBool (c : BitString) : Bool :=
@@ -446,7 +443,7 @@ theorem snapshotDescriptions_eq_descriptionsWithComplexityLe {c : Code} {U : Map
     · have := runOut_sound hc hp₂
       simp_all +decide only [modelCodeOfProgram]
       cases this ; aesop;
-    · rw [ if_pos ];
+    · rw [ ite_eq_left ];
       · rw [isCanonicalUniformCodeBool_iff] at ha₂
         obtain ⟨hSne, hc⟩ := ha₂
         rw [Finset.mem_singleton, hc, dataPoints_codedUniformOn, canonicalFinsetList_toFinset,

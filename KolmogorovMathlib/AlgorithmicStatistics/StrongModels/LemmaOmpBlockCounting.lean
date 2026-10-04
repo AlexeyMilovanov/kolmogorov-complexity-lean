@@ -78,7 +78,7 @@ theorem card_standardBlock_of_testBit
     (hbit : (omegaCount c m).testBit j = true) :
     (standardBlock c m j x).card = 2 ^ j := by
   unfold standardBlock
-  rw [if_pos hbit, List.toFinset_card_of_nodup]
+  rw [ite_eq_left hbit, List.toFinset_card_of_nodup]
   · simp only [List.length_take, List.length_drop]
     rw [Nat.min_eq_left]
     have hfit :=

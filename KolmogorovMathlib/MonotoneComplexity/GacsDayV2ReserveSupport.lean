@@ -214,8 +214,8 @@ theorem grayChargedReplayV2_raised_display_eq
     refine lt_of_lt_of_le ?_ hmono
     simpa [frozenV1OfV2] using hraise
   rw [grayChargedRunMoveV2_son_eq_of_done hdone z.1 z.2]
-  simp only [grayChargedSonRequest, hsrc, if_pos, grayTailSonRequest]
-  rw [if_pos hfinal]
+  simp only [grayChargedSonRequest, hsrc, ite_eq_left, grayTailSonRequest]
+  rw [ite_eq_left hfinal]
 
 /-- **The V2 late reserve selection** (Stage D2b): on the non-positive
 branch, every resolved source carries a genuine tail family reserve at a
@@ -458,7 +458,7 @@ theorem grayChargedV2_late_reserve_family
           zz.1.2.isLt zz'.1.2.isLt hR hR' hpair
       exact grayChargedReserveCylinder_disjoint hR.1.1 hR'.1.1 hne'
   · rw [grayChargedReserveChargeV2, grayChargeMass_flatMap]
-    refine (List.sum_eq_card_nsmul _ (dyadicScale e) ?_).trans ?_
+    refine (List.sum_eq_length_nsmul _ (dyadicScale e) ?_).trans ?_
     · intro x hx
       obtain ⟨r, hr, rfl⟩ := List.mem_map.mp hx
       obtain ⟨zz, -, rfl⟩ := List.mem_map.mp hr

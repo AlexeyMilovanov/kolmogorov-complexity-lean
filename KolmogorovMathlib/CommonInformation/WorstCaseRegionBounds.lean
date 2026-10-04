@@ -101,12 +101,12 @@ theorem muchnikAdmissibleTriples_nodup (n : Nat) :
     by_cases h : a + b + muchnikRegionMargin n < 3 * n ∧
         a + c + muchnikRegionMargin n < 3 * n ∧
         a + b + c + muchnikRegionMargin n < 4 * n
-    · rw [if_pos h] at ht
+    · rw [ite_eq_left h] at ht
       injection ht with ht
       by_cases h' : a' + b' + muchnikRegionMargin n < 3 * n ∧
           a' + c' + muchnikRegionMargin n < 3 * n ∧
           a' + b' + c' + muchnikRegionMargin n < 4 * n
-      · rw [if_pos h'] at ht'
+      · rw [ite_eq_left h'] at ht'
         injection ht' with ht'
         cases ht
         cases ht'
@@ -126,10 +126,10 @@ theorem muchnikConditionalBounds_nodup (n : Nat) :
     change b ∈ (if a' + d' + muchnikRegionMargin n < 3 * n
       then some (a', d') else none) at hb'
     by_cases h : a + d + muchnikRegionMargin n < 3 * n
-    · rw [if_pos h] at hb
+    · rw [ite_eq_left h] at hb
       injection hb with hb
       by_cases h' : a' + d' + muchnikRegionMargin n < 3 * n
-      · rw [if_pos h'] at hb'
+      · rw [ite_eq_left h'] at hb'
         injection hb' with hb'
         cases hb
         cases hb'

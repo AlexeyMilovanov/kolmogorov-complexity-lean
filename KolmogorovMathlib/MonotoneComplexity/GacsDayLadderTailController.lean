@@ -91,15 +91,15 @@ lemma mem_grayHarvest {n b : Nat} {δ nn : Nat}
   constructor
   · rintro ⟨i, hi, x, hx, hu⟩
     by_cases hcond : (grayNodeValidB b x && grayNodeForeignB slots i x) = true
-    · rw [if_pos hcond] at hu
+    · rw [ite_eq_left hcond] at hu
       obtain ⟨c, hc, rfl⟩ := List.mem_map.mp hu
       rw [Bool.and_eq_true] at hcond
       exact ⟨i, x, c, hi, hcond.1, hcond.2, hx, hc, rfl⟩
-    · rw [if_neg hcond] at hu
+    · rw [ite_eq_right hcond] at hu
       exact absurd hu (List.not_mem_nil)
   · rintro ⟨i, x, c, hi, hvalid, hforeign, hx, hc, rfl⟩
     refine ⟨i, hi, x, hx, ?_⟩
-    rw [if_pos (by rw [Bool.and_eq_true]; exact ⟨hvalid, hforeign⟩)]
+    rw [ite_eq_left (by rw [Bool.and_eq_true]; exact ⟨hvalid, hforeign⟩)]
     exact List.mem_map.mpr ⟨c, hc, rfl⟩
 
 /-- A nonempty effective allocation only occurs at a listed tag. -/
@@ -219,7 +219,7 @@ lemma grayTailHarvestChain_append {n b : ℕ} {L nn : ℕ} {A : Allocation}
           rw [List.length_append, List.length_singleton]; omega) =
           frozen[frozen.length - 1]'hlt :=
         List.getElem_append_left hlt
-      rw [dif_neg hf0, hget1]
+      rw [dite_eq_right hf0, hget1]
       have hlast : frozen.getLast? = some (frozen[frozen.length - 1]'hlt) := by
         rw [List.getLast?_eq_getElem?]
         exact List.getElem?_eq_getElem hlt

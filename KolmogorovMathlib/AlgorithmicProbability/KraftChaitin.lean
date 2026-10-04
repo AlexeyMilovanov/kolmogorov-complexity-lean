@@ -184,7 +184,7 @@ lemma aprioriApprox_iSup {M : Map} (c : Nat.Partrec.Code)
       (f := fun p => if produces M p y x then Kolmogorov.progWeight p else 0)
       (Kolmogorov.aprioriAcc c s x y))
     refine Finset.sum_le_sum fun p hp => ?_;
-    rw [ if_pos ];
+    rw [ ite_eq_left ];
     exact produces_iff_evaln c hc p x y |>.2 ⟨ s, by simpa using mem_aprioriAcc.mp hp |>.2 ⟩;
   · refine ENNReal.tsum_eq_iSup_sum.trans_le ?_;
     refine iSup_le fun S => ?_;

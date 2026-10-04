@@ -148,9 +148,9 @@ theorem combinePointMass_value (x : BitString) (data : List CodedDistributionEnt
     · convert RatMass.add_value e.mass ( combinePointMass x data ) using 1
       · exact congr_arg RatMass.value
           ( by rw [ show combinePointMass x ( e :: data ) = e.mass.add ( combinePointMass x data )
-                    from if_pos h ] )
+                    from ite_eq_left h ] )
       · rw [ ih ]
-    · rw [combinePointMass, if_neg h]
+    · rw [combinePointMass, ite_eq_right h]
       exact ih
 
 /-- The mass at `x` equals the combined-mass value of the raw data. -/
@@ -287,26 +287,26 @@ theorem normalize_mass (P : CodedFiniteDistribution) (x : BitString) :
         rw [List.foldr_cons, List.filterMap_cons]
         by_cases hyx : y = x
         · subst hyx
-          simp only [normalizedEntry?, if_true]
+          simp only [normalizedEntry?, ite_true]
           by_cases hnum : (combinePointMass y P.data).num = 0
           · have hval : (combinePointMass y P.data).value = 0 := by
               simp [RatMass.value, hnum]
-            rw [if_pos hnum, ih, hval, zero_add]
-          · rw [if_neg hnum]
-            simp only [List.foldr_cons, if_true, ih]
-        · simp only [normalizedEntry?, if_neg hyx]
+            rw [ite_eq_left hnum, ih, hval, zero_add]
+          · rw [ite_eq_right hnum]
+            simp only [List.foldr_cons, ite_true, ih]
+        · simp only [normalizedEntry?, ite_eq_right hyx]
           by_cases hnum : (combinePointMass y P.data).num = 0
-          · rw [if_pos hnum]
+          · rw [ite_eq_left hnum]
             simp only [zero_add]
             exact ih
-          · rw [if_neg hnum]
-            simp only [List.foldr_cons, if_neg hyx, zero_add]
+          · rw [ite_eq_right hnum]
+            simp only [List.foldr_cons, ite_eq_right hyx, zero_add]
             exact ih
     exact (h_filterMap_eq _).symm
   · rw [ ← combinePointMass_value ];
     by_cases hx : x ∈ P.data.map CodedDistributionEntry.point
-    · rw [if_pos hx]
-    · rw [if_neg hx]
+    · rw [ite_eq_left hx]
+    · rw [ite_eq_right hx]
       have hpoint : ∀ e ∈ P.data, e.point ≠ x := by
         intro e he hex
         exact hx (List.mem_map.mpr ⟨e, he, hex⟩)
@@ -316,7 +316,7 @@ theorem normalize_mass (P : CodedFiniteDistribution) (x : BitString) :
         induction l with
         | nil => rfl
         | cons e l ih =>
-          rw [combinePointMass, if_neg (hl e (List.mem_cons_self))]
+          rw [combinePointMass, ite_eq_right (hl e (List.mem_cons_self))]
           exact ih fun a ha => hl a (List.mem_cons_of_mem e ha)
       rw [h_combine_zero _ hpoint, RatMass.zero_value]
 

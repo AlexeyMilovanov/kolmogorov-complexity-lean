@@ -247,7 +247,7 @@ theorem grayCharged_late_reserve_family
           zz.1.2.isLt zz'.1.2.isLt hR hR' hpair
       exact grayChargedReserveCylinder_disjoint hR.1.1 hR'.1.1 hne'
   · rw [grayChargedReserveCharge, grayChargeMass_flatMap]
-    refine (List.sum_eq_card_nsmul _ (dyadicScale e) ?_).trans ?_
+    refine (List.sum_eq_length_nsmul _ (dyadicScale e) ?_).trans ?_
     · intro x hx
       obtain ⟨r, hr, rfl⟩ := List.mem_map.mp hx
       obtain ⟨zz, -, rfl⟩ := List.mem_map.mp hr

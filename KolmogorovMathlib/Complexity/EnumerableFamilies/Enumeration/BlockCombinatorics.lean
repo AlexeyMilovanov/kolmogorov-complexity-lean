@@ -351,7 +351,7 @@ lemma decompressor2Check_fires (c_k : Code) (c₁ : ℕ) (z : BitString) (m t : 
       some ((exactLengthPrograms m).getD
         ((qBlock c_k c₁ m t).findIdx (fun x => x == z)) []) := by
   simp only [decompressor2Check_def, Nat.unpair_pair, hst, decide_eq_true hz, Bool.and_self,
-    cond_true]
+    Bool.cond_true]
 
 /-- A successful attempt certifies fullness, membership in the block, and identifies the
 value. -/
@@ -366,7 +366,7 @@ lemma decompressor2Check_spec (c_k : Code) (c₁ : ℕ) (z : BitString) (s : ℕ
   · obtain ⟨h1, h2⟩ := hb
     refine ⟨h1, h2, ?_⟩
     rw [h1, decide_eq_true h2] at h
-    simp only [Bool.and_self, cond_true, Option.some.injEq] at h
+    simp only [Bool.and_self, Bool.cond_true, Option.some.injEq] at h
     exact h.symm
   · exfalso
     have hfalse : (qStage c_k c₁ s.unpair.1 s.unpair.2 &&

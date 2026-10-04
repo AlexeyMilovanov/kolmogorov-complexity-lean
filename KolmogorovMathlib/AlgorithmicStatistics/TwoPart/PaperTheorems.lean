@@ -4,17 +4,16 @@ import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.SlackArith
 import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.Snapshots
 import KolmogorovMathlib.Prefix.ConditionalSymmetry
 
-namespace Kolmogorov
-
-open CodedFiniteDistribution
-open scoped ENNReal
-
 /-!
 # Section 3 Paper-Facing Theorem Statements
 
 This module provides the clean, paper-facing wrappers for the already-proved
 Section 3 results, avoiding the heavy internal API.
 -/
+
+namespace Kolmogorov
+open CodedFiniteDistribution
+open scoped ENNReal
 
 /-- The complexity-improvement half of the Improving Descriptions Theorem. -/
 theorem improving_descriptions_complexity_thm (U : Map) (hU : IsOptimalPrefixConditional U) :

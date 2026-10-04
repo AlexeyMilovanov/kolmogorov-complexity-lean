@@ -155,13 +155,13 @@ lemma extDropMap_aprioriMeasure_ge (U : Map) (x : BitString) (n : ℕ) :
     have h_sum_eq : (∑ y' ∈ stringsOfLength n,
         if (x ++ y') ∈ U (p, []) then progWeight p else 0) = progWeight p := by
       rw [Finset.sum_eq_single_of_mem y hyS]
-      · rw [if_pos hyU]
+      · rw [ite_eq_left hyU]
       · intro y' hy'S hne
         have h_no : ¬ (x ++ y') ∈ U (p, []) := by
           intro hy'U
           have : x ++ y = x ++ y' := Part.mem_unique hyU hy'U
           exact hne (List.append_cancel_left this).symm
-        rw [if_neg h_no]
+        rw [ite_eq_right h_no]
     rw [h_sum_eq]
     have h_drop : x ∈ (U (p, [])).bind (fun z =>
         if decide (bitsToNat (natBits n) ≤ z.length) then
@@ -177,12 +177,12 @@ lemma extDropMap_aprioriMeasure_ge (U : Map) (x : BitString) (n : ℕ) :
         rw [h_bits, hz_len, Nat.add_sub_cancel, List.take_left]
       rw [h_take]
       exact Part.mem_some x
-    exact le_of_eq (if_pos h_drop).symm
+    exact le_of_eq (ite_eq_left h_drop).symm
   · have h_sum_zero : (∑ y ∈ stringsOfLength n,
         if (x ++ y) ∈ U (p, []) then progWeight p else 0) = 0 := by
       refine Finset.sum_eq_zero fun y hyS => ?_
       have h_no : ¬ (x ++ y) ∈ U (p, []) := fun h => h_ex ⟨y, hyS, h⟩
-      rw [if_neg h_no]
+      rw [ite_eq_right h_no]
     rw [h_sum_zero]
     exact zero_le
 
@@ -709,16 +709,16 @@ theorem plainK_eq_of_condKP_eq_add (U V : Map)
   have h_shift_i_to_C : KP U (Nat.bits C) (Nat.bits i) ≤
       (2 * (Nat.bits dist).length + 3 + c_inv : ℕ) := by
     by_cases h_ic : i ≤ C
-    · have hd : dist = C - i := by dsimp [dist]; rw [if_pos h_ic]
+    · have hd : dist = C - i := by dsimp [dist]; rw [ite_eq_left h_ic]
       exact kpShift_KP_le hc_inv true i C dist (by change C = i + dist; omega)
-    · have hd : dist = i - C := by dsimp [dist]; rw [if_neg h_ic]
+    · have hd : dist = i - C := by dsimp [dist]; rw [ite_eq_right h_ic]
       exact kpShift_KP_le hc_inv false i C dist (by change C = i - dist; omega)
   have h_shift_C_to_i : KP U (Nat.bits i) (Nat.bits C) ≤
       (2 * (Nat.bits dist).length + 3 + c_inv : ℕ) := by
     by_cases h_ic : i ≤ C
-    · have hd : dist = C - i := by dsimp [dist]; rw [if_pos h_ic]
+    · have hd : dist = C - i := by dsimp [dist]; rw [ite_eq_left h_ic]
       exact kpShift_KP_le hc_inv false C i dist (by change i = C - dist; omega)
-    · have hd : dist = i - C := by dsimp [dist]; rw [if_neg h_ic]
+    · have hd : dist = i - C := by dsimp [dist]; rw [ite_eq_right h_ic]
       exact kpShift_KP_le hc_inv true C i dist (by change i = C + dist; omega)
   have h_kp_i_le : KP U x (Nat.bits i) ≤
       KP U x (Nat.bits C) + ((2 * (Nat.bits dist).length + 3 + c_inv + c_tri : ℕ) : ENat) :=
@@ -760,12 +760,12 @@ theorem plainK_eq_of_condKP_eq_add (U V : Map)
       by_cases h_ic : i ≤ C
       · have h_dist_eq : (dist : ℤ) = (C : ℤ) - (i : ℤ) := by
           dsimp [dist]
-          rw [if_pos h_ic, Nat.cast_sub h_ic]
+          rw [ite_eq_left h_ic, Nat.cast_sub h_ic]
         have h_abs_d : d ≤ (d.natAbs : ℤ) := by omega
         linarith
       · have h_dist_eq : (dist : ℤ) = (i : ℤ) - (C : ℤ) := by
           dsimp [dist]
-          rw [if_neg h_ic, Nat.cast_sub (by omega)]
+          rw [ite_eq_right h_ic, Nat.cast_sub (by omega)]
         have h_abs_d : -d ≤ (d.natAbs : ℤ) := by omega
         linarith
     exact_mod_cast h_bound_z

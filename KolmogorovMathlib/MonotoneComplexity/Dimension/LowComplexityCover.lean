@@ -357,12 +357,12 @@ lemma computable₂_lowCover {chk : ℕ × BitString → ℕ → Bool} (hchk : C
   have hbranch : Computable₂ (fun (p : ℚ × ℕ) (x : BitString) =>
       bif firstStage chk (alphaFloor r (M * (p.1.den + m₀) + (Nat.unpair p.2).1)) x
         (Nat.unpair (Nat.unpair p.2).2).1 then some x else none) := by
-    have htest : Computable (fun q : (ℚ × ℕ) × BitString =>
-        firstStage chk (alphaFloor r (M * (q.1.1.den + m₀) + (Nat.unpair q.1.2).1)) q.2
-          (Nat.unpair (Nat.unpair q.1.2).2).1) :=
-      (computable_firstStage hchk).comp
+    have htest' := (computable_firstStage hchk).comp
         (Computable.pair (Computable.pair (hthr.comp Computable.fst) Computable.snd)
           (hstage.comp Computable.fst))
+    have htest : Computable (fun q : (ℚ × ℕ) × BitString =>
+        firstStage chk (alphaFloor r (M * (q.1.1.den + m₀) + (Nat.unpair q.1.2).1)) q.2
+          (Nat.unpair (Nat.unpair q.1.2).2).1) := htest'
     exact (Computable.cond htest (Computable.option_some.comp Computable.snd)
       (Computable.const none)).to₂
   exact (Computable.option_bind hbase hbranch).to₂
@@ -427,7 +427,7 @@ lemma tsum_stage_le (hmono : ∀ q s t, s ≤ t → chk q s = true → chk q t =
   | some x =>
     simp only [Option.elim_some]
     by_cases hlow : plainK V x < (k : ℕ∞)
-    · rw [if_pos hlow]
+    · rw [ite_eq_left hlow]
       refine tsum_le_of_subsingleton_support (fun t => ?_) (fun t t' ht ht' => ?_)
       · rw [hunf t, hlev]
         simp only [Option.bind_some]
@@ -441,10 +441,10 @@ lemma tsum_stage_le (hmono : ∀ q s t, s ≤ t → chk q s = true → chk q t =
           | false =>
             exfalso
             rw [hunf u, hlev] at hu
-            simp only [Option.bind_some, hff, cond_false] at hu
+            simp only [Option.bind_some, hff, Bool.cond_false] at hu
             simp at hu
         exact firstStage_unique hmono (hne t ht) (hne t' ht')
-    · rw [if_neg hlow]
+    · rw [ite_eq_right hlow]
       have : ∀ t, coverAlphaMass α (lowCover chk r M m₀ ε (Nat.pair m (Nat.pair t c))) = 0 := by
         intro t
         rw [hunf t, hlev]
@@ -474,7 +474,7 @@ lemma tsum_level_le (α : ℝ) (k n b : ℕ) (hb : (b : ℝ) ≤ (n : ℝ) * α)
       · exfalso
         obtain ⟨hlen, hcode⟩ := levelEnum_eq_some_iff.1 hlev
         exact hc (Finset.mem_image.2 ⟨x, mem_lowPlainKLevel.2 ⟨hlen, hlow⟩, hcode⟩)
-      · rw [if_neg hlow]
+      · rw [ite_eq_right hlow]
   have hval : ∀ c ∈ S, G c ≤ ((2 : ℝ≥0∞)⁻¹) ^ b := by
     intro c hc
     cases hlev : levelEnum n c with
@@ -486,8 +486,8 @@ lemma tsum_level_le (α : ℝ) (k n b : ℕ) (hb : (b : ℝ) ≤ (n : ℝ) * α)
         refine intervalAlphaMass_le_inv_two_pow ?_
         rw [hlen]; exact hb
       by_cases hlow : plainK V x < (k : ℕ∞)
-      · rw [if_pos hlow]; exact hbnd
-      · rw [if_neg hlow]; exact zero_le
+      · rw [ite_eq_left hlow]; exact hbnd
+      · rw [ite_eq_right hlow]; exact zero_le
   rw [tsum_eq_sum hzero]
   refine le_trans (Finset.sum_le_card_nsmul S G _ hval) ?_
   rw [nsmul_eq_mul]
@@ -539,7 +539,7 @@ theorem isEffectiveAlphaNull_singleton_of_forall_exists_low (V : Map)
       unfold lowCover
       simp only [Nat.unpair_pair, hn]
       rw [levelEnum_encode (cantorPrefix_length w n)]
-      simp only [Option.bind_some, ht, cond_true]
+      simp only [Option.bind_some, ht, Bool.cond_true]
     rw [hval]
     exact mem_cantorCylinder_cantorPrefix w n
   · -- the `r'`-weight of the cover is below `ε`

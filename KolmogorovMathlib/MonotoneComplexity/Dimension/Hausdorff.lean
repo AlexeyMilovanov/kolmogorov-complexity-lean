@@ -344,7 +344,8 @@ theorem liminf_le_of_isEffectiveAlphaNull_singleton (V : Map) (hV : isOptimalCon
         refine lt_of_le_of_lt ?_ (lt_of_lt_of_le (hI (eps j) (hepspos j)).2 (le_of_eq ?_))
         · calc intervalAlphaMass ((r : ℚ) : ℝ) z
               = coverAlphaMass ((r : ℚ) : ℝ) (I (eps j) k) := by rw [hz]; rfl
-            _ ≤ ∑' i, coverAlphaMass ((r : ℚ) : ℝ) (I (eps j) i) := ENNReal.le_tsum k
+            _ ≤ ∑' i, coverAlphaMass ((r : ℚ) : ℝ) (I (eps j) i) :=
+              ENNReal.le_tsum (f := fun i => coverAlphaMass ((r : ℚ) : ℝ) (I (eps j) i)) k
         · rw [hepsdef, ofReal_pow_half_eq_dyadicValue, dyadicValue_one_eq_inv_two_pow']
       have hlen : ((j + 1 : ℕ) : ℝ) < (z.length : ℝ) * ((r : ℚ) : ℝ) :=
         lt_mul_length_of_intervalAlphaMass_lt hmass

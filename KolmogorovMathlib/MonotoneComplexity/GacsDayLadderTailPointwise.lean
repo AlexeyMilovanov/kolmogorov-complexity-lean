@@ -39,7 +39,7 @@ lemma grayTailSourceInvariant_step {n b : Nat}
     GrayTailSourceInvariant (2 ^ (e - a))
       (grayTailStep q L a e sigma A st sm) := by
   unfold grayTailStep
-  simp only [grayTailWaitingB, Bool.false_eq_true, if_false]
+  simp only [grayTailWaitingB, Bool.false_eq_true, ite_false]
   split
   · exact ⟨hst.current, hst.frozen⟩
   · split
@@ -452,7 +452,7 @@ theorem grayTail_terminal_root_window_of_done
     simp [st, hdone]
   rw [getFamilyReq_grayTailOutput_root st hi]
   unfold grayTailRootRequest
-  rw [if_pos]
+  rw [ite_eq_left]
   · constructor
     · exact le_max_right _ _
     · apply max_le

@@ -12,8 +12,6 @@ import KolmogorovMathlib.Prefix.Optimal
 import Mathlib.Computability.Halting
 import Mathlib.Computability.PartrecCode
 
-namespace Kolmogorov
-
 /-!
 # Existence of an Optimal Prefix Conditional Decompressor
 
@@ -44,6 +42,8 @@ would contradict this at whichever has the smaller first index, so the accepted
 set is prefix-free. If `c`'s halting domain is already prefix-free, no program is
 ever rejected, so the filter is the identity.
 -/
+
+namespace Kolmogorov
 
 open Nat.Partrec (Code)
 
@@ -131,7 +131,7 @@ theorem exists_appearsAt_iff_eval_dom {c : Code} {y p : BitString} :
       exact ⟨x, Nat.Partrec.Code.evaln_mono (Nat.le_succ k) hk⟩
     change (if (Code.evaln (k + 1) c (Encodable.encode (p, y))).isSome then some p else none)
         = some p
-    rw [if_pos hh]
+    rw [ite_eq_left hh]
 
 /-! ### Acceptance characterisation -/
 

@@ -18,16 +18,17 @@ import KolmogorovMathlib.MonotoneComplexity.ExpectationBoundedDeficiency
 import Mathlib.Data.EReal.Basic
 import Mathlib.Data.EReal.Operations
 
-namespace Kolmogorov
-open MeasureTheory
-open scoped ENNReal
-
-/-! ### The digression of p. 183: Theorem 124
+/-!
+# The digression of p. 183: Theorem 124
 
 The source proves Theorem 124 inside the proof of Theorem 123(b) ("To prepare
 ourselves for this case, let us make a digression and prove that the randomness
 deficiency is almost monotone", p. 183), and Theorem 123(b) uses it; so it is
 placed here, before Theorem 123(b), rather than after it. -/
+
+namespace Kolmogorov
+open MeasureTheory
+open scoped ENNReal
 
 /-- There is a lower semicomputable continuous semimeasure `S` which, whenever some prefix `x` of
 `y` has deficiency above `k ≥ 1`, satisfies `S y ≥ (2 ^ k / (2 * k ^ 2)) * P(Ω_y)`: the
@@ -166,7 +167,7 @@ theorem exists_const_deficiency_ge_of_prefix {P : Measure CantorSeq}
     rw [hA]
     exact ENNReal.toReal_pos (universalContinuousSemimeasure_pos y).ne' hAtop
   by_cases hy0 : cantorMass P y = 0
-  · rw [deficiency, if_pos hy0]
+  · rw [deficiency, ite_eq_left hy0]
     exact le_top
   set Py : ℝ := (cantorMass P y).toReal with hPy
   have hPytop : cantorMass P y ≠ ⊤ := measure_ne_top P _

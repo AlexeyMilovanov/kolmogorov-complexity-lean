@@ -45,19 +45,19 @@ lemma setOf_prefixPred_eq_biUnion (L : ℕ) (Q : BitString → Bool) :
   constructor
   · intro hz
     refine ⟨cantorPrefix z L, mem_levelFinset.2 (by simp), ?_⟩
-    rw [if_pos hz]
+    rw [ite_eq_left hz]
     change IsCantorPrefix (cantorPrefix z L) z
     rw [isCantorPrefix_iff_cantorPrefix_eq]
     simp
   · rintro ⟨y, hy, hz⟩
     by_cases hQ : Q y = true
-    · rw [if_pos hQ] at hz
+    · rw [ite_eq_left hQ] at hz
       have hlen : y.length = L := mem_levelFinset.1 hy
       have : cantorPrefix z y.length = y :=
         (isCantorPrefix_iff_cantorPrefix_eq y z).1 hz
       rw [hlen] at this
       rwa [this]
-    · rw [if_neg hQ] at hz
+    · rw [ite_eq_right hQ] at hz
       exact absurd hz (Set.notMem_empty z)
 
 /-- A condition on the length-`L` prefix determines a measurable subset of Cantor space. -/

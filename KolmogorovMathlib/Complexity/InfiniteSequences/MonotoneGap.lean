@@ -5,7 +5,7 @@ import KolmogorovMathlib.Complexity.Properties
 import Mathlib.Analysis.SpecialFunctions.Log.Base
 import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 import Mathlib.Algebra.BigOperators.Field
-import Mathlib.Data.ENNReal.Inv
+import Mathlib.Basic.ENNReal.Inv
 import KolmogorovMathlib.AlgorithmicStatistics.Selector
 import KolmogorovMathlib.Complexity.InfiniteSequences.PrefixComplexity
 
@@ -147,7 +147,7 @@ private lemma cinfGap_evaln_of_stage_le (c : Code) (m t : ℕ) (ht : cinfGapStag
   have h_ex : ∃ t, (Code.evaln t c (Encodable.encode (p, Nat.bits m))).isSome = true :=
     ⟨t0, Option.isSome_iff_exists.mpr ⟨Encodable.encode w, ht0⟩⟩
   have h_p_time : cinfGapHaltTime c m p = Nat.find h_ex := by
-    unfold cinfGapHaltTime; dsimp; exact dif_pos h_ex
+    unfold cinfGapHaltTime; dsimp; exact dite_eq_left h_ex
   have h_find_le : Nat.find h_ex ≤ t0 :=
     Nat.find_le (Option.isSome_iff_exists.mpr ⟨Encodable.encode w, ht0⟩)
   have h_ptime_le_T : cinfGapHaltTime c m p ≤ cinfGapStage c m := cinfGapHaltTime_le_T c m p hp
@@ -178,7 +178,7 @@ private lemma cinfGap_evaln_eq_of_stage_le (c : Code) (m t : ℕ) (ht : cinfGapS
       have h_ex : ∃ t, (Code.evaln t c (Encodable.encode (p, Nat.bits m))).isSome = true :=
         ⟨t0, Option.isSome_iff_exists.mpr ⟨r, ht0⟩⟩
       have h_p_time : cinfGapHaltTime c m p = Nat.find h_ex := by
-        unfold cinfGapHaltTime; dsimp; exact dif_pos h_ex
+        unfold cinfGapHaltTime; dsimp; exact dite_eq_left h_ex
       have h_find_spec := Nat.find_spec h_ex
       obtain ⟨r', hr'⟩ := Option.isSome_iff_exists.mp h_find_spec
       have h_ptime_le_T : cinfGapHaltTime c m p ≤ cinfGapStage c m := cinfGapHaltTime_le_T c m p hp
@@ -262,12 +262,12 @@ private theorem cinfGapPrefix_at_large (c0 : Code) (m n : ℕ) (hn : max m (cinf
     subst h_nm
     have h_dec : decide (n ≤ n) = true := decide_eq_true (by omega)
     rw [h_dec]
-    dsimp only [cond_true]
+    dsimp only [Bool.cond_true]
     rw [cinfGap_prefix_m c0 n]
     exact List.take_of_length_le (by rw [hlen])
   · have h_dec : decide (n ≤ m) = false := decide_eq_false h_eq
     rw [h_dec]
-    simp only [cond_false]
+    simp only [Bool.cond_false]
     ext i
     by_cases hi : i < n
     · have h1 : (seqPrefix (cinfGapSequence c0 m) n)[i]? = some (cinfGapSequence c0 m i) := by
@@ -291,7 +291,7 @@ private theorem cinfGapPrefix_at_large (c0 : Code) (m n : ℕ) (hn : max m (cinf
         rw [h3]
         have h_sub : i - m < n - m := by omega
         rw [List.getElem?_replicate]
-        rw [if_pos h_sub]
+        rw [ite_eq_left h_sub]
         rw [List.getD_eq_getElem?_getD]
         have h_none : (cinfGapWord c0 m)[i]? = none := by
           rw [List.getElem?_eq_none]
@@ -709,7 +709,7 @@ theorem seqPrefix_onesZeros (B n : ℕ) :
       else List.replicate B true ++ List.replicate (n - B) false := by
   ext i
   by_cases h : n ≤ B
-  · rw [if_pos h]
+  · rw [ite_eq_left h]
     by_cases hi : i < n
     · have h1 : (seqPrefix (onesZerosSeq B) n)[i]? = some (decide (i < B)) := by
         simp [seqPrefix, onesZerosSeq, hi]
@@ -721,7 +721,7 @@ theorem seqPrefix_onesZeros (B n : ℕ) :
         simp [seqPrefix, hi]
       have h2 : (List.replicate n true)[i]? = none := by simp [hi]
       rw [h1, h2]
-  · rw [if_neg h]
+  · rw [ite_eq_right h]
     by_cases hi : i < n
     · have h1 : (seqPrefix (onesZerosSeq B) n)[i]? = some (decide (i < B)) := by
         simp [seqPrefix, onesZerosSeq, hi]

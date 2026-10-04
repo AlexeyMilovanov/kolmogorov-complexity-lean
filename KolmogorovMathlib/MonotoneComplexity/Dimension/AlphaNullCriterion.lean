@@ -255,7 +255,7 @@ lemma mem_iUnion_gapCover {chk : ℕ × BitString → ℕ → Bool} {U : Map}
   refine Set.mem_iUnion.2 ⟨Nat.pair (bitStringToNat (cantorPrefix w n)) t, ?_⟩
   have hval : gapCover chk α ε (Nat.pair (bitStringToNat (cantorPrefix w n)) t)
       = some (cantorPrefix w n) := by
-    simp only [gapCover, Nat.unpair_pair, natToBitString_bitStringToNat, ht, cond_true]
+    simp only [gapCover, Nat.unpair_pair, natToBitString_bitStringToNat, ht, Bool.cond_true]
   rw [hval]
   exact mem_cantorCylinder_cantorPrefix w n
 
@@ -441,7 +441,8 @@ theorem exists_lt_alpha_mul_sub_KPPlain_of_isEffectiveAlphaNull (U : Map)
   have hmass : intervalAlphaMass ((α : ℚ) : ℝ) z < ((2 : ℝ≥0∞)⁻¹) ^ (2 * m + 2) := by
     calc intervalAlphaMass ((α : ℚ) : ℝ) z
         = coverAlphaMass ((α : ℚ) : ℝ) (I (gapAcc m) k) := by rw [hIk]; rfl
-      _ ≤ ∑' k', coverAlphaMass ((α : ℚ) : ℝ) (I (gapAcc m) k') := ENNReal.le_tsum k
+      _ ≤ ∑' k', coverAlphaMass ((α : ℚ) : ℝ) (I (gapAcc m) k') :=
+        ENNReal.le_tsum (f := fun k' => coverAlphaMass ((α : ℚ) : ℝ) (I (gapAcc m) k')) k
       _ < ENNReal.ofReal ((gapAcc m : ℚ) : ℝ) := (hI (gapAcc m) (gapAcc_pos m)).2
       _ = ((2 : ℝ≥0∞)⁻¹) ^ (2 * m + 2) := ofReal_gapAcc m
   have hlong : ((2 * m + 2 : ℕ) : ℝ) < (z.length : ℝ) * ((α : ℚ) : ℝ) :=

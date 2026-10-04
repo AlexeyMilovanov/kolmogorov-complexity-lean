@@ -120,8 +120,8 @@ theorem computable_rawChargedQueryOf :
   exact (hite.pair hpayload).of_eq fun x => by
     unfold rawChargedQueryOf rawChargedQuery rawQueryOf rawQuery
     by_cases hx : x.2 < 2
-    · rw [if_pos hx, if_pos hx]
-    · rw [if_neg hx, if_neg hx]
+    · rw [ite_eq_left hx, ite_eq_left hx]
+    · rw [ite_eq_right hx, ite_eq_right hx]
 
 /-- The `Encodable` code of the displayed move of the charged controller at a tagged state. -/
 def chargedOutputEnc (P : RawParam) (tag : ℕ) (st : RawState)

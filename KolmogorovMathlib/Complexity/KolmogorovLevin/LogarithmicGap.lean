@@ -20,7 +20,7 @@ import KolmogorovMathlib.AlgorithmicStatistics.TwoPart.SlackArith
 import Mathlib.Analysis.SpecialFunctions.Log.Base
 import Mathlib.Algebra.BigOperators.Group.Finset.Basic
 import Mathlib.Algebra.BigOperators.Field
-import Mathlib.Data.ENNReal.Inv
+import Mathlib.Basic.ENNReal.Inv
 import KolmogorovMathlib.AlgorithmicStatistics.Selector
 import KolmogorovMathlib.CommonInformation.Counting
 import KolmogorovMathlib.Complexity.ConditionalComplexity.Continuity
@@ -356,7 +356,7 @@ by the negated bit. -/
 theorem flipBitAt_eq_set {x : BitString} {i : ℕ} (hi : i < x.length) :
     flipBitAt x i = x.set i (!x.getD i false) := by
   unfold flipBitAt
-  rw [List.set_eq_take_append_cons_drop, if_pos hi]
+  rw [List.set_eq_take_append_cons_drop, ite_eq_left hi]
   simp
 
 /-- Flipping the bit at a given position is primitive recursive in the string and the position. -/

@@ -124,7 +124,7 @@ lemma isLSC_lengthWeight : IsLSC fun (x : BitString) (_ : BitString) => lengthWe
       · exact zero_le
       · exact le_rfl
     · refine le_iSup_of_le (1 + 2 * out.length) ?_
-      rw [dyadicValue_lengthWeightApprox, if_neg (by omega)]
+      rw [dyadicValue_lengthWeightApprox, ite_eq_right (by omega)]
   · have hadd : Computable₂ (fun u v : ℕ => u + v) := Primrec.nat_add.to_comp
     have hmul : Computable₂ (fun u v : ℕ => u * v) := Primrec.nat_mul.to_comp
     have hsub : Computable₂ (fun u v : ℕ => u - v) := Primrec.nat_sub.to_comp
@@ -184,7 +184,7 @@ lemma dyadicValue_vertexMassApprox (term : ℕ → BitString → ℕ)
     dyadicValue (vertexMassApprox term A (x.length + t) x ctx) (x.length + t)
       = vertexWeight term x * dyadicValue (A t x ctx) t := by
   have ht : x.length + t - x.length = t := by omega
-  rw [vertexMassApprox, if_neg (by omega), ht, vertexWeight, dyadicValue, dyadicValue,
+  rw [vertexMassApprox, ite_eq_right (by omega), ht, vertexWeight, dyadicValue, dyadicValue,
     dyadicValue]
   have hbd : ((2 : ℝ≥0∞) ^ x.length)⁻¹ * ((2 : ℝ≥0∞) ^ t)⁻¹
       = ((2 : ℝ≥0∞) ^ x.length * (2 : ℝ≥0∞) ^ t)⁻¹ :=
@@ -205,7 +205,7 @@ lemma isLSC_vertexWeight_mul_cantorMass {μ : Measure CantorSeq}
   refine ⟨vertexMassApprox term A, ?_, ?_, ?_⟩
   · intro s out ctx
     by_cases h : s < out.length
-    · rw [vertexMassApprox, if_pos h]
+    · rw [vertexMassApprox, ite_eq_left h]
       simp [dyadicValue]
     · obtain ⟨t, rfl⟩ : ∃ t, s = out.length + t := ⟨s - out.length, by omega⟩
       rw [show out.length + t + 1 = out.length + (t + 1) by omega,
@@ -216,7 +216,7 @@ lemma isLSC_vertexWeight_mul_cantorMass {μ : Measure CantorSeq}
         = ⨆ t : ℕ, vertexWeight term out * dyadicValue (A t out ctx) t := by
       refine le_antisymm (iSup_le fun s => ?_) (iSup_le fun t => ?_)
       · by_cases h : s < out.length
-        · rw [vertexMassApprox, if_pos h]
+        · rw [vertexMassApprox, ite_eq_left h]
           simp [dyadicValue]
         · obtain ⟨t, rfl⟩ : ∃ t, s = out.length + t := ⟨s - out.length, by omega⟩
           rw [dyadicValue_vertexMassApprox]

@@ -91,7 +91,7 @@ lemma IsRE.and_decidable {α : Type*} [Primcodable α] {R : α → Prop} (hR : I
     · contradiction
   · rintro ⟨h1, h2⟩
     refine ⟨h1, ?_⟩
-    rw [if_pos h2]
+    rw [ite_eq_left h2]
     trivial
 
 /-- Whether the code `cB` accepts the string `x` within `s` steps. -/

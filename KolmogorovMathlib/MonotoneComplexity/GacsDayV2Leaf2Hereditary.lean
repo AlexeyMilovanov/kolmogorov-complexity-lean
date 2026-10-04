@@ -94,13 +94,13 @@ lemma grayChargedReserveChargeV2_perRoot_mass_ge_of_unit
   refine List.sum_le_sum ?_
   intro r hr
   by_cases h : r.coordinate.1.val = i
-  · simp only [h, decide_true, if_true]
+  · simp only [h, decide_true, ite_true]
     rw [grayChargeAtRoot_of_single_owner (fun z hz => r.cells_owner z hz),
-      if_pos h]
+      ite_eq_left h]
     exact hunit r hr
   · simp only [h, decide_false]
     rw [grayChargeAtRoot_of_single_owner (fun z hz => r.cells_owner z hz),
-      if_neg h, grayChargeMass_nil]
+      ite_eq_right h, grayChargeMass_nil]
     simp
 
 end Kolmogorov

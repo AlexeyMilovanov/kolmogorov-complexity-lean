@@ -411,7 +411,7 @@ lemma choose_ge_pow_mul_choose {M N V n : ℕ} (hV : 1 ≤ V) (hVN : V * N ≤ M
   have h_mul : V ^ (n + 1) * Nat.descFactorial N (n + 1) ≤ Nat.descFactorial M (n + 1) := by
     have h_mul : ∏ i ∈ Finset.range (n + 1), (V * (N - i)) ≤
         ∏ i ∈ Finset.range (n + 1), (M - i) := by
-      apply Finset.prod_le_prod';
+      apply Finset.prod_le_prod;
       intro i hi; by_cases hi' : i ≤ N <;> simp_all +decide [ mul_tsub ] ;
       · nlinarith [ Nat.sub_add_cancel ( show i ≤ M from by nlinarith ) ];
       · nlinarith [ Nat.sub_le M i ];

@@ -1,4 +1,4 @@
-import Mathlib.Data.ENNReal.Basic
+import Mathlib.Basic.ENNReal.Basic
 import Mathlib.Tactic.Linarith
 import KolmogorovMathlib.Core.Basic
 import Mathlib.Topology.Algebra.InfiniteSum.ENNReal
@@ -9,6 +9,13 @@ import Mathlib.Algebra.Field.GeomSum
 import Mathlib.Analysis.SpecificLimits.Basic
 import Mathlib.Tactic.IntervalCases
 import KolmogorovMathlib.AlgorithmicProbability.KraftChaitinCore.LSCApproximation
+
+/-!
+# Uniform dyadic numerators
+
+Index-parameterized (uniform) computability of the dyadic numerator chain used by the
+Kraft-Chaitin realization engine.
+-/
 
 namespace Kolmogorov
 section Truncate
@@ -398,7 +405,7 @@ lemma tsum_accepted_le (d : ℕ) (ctx : BitString) :
         refine le_trans ( add_le_add ( Finset.sum_le_sum fun _ _ => ?_ ) ( ?_ ) ) h;
         all_goals split_ifs <;> norm_num;
       · simp only [aterm] at ih ⊢
-        rw [ if_neg ] <;> simp_all only [Finset.sum_range_succ, add_zero, not_le, truncCum];
+        rw [ ite_eq_right ] <;> simp_all only [Finset.sum_range_succ, add_zero, not_le, truncCum];
   convert ENNReal.tsum_le_of_sum_range_le h_aterm using 1
 
 /-

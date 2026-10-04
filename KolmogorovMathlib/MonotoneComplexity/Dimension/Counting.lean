@@ -74,15 +74,15 @@ lemma levelEnum_eq_some_iff {L k : ℕ} {x : BitString} :
       rw [hd] at h
       simp only [Option.bind_some] at h
       by_cases hy : y.length = L
-      · rw [decide_eq_true hy, cond_true, Option.some_inj] at h
+      · rw [decide_eq_true hy, Bool.cond_true, Option.some_inj] at h
         subst h
         exact ⟨hy, Encodable.decode₂_eq_some.1 hd⟩
-      · rw [decide_eq_false hy, cond_false] at h
+      · rw [decide_eq_false hy, Bool.cond_false] at h
         exact absurd h (by simp)
   · rintro ⟨hlen, hcode⟩
     rw [Encodable.decode₂_eq_some.2 hcode]
     simp only [Option.bind_some]
-    rw [decide_eq_true hlen, cond_true]
+    rw [decide_eq_true hlen, Bool.cond_true]
 
 /-- The level enumeration returns every string of the right length at its own code. -/
 lemma levelEnum_encode {L : ℕ} {x : BitString} (h : x.length = L) :

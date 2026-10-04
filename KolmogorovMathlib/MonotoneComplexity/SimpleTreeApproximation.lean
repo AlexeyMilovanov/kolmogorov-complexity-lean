@@ -3,6 +3,13 @@ import KolmogorovMathlib.AlgorithmicProbability.KraftChaitinCore
 import KolmogorovMathlib.Foundation.NatEncoding
 import KolmogorovMathlib.Foundation.PrimrecExtras
 
+/-!
+# Simple tree approximation
+
+A computable bottom-up approximation of tree semimeasures indexed by fixed-width binary
+words.
+-/
+
 namespace Kolmogorov
 
 open scoped ENNReal
@@ -292,7 +299,7 @@ lemma simpleApprox_eq_closure (approx : ℕ → BitString → BitString → ℕ)
     (hne : x ≠ []) (hx : x.length ≤ s) :
     simpleApprox approx s x = simpleApproxClosure approx s (s - x.length) x := by
   unfold simpleApprox
-  rw [if_neg (by omega), if_neg hne]
+  rw [ite_eq_right (by omega), ite_eq_right hne]
 
 /-- The closure value is monotone in the depth budget. -/
 lemma simpleApproxClosure_mono_depth (approx : ℕ → BitString → BitString → ℕ) (s d : ℕ)
@@ -537,7 +544,7 @@ lemma simpleApprox_eq_cond (approx : ℕ → BitString → BitString → ℕ) (s
   · by_cases h2 : x = []
     · subst h2; simp
     · have h3 : x.length ≠ 0 := by simpa [List.length_eq_zero_iff] using h2
-      simp only [gt_iff_lt, if_neg h1, if_neg h2, decide_eq_false_iff_not.mpr h1,
+      simp only [gt_iff_lt, ite_eq_right h1, ite_eq_right h2, decide_eq_false_iff_not.mpr h1,
         decide_eq_false_iff_not.mpr h3, Bool.cond_false]
       exact (closureLevel_getD approx s x (s - x.length)).symm
 

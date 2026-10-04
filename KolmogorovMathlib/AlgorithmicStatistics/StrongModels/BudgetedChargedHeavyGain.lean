@@ -1,6 +1,13 @@
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.BudgetedChargedHeavyPool
 import KolmogorovMathlib.AlgorithmicStatistics.StrongModels.ChargedHeavyGain
 
+/-!
+# Budgeted charged-heavy gain
+
+Packed rank-plus-suffix programs for the pooled enumeration of charged-heavy elements,
+and the resulting gain bound with a base budget.
+-/
+
 namespace Kolmogorov
 
 open Nat.Partrec (Code)

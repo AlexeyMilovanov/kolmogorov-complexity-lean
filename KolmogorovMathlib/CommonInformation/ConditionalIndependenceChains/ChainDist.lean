@@ -4,7 +4,12 @@ import Mathlib.Data.Fintype.BigOperators
 import Mathlib.Data.Fin.VecNotation
 import KolmogorovMathlib.CommonInformation.FiniteQuadruple
 
+/-!
+# Chain distributions
 
+Distributions on `Fin 4 → Bool` for conditional-independence chains, with a summation
+bridge to fourfold Boolean sums.
+-/
 
 open Finset
 
@@ -329,7 +334,7 @@ theorem invert_chain {k : ℕ} (D : ChainDist k) {c : ℝ}
         have h1 : (chainBetaIdx 0 : Fin (2 * k + 2)).val =
             (chainAlphaIdx 0 : Fin (2 * k + 2)).val := congr_arg Fin.val h
         unfold chainBetaIdx chainAlphaIdx at h1; revert h1; simp
-      rw [if_pos rfl, if_neg h_ne]
+      rw [ite_eq_left rfl, ite_eq_right h_ne]
       cases (w (chainAlphaIdx 0)) <;> cases (w (chainBetaIdx 0)) <;> decide
     rw [h]
     unfold ChainDist.prAgree01 at hagree; unfold ChainDist.pr at hagree ⊢
@@ -524,7 +529,7 @@ theorem extendChainDist_pr_old {k : ℕ} (D : ChainDist k) (c : ℝ)
   apply Finset.sum_congr rfl
   intro old _
   by_cases h : S old
-  · simp only [h, if_true]
+  · simp only [h, ite_true]
     simp_rw [← Finset.mul_sum]
     rw [chainStepKernel_sum, mul_one]
   · simp [h]

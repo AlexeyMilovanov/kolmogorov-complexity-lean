@@ -120,7 +120,7 @@ lemma myAllFalse_eq (x : List Bool) : myAllFalse x = true ↔ x = List.replicate
   | cons b tail ih =>
     simp only [myAllFalse, List.foldr_cons, List.length_cons, List.replicate]
     cases b
-    · simp only [cond_false]
+    · simp only [Bool.cond_false]
       constructor
       · intro h
         rw [ih.mp h]
@@ -128,7 +128,7 @@ lemma myAllFalse_eq (x : List Bool) : myAllFalse x = true ↔ x = List.replicate
       · intro h
         injection h with _ h2
         exact ih.mpr h2
-    · simp only [cond_true]
+    · simp only [Bool.cond_true]
       constructor
       · intro h; contradiction
       · intro h; injection h with h1 _; contradiction

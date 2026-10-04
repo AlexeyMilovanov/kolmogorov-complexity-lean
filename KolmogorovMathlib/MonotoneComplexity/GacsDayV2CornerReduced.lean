@@ -418,7 +418,7 @@ lemma grayChargedV2_calls_le_display
     by_cases hz : z.2.val < grayChargedSourceCount a e ∧
         grayChargedThreshold q e <
           grayTailSonBase (grayTailFrozenEntries frozenV1) z.1 z.2
-    · rw [if_pos hz]
+    · rw [ite_eq_left hz]
       have hle := grayChargedRunStateV2_source_sonBase_le hae replay
         le_rfl z.1 z.2 hz.1
       have hle2 : grayTailSonBase
@@ -426,7 +426,7 @@ lemma grayChargedV2_calls_le_display
         rw [hfv]
         exact hle
       linarith
-    · rw [if_neg hz]
+    · rw [ite_eq_right hz]
   rw [hdisplay, hsplit, htot, hround]
   linarith
 

@@ -55,7 +55,7 @@ theorem domainWeight_eq_zero_of_forall_not_mem_domainAt {M : Map} {y : BitString
   classical
   rw [domainWeight]
   refine (tsum_congr (fun p => ?_)).trans tsum_zero
-  rw [if_neg (h p)]
+  rw [ite_eq_right (h p)]
 
 open Classical in
 /-- **Single-program collapse.** Summing the contribution of a *fixed* program `p`
@@ -68,7 +68,7 @@ theorem tsum_produces_eq (M : Map) (p y : BitString) :
       = if p ∈ domainAt M y then progWeight p else 0 := by
   classical
   by_cases hp : p ∈ domainAt M y
-  · rw [if_pos hp]
+  · rw [ite_eq_left hp]
     obtain ⟨x₀, hx₀⟩ := Part.dom_iff_mem.mp hp
     have hcongr : ∀ x : BitString,
         (if produces M p y x then progWeight p else 0)
@@ -77,12 +77,12 @@ theorem tsum_produces_eq (M : Map) (p y : BitString) :
       have hiff : produces M p y x ↔ x = x₀ :=
         ⟨fun hx => Part.mem_unique hx hx₀, fun hx => hx ▸ hx₀⟩
       simp only [hiff]
-    rw [tsum_congr hcongr, tsum_eq_single x₀ (fun b hb => if_neg hb), if_pos rfl]
-  · rw [if_neg hp]
+    rw [tsum_congr hcongr, tsum_eq_single x₀ (fun b hb => ite_eq_right hb), ite_eq_left rfl]
+  · rw [ite_eq_right hp]
     have hzero : ∀ x : BitString,
         (if produces M p y x then progWeight p else 0) = 0 := by
       intro x
-      rw [if_neg]
+      rw [ite_eq_right]
       intro hx
       exact hp (produces_mem_domainAt hx)
     rw [tsum_congr hzero, tsum_zero]

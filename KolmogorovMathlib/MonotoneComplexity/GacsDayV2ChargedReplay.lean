@@ -409,7 +409,7 @@ lemma grayChargedStartSpendV2_certified {n q L a e t : Nat}
           unavailable := A ++
             grayHarvest (grayChargedSpendDelta a L e 0) slots n (sm s) } })
   by_cases hempty : slots.isEmpty = true
-  · rw [if_pos hempty]
+  · rw [ite_eq_left hempty]
     apply GrayChargedCertifiedV2.done
     refine ⟨?_, ?_, ?_, ?_, ?_, ?_⟩
     · exact (hcert.toCore (a := a) hsource).withSlots true
@@ -422,7 +422,7 @@ lemma grayChargedStartSpendV2_certified {n q L a e t : Nat}
     · exact le_trans hcert.frozen_bound.1 (by omega)
   · have hnonempty : slots.isEmpty = false := by
       cases h : slots.isEmpty <;> simp_all
-    rw [if_neg (by simpa using hnonempty)]
+    rw [ite_eq_right (by simpa using hnonempty)]
     apply GrayChargedCertifiedV2.spend 0
     refine ⟨?_, by omega, ?_, ?_, ?_, ?_, ?_, ?_⟩
     · exact (hcert.toCore (a := a) hsource).withSlotsUnavailableStart false st.time

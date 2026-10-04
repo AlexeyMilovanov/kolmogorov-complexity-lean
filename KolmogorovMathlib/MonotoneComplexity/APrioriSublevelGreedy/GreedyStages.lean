@@ -41,7 +41,7 @@ theorem greedyInv_insertNode {k : ℕ} {R : AddrList} (h : GreedyInv k R) {x : B
     have hpos : 0 < x.length := List.length_pos_iff.mpr hxne
     cases h2 : (!decide (x.dropLast = []) && isLeafIn R x.dropLast) with
     | true =>
-      simp only [cond_false, cond_true]
+      simp only [Bool.cond_false, Bool.cond_true]
       rw [Bool.and_eq_true] at h2
       have hdne : x.dropLast ≠ [] := by simpa using h2.1
       have hdne' : x.dropLast ≠ x := by
@@ -55,7 +55,7 @@ theorem greedyInv_insertNode {k : ℕ} {R : AddrList} (h : GreedyInv k R) {x : B
         · exact hh
       exact greedyInv_cons_reuse h hxne hxnot hx (headD_addrsAt_mem hdmem) h2.2
     | false =>
-      simp only [cond_false]
+      simp only [Bool.cond_false]
       refine greedyInv_freshStep h hxne hxnot hx hpre ?_
       rcases Bool.and_eq_false_iff.mp h2 with hh | hh
       · exact Or.inl (by simpa using hh)

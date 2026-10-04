@@ -82,7 +82,7 @@ theorem tsum_ite_reFirstStage {α : Type*} {chk : α → ℕ → Bool}
     (∑' s : ℕ, if reFirstStage chk q s = true then v else 0) = v := by
   classical
   obtain ⟨s₀, hs₀⟩ := exists_reFirstStage chk hex
-  rw [tsum_eq_single s₀ (fun s hs => ?_), if_pos hs₀]
+  rw [tsum_eq_single s₀ (fun s hs => ?_), ite_eq_left hs₀]
   by_cases hcase : reFirstStage chk q s = true
   · exact absurd (reFirstStage_unique hmono hcase hs₀) hs
   · simp [hcase]
@@ -117,7 +117,7 @@ theorem tsum_ite_gt_inv_two_pow (κ : ℕ) :
   have hterm : ∀ j : ℕ, (if κ < κ + 1 + j then (2 : ℝ≥0∞)⁻¹ ^ (κ + 1 + j) else 0)
       = (2 : ℝ≥0∞)⁻¹ ^ (κ + j + 1) := by
     intro j
-    rw [if_pos (by omega)]
+    rw [ite_eq_left (by omega)]
     congr 1
     omega
   rw [tsum_congr hterm, tsum_inv_two_pow_shift]
@@ -208,8 +208,8 @@ theorem exists_const_inv_two_pow_le_dist_of_KPNat_lt {U : Map}
         cases reFirstStage chk (natToBitString i, k) s <;> simp
       rw [tsum_congr hcongr]
       by_cases h : ∃ s, chk (natToBitString i, k) s = true
-      · rw [tsum_ite_reFirstStage hmono _ _ h, if_pos ((hlt i k).2 h)]
-      · rw [tsum_ite_reFirstStage_of_not _ _ h, if_neg (fun hc => h ((hlt i k).1 hc))]
+      · rw [tsum_ite_reFirstStage hmono _ _ h, ite_eq_left ((hlt i k).2 h)]
+      · rw [tsum_ite_reFirstStage_of_not _ _ h, ite_eq_right (fun hc => h ((hlt i k).1 hc))]
     have hmid : ∀ i : ℕ, (∑' k : ℕ, if KPNat U i < (k : ℕ∞) then (2 : ℝ≥0∞)⁻¹ ^ k else 0)
         = complexityWeight (KPNat U i) := by
       intro i
@@ -260,7 +260,7 @@ theorem exists_const_inv_two_pow_le_dist_of_KPNat_lt {U : Map}
   refine ⟨c, fun i k hik => ?_⟩
   obtain ⟨s₀, hs₀⟩ := exists_reFirstStage chk ((hlt i k).1 hik)
   have hmem : kraftEnum chk a (Nat.pair (Nat.pair i k) s₀) = some (a i, k) := by
-    rw [kraftEnum_pair, if_pos hs₀]
+    rw [kraftEnum_pair, ite_eq_left hs₀]
   have := hc
   simp only [Set.mem_ofPred_eq, not_exists] at this
   have hbound := this (Nat.pair (Nat.pair i k) s₀) (a i, k)

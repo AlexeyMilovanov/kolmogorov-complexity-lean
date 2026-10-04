@@ -79,7 +79,7 @@ theorem exists_enumeration_computable₂_nat :
     refine ⟨fun a => if h : Computable₂ a then Encodable.encode (key a h).choose else 0, ?_⟩
     intro a ha b hb hab
     simp only [Set.mem_ofPred_eq] at ha hb
-    simp only [dif_pos ha, dif_pos hb] at hab
+    simp only [dite_eq_left ha, dite_eq_left hb] at hab
     have hcodes : (key a ha).choose = (key b hb).choose := Encodable.encode_injective hab
     funext x s
     have h1 := (key a ha).choose_spec x s
@@ -528,13 +528,13 @@ theorem exists_pos_le_universalContinuousSemimeasure_of_isRE_chain
     by_cases hx : P x
     · by_cases h0 : P (x ++ [false])
       · have h1 : ¬ P (x ++ [true]) := fun h => hchain x ⟨h0, h⟩
-        simp [hfdef, if_pos h0, if_neg h1, if_pos hx]
+        simp [hfdef, ite_eq_left h0, ite_eq_right h1, ite_eq_left hx]
       · by_cases h1 : P (x ++ [true])
-        · simp [hfdef, if_neg h0, if_pos h1, if_pos hx]
-        · simp [hfdef, if_neg h0, if_neg h1, if_pos hx]
+        · simp [hfdef, ite_eq_right h0, ite_eq_left h1, ite_eq_left hx]
+        · simp [hfdef, ite_eq_right h0, ite_eq_right h1, ite_eq_left hx]
     · have h0 : ¬ P (x ++ [false]) := fun h => hx (hpar x false h)
       have h1 : ¬ P (x ++ [true]) := fun h => hx (hpar x true h)
-      simp [hfdef, if_neg h0, if_neg h1, if_neg hx]
+      simp [hfdef, ite_eq_right h0, ite_eq_right h1, ite_eq_right hx]
   have hroot : f [] ≤ 1 := by
     simp only [hfdef]
     split_ifs <;> simp
@@ -550,16 +550,16 @@ theorem exists_pos_le_universalContinuousSemimeasure_of_isRE_chain
       · obtain ⟨s₀, hs₀⟩ := (hspec out).1 hP
         refine le_antisymm (iSup_le fun s => ?_) ?_
         · cases h : chk out s
-          · simp [h, dyadicValue, hfdef, if_pos hP]
-          · simp [h, dyadicValue_two_pow_self, hfdef, if_pos hP]
+          · simp [h, dyadicValue, hfdef, ite_eq_left hP]
+          · simp [h, dyadicValue_two_pow_self, hfdef, ite_eq_left hP]
         · refine le_iSup_of_le s₀ ?_
-          simp [hs₀, dyadicValue_two_pow_self, hfdef, if_pos hP]
+          simp [hs₀, dyadicValue_two_pow_self, hfdef, ite_eq_left hP]
       · have hall : ∀ s, chk out s = false := by
           intro s
           cases h : chk out s
           · rfl
           · exact absurd ((hspec out).2 ⟨s, h⟩) hP
-        simp [hall, dyadicValue, hfdef, if_neg hP]
+        simp [hall, dyadicValue, hfdef, ite_eq_right hP]
     · have hcond : Computable (fun p : ℕ × BitString × BitString => chk p.2.1 p.1) :=
         hchkc.comp (Computable.fst.comp Computable.snd) Computable.fst
       have hpow : Computable (fun p : ℕ × BitString × BitString => 2 ^ p.1) :=
@@ -571,7 +571,7 @@ theorem exists_pos_le_universalContinuousSemimeasure_of_isRE_chain
     have hone : ∀ z, P z → (1 : ℝ≥0∞) ≤ c * universalContinuousSemimeasure z := by
       intro z hz
       have h := hc z
-      simp only [hfdef, if_pos hz] at h
+      simp only [hfdef, ite_eq_left hz] at h
       exact h
     have hc0 : c ≠ 0 := by
       intro h
@@ -740,7 +740,7 @@ lemma nonProperChain_meets (E : ℕ → BitString → ℕ → ℕ) (j : ℕ)
   refine ⟨h.choose, ?_, h.choose_spec.2⟩
   change h.choose <+: nonProperStep E j (nonProperChain E j)
   unfold nonProperStep
-  rw [dif_pos h]
+  rw [dite_eq_left h]
   exact List.prefix_append _ _
 
 /-- **SUV Theorem 122 (§5.9.2, p. 177).**  There is a sequence that is ML-random

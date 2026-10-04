@@ -213,7 +213,7 @@ lemma grayChargedRootIncrement_spend_bounds
               grayCharged_filter_index_card slots i
       _ = grayChargedSpendCount q a e := by
         dsimp [slots, grayChargedSlotsForPass]
-        rw [grayChargedSpendSlots_filter_root_length, if_pos hi,
+        rw [grayChargedSpendSlots_filter_root_length, ite_eq_left hi,
           grayChargedSpendPairs_length (q := q) (L := L) hae hpass]
   have hsum :
       grayChargedRootIncrement (grayTailSlotEntries slots move) i =
@@ -294,7 +294,7 @@ lemma grayChargedRootIncrement_spend_eq_zero
               grayCharged_filter_index_card slots i
       _ = 0 := by
         dsimp [slots, grayChargedSlotsForPass]
-        rw [grayChargedSpendSlots_filter_root_length, if_neg hi]
+        rw [grayChargedSpendSlots_filter_root_length, ite_eq_right hi]
   have hempty : rootslots = ∅ := Finset.card_eq_zero.mp hcard
   rw [grayChargedRootIncrement_slotEntries_eq_sum]
   calc
@@ -413,11 +413,11 @@ lemma grayChargedTail_frozen_root_bounds_stateAt
     intro c
     by_cases hc : c.val < grayChargedSourceCount a e
     · unfold grayChargedSonRequest grayTailSonRequest
-      simp only [if_pos hc]
+      simp only [ite_eq_left hc]
       by_cases hlarge : grayChargedThreshold q e < grayTailSonBase entries i c
-      · rw [if_pos hlarge]
+      · rw [ite_eq_left hlarge]
         exact ⟨(dyadicScale_pos e).le, le_rfl⟩
-      · rw [if_neg hlarge]
+      · rw [ite_eq_right hlarge]
         constructor
         · exact grayTailSonBase_nonneg_global hentryNonneg
         · have hbase := grayChargedTail_all_frozen_base_le_stateAt
@@ -437,7 +437,7 @@ lemma grayChargedTail_frozen_root_bounds_stateAt
         exact (Nat.not_lt_of_ge (by
           simpa [grayChargedSourceCount] using Nat.le_of_not_gt hc)) hzlt
       unfold grayChargedSonRequest
-      simp only [if_neg hc, hzero]
+      simp only [ite_eq_right hc, hzero]
       norm_num
   unfold grayChargedRootRequest
   constructor
@@ -542,7 +542,7 @@ lemma grayChargedDoneWindow_of_slots_nil {q L a e n pass : Nat}
         (grayChargedSourceCount a e) (grayChargedSpendCount q a e) pass
         (grayChargedThreshold q e) (dyadicScale e) (dyadicScale a) frozen = [] := by
       simpa [grayChargedSlotsForPass] using hslots
-    rw [hslots', if_pos hmem,
+    rw [hslots', ite_eq_left hmem,
       grayChargedSpendPairs_length (q := q) (L := L) hae hpass] at hlen
     have hcountPos := grayChargedSpendCount_pos q a e
     exact (Nat.ne_of_gt hcountPos) hlen.symm

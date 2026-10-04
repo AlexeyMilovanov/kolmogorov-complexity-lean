@@ -409,7 +409,7 @@ lemma grayCharged_frozen_local_cells_incomparable
       subst hie
       exact le_refl _
   have hchainj := hcore.frozen_chain j hj
-  rw [dif_neg (show ¬ j = 0 by omega)] at hchainj
+  rw [dite_eq_right (show ¬ j = 0 by omega)] at hchainj
   simp only [grayHarvestSnapshot] at hchainj
   have hijIdx : ((grayChargedRunState q L a e n sigma A
         sm t).core.frozen[i]'hi).roundIndex <
@@ -703,10 +703,10 @@ lemma grayChargeAtRoot_of_single_owner {i owner : Nat} {G : FamilyGrayCharge}
     grayChargeAtRoot i G = if owner = i then G else [] := by
   by_cases hio : owner = i
   · subst hio
-    rw [if_pos rfl, grayChargeAtRoot, List.filter_eq_self]
+    rw [ite_eq_left rfl, grayChargeAtRoot, List.filter_eq_self]
     intro z hz
     simp [h z hz]
-  · rw [if_neg hio, grayChargeAtRoot, List.filter_eq_nil_iff]
+  · rw [ite_eq_right hio, grayChargeAtRoot, List.filter_eq_nil_iff]
     intro z hz
     simp [h z hz, hio]
 
@@ -736,9 +736,9 @@ lemma grayChargeMass_grayChargeAtRoot_transportRound
     grayChargeAtRoot_of_single_owner
       (fun _ hz => grayChargedTransportRoot_owner hz)]
   by_cases hj : (slots.get j).1.val = i
-  · rw [if_pos hj, if_pos hj]
+  · rw [ite_eq_left hj, ite_eq_left hj]
     exact grayChargedTransportRoot_mass_of_charge hdepth hvalid
-  · rw [if_neg hj, if_neg hj, grayChargeMass_nil]
+  · rw [ite_eq_right hj, ite_eq_right hj, grayChargeMass_nil]
 
 /-- **Step 6 (per-root half).**  The recursive part of the final charge splits
 over roots exactly into the local owner fibres of the accepted rounds, and is
@@ -784,12 +784,12 @@ theorem grayChargedFrozenSources_perRoot_mass_le
   intro j _
   by_cases hj : (((grayChargedRunState q L a e n sigma A sm
       (T + 1)).core.frozen[k.val]).slots.get j).1.val = i
-  · rw [if_pos hj, if_pos hj]
+  · rw [ite_eq_left hj, ite_eq_left hj]
     exact (familyGrayChargeAtB.root
       (grayChargedLocalChargeOfGoal_valid
         (grayChargedStateAt_frozen_goal (List.getElem_mem k.isLt) hae
               (hfineAll _ (List.getElem_mem k.isLt)))) j.isLt).2.2
-  · rw [if_neg hj, if_neg hj, mul_zero]
+  · rw [ite_eq_right hj, ite_eq_right hj, mul_zero]
 
 /-! ## Step 5: reducing source-reserve collision control to base geometry -/
 

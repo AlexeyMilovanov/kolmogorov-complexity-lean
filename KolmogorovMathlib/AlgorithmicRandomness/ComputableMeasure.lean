@@ -1,6 +1,6 @@
 import KolmogorovMathlib.AlgorithmicRandomness.EffectiveReal
 import KolmogorovMathlib.AlgorithmicRandomness.Measure
-import Mathlib.Data.ENNReal.Inv
+import Mathlib.Basic.ENNReal.Inv
 
 /-!
 # Computable measures on Cantor space

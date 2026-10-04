@@ -50,7 +50,7 @@ lemma grayTail_sum_sonBase_eq_filter_sum {n b : Nat}
           rw [Finset.sum_eq_single x.1.2.1]
           · simp [hx]
           · intro c _ hc
-            rw [if_neg]
+            rw [ite_eq_right]
             rintro ⟨-, h2⟩
             exact hc h2.symm
           · intro hmem
@@ -73,7 +73,7 @@ lemma grayTail_sum_sonBase_eq_filter_sum {n b : Nat}
                 fun z => getReq z.2 []).sum := by rw [hone, ih]
           _ = (((x :: xs).filter fun z => decide (z.1.1 = i)).map
                 fun z => getReq z.2 []).sum := by
-              rw [List.filter_cons, if_pos (by simp [hx])]
+              rw [List.filter_cons, ite_eq_left (by simp [hx])]
               simp
       · have hzero : (∑ c : Fin b, if x.1.1 = i ∧ x.1.2.1 = c then
             getReq x.2 [] else 0) = 0 := by
@@ -94,7 +94,7 @@ lemma grayTail_sum_sonBase_eq_filter_sum {n b : Nat}
                 fun z => getReq z.2 []).sum := by rw [hzero, ih]; ring
           _ = (((x :: xs).filter fun z => decide (z.1.1 = i)).map
                 fun z => getReq z.2 []).sum := by
-              rw [List.filter_cons, if_neg (by simp [hx])]
+              rw [List.filter_cons, ite_eq_right (by simp [hx])]
 
 /-- **The per-root source mass** is dominated by the local root caps summed
 over the owner fibres of the accepted rounds. -/
@@ -155,9 +155,9 @@ theorem grayChargedFrozenSourcesV2_perRoot_mass_le
     refine Finset.sum_le_sum ?_
     intro j _
     by_cases hj : (p.slots.get j).1.val = i
-    · rw [if_pos hj, if_pos hj]
+    · rw [ite_eq_left hj, ite_eq_left hj]
       exact (familyGrayChargeAtB.root hvalid j.isLt).2.2
-    · rw [if_neg hj, if_neg hj, mul_zero]
+    · rw [ite_eq_right hj, ite_eq_right hj, mul_zero]
   next hfine =>
     have hSp := grayChargedRunStateV2_frozen_spend_goal
       q L a e sigma A sm (T + 1) hp hfine
@@ -176,9 +176,9 @@ theorem grayChargedFrozenSourcesV2_perRoot_mass_le
     refine Finset.sum_le_sum ?_
     intro j _
     by_cases hj : (p.slots.get j).1.val = i
-    · rw [if_pos hj, if_pos hj]
+    · rw [ite_eq_left hj, ite_eq_left hj]
       exact (familyGrayChargeAtB.root hvalid j.isLt).2.2
-    · rw [if_neg hj, if_neg hj, mul_zero]
+    · rw [ite_eq_right hj, ite_eq_right hj, mul_zero]
 
 /-- After the advantage exit, every newly frozen round is a spend round:
 each frozen round either already sits in the terminal prefix or has a
@@ -470,12 +470,12 @@ lemma grayChargedRootIncrement_le_rootRequest {n b : Nat}
   intro c _
   unfold grayChargedSonRequest grayTailSonRequest
   by_cases hc : c.val < source
-  · simp only [if_pos hc]
+  · simp only [ite_eq_left hc]
     by_cases hr : threshold < grayTailSonBase entries i c
-    · rw [if_pos hr]
+    · rw [ite_eq_left hr]
       exact hcap c hc
-    · rw [if_neg hr]
-  · simp only [if_neg hc]
+    · rw [ite_eq_right hr]
+  · simp only [ite_eq_right hc]
     exact le_rfl
 
 /-- List sums as Fin-indexed sums. -/
@@ -642,15 +642,15 @@ lemma grayChargedReserveChargeV2_perRoot_mass_le_of_unit
   refine List.sum_le_sum ?_
   intro r hr
   by_cases h : r.coordinate.1.val = i
-  · simp only [h, decide_true, if_true]
+  · simp only [h, decide_true, ite_true]
     rw [grayChargeAtRoot_of_single_owner
       (fun z hz => r.cells_owner z hz)]
-    rw [if_pos h]
+    rw [ite_eq_left h]
     exact hunit r hr
   · simp only [h, decide_false]
     rw [grayChargeAtRoot_of_single_owner
       (fun z hz => r.cells_owner z hz)]
-    rw [if_neg h, grayChargeMass_nil]
+    rw [ite_eq_right h, grayChargeMass_nil]
     simp
 
 /-- At most one reserve per source son of a root (V2 records). -/

@@ -263,7 +263,7 @@ theorem completedDyadicBlockIndex_eq_two_mul_omegaPrefix
   have hbit := standardBlock_testBit_of_mem c m j x hx
   have hxList : x ∈ (L.drop start).take p := by
     unfold standardBlock at hx
-    rw [if_pos hbit, List.mem_toFinset] at hx
+    rw [ite_eq_left hbit, List.mem_toFinset] at hx
     simpa [L, p, q, start] using hx
   obtain ⟨k, hk, hkx⟩ := List.mem_iff_getElem.mp hxList
   have hklt : k < p := lt_of_lt_of_le hk (List.length_take_le p (L.drop start))
@@ -453,7 +453,7 @@ theorem standardBlock_end_le_stage_of_cover
   have hySlice : y ∈ (L.drop start).take p := List.getElem_mem hk
   have hyBlock : y ∈ standardBlock c m j x := by
     unfold standardBlock
-    rw [if_pos hbit, List.mem_toFinset]
+    rw [ite_eq_left hbit, List.mem_toFinset]
     simpa [L, start, p] using hySlice
   have hyS : y ∈ S := hcover y hyBlock
   have hprefix : S <+: L := boundedOutputStage_prefix_completed c m t

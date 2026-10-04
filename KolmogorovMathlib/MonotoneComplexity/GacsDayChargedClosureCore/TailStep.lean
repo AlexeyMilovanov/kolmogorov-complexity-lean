@@ -108,7 +108,7 @@ lemma grayChargedStep_frozen_prefix {n b : Nat}
         have hdone' :
             (grayChargedTailStep q L a e sigma A st.core m).done = true := by
           simpa [next] using hdone
-        rw [if_pos hdone', grayChargedStartSpend_frozen]
+        rw [ite_eq_left hdone', grayChargedStartSpend_frozen]
         exact hprefix
       · simpa [next, hdone] using
           grayChargedTailStep_frozen_prefix q L a e sigma A st.core m

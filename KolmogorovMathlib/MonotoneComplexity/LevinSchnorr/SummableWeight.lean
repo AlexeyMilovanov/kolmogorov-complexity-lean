@@ -90,7 +90,7 @@ lemma isLSC_summableWeight {f : ℕ → ℕ} (hf : Computable f) (d : ℕ) :
       · exact zero_le
       · exact le_rfl
     · refine le_iSup_of_le (d + f (bitStringToNat out)) ?_
-      rw [dyadicValue_summableWeightApprox, if_neg (by omega)]
+      rw [dyadicValue_summableWeightApprox, ite_eq_right (by omega)]
 
 /-- The summable weights add up to `2 ^ (-d)` times the series `∑ 2 ^ (-f n)`. -/
 lemma tsum_summableWeight {f : ℕ → ℕ} (d : ℕ) :

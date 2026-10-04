@@ -154,7 +154,7 @@ lemma two_mul_pow2Floor_le {a b : ℕ} (h : 2 * a ≤ b) : 2 * pow2Floor a ≤ p
     have h4 : Nat.size a < Nat.size b := Nat.lt_size.mpr h3
     have h5 : (2 : ℕ) ^ Nat.size a ≤ 2 ^ (Nat.size b - 1) :=
       Nat.pow_le_pow_right (by norm_num) (by omega)
-    rw [pow2Floor, pow2Floor, if_neg ha', if_neg hb]
+    rw [pow2Floor, pow2Floor, ite_eq_right ha', ite_eq_right hb]
     omega
 
 /-- A strict increase of `pow2Floor` past a doubling is itself at least a doubling: the values
@@ -340,7 +340,7 @@ lemma supVertexNum_add (term : ℕ → BitString → ℕ) (w : CantorSeq) (n : �
       = pow2Floor (prefixNum term (cantorPrefix w (n + 1))) := by
   have hpar : supParentNum term (cantorPrefix w (n + 1))
       = 2 * pow2Floor (prefixNum term (cantorPrefix w n)) := by
-    rw [supParentNum, if_neg (by simp), cantorPrefix_length, Nat.add_sub_cancel,
+    rw [supParentNum, ite_eq_right (by simp), cantorPrefix_length, Nat.add_sub_cancel,
       cantorPrefix_take w n (n + 1) (Nat.le_succ n)]
   rw [supVertexNum, hpar]
   exact Nat.sub_add_cancel (two_mul_pow2Floor_le (two_mul_prefixNum_le term w n))
@@ -348,7 +348,7 @@ lemma supVertexNum_add (term : ℕ → BitString → ℕ) (w : CantorSeq) (n : �
 /-- At the root the increment is the whole staircase. -/
 lemma supVertex_cantorPrefix_zero (term : ℕ → BitString → ℕ) (w : CantorSeq) :
     supVertex term (cantorPrefix w 0) = supFloor term (cantorPrefix w 0) := by
-  rw [supVertex, supFloor, supVertexNum, supParentNum, if_pos (by simp), Nat.sub_zero]
+  rw [supVertex, supFloor, supVertexNum, supParentNum, ite_eq_left (by simp), Nat.sub_zero]
 
 /-- The telescoping identity `d((ω)_{n+1}) = u*((ω)_{n+1}) + d((ω)_n)`. -/
 lemma supFloor_cantorPrefix_succ (term : ℕ → BitString → ℕ) (w : CantorSeq) (n : ℕ) :

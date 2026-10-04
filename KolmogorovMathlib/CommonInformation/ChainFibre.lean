@@ -165,7 +165,7 @@ theorem exists_natTable {A : Type*} [Finite A] (c1 c2 : A → ℕ)
   have hr : (List.range M)[c1 a]'(by simpa using hlt) = c1 a := by simp
   rw [hr, hg]
   have hex : ∃ b : A, c1 b = c1 a := ⟨a, rfl⟩
-  simp only [dif_pos hex]
+  simp only [dite_eq_left hex]
   exact congrArg c2 (h1 hex.choose_spec)
 
 /-! ### Computable letter-wise recodings -/

@@ -14,6 +14,13 @@ import KolmogorovMathlib.Complexity.Incompressibility
 import KolmogorovMathlib.Foundation.RSeparability
 import KolmogorovMathlib.Foundation.FixedPointFree.HighComplexityTask
 
+/-!
+# Arslanov completeness criterion
+
+Computable monotone approximations of enumerable sets, Kleene's recursion theorem with a
+parameter, and the oracle-computability plumbing behind Arslanov's completeness criterion.
+-/
+
 namespace Kolmogorov
 open Nat.Partrec (Code)
 open Kolmogorov.CodedFiniteDistribution

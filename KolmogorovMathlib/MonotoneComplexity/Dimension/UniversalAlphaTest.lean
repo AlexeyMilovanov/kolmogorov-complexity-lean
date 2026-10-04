@@ -181,7 +181,7 @@ lemma firstCand_eq_candEnum_of_ne_none {m s : ℕ} {u : BitString}
   unfold firstCand at h
   cases hb : firstCondition m s with
   | false => rw [hb] at h; simp at h
-  | true => rwa [hb, cond_true] at h
+  | true => rwa [hb, Bool.cond_true] at h
 
 /-- On the emissions of `firstCand`, the index `(unpair s).1` determines `s`. -/
 lemma firstCand_injOn_index {m s s' : ℕ} {u u' : BitString}
@@ -259,7 +259,7 @@ lemma iUnion_firstCand (m : ℕ) :
               exact Nat.find_min hex (m := Nat.find hex - 1) (by omega) (by rw [hw]; rfl)
             rw [candSeen_eq_false hmin]
             simp
-        rw [hcond, cond_true]
+        rw [hcond, Bool.cond_true]
         exact hv
       refine Set.subset_iUnion_of_subset (Nat.pair (Nat.unpair s).1 (Nat.find hex)) ?_
       rw [hfirst, hvu]

@@ -455,11 +455,11 @@ lemma wptr_invariant {a : ℕ → ℕ}
   | succ t ih =>
       by_cases htest : wtest a E N m (t + 1) (wptr a E N m t) = true
       · have hp : wptr a E N m (t + 1) = wptr a E N m t + 1 := by
-          rw [wptr, if_pos htest]
+          rw [wptr, ite_eq_left htest]
         rw [hp]
         exact (wtest_iff a E N m (t + 1) (wptr a E N m t)).1 htest
       · have hp : wptr a E N m (t + 1) = wptr a E N m t := by
-          rw [wptr, if_neg htest]
+          rw [wptr, ite_eq_right htest]
         rw [hp]
         refine le_trans (Finset.sum_le_sum fun j _ => ?_) ih
         exact wmass_antitone ha_mono E m j (Nat.le_succ t)
@@ -488,8 +488,8 @@ lemma wemit_ne_none {a : ℕ → ℕ} {E : ℕ → ℕ → Option BitString} {N 
   classical
   by_cases hc : wptr a E N m (Nat.unpair j).2 = (Nat.unpair j).1 + 1 ∧ 1 ≤ (Nat.unpair j).2 ∧
       wptr a E N m ((Nat.unpair j).2 - 1) = (Nat.unpair j).1
-  · exact ⟨by simp only [wemit, if_pos hc], hc.1, hc.2.1, hc.2.2⟩
-  · exact absurd (by simp only [wemit, if_neg hc]) h
+  · exact ⟨by simp only [wemit, ite_eq_left hc], hc.1, hc.2.1, hc.2.2⟩
+  · exact absurd (by simp only [wemit, ite_eq_right hc]) h
 
 /-- An interval of a row is emitted at most once. -/
 lemma wemit_injOn {a : ℕ → ℕ} {E : ℕ → ℕ → Option BitString} {N : ℕ → ℕ} {m j j' : ℕ}
@@ -716,7 +716,7 @@ lemma exists_le_wptr {α : ℝ} (hα : 0 < α) {a : ℕ → ℕ}
           le_trans ht₀ (wptr_mono a E N m (le_max_left _ _))
         have heq : wptr a E N m (max t₀ Tk) = k := by omega
         refine ⟨max t₀ Tk + 1, ?_⟩
-        rw [wptr, heq, if_pos (hTk (max t₀ Tk + 1) (by omega))]
+        rw [wptr, heq, ite_eq_left (hTk (max t₀ Tk + 1) (by omega))]
 
 /-- An index the pointer has passed is emitted by the trimmed enumeration. -/
 lemma exists_wemit_eq {a : ℕ → ℕ} {E : ℕ → ℕ → Option BitString} {N : ℕ → ℕ} {m k : ℕ}
@@ -738,7 +738,7 @@ lemma exists_wemit_eq {a : ℕ → ℕ} {E : ℕ → ℕ → Option BitString} {
   have h2 : wptr a E N m (Nat.find h - 1) = k := by omega
   refine ⟨Nat.pair k (Nat.find h), ?_⟩
   simp only [wemit, Nat.unpair_pair]
-  rw [if_pos ⟨h1, ht0pos, h2⟩]
+  rw [ite_eq_left ⟨h1, ht0pos, h2⟩]
 
 /-- The postponing trimming engine of SUV
 Theorem 118(a) (§5.8, p. 173): for a *lower semicomputable* exponent `α` the

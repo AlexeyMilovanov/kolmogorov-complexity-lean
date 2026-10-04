@@ -88,7 +88,7 @@ lemma getReq_staticWinMove_root_child (c : ℕ) :
   | 2 => norm_num
   | (n + 3) =>
     have h : ¬ (n + 3 < 3) := by omega
-    rw [if_neg h]
+    rw [ite_eq_right h]
     refine getReq_staticWinMove_eq_zero ?_ ?_ ?_ ?_ <;> simp
 
 /-- The total request of the root's children is at most `9 / 10`. -/
@@ -151,7 +151,7 @@ lemma rangeSupported_staticWinStrategy {b : ℕ} (hb : 3 ≤ b) :
   change getReq staticWinMove (x ++ [i]) = 0
   by_cases hx : x = []
   · subst hx
-    rw [getReq_staticWinMove_root_child i, if_neg (by omega)]
+    rw [getReq_staticWinMove_root_child i, ite_eq_right (by omega)]
   · exact getReq_staticWinMove_child_of_ne_nil hx i
 
 /-- Serving three sibling requests of `3 / 10` at the root is impossible: it would need

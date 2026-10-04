@@ -421,10 +421,10 @@ theorem extendAtoms_inv {r : BitString → ℕ} (A : TreeAllocation q s)
   rw [extendAtoms_eq]
   by_cases hx : s + 1 < x.length
   · have hr : r x = 0 := hfront x hx
-    rw [if_pos hx]
+    rw [ite_eq_left hx]
     exact ⟨by simp, List.nodup_nil, by simp [hr],
-      by rw [refineAtoms_atoms_eq_nil A hmono x hr]; exact List.Subset.refl _⟩
-  · rw [if_neg hx]
+      by rw [refineAtoms_atoms_eq_nil A hmono x hr]⟩
+  · rw [ite_eq_right hx]
     have := runAlloc_inv A hcoh hmono x [] (exactLengthPrograms (s + 1)) (root_inv A hroot)
     simpa using this
 
@@ -441,11 +441,11 @@ theorem extendAtoms_child {r : BitString → ℕ} (A : TreeAllocation q s)
     (hmono : ∀ x, 2 * q x ≤ r x) (x : BitString) (b : Bool) :
     A.extendAtoms q r s (x ++ [b]) ⊆ A.extendAtoms q r s x := by
   by_cases hx : s + 1 < (x ++ [b]).length
-  · rw [extendAtoms_eq, if_pos hx]
+  · rw [extendAtoms_eq, ite_eq_left hx]
     exact List.nil_subset _
   · have hlen : (x ++ [b]).length = x.length + 1 := by simp
     have hx' : ¬ s + 1 < x.length := by omega
-    rw [extendAtoms_eq, if_neg hx, extendAtoms_eq r A x, if_neg hx', runAlloc_append,
+    rw [extendAtoms_eq, ite_eq_right hx, extendAtoms_eq r A x, ite_eq_right hx', runAlloc_append,
       List.nil_append]
     refine stepAlloc_subset A x b _ ?_
     simpa using runAlloc_inv A hcoh hmono x [] (exactLengthPrograms (s + 1)) (root_inv A hroot)
@@ -458,13 +458,13 @@ theorem extendAtoms_disjoint {r : BitString → ℕ} (A : TreeAllocation q s)
     (hp : p ∈ A.extendAtoms q r s (x ++ [false])) : p ∉ A.extendAtoms q r s (x ++ [true]) := by
   intro hp'
   by_cases hx : s + 1 < (x ++ [false]).length
-  · rw [extendAtoms_eq, if_pos hx] at hp
+  · rw [extendAtoms_eq, ite_eq_left hx] at hp
     exact List.not_mem_nil hp
   · have hlen : (x ++ [false]).length = x.length + 1 := by simp
     have hlen' : (x ++ [true]).length = x.length + 1 := by simp
     have hx' : ¬ s + 1 < (x ++ [true]).length := by omega
-    rw [extendAtoms_eq, if_neg hx, runAlloc_append, List.nil_append] at hp
-    rw [extendAtoms_eq, if_neg hx', runAlloc_append, List.nil_append] at hp'
+    rw [extendAtoms_eq, ite_eq_right hx, runAlloc_append, List.nil_append] at hp
+    rw [extendAtoms_eq, ite_eq_right hx', runAlloc_append, List.nil_append] at hp'
     refine stepAlloc_disjoint A x _ ?_ p hp hp'
     simpa using runAlloc_inv A hcoh hmono x [] (exactLengthPrograms (s + 1)) (root_inv A hroot)
 

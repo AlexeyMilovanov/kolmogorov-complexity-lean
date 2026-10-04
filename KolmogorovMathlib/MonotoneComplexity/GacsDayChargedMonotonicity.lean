@@ -162,7 +162,7 @@ lemma grayChargedDisplayedMove_step_mono_of_startSpend
         = false := by
     rw [hstep]
     simp only [grayChargedStartSpend]
-    rw [if_neg (by simpa using hstartEmpty)]
+    rw [ite_eq_right (by simpa using hstartEmpty)]
     simpa using hstartEmpty
   have hstartListNe :
       grayChargedSlotsForPass q a e 0 next.frozen ≠ [] := by
@@ -262,7 +262,7 @@ lemma grayChargedDisplayedMove_step_mono_advantage
                   grayChargedStartSpend q L a e A next (sm t)
                 else { phase := .advantage, core := next }) =
                   grayChargedStartSpend q L a e A next (sm t)
-              rw [if_pos hnextDone]
+              rw [ite_eq_left hnextDone]
             exact grayChargedDisplayedMove_step_mono_of_startSpend hroom hB hRung hsm
               (by simpa using hslots)
               (by simp [hnextFrozen, grayTailFrozenEntries_append_one, p])
