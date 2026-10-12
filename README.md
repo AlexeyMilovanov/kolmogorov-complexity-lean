@@ -1,6 +1,6 @@
 # Formalized Algorithmic Information Theory in Lean 4
 
-This repository contains a Lean 4 formalization of algorithmic information theory: Kolmogorov complexity, prefix complexity, universal machines, algorithmic probability, and algorithmic statistics for finite binary strings, including profiles restricted to structured families of finite-set descriptions, together with Shannon entropy and its relation to complexity, information inequalities, multisource algorithmic information theory, Solomonoff induction, and stopping complexity. The main background reference is Alexander Shen, Vladimir A. Uspensky, and Nikolai Vereshchagin, [*Kolmogorov Complexity and Algorithmic Randomness*](https://www.lirmm.fr/~ashen/kolmbook-eng-scan.pdf). The algorithmic-statistics layer is developed with Nikolai Vereshchagin and Alexander Shen, [*Algorithmic statistics: forty years later*](https://arxiv.org/abs/1607.08077), as a central guide.
+This repository contains a Lean 4 formalization of algorithmic information theory: Kolmogorov complexity, prefix complexity, universal machines, algorithmic probability, and algorithmic statistics for finite binary strings, including profiles restricted to structured families of finite-set descriptions, together with Shannon entropy and its relation to complexity, information inequalities, multisource algorithmic information theory, Solomonoff induction, stopping complexity, and the merging of strong sufficient statistics. The main background reference is Alexander Shen, Vladimir A. Uspensky, and Nikolai Vereshchagin, [*Kolmogorov Complexity and Algorithmic Randomness*](https://www.lirmm.fr/~ashen/kolmbook-eng-scan.pdf). The algorithmic-statistics layer is developed with Nikolai Vereshchagin and Alexander Shen, [*Algorithmic statistics: forty years later*](https://arxiv.org/abs/1607.08077), as a central guide.
 
 The development is based on Mathlib's computability infrastructure. Decompressors are represented as partial functions, finite objects are represented by bitstrings, and most theorem statements are phrased up to the additive or logarithmic slack terms natural in Kolmogorov-complexity arguments.
 
@@ -138,6 +138,21 @@ prescribed profile. Its endpoints are `Kolmogorov.prop_add_noise`,
 `Kolmogorov.thm_separation`, `Kolmogorov.thm_card`, `Kolmogorov.thm_uppest`,
 `Kolmogorov.lemma_lch`, `Kolmogorov.t1_strange_string` and `Kolmogorov.prop_upward`, in
 `KolmogorovMathlib.AlgorithmicStatistics.StrongModels`.
+
+The strong-merging layer answers the questions of Section 7.9 of the Vereshchagin-Shen survey
+about two strong sufficient statistics of the same string. `Kolmogorov.StrongMerging.exists_sqrt_merger`
+and `Kolmogorov.StrongMerging.exists_merger_tradeoff` (`KolmogorovMathlib.StrongMerging.Statements`)
+construct a common model whose sufficiency error, total reduction costs from both statistics and mass
+loss are `O(sqrt(n (ε + log n)))`, and
+`Kolmogorov.StrongMerging.exists_strong_pair_without_common_model` shows by a moving Hamming sphere
+and small-set expansion that the square-root order is sharp.
+`Kolmogorov.StrongMerging.not_exists_strongRobustMin_total_bound` is the negative answer to the
+one-sided Question 1 of Section 7.9, and `Kolmogorov.StrongMerging.setTotalC_le_of_strongRobustMin`
+recovers a positive answer once the minimality window is enlarged to `e + O(sqrt(n H))`.
+`KolmogorovMathlib.StrongMerging.StatementsExtra` adds the uniform partition selectors, the
+extractability envelope, the mutual-information refinement and the sublinear corollaries. Total
+conditional complexity is always taken at the canonical total interpreter `universalDecompressor`,
+and every constant is an explicit existential quantified after the optimal machine.
 
 The restricted-description layer formalizes the framework of Section 6 of the
 Vereshchagin-Shen survey. A `DescriptionFamily` packages an effective
@@ -309,7 +324,7 @@ This branch is pinned to Lean `v4.34.1` and the matching Mathlib ecosystem.
 
 `main` is the development branch and is pinned to Lean `v4.34.1` together with
 the matching Mathlib ecosystem; the historical `lean-4.28-aristotle` and
-`codex/lean28-polish` branches keep the last Lean `v4.28.0` state of the library.
+`lean-4.28-stopping` branches keep earlier Lean `v4.28.0` states of the library.
 
 ## Project Layout
 
@@ -337,6 +352,10 @@ KolmogorovMathlib/
 │   ├── BoundedLists/            # Lists of strings of bounded complexity, Section 4 of the survey
 │   └── StrongModels/            # Total conditional complexity and strong models, Section 7 of the survey
 ├── CommonInformation/           # Common information, extraction obstructions, incidence regions
+├── StrongMerging/               # Merging two strong sufficient statistics: the square-root merger,
+│   ├── Coding/                  #   its Hamming-sphere obstruction and Question 1 of Section 7.9
+│   ├── Upper/
+│   └── Lower/
 ├── Restricted/                  # Description families and restricted profiles from Section 6
 │   ├── FamilyCurve/             # Effective multiscale construction and general curve realization
 │   └── Examples/                # Cylinders, masks, and Hamming-ball families
@@ -364,13 +383,3 @@ that turned out to be false, and is deliberately not imported by
 The Lake package is named `kolmogorov_complexity`; the Lean library targets are
 `KolmogorovMathlib` and `KolmogorovCounterexamples`. The Mathlib dependency is pinned in `lakefile.toml` and
 `lake-manifest.json` to the Lean `v4.34.1` ecosystem.
-
-## Attribution
-
-This branch includes proofs edited by
-[Aristotle](https://aristotle.harmonic.fun). To cite Aristotle, tag
-`@Aristotle-Harmonic` on GitHub pull requests or issues, or use:
-
-```text
-Co-authored-by: Aristotle (Harmonic) <aristotle-harmonic@harmonic.fun>
-```

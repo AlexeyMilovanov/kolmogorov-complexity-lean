@@ -92,6 +92,7 @@ import KolmogorovMathlib.Restricted.MinimalRestrictedDescriptions
 import KolmogorovMathlib.Solomonoff.Main
 import KolmogorovMathlib.StoppingComplexity.LengthBounds
 import KolmogorovMathlib.StoppingComplexity.MainTheorem
+import KolmogorovMathlib.StrongMerging.StatementsExtra
 
 /-!
 # Algorithmic information theory

@@ -45,6 +45,7 @@ COMPLETE = [
     'KolmogorovMathlib/Restricted',
     'KolmogorovMathlib/Solomonoff',
     'KolmogorovMathlib/StoppingComplexity',
+    'KolmogorovMathlib/StrongMerging',
 ]
 
 
