@@ -21,7 +21,8 @@ The development is based on Mathlib's computability infrastructure. Decompressor
 - **Incompleteness:** Chaitin-style and
   [Kritchman-Raz-style results](https://arxiv.org/abs/1011.4974), using abstract
   formal-system interfaces rather than a concrete arithmetic system.
-- **Further developments:** Solomonoff induction and stopping complexity.
+- **Further developments:** Solomonoff induction, Solomonoff prediction of selected
+  bits and stopping complexity.
 - **New strong-merging results:** the square-root merger of two strong sufficient
   statistics, its matching obstruction and the questions of survey Section 7.9.
 

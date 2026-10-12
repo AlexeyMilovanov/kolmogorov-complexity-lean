@@ -81,6 +81,24 @@ Kullback-Leibler divergences `Kolmogorov.solomonoff_tsum_stepKL_le_complexity` b
 `Kolmogorov.solomonoff_ae_tendsto` in the same module shows that the predictions converge to
 the true conditional probabilities `mu`-almost surely.
 
+The selected-bits layer, `KolmogorovMathlib/Solomonoff/SelectedBits/`, answers the question of
+Bauwens and Kuznetsov (*Solomonoff induction of selected bits*, 2026) about the speed of
+convergence of the normalized predictor `M(xb) / (M(x0) + M(x1))` at the forced positions of a
+computable prefix tree: positions at which the sibling of the observed bit leaves the tree.
+`Kolmogorov.SelectedBits.power_loss_le_index_complexity`
+(`KolmogorovMathlib.Solomonoff.SelectedBits.Statements`) bounds the sum of the `gamma`-th powers
+of the normalized errors at the forced positions of any branch by `A (K(e) + C)`, for every fixed
+real `gamma > 1`, where `e` is any index deciding the tree and `K(e)` its prefix complexity; this
+improves the previously known exponential dependence on the program length to a linear one.
+`Kolmogorov.SelectedBits.square_loss_le_index_complexity` gives the bound `K(e) + C` for
+`gamma = 2`, `Kolmogorov.SelectedBits.power_loss_summable_le_index_complexity` the summability
+of the whole series, and `Kolmogorov.SelectedBits.power_loss_le_treeComplexity` the same bound in
+terms of the prefix complexity of the tree. The proof is an antichain-packing argument: a gain
+multiplies the mass of a word at every forced position, the amplified finite-stage approximations
+of `M` are packed into an enumerable tree semimeasure, and the uniform mixture over all decider
+indices, `Kolmogorov.exists_const_two_pow_KPNat_mul_le_universal_of_uniform_prefixFree`
+(`KolmogorovMathlib.Solomonoff.Domination.UniformFamily`), is dominated by `M`.
+
 The stopping-complexity part, `KolmogorovMathlib/StoppingComplexity/`, originates from the
 public `lean-4.28-stopping` branch. It formalizes randomized stopping machines, which read an
 input and fair random bits and may halt, the monotone stopping complexity `K_stop`
@@ -299,6 +317,7 @@ KolmogorovMathlib/
 │   ├── FamilyCurve/             # Effective multiscale construction and general curve realization
 │   └── Examples/                # Cylinders, masks, and Hamming-ball families
 ├── Solomonoff/                  # The universal predictor, domination and Solomonoff's convergence theorem
+│   └── SelectedBits/            # Prediction of selected bits: linear loss bounds at the forced positions of a computable tree
 ├── StoppingComplexity/          # Randomized stopping machines and the gap K_stop - (-log M_stop)
 ├── Deprecated/                  # `@[deprecated] alias`es for the old names, generated from the rename table
 └── Extras.lean                  # Imports side modules outside the main development line, keeping them in the build

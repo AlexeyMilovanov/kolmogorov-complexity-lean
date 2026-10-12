@@ -79,8 +79,10 @@ theorem exists_pos_mul_cantorMass_le_universal (μ : Measure CantorSeq) [IsProba
     rw [div_eq_mul_inv, mul_comm] at h_div
     exact h_div
 
-/-- The Kraft sum of the prefix-complexity weights of all numerical indices is at most one. -/
-private lemma tsum_complexityWeight_KPNat_le_one (U : Map)
+/-- **Kraft's inequality over numerical indices.** For an optimal prefix decompressor `U`, the
+prefix-complexity weights of all numerical indices sum to at most one:
+`∑' e, 2^{-K(e)} ≤ 1`, where `K(e) = KPNat U e`. -/
+lemma tsum_complexityWeight_KPNat_le_one (U : Map)
     (hU : IsOptimalPrefixConditional U) :
     (∑' e : ℕ, complexityWeight (KPNat U e)) ≤ 1 := by
   calc
@@ -193,10 +195,35 @@ private lemma isUniformlyLSC_two_pow_neg_of_upperSemicomputable {f : ℕ → ℕ
     exact (Computable.cond hcond hpow (Computable.const 0)).of_eq
       (fun p => by rw [Bool.cond_decide])
 
-/-- **Product closure of uniform lower-semicomputable tree families.** Running both stage
-approximations at the half-stage and multiplying the numerators makes the stage-`S` dyadic value
-the product of the two half-stage values, which converges to the product of the limits. -/
-private lemma IsUniformlyLowerSemicomputableTreeFamily.mul {f g : ℕ → BitString → ℝ≥0∞}
+/-- **The prefix-complexity weights form a uniform family.** For an optimal prefix decompressor
+`U`, the weights `2^{-K(e)} = complexityWeight (KPNat U e)`, read as a tree family that is constant
+in the string, are lower semicomputable uniformly in the index `e`; here `K(e) = KPNat U e` is
+finite and upper semicomputable (`isUpperSemicomputableNat_KPNat_toNat`). -/
+theorem isUniformlyLSC_complexityWeight_KPNat (U : Map) (hU : IsOptimalPrefixConditional U) :
+    IsUniformlyLowerSemicomputableTreeFamily
+      (fun e (_ : BitString) => complexityWeight (KPNat U e)) := by
+  have hKtop : ∀ e, KPNat U e ≠ ⊤ := by
+    intro e
+    obtain ⟨d, hd⟩ := KPPlain_le_length_add_log U hU
+    have h_ne : ((natToBitString e).length +
+        2 * (Nat.bits (natToBitString e).length).length + (d : ENat) : ENat) ≠ ⊤ :=
+      ENat.natCast_ne_top _
+    rw [KPNat_def]
+    exact ne_top_of_le_ne_top h_ne (hd (natToBitString e))
+  have hbridge := isUniformlyLSC_two_pow_neg_of_upperSemicomputable
+    (isUpperSemicomputableNat_KPNat_toNat U hU)
+  have heq : (fun e (_ : BitString) => (2 : ℝ≥0∞)⁻¹ ^ (KPNat U e).toNat)
+      = (fun e (_ : BitString) => complexityWeight (KPNat U e)) := by
+    funext e _
+    rw [← complexityWeight_coe, ENat.natCast_toNat (hKtop e)]
+  rwa [heq] at hbridge
+
+/-- **Product closure of uniform lower-semicomputable tree families.** The pointwise product
+`f e x * g e x` of two tree families that are lower semicomputable uniformly in the index is again
+uniformly lower semicomputable. Running both stage approximations at the half-stage and
+multiplying the numerators makes the stage-`S` dyadic value the product of the two half-stage
+values, which converges to the product of the limits. -/
+lemma IsUniformlyLowerSemicomputableTreeFamily.mul {f g : ℕ → BitString → ℝ≥0∞}
     (hf : IsUniformlyLowerSemicomputableTreeFamily f)
     (hg : IsUniformlyLowerSemicomputableTreeFamily g) :
     IsUniformlyLowerSemicomputableTreeFamily (fun e x => f e x * g e x) := by
@@ -265,12 +292,13 @@ private lemma IsUniformlyLowerSemicomputableTreeFamily.mul {f g : ℕ → BitStr
       cpow.comp hsub
     exact cmul.comp ((cmul.comp (hqf'.pair hqg')).pair hδpow)
 
-/-- **Lower semicomputability of the root-normalised countable sum.** Fold each component's weight
-into the fixed dyadic mixture and override the empty string with the constant `1`; the override is
-a computable branch, constant in the stage. -/
-private lemma isLSC_rootOne_tsum_of_uniform (g : ℕ → BitString → ℝ≥0∞)
+/-- **Lower semicomputability of a countable sum of a uniform family.** The countable sum
+`x ↦ ∑' e, g e x` of a tree family that is lower semicomputable uniformly in its index is lower
+semicomputable. Folding the factor `2^{e+1}` into the numerators of the `e`-th component cancels
+the weight `2^{-(e+1)}` of the dyadic mixture `isLSC_unaryMixture_dyadicWeight_of_uniform`. -/
+theorem isLSC_tsum_of_uniform {g : ℕ → BitString → ℝ≥0∞}
     (hg : IsUniformlyLowerSemicomputableTreeFamily g) :
-    IsLSC (fun x (_ : BitString) => if x = [] then 1 else ∑' e, g e x) := by
+    IsLSC (fun x (_ : BitString) => ∑' e, g e x) := by
   obtain ⟨q, hq_mono, hq_sup, hq_comp⟩ := hg
   have hcast : ∀ i : ℕ, ((2 ^ (i + 1) : ℕ) : ℝ≥0∞) = (2 : ℝ≥0∞) ^ (i + 1) := by
     intro i; push_cast; ring
@@ -301,20 +329,26 @@ private lemma isLSC_rootOne_tsum_of_uniform (g : ℕ → BitString → ℝ≥0�
     have hpow : Computable (fun p : ℕ × ℕ × BitString × BitString => (2 ^ (p.1 + 1) : ℕ)) :=
       (primrec_two_pow_aux.comp (Primrec.succ.comp Primrec.fst)).to_comp
     exact Primrec.nat_mul.to_comp.comp hA hpow
-  have hA : IsLSC (fun out (_ : BitString) => ∑' e, g e out) := by
-    have engine := isLSC_unaryMixture_dyadicWeight_of_uniform
-      (fun i out (_ : BitString) => (2 : ℝ≥0∞) ^ (i + 1) * g i out)
-      (fun i s out (_ : BitString) => q i s out * 2 ^ (i + 1)) ha_mono ha_sup ha_comp
-    have hfun : (fun out (_ : BitString) => ∑' e, g e out)
-        = (fun out (_ : BitString) =>
-            ∑' i, dyadicWeight i * ((2 : ℝ≥0∞) ^ (i + 1) * g i out)) := by
-      funext out _
-      refine tsum_congr fun i => ?_
-      rw [dyadicWeight, ← mul_assoc, ← mul_pow,
-        ENNReal.inv_mul_cancel two_ne_zero ENNReal.ofNat_ne_top, one_pow, one_mul]
-    rw [hfun]
-    exact engine
-  obtain ⟨A, hA_mono, hA_sup, hA_comp⟩ := hA
+  have engine := isLSC_unaryMixture_dyadicWeight_of_uniform
+    (fun i out (_ : BitString) => (2 : ℝ≥0∞) ^ (i + 1) * g i out)
+    (fun i s out (_ : BitString) => q i s out * 2 ^ (i + 1)) ha_mono ha_sup ha_comp
+  have hfun : (fun out (_ : BitString) => ∑' e, g e out)
+      = (fun out (_ : BitString) =>
+          ∑' i, dyadicWeight i * ((2 : ℝ≥0∞) ^ (i + 1) * g i out)) := by
+    funext out _
+    refine tsum_congr fun i => ?_
+    rw [dyadicWeight, ← mul_assoc, ← mul_pow,
+      ENNReal.inv_mul_cancel two_ne_zero ENNReal.ofNat_ne_top, one_pow, one_mul]
+  rw [hfun]
+  exact engine
+
+/-- **Lower semicomputability of the root-normalised countable sum.** Override the empty string in
+the countable sum of `isLSC_tsum_of_uniform` with the constant `1`; the override is a computable
+branch, constant in the stage. -/
+private lemma isLSC_rootOne_tsum_of_uniform (g : ℕ → BitString → ℝ≥0∞)
+    (hg : IsUniformlyLowerSemicomputableTreeFamily g) :
+    IsLSC (fun x (_ : BitString) => if x = [] then 1 else ∑' e, g e x) := by
+  obtain ⟨A, hA_mono, hA_sup, hA_comp⟩ := isLSC_tsum_of_uniform hg
   refine ⟨fun s x _ => if x = [] then 2 ^ s else A s x [], ?_, ?_, ?_⟩
   · intro s x _
     by_cases hx : x = []
@@ -341,24 +375,7 @@ private lemma KPNatWeightedTreeMixture_isLSC (U : Map)
     (hU : IsOptimalPrefixConditional U) (ν : ℕ → BitString → ℝ≥0∞)
     (hν_lsc : IsUniformlyLowerSemicomputableTreeFamily ν) :
     IsLSC (fun x _ => KPNatWeightedTreeMixture U ν x) := by
-  have hKtop : ∀ e, KPNat U e ≠ ⊤ := by
-    intro e
-    obtain ⟨d, hd⟩ := KPPlain_le_length_add_log U hU
-    have h_ne : ((natToBitString e).length +
-        2 * (Nat.bits (natToBitString e).length).length + (d : ENat) : ENat) ≠ ⊤ :=
-      ENat.natCast_ne_top _
-    rw [KPNat_def]
-    exact ne_top_of_le_ne_top h_ne (hd (natToBitString e))
-  have hW : IsUniformlyLowerSemicomputableTreeFamily
-      (fun e (_ : BitString) => complexityWeight (KPNat U e)) := by
-    have hbridge := isUniformlyLSC_two_pow_neg_of_upperSemicomputable
-      (isUpperSemicomputableNat_KPNat_toNat U hU)
-    have heq : (fun e (_ : BitString) => (2 : ℝ≥0∞)⁻¹ ^ (KPNat U e).toNat)
-        = (fun e (_ : BitString) => complexityWeight (KPNat U e)) := by
-      funext e _
-      rw [← complexityWeight_coe, ENat.natCast_toNat (hKtop e)]
-    rwa [heq] at hbridge
-  have hprod := hW.mul hν_lsc
+  have hprod := (isUniformlyLSC_complexityWeight_KPNat U hU).mul hν_lsc
   have hlsc := isLSC_rootOne_tsum_of_uniform _ hprod
   have hfun : (fun x (_ : BitString) => KPNatWeightedTreeMixture U ν x)
       = (fun x (_ : BitString) =>
@@ -379,9 +396,12 @@ private lemma KPNatWeightedTreeMixture_dominates_component (U : Map)
   · rw [KPNatWeightedTreeMixture, ite_eq_right hx]
     exact ENNReal.le_tsum (f := fun e => complexityWeight (KPNat U e) * ν e x) e
 
-/-- Applying maximality once to the weighted mixture turns its finite multiplicative loss into a
-single additive constant in every prefix-complexity exponent. -/
-private lemma exists_const_of_KPNat_weighted_continuousSemimeasure (U : Map)
+/-- **One constant from one dominating semimeasure.** If a single lower-semicomputable continuous
+semimeasure `ξ` dominates every complexity-weighted component, `2^{-K(e)} · ν e x ≤ ξ x`, then one
+constant `C`, quantified before the index, gives `2^{-(K(e)+C)} · ν e x ≤ M(x)` for every index
+`e` and every string `x`, where `K(e) = KPNat U e`: maximality of `M` is applied once, to `ξ`,
+and its finite multiplicative loss becomes the additive constant `C` in every exponent. -/
+lemma exists_const_of_KPNat_weighted_continuousSemimeasure (U : Map)
     (hU : IsOptimalPrefixConditional U) (ν : ℕ → BitString → ℝ≥0∞)
     (ξ : BitString → ℝ≥0∞) (hξ : IsLowerSemicomputableContinuousSemimeasure ξ)
     (hcomponent : ∀ e x, complexityWeight (KPNat U e) * ν e x ≤ ξ x) :

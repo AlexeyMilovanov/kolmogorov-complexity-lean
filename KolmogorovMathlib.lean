@@ -90,6 +90,7 @@ import KolmogorovMathlib.Restricted.Examples.HammingCurve
 import KolmogorovMathlib.Restricted.Examples.Masks
 import KolmogorovMathlib.Restricted.MinimalRestrictedDescriptions
 import KolmogorovMathlib.Solomonoff.Main
+import KolmogorovMathlib.Solomonoff.SelectedBits.Statements
 import KolmogorovMathlib.StoppingComplexity.LengthBounds
 import KolmogorovMathlib.StoppingComplexity.MainTheorem
 import KolmogorovMathlib.StrongMerging.StatementsExtra
