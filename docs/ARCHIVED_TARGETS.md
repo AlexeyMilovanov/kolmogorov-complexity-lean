@@ -13,8 +13,8 @@ A second batch, eleven items of Chapters 10 and 12, was archived on 2026-09-29 f
 reasons: results the book cites without proof, and exercises that need machinery outside
 its scope.  It is the last section below.
 
-Problem 291 was archived separately on 2026-10-01 after its core uniformity lemma resisted
-the proof campaign; its complete Lean source is preserved in the final section.
+Problem 291 is not formalised in this library; its complete Lean statement is
+preserved in the final section.
 
 ---
 
@@ -395,7 +395,7 @@ theorem exercise351_curve_complexity_needed (U : Map) (hU : IsOptimalPrefixCondi
 
 ## ch14-exercise-352
 
-No algorithm finds the boundary of `P_x` within `O(log l(x))`. The book itself points elsewhere for the real result: "Stronger results on non-computability of the boundary of P_x can be found in [203]". Pure reader exercise, and the most bureaucracy-generating item in the campaign.
+No algorithm finds the boundary of `P_x` within `O(log l(x))`. The book itself points elsewhere for the real result: "Stronger results on non-computability of the boundary of P_x can be found in [203]". This item is not formalised in the library.
 
 Was in `KolmogorovMathlib/SUVStatements/Chapter14.lean`.
 
