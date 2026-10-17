@@ -79,10 +79,8 @@ step_cut_quality_selftest()      { python3 -B scripts/tests/cut_quality_selftest
 step_cut_quality_calibration()   { python3 -B scripts/tests/cut_quality_calibration.py; }
 step_import_hygiene_selftest()   { python3 -B scripts/tests/import_hygiene_selftest.py; }
 
-# The statement freeze, in the invocation documented in CONTRIBUTING.md: the
-# rename table, the definition-merge table and the phase-24 re-cut table are
-# all required — without the last two the check reports the recorded deletions
-# and restatements as problems and fails.
+# The statement freeze needs all three compatibility tables: renames,
+# definition merges and recorded declaration restatements or deletions.
 step_header_freeze() {
   if [[ -z "${BASE_REV:-}" ]]; then
     echo "BASE_REV is unset: skipped (CI runs this step on pull requests only)"

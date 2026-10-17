@@ -1,17 +1,16 @@
 # Archived SUV targets
 
-These book items were deliberately **not** formalised.  Each was reviewed against the
-book text on 2026-09-06 and judged to be a reader exercise or a restatement of material
-the library already carries, rather than a result whose formalisation adds anything.
-The Lean statements are preserved verbatim below, so any of them can be restored.  The
-items that *are* formalised are the ones the book itself attributes to a publication or
-presents as a theorem of the subject; they live with the rest of their topic, and
-`docs/SUV_COVERAGE.md` says where.  The module paths quoted under the individual entries
-refer to a statements-only directory that the library no longer has.
+These book items are **not** formalised in the library. The catalogue includes
+reader exercises, restatements of other results and results requiring additional
+machinery. [SUV_COVERAGE.md](SUV_COVERAGE.md) records the formalised items and
+their modules.
 
-A second batch, eleven items of Chapters 10 and 12, was archived on 2026-09-29 for other
-reasons: results the book cites without proof, and exercises that need machinery outside
-its scope.  It is the last section below.
+The Lean blocks below preserve the statements and their supporting definitions.
+They are not compiled as part of the library, and their `sorry` placeholders are
+not proofs. The historical module paths identify the original locations.
+
+The Chapters 10 and 12 section includes results cited without proof in the book
+and exercises requiring machinery outside its scope.
 
 Problem 291 is not formalised in this library; its complete Lean statement is
 preserved in the final section.
@@ -77,7 +76,7 @@ theorem exercise10_query_bound (U : Map) (hU : isOptimalConditional U)
 
 ## ch02-exercise-20
 
-The coefficient 2 in Theorem 16 cannot be lowered to 1 but any 1+eps works. A variation on Theorem 16 whose content is the convergence of a series; the most expensive item of the whole effort (14 attempts) for the least content.
+The coefficient 2 in Theorem 16 cannot be lowered to 1 but any 1+eps works. This variation on Theorem 16 depends on the convergence of a series.
 
 Was in `KolmogorovMathlib/SUVStatements/Chapter02.lean`.
 
@@ -557,22 +556,16 @@ theorem exercise367_slope_minus_one_segment (U : Map) (hU : IsOptimalPrefixCondi
 
 ---
 
-## 2026-09-29: chapters 10 and 12
+## Chapters 10 and 12
 
-Eleven items of Chapters 10 and 12, archived on 2026-09-29 by the owner's decision.  An axiom
-sweep of the chapter statements (frozen at `22b2df6`) sorted the open items by where their
-difficulty comes from.  Four are results the book **cites without proof** — formalising them
-would mean reproducing the cited papers, not the book — and a fifth, Problem 304, had one of
-them as its only proof route.  The other six are exercises that need **machinery outside the
-book's scope** (a model-theoretic transfer between fields, a polyhedral computation in
-`ℝ^15`, non-stochastic strings) or whose statement the book leaves to the reader.  No other
-declaration of the library used any of them.
+Four of these eleven items are results the book **cites without proof**;
+formalising them would require the cited papers. Problem 304 depends on one of
+those results. The other six require **machinery outside the book's scope**
+(a model-theoretic transfer between fields, a polyhedral computation in `ℝ^15`,
+non-stochastic strings) or have statements left to the reader.
 
-Each block below is the file text verbatim — docstrings, section context and bodies, with the
-private helpers and the definitions that served only the item — so it can be restored by
-pasting it back at the place named.  Bodies that were `sorry` are `sorry` here as well.  The
-deleted declarations are recorded as `deleted` rows in `docs/history/phase24_recut.tsv`, the
-table the statement-freeze check reads.
+The blocks preserve the statements together with their dedicated definitions and
+helpers. They are not exported by the library and include unproved `sorry` bodies.
 
 ### ch10-theorem-220
 
@@ -1337,7 +1330,7 @@ theorem cover_iff_cond_complexity_inequality (D : Map) (hD : isOptimalConditiona
   sorry
 ```
 
-## 2026-10-01: SUV Problem 291
+## SUV Problem 291
 
 Problem 291, p. 337: for the XOR generator `e`, the multiple `t · e` belongs to the
 three-variable entropy region exactly when `t = log₂ k` for a positive integer `k`;

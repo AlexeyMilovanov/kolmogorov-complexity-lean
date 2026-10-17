@@ -1,8 +1,8 @@
 #!/usr/bin/env python3
 """Find proof-history prose in comments and docstrings.
 
-A docstring describes what a statement means, not how its proof was found
-(CONTRIBUTING, "Documentation").  This tool lists the comment lines that still
+A docstring describes what a statement means, not how its proof was found.
+This tool lists the comment lines that still
 narrate the development process, so that they can be rewritten.  Only text
 inside `--` line comments and `/- ... -/` block comments is searched, so an
 identifier such as `S1` or a variable named `s1` in a proof is never reported.

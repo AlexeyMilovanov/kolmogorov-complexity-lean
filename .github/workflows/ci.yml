@@ -1,44 +1,7 @@
 # Continuous integration for the Kolmogorov complexity formalisation.
 #
-# Every step below is one named step of `scripts/ci_local.sh`, and that script
-# was run end to end on a Linux machine (8 cores, network access) against this
-# repository — `bash scripts/ci_local.sh`, which finished
-# "CI REHEARSAL OK".  Verified there:
-# The rehearsal was run while the tree was pinned to Lean v4.28.0; the pins
-# have since moved to v4.33.1 and every step below is unchanged.
-#
-#   * `lake exe cache get` succeeds for the Mathlib revision pinned in
-#     `lake-manifest.json` (Azure cache, oleans decompress);
-#   * `lake build` is green (4,402 jobs) and `scripts/audit.sh` ends in
-#     "AUDIT OK" — but it has to be invoked as `bash scripts/audit.sh`: the
-#     script is tracked mode 100644, so on a fresh checkout calling it
-#     directly fails with "Permission denied" (the previous version of this
-#     workflow did call it directly and would have failed here);
-#   * the three test scripts pass (33 header cases, 30 cut-quality cases,
-#     calibration 10/10);
-#   * the declaration-header freeze is green in the invocation used here, the
-#     one documented in CONTRIBUTING.md.  With only `--renames`, as this
-#     workflow used to invoke it, it reports 86 problems — every deliberate
-#     phase-24 deletion and restatement — so it needs `--definition-merges`
-#     and `--recut` as well;
-#   * the documentation really builds: about 9,900 jobs, roughly 40 minutes
-#     from a warm olean cache, ~800 MB of HTML in `docbuild/.lake/build/doc`
-#     (`:docs` covers the transitive imports, so Mathlib's documentation is
-#     generated too).  `doc-gen4` is pinned to the toolchain tag in
-#     `docbuild/lakefile.toml`; its `main` branch carries a newer
-#     lean-toolchain and `lake update doc-gen4` would switch the side package
-#     to it and then fail.  The update step also ends by running Mathlib's
-#     post-update hook, which can fail while the resolution itself succeeded,
-#     so `ci_local.sh` runs it only when `docbuild/lake-manifest.json` is
-#     missing and then checks for that file.
-#
-# What still cannot be verified from outside GitHub: the elan installation
-# step, `actions/cache` save and restore and its keys, `actions/upload-artifact`
-# (the documentation artifact is ~800 MB), and whether a standard runner
-# (2 cores, ~14 GB of free disk) is large enough: a cold build takes hours on
-# 8 cores here and the documentation build needs both the Mathlib oleans and
-# that HTML on disk, so either job may need a bigger runner or a warm cache to
-# finish inside its timeout.
+# Each check calls a named step of `scripts/ci_local.sh`, which also runs
+# the same checks locally.
 name: CI
 
 on:
@@ -111,10 +74,8 @@ jobs:
 
       - name: Declaration-header freeze check
         # Only meaningful on a pull request, where there is a base commit to
-        # compare against.  The invocation is the one in CONTRIBUTING.md: the
-        # definition-merge and re-cut tables are not optional extras, without
-        # them every recorded deletion and restatement is reported as a
-        # problem.
+        # compare against. The local runner supplies the rename,
+        # definition-merge and re-cut tables to preserve API compatibility.
         if: github.event_name == 'pull_request'
         env:
           BASE_REV: origin/${{ github.base_ref }}
