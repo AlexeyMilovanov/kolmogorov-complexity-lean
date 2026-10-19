@@ -99,6 +99,17 @@ of `M` are packed into an enumerable tree semimeasure, and the uniform mixture o
 indices, `Kolmogorov.exists_const_two_pow_KPNat_mul_le_universal_of_uniform_prefixFree`
 (`KolmogorovMathlib.Solomonoff.Domination.UniformFamily`), is dominated by `M`.
 
+`KolmogorovMathlib/Solomonoff/ShenQuestion/` answers negatively Shen's question whether the
+largest `f(x)` with `f(x) Q(y | x) <= M(xy)` for all `y` is, up to a constant factor, a
+discrete a priori probability. `Kolmogorov.Shen.exists_pos_mul_le_shenF`
+(`KolmogorovMathlib.Solomonoff.ShenQuestion.LowerBound`) is the classical lower bound
+`f >= c m`, and `Kolmogorov.Shen.shen_negative`
+(`KolmogorovMathlib.Solomonoff.ShenQuestion.Main`) shows that no upper bound `f <= C m` holds:
+for every lower semicomputable conditional continuous semimeasure `Q` and every lower
+semicomputable discrete semimeasure `m` there are strings with `0 < f(u)` and
+`f(u) >= c R m(u)` for every `R`; its corollaries in the same module state the failure for
+the universal `m` and in terms of prefix complexity.
+
 The stopping-complexity part, `KolmogorovMathlib/StoppingComplexity/`, originates from the
 public `lean-4.28-stopping` branch. It formalizes randomized stopping machines, which read an
 input and fair random bits and may halt, the monotone stopping complexity `K_stop`
@@ -317,7 +328,8 @@ KolmogorovMathlib/
 │   ├── FamilyCurve/             # Effective multiscale construction and general curve realization
 │   └── Examples/                # Cylinders, masks, and Hamming-ball families
 ├── Solomonoff/                  # The universal predictor, domination and Solomonoff's convergence theorem
-│   └── SelectedBits/            # Prediction of selected bits: linear loss bounds at the forced positions of a computable tree
+│   ├── SelectedBits/            # Prediction of selected bits: linear loss bounds at the forced positions of a computable tree
+│   └── ShenQuestion/            # Negative answer to Shen's question on the a priori probability of a prefix
 ├── StoppingComplexity/          # Randomized stopping machines and the gap K_stop - (-log M_stop)
 ├── Deprecated/                  # `@[deprecated] alias`es for the old names, generated from the rename table
 └── Extras.lean                  # Imports side modules outside the main development line, keeping them in the build

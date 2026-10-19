@@ -91,6 +91,8 @@ import KolmogorovMathlib.Restricted.Examples.Masks
 import KolmogorovMathlib.Restricted.MinimalRestrictedDescriptions
 import KolmogorovMathlib.Solomonoff.Main
 import KolmogorovMathlib.Solomonoff.SelectedBits.Statements
+import KolmogorovMathlib.Solomonoff.ShenQuestion.Extras
+import KolmogorovMathlib.Solomonoff.ShenQuestion.LowerBound
 import KolmogorovMathlib.StoppingComplexity.LengthBounds
 import KolmogorovMathlib.StoppingComplexity.MainTheorem
 import KolmogorovMathlib.StrongMerging.StatementsExtra
@@ -139,7 +141,9 @@ This module is the aggregate root: it imports the whole library.  Its parts are
 * `Solomonoff` — the universal predictor `M(b | x) = M(xb) / M(x)` of the a priori probability
   on the tree, indices and prefix complexity of computable measures, and Solomonoff's theorem:
   against a computable measure `μ` the total expected squared prediction error is at most
-  `(ln 2 / 2) (K(μ) + O(1))` and the predictions converge `μ`-almost surely;
+  `(ln 2 / 2) (K(μ) + O(1))` and the predictions converge `μ`-almost surely; in
+  `Solomonoff.ShenQuestion` the negative answer to Shen's question: the largest `f(x)` with
+  `f(x) · Q(y | x) ≤ M(x y)` is not bounded by a constant times a discrete semimeasure;
 * `StoppingComplexity` — randomized stopping machines, the monotone stopping complexity
   `K_stop` and the a priori stopping probability `M_stop`, and the lower bounds on the gap
   `K_stop − (−log M_stop)`, which exceeds `log m + log log log m` by any constant on

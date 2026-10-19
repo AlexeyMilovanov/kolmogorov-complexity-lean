@@ -22,7 +22,8 @@ The development is based on Mathlib's computability infrastructure. Decompressor
   [Kritchman-Raz-style results](https://arxiv.org/abs/1011.4974), using abstract
   formal-system interfaces rather than a concrete arithmetic system.
 - **Further developments:** Solomonoff induction, Solomonoff prediction of selected
-  bits and stopping complexity.
+  bits, the negative answer to Shen's question on the a priori probability of a prefix,
+  and stopping complexity.
 - **New strong-merging results:** the square-root merger of two strong sufficient
   statistics, its matching obstruction and the questions of survey Section 7.9.
 
