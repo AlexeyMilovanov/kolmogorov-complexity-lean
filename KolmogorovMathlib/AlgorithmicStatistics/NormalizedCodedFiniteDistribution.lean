@@ -722,9 +722,11 @@ theorem mem_bitstring_primrec :
       refine ⟨ ?_, ?_ ⟩;
       · exact fun _ => inferInstance
       · have h_mem : Primrec (fun p : BitString × List BitString => List.idxOf p.1 p.2) := by
-          convert Primrec.list_idxOf.comp ( Primrec.fst ) ( Primrec.snd ) using 1
-          · convert rfl
-          · infer_instance
+          have hbeq : (instBEqOfDecidableEq : BEq BitString) =
+              (List.instBEq : BEq BitString) := by
+            apply lawful_beq_subsingleton
+          exact (Primrec.list_idxOf.comp Primrec.fst Primrec.snd).of_eq fun p => by
+            rw [hbeq]
         convert Primrec.nat_lt.comp ( h_mem ) ( Primrec.list_length.comp ( Primrec.snd ) ) using 1
         simp +decide [ PrimrecPred, List.idxOf_lt_length_iff ]
 

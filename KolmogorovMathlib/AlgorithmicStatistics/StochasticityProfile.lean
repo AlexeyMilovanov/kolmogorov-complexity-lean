@@ -523,12 +523,6 @@ theorem tailStringsSelector_eval (cd : Code) (n k_x k_y : ℕ) (y : BitString) :
   rw [decodeFirst_pairCode, decodeSecond_pairCode, decodeFirst_pairCode, decodeSecond_pairCode]
   rw [bitsToNat_bits, bitsToNat_bits, bitsToNat_bits]
   congr 2
-  ext t
-  by_cases h1 : y ∈ boundedOutputStage cd n t
-  · by_cases h2 : k_y ≤ tailAfter (boundedOutputStage cd n t) y
-    · simp [h1, h2]
-    · simp [h1, h2]
-  · simp [h1]
 
 /-- The tail selector is partial recursive in its two arguments. -/
 theorem tailStringsSelector_partrec (cd : Code) :

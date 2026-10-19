@@ -718,10 +718,7 @@ theorem t1RunStep_cPrime_history
         Bool.decide_and, forall_const, not_true_eq_false,
         IsEmpty.forall_iff, and_true]
     all_goals and_intros
-    all_goals first | rfl | trivial |
-      (congr!
-       all_goals first | rfl | trivial | (exact Subsingleton.elim _ _) |
-         exact decide_eq_true_iff)
+    all_goals first | rfl | trivial
   · simp [t1RunStep, t1RunStepCPrimeFn,
       t1RunStepCPrimeActive, hactive, t1RunStepCPrimeSeen,
       t1RunAppendSeenCPrime, t1RunStepParamsState]

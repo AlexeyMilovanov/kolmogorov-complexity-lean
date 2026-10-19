@@ -23,6 +23,10 @@ For effectivization, the property is reduced to `hammingListDecodingCandidates`,
 `IsHammingListDecodingSetFinite` and the Boolean check `hammingListDecodingCheckBool`.
 -/
 
+-- Lean 4.35's asynchronous elaborator can deadlock on this proof-heavy module.
+-- Synchronous elaboration preserves the proof while keeping ordinary resource limits.
+set_option Elab.async false
+
 
 
 namespace Kolmogorov

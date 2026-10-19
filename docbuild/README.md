@@ -12,13 +12,11 @@ lake build KolmogorovMathlib:docs KolmogorovCounterexamples:docs
 
 The generated HTML is written to `docbuild/.lake/build/doc`.
 
-**The `doc-gen4` revision is pinned** in `lakefile.toml` to the tag `v4.33.1`,
-the one whose `lean-toolchain` is `leanprover/lean4:v4.33.1`.  Do not put
-`rev = "main"` back: `main` now carries `leanprover/lean4:v4.34.0-rc2`, and
-`lake update doc-gen4` obeys a dependency's toolchain — it rewrites
-`docbuild/lean-toolchain`, downloads that toolchain and then fails, because
-Mathlib at the pinned revision is built for v4.33.1.  When this repository
-moves to a new Lean release, move this pin to the matching `doc-gen4` tag.
+**The `doc-gen4` revision is pinned** in `lakefile.toml` to the tag `v4.35.0`,
+whose `lean-toolchain` is `leanprover/lean4:v4.35.0`. Keep this tag, the root
+Mathlib pin and both toolchain files synchronized. Do not use `rev = "main"`:
+a mismatched dependency can rewrite `docbuild/lean-toolchain` and move shared
+package checkouts away from the revisions required by the root project.
 
 The side package shares the root package's `packagesDir`
 (`../.lake/packages`), so `lake update doc-gen4` also checks out `doc-gen4`'s
@@ -26,10 +24,9 @@ own dependencies there.  At the pinned revision their revisions agree with the
 root `lake-manifest.json`; with an unpinned `doc-gen4` they do not, and the
 update silently moves a shared package (`Cli`) out from under the main build.
 
-Scale, measured on this repository: `:docs` covers the transitive imports too,
-so the run generates Mathlib's documentation as well — a full build is
-about 9,900 jobs and takes roughly 40 minutes on 8 cores from a warm olean
-cache, and `docbuild/.lake/build/doc` is about 800 MB (472 MB of it Mathlib, 79 MB this library).
+The `:docs` target also generates documentation for transitive imports,
+including Mathlib, so this build needs more time and disk space than the
+library build alone.
 
 `lake update doc-gen4` ends by running Mathlib's post-update hook
 (`lake exe cache get`), which can fail here with "Failed to prune ProofWidgets

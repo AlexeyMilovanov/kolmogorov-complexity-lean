@@ -87,10 +87,6 @@ lemma getReserve_eq_find? (e : ℕ) (A : Allocation) (m : ServerMove) (x : GacsD
     getReserve e A m x = (getAlloc m x).find? (reserveTest e A m x) := by
   unfold getReserve reserveTest
   congr 1
-  funext v
-  by_cases h : e ≤ v.length
-  · simp [h, cylDisjointB_eq_decide, isPrefixOf_eq_decide]
-  · simp [h]
 
 /-- The parameters of the reserve test: the scale, the unavailable set, the
 server move and the son. -/

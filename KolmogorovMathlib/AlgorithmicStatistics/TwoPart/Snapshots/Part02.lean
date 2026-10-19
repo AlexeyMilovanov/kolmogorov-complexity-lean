@@ -403,7 +403,7 @@ theorem emittedHalfRichChunks_cover_rich (U : Map) (c : Code) (hc : IsCodeFor c 
   -- By `snapshotRichElements_eq_richDescriptionElements hc i j k t₀ ht₀`, `snapshotRichElements c i
   --   j k t₀ = richDescriptionElements U i j k`, so `x ∈ snapshotRichElements c i j k t₀`.
   have h_snapshot : x ∈ snapshotRichElements c i j k t₀ := by
-    rw [ snapshotRichElements_eq_richDescriptionElements hc i j k t₀ ht₀ ] ; assumption;
+    rwa [snapshotRichElements_eq_richDescriptionElements hc i j k t₀ ht₀]
   -- By `snapshotRichElementsList_toFinset`, this equals `(snapshotRichElementsList c i j k
   --   t₀).toFinset`, so `x ∈ snapshotRichElementsList c i j k t₀`.
   have h_snapshot_list : x ∈ (snapshotRichElementsList c i j k t₀).toFinset := by

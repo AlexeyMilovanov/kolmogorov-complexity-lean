@@ -380,9 +380,7 @@ theorem lintegral_pullbackTest_le {μ ν : Measure CantorSeq} {f : BitStream →
         have h3 : cantorPrefix t y.length = y := (isCantorPrefix_iff_cantorPrefix_eq y t).1 h2
         rw [mem_levelFinset.1 hy] at h3
         exact hne h3.symm
-      first
-        | rw [Set.indicator_of_not_mem hnot, mul_zero]
-        | rw [Set.indicator_of_notMem hnot, mul_zero]
+      rw [Set.indicator_of_notMem hnot, mul_zero]
     · intro hnot
       exact absurd (mem_levelFinset.2 (cantorPrefix_length t s)) hnot
   have hint : ∀ s, ∫⁻ w, h s w ∂μ = ∫⁻ x, stageFun (approx s) s x ∂ν := by

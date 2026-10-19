@@ -130,17 +130,11 @@ Stated for the `BEq` instance used by `chainWordAt_pair_count`. -/
 private theorem sum_count_prod_eq_length (L : List (Bool × Bool)) :
     ∑ p : Bool × Bool, L.count p = L.length := by
   rw [length_eq_sum_count_fintype]
-  refine Finset.sum_congr rfl (fun p _ => ?_)
-  simp only [List.count]
-  exact List.countP_congr (fun x _ => by simp only [beq_iff_eq])
 
 /-- Total count over the three-bit product alphabet equals the list length. -/
 private theorem sum_count_triple_eq_length (L : List ((Bool × Bool) × Bool)) :
     ∑ p : (Bool × Bool) × Bool, L.count p = L.length := by
   rw [length_eq_sum_count_fintype]
-  refine Finset.sum_congr rfl (fun p _ => ?_)
-  simp only [List.count]
-  exact List.countP_congr (fun x _ => by simp only [beq_iff_eq])
 
 /-- The two-coordinate histogram of a maximal sample has total mass `N`. -/
 theorem chainHistogram2_sum_eq {k Q N : ℕ} {D : ChainDist k} {hQ : D.RationalAtoms Q}

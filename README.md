@@ -75,11 +75,11 @@ developments, spare interfaces and side results), so that they stay in the build
 second root, deliberately not imported by the library, and the release check builds
 it too.
 
-This branch is pinned to Lean `v4.34.1` and the matching Mathlib ecosystem.
+This branch is pinned to Lean `v4.35.0` and the matching Mathlib ecosystem.
 
 ## Branches
 
-`main` is the development branch and is pinned to Lean `v4.34.1` together with
+`main` is the development branch and is pinned to Lean `v4.35.0` together with
 the matching Mathlib ecosystem. Historical branches preserve earlier Lean releases.
 
 ## Project Layout
@@ -91,4 +91,4 @@ with the detailed overview.
 
 The Lake package is named `kolmogorov_complexity`; the Lean library targets are
 `KolmogorovMathlib` and `KolmogorovCounterexamples`. The Mathlib dependency is pinned in `lakefile.toml` and
-`lake-manifest.json` to the Lean `v4.34.1` ecosystem.
+`lake-manifest.json` to the Lean `v4.35.0` ecosystem.

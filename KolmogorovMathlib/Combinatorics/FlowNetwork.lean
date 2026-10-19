@@ -9,7 +9,7 @@ import Mathlib.Algebra.BigOperators.Ring.Finset
 import Mathlib.Algebra.Order.BigOperators.Group.Finset
 import Mathlib.Algebra.Order.Ring.Int
 import Mathlib.Data.Fintype.BigOperators
-import Mathlib.Data.Int.LeastGreatest
+import Mathlib.Order.Int.LeastGreatest
 import Mathlib.Logic.Relation
 import Mathlib.Tactic.GCongr
 import Mathlib.Tactic.Linarith

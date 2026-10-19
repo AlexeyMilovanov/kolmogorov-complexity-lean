@@ -18,6 +18,10 @@ non-full chunks are separated by an element that becomes half-rich in between, o
 are at most `2 ^ (i - k + O(1))`.
 -/
 
+-- Lean 4.35's asynchronous elaborator can deadlock on this proof-heavy module.
+-- Synchronous elaboration preserves the proof while keeping ordinary resource limits.
+set_option Elab.async false
+
 namespace Kolmogorov
 open Kolmogorov.CodedFiniteDistribution
 open Nat.Partrec (Code)

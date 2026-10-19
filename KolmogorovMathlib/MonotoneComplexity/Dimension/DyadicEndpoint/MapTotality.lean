@@ -92,7 +92,6 @@ theorem measureReal_ne_div_two_pow_of_isMartinLofRandom (μ : Measure CantorSeq)
     exact_mod_cast h2
   have hval : (2 : ℝ) ^ s * ((k : ℝ) / 2 ^ m) = (k : ℝ) * 2 ^ s / 2 ^ m := by
     field_simp
-    try ring
   have hA1 : ((k * 2 ^ s / 2 ^ m : ℕ) : ℝ) ≤ (k : ℝ) * 2 ^ s / 2 ^ m := by
     rw [le_div_iff₀ hdR]
     exact h1R

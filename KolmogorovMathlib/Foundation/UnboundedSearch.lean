@@ -118,11 +118,7 @@ lemma Computable.testP {P : ℕ → ℕ → Prop}
   have h_comp : Computable (fun p : ℕ × ℕ => decide (P p.1 p.2)) :=
     Computable.of_eq h_alg (fun p => by
       have h : P p.1 p.2 ↔ g p.1 < f p.2 := h_equiv p.1 p.2
-      cases h_dec : decide (g p.1 < f p.2)
-      · have h_not : ¬ (g p.1 < f p.2) := of_decide_eq_false h_dec
-        exact (decide_eq_false (mt h.mp h_not)).symm
-      · have h_yes : g p.1 < f p.2 := of_decide_eq_true h_dec
-        exact (decide_eq_true (h.mpr h_yes)).symm)
+      exact decide_eq_decide.mpr h.symm)
   exact Computable.computablePred h_comp
 
 /-- Inequality Search: A modular search function over a predicate defined

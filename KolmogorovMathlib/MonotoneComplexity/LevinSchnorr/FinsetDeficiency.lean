@@ -228,7 +228,7 @@ lemma allLt_eq_true_iff {l : List ℕ} {N : ℕ} : allLt l N = true ↔ ∀ i �
 lemma primrec_allLt : Primrec fun q : List ℕ × ℕ => allLt q.1 q.2 := by
   have hlt2 : Primrec₂ fun x y : ℕ => decide (x < y) := PrimrecPred.decide Primrec.nat_lt
   have hd : Primrec fun z : (List ℕ × ℕ) × (ℕ × Bool) => decide (z.2.1 < z.1.2) :=
-    Primrec₂.comp hlt2 (Primrec.fst.comp Primrec.snd) (Primrec.snd.comp Primrec.fst)
+    hlt2.comp (Primrec.fst.comp Primrec.snd) (Primrec.snd.comp Primrec.fst)
   have hb : Primrec fun z : (List ℕ × ℕ) × (ℕ × Bool) => z.2.2 :=
     Primrec.snd.comp Primrec.snd
   have h : Primrec₂ fun (q : List ℕ × ℕ) (p : ℕ × Bool) => (decide (p.1 < q.2) && p.2) :=
@@ -298,7 +298,7 @@ lemma computable_arithCheck {α : Type} [Primcodable α] {a : BitString → ℕ 
   have hlt2 : Computable₂ fun x y : ℕ => decide (x < y) :=
     Primrec₂.to_comp (PrimrecPred.decide Primrec.nat_lt : Primrec₂ fun x y : ℕ => decide (x < y))
   have hpow : Computable fun n : ℕ => 2 ^ n := primrec_two_pow_aux.to_comp
-  exact Computable₂.comp hlt2
+  exact hlt2.comp
     (Computable₂.comp hmul (Computable₂.comp hmul (hpow.comp hC) hslice) (hpow.comp hE))
     (hpow.comp hT)
 

@@ -511,9 +511,6 @@ lemma rawGrayNodeForeignB_eq_isPrefixOf (slots : List RawSlot) (i : ℕ)
           !(x.isPrefixOf [s.2.1, s.2.2] || [s.2.1, s.2.2].isPrefixOf x) := by
   unfold rawGrayNodeForeignB
   congr 1
-  funext s
-  rw [decide_not, isPrefixOf_eq_decide, isPrefixOf_eq_decide]
-  simp
 
 /-- The raw harvest is computable in any computable parameters. -/
 theorem computable_rawGrayHarvest {X : Type} [Primcodable X]

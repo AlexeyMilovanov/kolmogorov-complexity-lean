@@ -86,7 +86,6 @@ lemma grayChargedReplayV2_terminal_accept
   rw [replay.advantageTerminal_slots_eq, hslots]
   simp only [frozenV1OfV2]
   rw [replay.advantageTerminal_frozen_eq]
-  try rfl
 
 /-- **The V2 resolved-source count identity at the exit**: resolved classes
 plus surviving narrow fibres partition the source population. -/

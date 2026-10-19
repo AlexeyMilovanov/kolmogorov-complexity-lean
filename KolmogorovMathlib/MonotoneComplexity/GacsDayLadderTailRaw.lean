@@ -559,8 +559,6 @@ theorem rawRetainedSlots_eq {n b : ℕ}
             current.any (grayTailSameSonB s) := by
         rw [List.any_map]
         congr 1
-        funext t
-        simp [rawSameSonB, grayTailSameSonB, toRawSlot, Fin.val_inj]
       simp only [List.map_cons, List.filter_cons, hpred, ih]
       split <;> rfl
 /-- The erased waiting flag agrees with the indexed one. -/

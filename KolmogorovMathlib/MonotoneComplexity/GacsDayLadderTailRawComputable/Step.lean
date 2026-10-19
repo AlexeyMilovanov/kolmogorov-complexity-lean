@@ -116,9 +116,8 @@ theorem computable_rawNextSlots :
     Primrec.nat_lt.comp Primrec.snd
       (Primrec.fst.comp (Primrec.snd.comp (Primrec.snd.comp
         (Primrec.snd.comp (Primrec.fst.comp (Primrec.fst.comp Primrec.fst))))))
-  have ht1 : Computable fun w : (RawNextArg × ℕ) × ℕ => decide (w.2 < w.1.1.1.2.2.2.1) := by
-    obtain ⟨_, h⟩ := hrelc
-    exact (h.of_eq fun _ => decide_eq_decide.mpr Iff.rfl).to_comp
+  have ht1 : Computable fun w : (RawNextArg × ℕ) × ℕ => decide (w.2 < w.1.1.1.2.2.2.1) :=
+    (PrimrecPred.decide hrelc).to_comp
   have hbasearg : Computable fun w : (RawNextArg × ℕ) × ℕ =>
       ((w.1.1.2.2.2.1, w.1.2, w.2) : List RawRound × ℕ × ℕ) :=
     (hfrozen.comp (Computable.fst.comp Computable.fst)).pair
@@ -189,9 +188,8 @@ theorem computable_rawNextSlots :
     Primrec.nat_lt.comp
       (Primrec.snd.comp (Primrec.snd.comp (Primrec.snd.comp (Primrec.snd.comp Primrec.fst))))
       (Primrec.fst.comp (Primrec.snd.comp Primrec.fst))
-  have hlt : Computable fun x : RawNextArg => decide (x.1.2.2.2.2 < x.1.2.1) := by
-    obtain ⟨_, h⟩ := hrelr
-    exact (h.of_eq fun _ => decide_eq_decide.mpr Iff.rfl).to_comp
+  have hlt : Computable fun x : RawNextArg => decide (x.1.2.2.2.2 < x.1.2.1) :=
+    (PrimrecPred.decide hrelr).to_comp
   refine (Computable.cond hlt hflat (Computable.const [])).of_eq fun x => ?_
   by_cases h : x.1.2.2.2.2 < x.1.2.1 <;> simp [rawNextSlots, h]
 
@@ -231,12 +229,10 @@ theorem computable_rawSameSonB :
   have h2 : PrimrecPred fun x : RawSlot × RawSlot => x.1.2.1 = x.2.2.1 :=
     Primrec.eq.comp (Primrec.fst.comp (Primrec.snd.comp Primrec.fst))
       (Primrec.fst.comp (Primrec.snd.comp Primrec.snd))
-  have hd1 : Primrec fun x : RawSlot × RawSlot => decide (x.1.1 = x.2.1) := by
-    obtain ⟨_, h⟩ := h1
-    exact h.of_eq fun _ => decide_eq_decide.mpr Iff.rfl
-  have hd2 : Primrec fun x : RawSlot × RawSlot => decide (x.1.2.1 = x.2.2.1) := by
-    obtain ⟨_, h⟩ := h2
-    exact h.of_eq fun _ => decide_eq_decide.mpr Iff.rfl
+  have hd1 : Primrec fun x : RawSlot × RawSlot => decide (x.1.1 = x.2.1) :=
+    PrimrecPred.decide h1
+  have hd2 : Primrec fun x : RawSlot × RawSlot => decide (x.1.2.1 = x.2.2.1) :=
+    PrimrecPred.decide h2
   have hand : Computable₂ fun a b : Bool => a && b :=
     (Primrec.dom_bool₂ (fun a b => a && b)).to_comp
   exact (hand.comp hd1.to_comp hd2.to_comp).of_eq fun x => by
@@ -263,9 +259,8 @@ theorem computable_rawRootSlotCount :
     Computable fun x : List RawSlot × ℕ => rawRootSlotCount x.1 x.2 := by
   have hrel : PrimrecPred fun z : (List RawSlot × ℕ) × RawSlot => z.2.1 = z.1.2 :=
     Primrec.eq.comp (Primrec.fst.comp Primrec.snd) (Primrec.snd.comp Primrec.fst)
-  have hd : Primrec fun z : (List RawSlot × ℕ) × RawSlot => decide (z.2.1 = z.1.2) := by
-    obtain ⟨_, h⟩ := hrel
-    exact h.of_eq fun _ => decide_eq_decide.mpr Iff.rfl
+  have hd : Primrec fun z : (List RawSlot × ℕ) × RawSlot => decide (z.2.1 = z.1.2) :=
+    PrimrecPred.decide hrel
   have hfilt : Computable fun x : List RawSlot × ℕ =>
       x.1.filter fun s => decide (s.1 = x.2) :=
     computable_list_filter Computable.fst hd.to_comp.to₂

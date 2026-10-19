@@ -573,8 +573,6 @@ theorem newBadSetsAtTimeList_primrec (c : Nat.Partrec.Code) :
     simp only [newBadSetsAtTimeList, Nat.add_sub_cancel]
     rw [ite_eq_right (Nat.add_one_ne_zero t)]
     congr 1
-    funext S
-    rw [List.elem_eq_mem]
 
 /-- The executable list of new bad sets at a time is computable. -/
 theorem newBadSetsAtTimeList_computable (c : Nat.Partrec.Code) :

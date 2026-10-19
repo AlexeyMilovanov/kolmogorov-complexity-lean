@@ -285,7 +285,7 @@ theorem computable_zeroRunIdx : Computable zeroRunIdx := by
   have hlt : Computable₂ (fun a b : ℕ => decide (a < b)) :=
     (PrimrecRel.decide Primrec.nat_lt).to_comp
   have htest : Computable (fun i : ℕ => decide (i.unpair.2 < 2 ^ i.unpair.1)) :=
-    Computable₂.comp hlt hj hpow
+    hlt.comp hj hpow
   have h := Computable.cond htest Computable.option_some
     (Computable.const (none : Option ℕ))
   exact h.of_eq (fun i => rfl)

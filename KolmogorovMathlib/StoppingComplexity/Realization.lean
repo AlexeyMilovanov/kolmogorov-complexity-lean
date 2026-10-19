@@ -238,9 +238,8 @@ private theorem exists_hasSeedCertificate_of_halt {ρ : RequestStream} {x q : Bi
     ∃ s, hasSeedCertificate ρ s x q = true := by
   simp only [realizeController, Part.mem_some_iff] at h
   split_ifs at h with h1 h2
-  all_goals first
-    | exact absurd h (by decide)
-    | (obtain ⟨s, -, hs⟩ := List.any_eq_true.1 h1; exact ⟨s, hs⟩)
+  obtain ⟨s, -, hs⟩ := List.any_eq_true.1 h1
+  exact ⟨s, hs⟩
 
 /-- The controller reads an input bit only on a descendant certificate.
 Blueprint 03 §5 (construction of `R_ν`). -/
@@ -249,9 +248,8 @@ private theorem exists_hasDescendantCertificate_of_readInput {ρ : RequestStream
     ∃ s, hasDescendantCertificate ρ s x q = true := by
   simp only [realizeController, Part.mem_some_iff] at h
   split_ifs at h with h1 h2
-  all_goals first
-    | exact absurd h (by decide)
-    | (obtain ⟨s, -, hs⟩ := List.any_eq_true.1 h2; exact ⟨s, hs⟩)
+  obtain ⟨s, -, hs⟩ := List.any_eq_true.1 h2
+  exact ⟨s, hs⟩
 
 /-- A certificate of either kind at a stage `≤ |q|` ends the random requests at `(x, q)`.
 Blueprint 03 §5 (construction of `R_ν`). -/

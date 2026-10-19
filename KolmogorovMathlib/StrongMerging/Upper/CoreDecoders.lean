@@ -125,13 +125,6 @@ theorem shapeComponentCode_primrec :
     (Primrec.list_append.comp Primrec.snd hfil).of_eq fun x => by
       unfold compGrowL
       congr 1
-      apply List.filter_congr
-      intro y _
-      congr 1
-      funext z
-      apply Bool.eq_iff_iff.mpr
-      rw [Bool.or_eq_true, decide_eq_true_iff, decide_eq_true_iff, decide_eq_true_iff]
-      rfl
   have hiter := Primrec.nat_iterate (Primrec.list_length.comp hGl) hstart hstep
   refine (canonicalFiniteSetCode_toFinset_primrec.comp hiter).of_eq fun p => ?_
   congr 1

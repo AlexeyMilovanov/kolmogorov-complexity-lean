@@ -32,7 +32,7 @@ lemma primrec_memBool : Primrec fun p : List ℕ × ℕ => memBool p.1 p.2 := by
   have hlen : Primrec fun p : List ℕ × ℕ => p.1.length := Primrec.list_length.comp Primrec.fst
   have hlt : Primrec₂ fun x y : ℕ => decide (x < y) := PrimrecPred.decide Primrec.nat_lt
   have h : Primrec fun p : List ℕ × ℕ => decide (p.1.idxOf p.2 < p.1.length) :=
-    Primrec₂.comp hlt hidx hlen
+    hlt.comp hidx hlen
   exact h.of_eq fun _ => rfl
 
 /-- Boolean test for `{0, …, n-1} ⊆ F`. -/

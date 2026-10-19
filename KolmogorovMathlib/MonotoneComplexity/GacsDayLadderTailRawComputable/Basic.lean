@@ -480,9 +480,8 @@ theorem computable_rawRowMove :
         rawSonRequest z.1.1.2.2.1 z.1.1.2.2.2 z.1.2.2.1 z.1.2.2.2 z.2 else 0 := by
     have hrel : PrimrecPred fun z : RawRowArg × ℕ => z.2 < z.1.2.1 :=
       Primrec.nat_lt.comp Primrec.snd (Primrec.fst.comp (Primrec.snd.comp Primrec.fst))
-    have hlt : Computable fun z : RawRowArg × ℕ => decide (z.2 < z.1.2.1) := by
-      obtain ⟨_, h⟩ := hrel
-      exact (h.of_eq fun _ => decide_eq_decide.mpr Iff.rfl).to_comp
+    have hlt : Computable fun z : RawRowArg × ℕ => decide (z.2 < z.1.2.1) :=
+      (PrimrecPred.decide hrel).to_comp
     have harg : Computable fun z : RawRowArg × ℕ =>
         ((z.1.1.2.2, z.1.2.2.1, z.1.2.2.2, z.2) :
           (ℚ × ℚ) × List (RawSlot × ClientMove) × ℕ × ℕ) :=
@@ -504,12 +503,10 @@ theorem computable_rawRowMove :
     have hrel2 : PrimrecPred fun w : (RawRowArg × ℕ) × ℕ => w.2 < w.1.1.2.1 :=
       Primrec.nat_lt.comp Primrec.snd
         (Primrec.fst.comp (Primrec.snd.comp (Primrec.fst.comp Primrec.fst)))
-    have hlt1 : Computable fun w : (RawRowArg × ℕ) × ℕ => decide (w.1.2 < w.1.1.2.1) := by
-      obtain ⟨_, h⟩ := hrel1
-      exact (h.of_eq fun _ => decide_eq_decide.mpr Iff.rfl).to_comp
-    have hlt2 : Computable fun w : (RawRowArg × ℕ) × ℕ => decide (w.2 < w.1.1.2.1) := by
-      obtain ⟨_, h⟩ := hrel2
-      exact (h.of_eq fun _ => decide_eq_decide.mpr Iff.rfl).to_comp
+    have hlt1 : Computable fun w : (RawRowArg × ℕ) × ℕ => decide (w.1.2 < w.1.1.2.1) :=
+      (PrimrecPred.decide hrel1).to_comp
+    have hlt2 : Computable fun w : (RawRowArg × ℕ) × ℕ => decide (w.2 < w.1.1.2.1) :=
+      (PrimrecPred.decide hrel2).to_comp
     have hmovearg : Computable fun w : (RawRowArg × ℕ) × ℕ =>
         ((w.1.1.2.2.1, w.1.1.2.2.2, w.1.2, w.2) :
           List (RawSlot × ClientMove) × RawSlot) :=
@@ -745,9 +742,8 @@ theorem computable_rawWaitingRowMove :
       Primrec.nat_lt.comp Primrec.snd
         (Primrec.fst.comp (Primrec.snd.comp Primrec.fst))
     have hlt : Computable fun z : RawWaitingRowArg × ℕ =>
-        decide (z.2 < z.1.2.1) := by
-      obtain ⟨_, h⟩ := hrel
-      exact (h.of_eq fun _ => decide_eq_decide.mpr Iff.rfl).to_comp
+        decide (z.2 < z.1.2.1) :=
+      (PrimrecPred.decide hrel).to_comp
     have harg : Computable fun z : RawWaitingRowArg × ℕ =>
         (((z.1.2.2.1, z.1.1.2.2.1, z.1.1.2.2.2),
           z.1.2.2.2.1, z.1.2.2.2.2, z.2) : RawWaitingSonArg) :=
@@ -776,13 +772,11 @@ theorem computable_rawWaitingRowMove :
       Primrec.nat_lt.comp Primrec.snd
         (Primrec.fst.comp (Primrec.snd.comp (Primrec.fst.comp Primrec.fst)))
     have hlt1 : Computable fun w : (RawWaitingRowArg × ℕ) × ℕ =>
-        decide (w.1.2 < w.1.1.2.1) := by
-      obtain ⟨_, h⟩ := hrel1
-      exact (h.of_eq fun _ => decide_eq_decide.mpr Iff.rfl).to_comp
+        decide (w.1.2 < w.1.1.2.1) :=
+      (PrimrecPred.decide hrel1).to_comp
     have hlt2 : Computable fun w : (RawWaitingRowArg × ℕ) × ℕ =>
-        decide (w.2 < w.1.1.2.1) := by
-      obtain ⟨_, h⟩ := hrel2
-      exact (h.of_eq fun _ => decide_eq_decide.mpr Iff.rfl).to_comp
+        decide (w.2 < w.1.1.2.1) :=
+      (PrimrecPred.decide hrel2).to_comp
     have hmovearg : Computable fun w : (RawWaitingRowArg × ℕ) × ℕ =>
         ((w.1.1.2.2.2.1, w.1.1.2.2.2.2, w.1.2, w.2) :
           List (RawSlot × ClientMove) × RawSlot) :=
