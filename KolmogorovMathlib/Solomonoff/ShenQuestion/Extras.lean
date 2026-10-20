@@ -52,7 +52,7 @@ theorem shen_negative_lengthMeasure (m : BitString → ℝ≥0∞)
 
 /-! ### The literal supremum form -/
 
-/-- Corollary in the literal division form asked for by the audit:
+/-- Corollary in the literal division form:
 `⨆ x, f(x) / m(x) = ∞`. -/
 theorem shen_negative_iSup_div (Q : BitString → BitString → ℝ≥0∞)
     (hQ : IsLSCConditionalContinuousSemimeasure Q)
