@@ -75,6 +75,7 @@ import KolmogorovMathlib.Multisource.MuchnikGame
 import KolmogorovMathlib.Multisource.NetworkCoding
 import KolmogorovMathlib.Multisource.TwoConditions
 import KolmogorovMathlib.Prefix.BlockingReadMachines
+import KolmogorovMathlib.Prefix.EntropyFunctions
 import KolmogorovMathlib.Prefix.ExtensionTheorem
 import KolmogorovMathlib.Prefix.KraftConverse
 import KolmogorovMathlib.Prefix.NumericalValues

@@ -23,7 +23,8 @@ The development is based on Mathlib's computability infrastructure. Decompressor
   formal-system interfaces rather than a concrete arithmetic system.
 - **Further developments:** Solomonoff induction, Solomonoff prediction of selected
   bits, the negative answer to Shen's question on the a priori probability of a prefix,
-  and stopping complexity.
+  stopping complexity, and the exact realisation of `min(K, F)` for an entropy function `F`
+  by a prefix machine (Allender-Friedman-Gasarch, Claim 1).
 - **New strong-merging results:** the square-root merger of two strong sufficient
   statistics, its matching obstruction and the questions of survey Section 7.9.
 

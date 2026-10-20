@@ -4,6 +4,20 @@ The core library formalizes plain conditional Kolmogorov complexity for bitstrin
 
 The prefix-complexity part develops prefix-free codes and machines, optimal prefix decompressors, conditional prefix complexity, Kraft inequalities and converse constructions, two-stage and pair-coding infrastructure, and symmetry-of-information lemmas including conditional variants.
 
+`KolmogorovMathlib/Prefix/EntropyFunctions.lean` treats *entropy functions* in the sense of
+Muchnik-Positselsky and Allender-Friedman-Gasarch: total `F : BitString → ℕ` with the Kraft
+condition on finite sums and a computably enumerable overgraph `{(x, n) | F x ≤ n}`.
+`Kolmogorov.isEntropyFun_KPPlain_toNat` shows that the prefix complexity of an optimal prefix
+decompressor is one, `Kolmogorov.exists_exact_prefixDecompressor` realises any entropy function
+`F` exactly as `KPPlain D = F + 1` by a prefix decompressor `D` built with the online
+Kraft-Chaitin allocator, `Kolmogorov.KP_taggedUnion_eq_iInf` computes the prefix complexity of a
+tagged union of machines exactly, and `Kolmogorov.exists_isOptimalPrefixConditional_min` combines
+them: for every optimal prefix decompressor `U` and entropy function `F` there is an optimal
+prefix decompressor `U'` with `KPPlain U' x = min (KPPlain U x + 5) (F x + 3)` for every `x`.
+This is the exact form of Claim 1 of Allender, Friedman and Gasarch, *Limits on the computational
+power of random strings*, needed to state their Theorem 10 with the prefix complexity of a
+genuine machine in place of a universal entropy function.
+
 The algorithmic-probability part formalizes semimeasure infrastructure, a priori machine semimeasures, lower-semicomputable semimeasure interfaces, mixtures, domination lemmas, universal semimeasure constructions, conditional universal semimeasures, and Kraft-Chaitin style coding infrastructure. It also includes the coding-theorem equivalence between conditional prefix complexity and universal conditional a priori semimeasures, corresponding to `K(x | z) = -log m(x | z) + O(1)` and formalized through multiplicative `ENNReal` domination bounds.
 
 The monotone-complexity part builds SUV Chapter 5 on continuous semimeasures and
