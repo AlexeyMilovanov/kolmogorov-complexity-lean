@@ -42,6 +42,7 @@ COMPLETE = [
     'KolmogorovMathlib/Multisource',
     'KolmogorovMathlib/MonotoneComplexity',
     'KolmogorovMathlib/Prefix',
+    'KolmogorovMathlib/RandomStrings',
     'KolmogorovMathlib/Restricted',
     'KolmogorovMathlib/Solomonoff',
     'KolmogorovMathlib/StoppingComplexity',

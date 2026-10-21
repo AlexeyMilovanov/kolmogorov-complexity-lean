@@ -83,6 +83,10 @@ import KolmogorovMathlib.Prefix.PairComplexity
 import KolmogorovMathlib.Prefix.SelfDelimitingMachines
 import KolmogorovMathlib.Prefix.StableDecompressors
 import KolmogorovMathlib.Prefix.TotalCountingBound
+import KolmogorovMathlib.RandomStrings.KeyInstances
+import KolmogorovMathlib.RandomStrings.PathDataSATree
+import KolmogorovMathlib.RandomStrings.PrefixForm
+import KolmogorovMathlib.RandomStrings.SAExpE
 import KolmogorovMathlib.Restricted.DeficiencyEquiv
 import KolmogorovMathlib.Restricted.DescriptionProfileGap
 import KolmogorovMathlib.Restricted.DescriptionProfileGap.SlackArithmetic
@@ -137,6 +141,9 @@ This module is the aggregate root: it imports the whole library.  Its parts are
   stochasticity profiles and curve realization of VS40 §3;
 * `CommonInformation` — common information, the obstructions to extracting it, incidence
   regions;
+* `RandomStrings` — resource-bounded reductions to random strings: oracle machines, complexity
+  classes, and the Allender–Friedman–Gasarch theorem that decidable sets polynomial-time
+  reducible to the random strings of every universal prefix complexity lie in `EXPSPACE`;
 * `Restricted` — description families and the restricted profiles of VS40 §6, including the
   realization theorem `prop_family_curve` and the concrete families;
 * `Solomonoff` — the universal predictor `M(b | x) = M(xb) / M(x)` of the a priori probability

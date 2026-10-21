@@ -124,6 +124,23 @@ semicomputable discrete semimeasure `m` there are strings with `0 < f(u)` and
 `f(u) >= c R m(u)` for every `R`; its corollaries in the same module state the failure for
 the universal `m` and in terms of prefix complexity.
 
+`KolmogorovMathlib/RandomStrings/` develops resource-bounded reductions to the random strings:
+stack programs and one-tape oracle machines with explicit time and space accounting, the classes
+`P^A`, `PSPACE`, `EXP` and `EXPSPACE` over bitstrings, a priori complexities as universal entropy
+functions (`Kolmogorov.RandomStrings.AprioriComplexity`, with
+`Kolmogorov.RandomStrings.exists_universal_apriori` obtained from the prefix complexity of an
+optimal prefix decompressor), and the game-theoretic construction of Allender, Friedman and
+Gasarch.  Its main theorem is their Theorem 10 in the deterministic case:
+`Kolmogorov.RandomStrings.dec_inter_polyTime_prefixRandom_subset_EXPSPACE` shows that a decidable
+set which is polynomial-time reducible to the set of `K_U`-random strings for every optimal prefix
+decompressor `U` lies in `EXPSPACE`, and
+`Kolmogorov.RandomStrings.dec_inter_polyTime_RA_subset_EXPSPACE` is the same statement with the
+random strings of an arbitrary universal a priori complexity in place of `K_U`.  The construction
+is stated for a general family of oracle machines and a general complexity class
+(`Kolmogorov.RandomStrings.general`), and `Instances.lean`, `SAExp.lean` and `PathDataSATree.lean`
+record the truth-table and sub-adaptive variants with `PSPACE` and `EXP` as targets, under explicit
+evaluation hypotheses.
+
 The stopping-complexity part, `KolmogorovMathlib/StoppingComplexity/`, originates from the
 public `lean-4.28-stopping` branch. It formalizes randomized stopping machines, which read an
 input and fair random bits and may halt, the monotone stopping complexity `K_stop`
@@ -338,6 +355,7 @@ KolmogorovMathlib/
 │   ├── Coding/                  #   its Hamming-sphere obstruction and Question 1 of Section 7.9
 │   ├── Upper/
 │   └── Lower/
+├── RandomStrings/               # Resource-bounded reductions to random strings: oracle machines, complexity classes, the Allender–Friedman–Gasarch EXPSPACE theorem
 ├── Restricted/                  # Description families and restricted profiles from Section 6
 │   ├── FamilyCurve/             # Effective multiscale construction and general curve realization
 │   └── Examples/                # Cylinders, masks, and Hamming-ball families

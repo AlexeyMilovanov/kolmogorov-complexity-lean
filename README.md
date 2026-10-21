@@ -24,7 +24,10 @@ The development is based on Mathlib's computability infrastructure. Decompressor
 - **Further developments:** Solomonoff induction, Solomonoff prediction of selected
   bits, the negative answer to Shen's question on the a priori probability of a prefix,
   stopping complexity, and the exact realisation of `min(K, F)` for an entropy function `F`
-  by a prefix machine (Allender-Friedman-Gasarch, Claim 1).
+  by a prefix machine (Allender-Friedman-Gasarch, Claim 1), and the Allender-Friedman-Gasarch
+  theorem that a decidable set polynomial-time reducible to the `K_U`-random strings for
+  every optimal prefix machine `U` lies in `EXPSPACE` (resource-bounded machines, complexity
+  classes and the game construction in `KolmogorovMathlib/RandomStrings/`).
 - **New strong-merging results:** the square-root merger of two strong sufficient
   statistics, its matching obstruction and the questions of survey Section 7.9.
 
