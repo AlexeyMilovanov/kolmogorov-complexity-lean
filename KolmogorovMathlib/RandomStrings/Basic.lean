@@ -3,7 +3,16 @@ Copyright (c) 2024 Alexey Milovanov. All rights reserved.
 Released under Apache 2.0 license as described in the file LICENSE.
 Authors: Alexey Milovanov
 -/
-import Mathlib
+import Mathlib.Algebra.Polynomial.Eval.Defs
+import Mathlib.Data.Fintype.Basic
+import Mathlib.Data.Set.Finite.List
+import Mathlib.Tactic.Bound
+import Mathlib.Tactic.FieldSimp
+import Mathlib.Tactic.FinCases
+import Mathlib.Tactic.GCongr
+import Mathlib.Tactic.Positivity
+import Mathlib.Tactic.Tauto
+import Mathlib.Tactic.Zify
 import KolmogorovMathlib.Prefix.EntropyFunctions
 
 /-!
