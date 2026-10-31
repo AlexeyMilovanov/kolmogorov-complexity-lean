@@ -146,7 +146,15 @@ echo "== warning-count gate =="
 # The tree is warning-free and must stay that way: a `warning:` line in the
 # build output fails the audit.  Fix the warning rather than silencing the
 # linter.
-if grep -n 'warning:' "$build_log"; then
+# With AUDIT_ALLOW_SORRY=1 (merge-time skeletons) the `declaration uses 'sorry'`
+# warnings of the honest sorry leaves are tolerated; every other warning still fails.
+if [ "${AUDIT_ALLOW_SORRY:-0}" = "1" ]; then
+  warning_lines="$(grep -n 'warning:' "$build_log" | grep -v "declaration uses .sorry." || true)"
+else
+  warning_lines="$(grep -n 'warning:' "$build_log" || true)"
+fi
+if [ -n "$warning_lines" ]; then
+  echo "$warning_lines"
   echo "ERROR: lake build produced warnings (see the lines above); the tree must build warning-free"
   exit 1
 fi

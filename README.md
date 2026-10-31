@@ -34,6 +34,13 @@ The development is based on Mathlib's computability infrastructure. Decompressor
   the halting language in polynomial time
   (`Kolmogorov.Milovanov.exists_optimal_native_halting_oracle_separation` in
   `KolmogorovMathlib/RandomStrings/Plain/`).
+- **Point-to-set principles in dynamical systems:** Dinowitz's characterizations of
+  topological pressure, Barreira-Schmeling dimension and, for conformal systems, Hausdorff
+  and packing dimension as minima over oracles of suprema of pointwise Kolmogorov-complexity
+  quantities, and the Bowen equations, following a corrected blueprint with counterexamples
+  to the printed claims that fail (`Kolmogorov.PointToSet.lowerPressure_pointToSet`,
+  `bsPointToSet`, `dimensionTheorem` in `KolmogorovMathlib/PointToSet/`, built on the oracle
+  prefix complexity of `KolmogorovMathlib/Oracle/`).
 - **New strong-merging results:** the square-root merger of two strong sufficient
   statistics, its matching obstruction and the questions of survey Section 7.9.
 

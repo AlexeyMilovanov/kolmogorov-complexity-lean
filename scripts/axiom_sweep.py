@@ -18,7 +18,11 @@ environment, which is what makes it usable as a build gate; running one
 `#print axioms` command per theorem would re-traverse the same subgraphs tens
 of thousands of times.
 
-Usage:  python3 scripts/axiom_sweep.py [--keep] [--out FILE]
+Usage:  python3 scripts/axiom_sweep.py [--keep] [--out FILE] [--allow-sorry]
+
+`--allow-sorry` (or the environment variable `AUDIT_ALLOW_SORRY=1`) additionally
+tolerates `sorryAx`, for auditing a skeleton whose theorems are still `sorry`.
+Every other axiom is still reported.
 """
 
 from __future__ import annotations
@@ -40,7 +44,7 @@ open Lean
 namespace KolmogorovAxiomSweep
 
 /-- The axioms a proof in this library is allowed to depend on. -/
-def allowedAxioms : List Name := [`propext, `Classical.choice, `Quot.sound]
+def allowedAxioms : List Name := [`propext, `Classical.choice, `Quot.sound{extra_axioms}]
 
 /-- Is `n` declared in a module of this library? -/
 def inLibrary (env : Environment) (n : Name) : Bool :=
@@ -54,10 +58,12 @@ def inLibrary (env : Environment) (n : Name) : Bool :=
         || `KolmogorovCounterexamples == m
         || (`KolmogorovCounterexamples).isPrefixOf m
 
-/-- Constants mentioned by the type and (if present) the value of `ci`. -/
+/-- Constants mentioned by the type and (if present) the value of `ci`.
+`allowOpaque := true` is essential: since Lean 4.35 `ConstantInfo.value?` returns `none`
+for theorems by default, which would make the sweep blind to axioms used in proofs. -/
 def usedConstants (ci : ConstantInfo) : Array Name :=
   let fromType := ci.type.getUsedConstants
-  match ci.value? with
+  match ci.value? (allowOpaque := true) with
   | none => fromType
   | some v => fromType ++ v.getUsedConstants
 
@@ -126,11 +132,17 @@ def main() -> int:
                     help="keep the generated Lean file")
     ap.add_argument("--out", default=None,
                     help="write the generated Lean file here")
+    ap.add_argument("--allow-sorry", action="store_true",
+                    help="also tolerate sorryAx (skeleton audits)")
     args = ap.parse_args()
+    allow_sorry = args.allow_sorry or os.environ.get("AUDIT_ALLOW_SORRY") == "1"
+    if allow_sorry:
+        print("axiom sweep: sorryAx tolerated (--allow-sorry / AUDIT_ALLOW_SORRY=1)")
 
     roots = discover_roots()
     imports = "\n".join(f"import {r}" for r in roots)
-    source = LEAN_TEMPLATE.replace("{imports}", imports)
+    source = LEAN_TEMPLATE.replace("{imports}", imports).replace(
+        "{extra_axioms}", ", `sorryAx" if allow_sorry else "")
 
     if args.out:
         path = os.path.join(REPO, args.out)

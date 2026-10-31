@@ -408,6 +408,166 @@ Which theorem covers which item of the book is tabulated in `docs/SUV_COVERAGE.m
 from the tree: of 342 items, 305 are proved here, 5 were already available, 30 are archived
 with their statements preserved in `docs/ARCHIVED_TARGETS.md`, and 2 are partly archived.
 
+## Point-to-Set Principles in Dynamical Systems
+
+`KolmogorovMathlib/PointToSet/` formalizes Emma Dinowitz's paper on point-to-set principles in
+dynamical systems ([arXiv:2607.21976](https://arxiv.org/abs/2607.21976)), following a corrected
+blueprint ([`docs/point_to_set_blueprint.md`](point_to_set_blueprint.md)). `KolmogorovMathlib/Oracle/` is the foundation
+underneath it: oracle prefix machines, the optimal oracle prefix complexity `K^A` and the relative
+Kraft-Chaitin coding. The setting is a continuous map `T` on a complete separable metric space `X`
+with a fixed dense sequence of ideal points (a `Presentation`, chosen before any oracle). The
+point-to-set principles say that a classical, set-level quantity of `Z ⊆ X` is the minimum over
+oracles `A ⊆ ℕ` of the supremum over the points `x ∈ Z` of an `A`-relative effective quantity
+defined by Kolmogorov complexity. All theorems are in the namespace `Kolmogorov.PointToSet`.
+
+### What is proved
+
+* **Main A, pressure.** `lowerPressure_pointToSet` and `upperPressure_pointToSet`: the lower and
+  the upper topological pressure of any set `Z` for a uniformly continuous potential equal the minimum over
+  oracles of the supremum, over `Z`, of the lower and the upper pointwise (effective) pressure.
+  The infimum is attained, on a cone of oracles above a base oracle. The proof goes through the
+  covering characterizations `lowerPressure_eq_iInf_nullCover` and
+  `upperPressure_eq_iInf_uniformNet`, the effective formulas
+  `effectiveLowerPressure_eq_iSup_pointwise` and `effectiveUpperPressure_eq_iSup_pointwise`
+  and the entropy characterization `entropy_effectiveCharacterization_allOracles`.
+* **Main B, Barreira-Schmeling dimension.** `bsPointToSet` (and `bsPointToSet_upper`): the lower
+  and the upper Barreira-Schmeling dimension of a set on which the lower Birkhoff averages of the
+  potential `u` are positive equal the minimum over oracles of the supremum of the lower and the
+  upper pointwise dimension; `effectiveLowerBSEqSup` and `effectiveUpperBSEqSup` are the
+  effective versions for admissible oracles.
+* **Main C and D, Bowen equations.** `pointwiseBowenEquation`: where the pointwise pressure at
+  scale zero is finite, the pointwise Barreira-Schmeling dimension `d` solves the pointwise
+  Bowen equation, i.e. the pointwise pressure of `-d * u` is `0`. `setBowenCriticalValue`: the
+  set-level dimension is the positive-pressure threshold of `s ↦ P(-s * u)` (infinite endpoints
+  retained). `setBowenRootOfFiniteBSDimension`: if the relevant dimension is finite, `Z` is
+  nonempty and the upper Birkhoff averages are bounded by a common `β`, the dimension is a root
+  of the set-level Bowen equation. `setBowenRootUniqueness`: under a uniform positive lower bound
+  of the averages and finite entropy there is at most one real root.
+* **Main E, conformal systems.** `dimensionTheorem`: on the conformal locus of uniformly
+  conformal data `C`, the Hausdorff dimension is the lower Barreira-Schmeling dimension; the
+  upper version identifies the (specified-radius) packing dimension with the upper dimension, and
+  `bowenEquation` characterizes both as positive-pressure thresholds. The classical side is
+  `classicalPointToSet` (Hausdorff and packing dimension are minima over oracles of suprema of
+  static point dimensions) together with `pointwiseDimensionEqBS`.
+* **Packing equivalences (appendix).** `pressureEquivalence` and `bsEquivalence`: packing
+  pressure and packing Barreira-Schmeling dimension coincide with their modified separated-set
+  versions.
+* **Cover centers.** `pressureIndependentOfCoverCenters` and
+  `bsDimensionIndependentOfCoverCenters`: for the modified (countably decomposed) quantities,
+  the pressure and the dimension are the same whether the centers of the covers may be any point
+  of the space or must lie in the set being covered.
+
+The Lean statements of Main A (lower pressure) and Main B (lower dimension), as in the code:
+
+```lean
+theorem lowerPressure_pointToSet (D : PressureData X) (Z : Set X) :
+    lowerPressure D.T D.φ D.p₀ Z =
+      ⨅ A : Set ℕ, ⨆ x ∈ Z, (pointwisePressure D.presentation D.T D.φ A x).1
+
+theorem bsPointToSet (P : Presentation X) (T : X → X) (hT : Continuous T)
+    (u : X → ℝ) (hu : UniformContinuous u) (Z : Set X)
+    (hZ : ∀ x ∈ Z, 0 < lowerBirkhoffAverage T u x) :
+    lowerBSDimension T u Z = ⨅ A : Set ℕ, ⨆ x ∈ Z, (pointwiseBSDimension P T u A x).1
+```
+
+### Corrections to the paper
+
+The formalization follows a corrected blueprint, and some printed claims are false. These are
+proved here, and the corrected statements are the ones formalized:
+
+* **Root existence in Main D fails as printed.**
+  `counterexampleNonuniformBowenExistence` is a complete separable system (a separated union of
+  binary shifts with potential `1 / j` on component `j`) with positive averages at most one, both
+  entropies equal to one, infinite Barreira-Schmeling dimensions and no real zero of the
+  pressure, lower or upper. The repaired statements are `setBowenRootOfFiniteBSDimension` (finite
+  dimension, nonempty set, common bound on the upper averages) and `setBowenRootUniqueness`.
+* **The root clause of the introductory Theorem E fails.**
+  `infiniteEntropyConformalNoBowenRoot`: the Baire shift on `ℕ → ℕ`, uniformly conformal with
+  potential one, has infinite pressures, entropies, Hausdorff and packing dimensions, and
+  neither a lower nor an upper real Bowen root. The dimension theorem and the pressure-threshold
+  form `bowenEquation` are unaffected.
+* **Packing dimension needs specified radii.** `actualDiameterPackingCounterexample` is a compact
+  ultrametric space with actual-diameter packing dimension `0` and specified-radius packing
+  dimension `1`, so Theorem E is formalized for the specified-radius convention.
+* **Ball comparisons need a shift and tempered contraction.** `ballComparisonRegression` and
+  `ballComparisonRegression_tempered` show that an order-`n` Bowen ball uses only `n - 1` iterates
+  and that tempered contraction does not bound suffix sums.
+* **Raw thresholds.** The finite and zero thresholds of the packing Barreira-Schmeling capacities
+  cannot be compared on sets with merely positive averages
+  (`PackingEquivalences/BSDimension/RawThresholdCounterexample.lean`), so `bsEquivalence` is
+  proved after localizing to pieces with uniform bounds.
+
+### The 28 main theorems
+
+These are the `theorem` nodes of the blueprint; each depends only on the axioms `propext`,
+`Classical.choice` and `Quot.sound`.
+
+* Oracle foundation: `exists_optimalOraclePrefix`, `oracle_coding_finite_mass`.
+* Admissible oracles and the order argument: `exists_admissible_base`, `exists_achieving_oracle`.
+* Pressure (Main A): `lowerPressure_eq_iInf_nullCover`, `effectiveLowerPressure_eq_iSup_pointwise`,
+  `lowerPressure_pointToSet`, `entropy_effectiveCharacterization_allOracles`,
+  `upperPressure_eq_iInf_uniformNet`, `effectiveUpperPressure_eq_iSup_pointwise`,
+  `upperPressure_pointToSet`.
+* Barreira-Schmeling dimension (Main B): `effectiveLowerBSEqSup`, `effectiveUpperBSEqSup`,
+  `bsPointToSet`.
+* Bowen equations (Main C, D): `pointwiseBowenEquation`, `setBowenCriticalValue`,
+  `setBowenRootOfFiniteBSDimension`, `setBowenRootUniqueness`,
+  `counterexampleNonuniformBowenExistence`.
+* Packing equivalences: `pressureEquivalence`, `bsEquivalence`.
+* Conformal dimension theorem (Main E): `pointwiseDimensionEqBS`, `classicalPointToSet`,
+  `dimensionTheorem`, `bowenEquation`.
+* Cover centers and infinite entropy: `pressureIndependentOfCoverCenters`,
+  `bsDimensionIndependentOfCoverCenters`, `infiniteEntropyConformalNoBowenRoot`.
+
+### Map of the files
+
+```text
+KolmogorovMathlib/
+├── Oracle/                              # Oracle prefix complexity and relative Kraft-Chaitin coding
+│   ├── Basic.lean                       #   Relative enumerability and computable real families (total characteristic oracles)
+│   ├── Joins.lean                       #   Binary and countable joins of oracles, least upper bounds for Turing reducibility
+│   ├── FinitePrefix.lean                #   Exact finite-prefix operators representing oracle-recursive partial functions
+│   ├── Universal.lean                   #   Optimal oracle prefix machines: exists_optimalOraclePrefix
+│   │   └── Universal/                   #     Bounded oracle evaluator and enumeration (Enumeration), optimality construction (Optimal)
+│   ├── PrefixComplexity.lean            #   Canonical relative prefix complexity K^A
+│   │   └── PrefixComplexity/            #     Basic bounds on K^A (Basic), the oracle monotonicity threshold (MonotonicityThreshold)
+│   └── KraftChaitin.lean                #   Relative Kraft-Chaitin realization, oracle_coding_finite_mass
+└── PointToSet/                          # The paper's point-to-set principles
+    ├── ComputableMetric.lean            #   Fixed metric presentations, admissible base oracles, static point dimensions
+    │   └── ComputableMetric/            #     Presentation, StaticDimensions (exists_admissible_base), DimensionAlongScales
+    ├── Dynamics.lean                    #   Bowen balls, finite-scale costs, changes of presentation
+    │   └── Dynamics/                    #     BowenBalls, BirkhoffComputability, PointwiseQuantities, PresentationChangeBS
+    ├── Order.lean                       #   Vanishing coding overhead and attained oracle minima
+    │   └── Order/                       #     NormalizedSlack, AchievingOracles (exists_achieving_oracle)
+    ├── Pressure/                        #   Lower and upper topological pressure (Main A)
+    │   ├── Defs.lean                    #     Pressure data, covers, partition sums, entropies
+    │   ├── Lower.lean, Lower/           #     Null covers, Bowen geometry, centered contents, effective lower pressure and entropy, lower principle
+    │   └── Upper.lean, Upper/           #     Uniform nets, scale comparison, effective upper pressure, upper principle
+    ├── BSDimension/                     #   Lower and upper Barreira-Schmeling dimension (Main B)
+    │   ├── Defs.lean                    #     Covering masses, capacity dimensions, LimitSide
+    │   ├── Lower.lean, Lower/           #     Realizers, null covers, mass dichotomy, effective lower dimension
+    │   └── Upper.lean, Upper/           #     Uniform nets, scale limits, oracle attainment, point-to-set principle
+    ├── BowenEquation.lean               #   Pointwise and set-level Bowen equations, corrected roots (Main C, D)
+    │   └── BowenEquation/               #     Pointwise, PointwiseCriticalValue, SetCriticalValue, SetRoot, SlopeBounds,
+    │                                    #       ConstantExponent, NonuniformCounterexample
+    ├── PackingEquivalences/             #   Packing versus modified separated-set quantities (appendix)
+    │   ├── Defs.lean                    #     Separated sets and decorated Bowen packings
+    │   ├── Pressure.lean, Pressure/     #     pressureEquivalence, scale dichotomy, modified separated pressure
+    │   └── BSDimension.lean, BSDimension/ #   bsEquivalence, radius and covering comparison, raw-threshold counterexample
+    ├── Conformal/                       #   Conformal dimension theorem (Main E)
+    │   ├── Defs.lean                    #     Uniform conformal data, classical metric contents
+    │   ├── Distortion.lean, Distortion/ #     Distortion moduli, orbit scales, pointwise conformal dimension (pointwiseDimensionEqBS)
+    │   ├── Classical.lean, Classical/   #     Hausdorff covers, packing versus modified box dimension, classicalPointToSet
+    │   └── TheoremE.lean, TheoremE/     #     dimensionTheorem, bowenEquation, ball comparisons, factorial-product packing counterexample
+    ├── Geometry/                        #   Independence and infinite-entropy results
+    │   ├── CoverCenters.lean, CoverCenters/       # Center policies, pressure and BS-dimension independence of cover centers
+    │   └── InfiniteEntropy.lean, InfiniteEntropy/ # Finite-alphabet subsystems, the Baire shift without a Bowen root
+    ├── SymbolicSet.lean                 #   Dimensions of subsets of symbolic shifts (countable alphabet)
+    └── Examples.lean, Examples/         #   The middle-thirds Cantor set: presentation, pointwise and set dimensions
+```
+
+The blueprint with the dependency graph of all nodes is [`docs/point_to_set_blueprint.md`](point_to_set_blueprint.md).
+
 ## Project Layout
 
 ```text
@@ -440,6 +600,9 @@ KolmogorovMathlib/
 │   └── Lower/
 ├── RandomStrings/               # Resource-bounded reductions to random strings: oracle machines, complexity classes, the Allender–Friedman–Gasarch EXPSPACE theorem
 │   └── Plain/                   # Milovanov's theorem: an optimal plain decompressor whose C-random strings do not compute the halting language in polynomial time
+├── Oracle/                      # Oracle prefix machines, relative prefix complexity K^A, relative Kraft-Chaitin coding
+├── PointToSet/                  # Point-to-set principles in dynamical systems: pressure, Barreira-Schmeling
+│                                #   dimension, Bowen equations, conformal dimension theorem
 ├── Restricted/                  # Description families and restricted profiles from Section 6
 │   ├── FamilyCurve/             # Effective multiscale construction and general curve realization
 │   └── Examples/                # Cylinders, masks, and Hamming-ball families
