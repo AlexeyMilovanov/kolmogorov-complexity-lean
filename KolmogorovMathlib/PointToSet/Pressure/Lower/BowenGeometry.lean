@@ -59,9 +59,8 @@ theorem bowen_geometry (D : PressureData X) (n : ℕ) (hn : 1 ≤ n) :
   exact bowen_ball_dense_metric D.T D.continuous_T n hn
 
 /-- Bowen balls are open in the original topology. Blueprint node `pressure:bowen`. -/
-theorem bowen_geometry_open (D : PressureData X) (n : ℕ) (hn : 1 ≤ n) (x : X) (r : ℝ) :
+theorem bowen_geometry_open (D : PressureData X) (n : ℕ) (x : X) (r : ℝ) :
     IsOpen (bowenBall D.T n x r) := by
-  have _ := hn
   exact bowen_ball_dense_open D.T D.continuous_T n x r
 
 /-- Membership in a Bowen ball is symmetric in the two points.
@@ -107,9 +106,8 @@ theorem recenter_bowen_cover (D : PressureData X) (C : BowenCoverFamily X)
 /-- Oscillation adds over the observed times, using the frozen Birkhoff sum.
 Blueprint node `pressure:recenter`. -/
 theorem recenter_bowen_cover_distortion (D : PressureData X) (p : ℕ) (hp : D.p₀ ≤ p)
-    (n : ℕ) (hn : 1 ≤ n) (y z : X) (hz : z ∈ bowenBall D.T n y (dyadicRadius p)) :
+    (n : ℕ) (y z : X) (hz : z ∈ bowenBall D.T n y (dyadicRadius p)) :
     |birkhoffSum D.T D.φ n z - birkhoffSum D.T D.φ n y| ≤ n * D.ω p := by
-  have _ := hn
   have hbound : ∀ k ∈ Finset.range n, |D.φ (D.T^[k] z) - D.φ (D.T^[k] y)| ≤ D.ω p := by
     intro k hk
     refine D.oscillation p hp _ _ ?_
@@ -125,34 +123,31 @@ theorem recenter_bowen_cover_distortion (D : PressureData X) (p : ℕ) (hp : D.p
 /-- The supremum potential lies between the center value and its oscillation bound.
 Blueprint node `pressure:recenter`. -/
 theorem recenter_bowen_cover_sup_bounds (D : PressureData X) (p : ℕ) (hp : D.p₀ ≤ p)
-    (n : ℕ) (hn : 1 ≤ n) (y : X) :
+    (n : ℕ) (y : X) :
     ((birkhoffSum D.T D.φ n y : ℝ) : EReal) ≤
       bowenPotentialSup D.T D.φ n y (dyadicRadius p) ∧
     bowenPotentialSup D.T D.φ n y (dyadicRadius p) ≤
       ((birkhoffSum D.T D.φ n y + n * D.ω p : ℝ) : EReal) := by
   refine ⟨le_iSup₂_of_le y (self_mem_bowenBall D.T n y _ (dyadicRadius_pos p)) le_rfl,
     iSup₂_le fun z hz ↦ EReal.coe_le_coe_iff.mpr ?_⟩
-  have hd := (abs_le.mp (recenter_bowen_cover_distortion D p hp n hn y z hz)).2
+  have hd := (abs_le.mp (recenter_bowen_cover_distortion D p hp n y z hz)).2
   linarith
 
 /-- The supremum potential on a valid small-scale ball is a finite real number.
 Blueprint node `pressure:recenter`. -/
 theorem recenter_bowen_cover_sup_finite (D : PressureData X) (p : ℕ) (hp : D.p₀ ≤ p)
-    (n : ℕ) (hn : 1 ≤ n) (y : X) :
+    (n : ℕ) (y : X) :
     ∃ w : ℝ, bowenPotentialSup D.T D.φ n y (dyadicRadius p) = (w : EReal) := by
-  obtain ⟨hlo, hhi⟩ := recenter_bowen_cover_sup_bounds D p hp n hn y
+  obtain ⟨hlo, hhi⟩ := recenter_bowen_cover_sup_bounds D p hp n y
   exact ⟨_, (EReal.coe_toReal (ne_top_of_le_ne_top (EReal.coe_ne_top _) hhi)
     (ne_bot_of_le_ne_bot (EReal.coe_ne_bot _) hlo)).symm⟩
 
 /-- Increasing the exponent bounds cutoff content by the explicit exponential factor.
 Blueprint node `pressure:critical`. -/
-theorem lowerContent_critical (D : PressureData X) (w : PressureWeight) (Z : Set X)
-    (r : ℝ) (hr : 0 < r) (ω : ℝ)
-    (hω : ∀ x y, dist x y < r → |D.φ x - D.φ y| ≤ ω)
-    (N : ℕ) (hN : 1 ≤ N) (s t : ℝ) (hst : s < t) :
+theorem lowerContent_critical (D : PressureData X) (w : PressureWeight) (Z : Set X) (r : ℝ)
+    (N : ℕ) (s t : ℝ) (hst : s < t) :
     lowerContent D.T D.φ w Z t r N ≤
       (2 : ℝ≥0∞) ^ (-(t - s) * N) * lowerContent D.T D.φ w Z s r N := by
-  have _ := And.intro hr (And.intro hω hN)
   let a : ℝ≥0∞ := (2 : ℝ≥0∞) ^ (-(t - s) * (N : ℝ))
   have ha0 : a ≠ 0 := (ENNReal.rpow_pos (by norm_num) (by norm_num)).ne'
   have haT : a ≠ ⊤ := ENNReal.rpow_ne_top_of_ne_zero (by norm_num) (by norm_num)
@@ -183,23 +178,19 @@ theorem lowerContent_critical (D : PressureData X) (w : PressureWeight) (Z : Set
 
 /-- Raising the positive order cutoff can only increase content.
 Blueprint node `pressure:critical`. -/
-theorem lowerContent_critical_mono_cutoff (D : PressureData X) (w : PressureWeight)
-    (Z : Set X) (r : ℝ) (hr : 0 < r) (ω : ℝ)
-    (hω : ∀ x y, dist x y < r → |D.φ x - D.φ y| ≤ ω) (s : ℝ) (N M : ℕ)
-    (hN : 1 ≤ N) (hNM : N ≤ M) :
+theorem lowerContent_critical_mono_cutoff (D : PressureData X) (w : PressureWeight) (Z : Set X)
+    (r : ℝ) (s : ℝ) (N M : ℕ)
+    (hNM : N ≤ M) :
     lowerContent D.T D.φ w Z s r N ≤ lowerContent D.T D.φ w Z s r M := by
-  have _ := And.intro hr (And.intro hω hN)
   unfold lowerContent
   refine iInf_mono fun C ↦ iInf_mono' fun hC ↦ ⟨⟨fun j ↦ ?_, hC.2⟩, le_rfl⟩
   exact (max_le_max le_rfl hNM).trans (hC.1 j)
 
 /-- Increasing the exponent can only decrease cutoff content.
 Blueprint node `pressure:critical`. -/
-theorem lowerContent_critical_antitone (D : PressureData X) (w : PressureWeight)
-    (Z : Set X) (r : ℝ) (hr : 0 < r) (ω : ℝ)
-    (hω : ∀ x y, dist x y < r → |D.φ x - D.φ y| ≤ ω) (N : ℕ) (hN : 1 ≤ N) :
+theorem lowerContent_critical_antitone (D : PressureData X) (w : PressureWeight) (Z : Set X) (r : ℝ)
+    (N : ℕ) :
     Antitone (fun s => lowerContent D.T D.φ w Z s r N) := by
-  have _ := And.intro hr (And.intro hω hN)
   intro s t hst
   unfold lowerContent
   refine iInf_mono fun C ↦ iInf_mono fun _ ↦ ENNReal.tsum_le_tsum fun j ↦ ?_
@@ -217,9 +208,8 @@ private lemma lowerContent_le_lowerContentLimit (T : X → X) (φ : X → ℝ) (
 
 /-- Content vanishes strictly above its extended critical value.
 Blueprint node `pressure:critical`. -/
-theorem lowerContent_critical_zero (D : PressureData X) (w : PressureWeight)
-    (Z : Set X) (r : ℝ) (hr : 0 < r) (ω : ℝ)
-    (hω : ∀ x y, dist x y < r → |D.φ x - D.φ y| ≤ ω) (s : ℝ)
+theorem lowerContent_critical_zero (D : PressureData X) (w : PressureWeight) (Z : Set X) (r : ℝ)
+    (s : ℝ)
     (hs : lowerPressureAt D.T D.φ w Z r < (s : EReal)) :
     lowerContentLimit D.T D.φ w Z s r = 0 := by
   unfold lowerPressureAt at hs
@@ -229,20 +219,19 @@ theorem lowerContent_critical_zero (D : PressureData X) (w : PressureWeight)
   refine iSup_eq_bot.mpr fun N ↦ iSup_eq_bot.mpr fun hN ↦ le_antisymm ?_ zero_le
   calc
     _ ≤ lowerContent D.T D.φ w Z s' r N :=
-      lowerContent_critical_antitone D w Z r hr ω hω N hN hss
+      lowerContent_critical_antitone D w Z r N hss
     _ ≤ lowerContentLimit D.T D.φ w Z s' r := lowerContent_le_lowerContentLimit _ _ _ _ _ _ hN
     _ = 0 := h_zero
 
 /-- If the content limit at the exponent `s` is finite, it vanishes at every larger exponent
 `t`: the exponential factor of `lowerContent_critical` tends to zero with the cutoff. -/
-private lemma lowerContentLimit_eq_zero_of_lt (D : PressureData X) (w : PressureWeight)
-    (Z : Set X) (r : ℝ) (hr : 0 < r) (ω : ℝ)
-    (hω : ∀ x y, dist x y < r → |D.φ x - D.φ y| ≤ ω) (s t : ℝ) (hst : s < t)
+private lemma lowerContentLimit_eq_zero_of_lt (D : PressureData X) (w : PressureWeight) (Z : Set X)
+    (r : ℝ) (s t : ℝ) (hst : s < t)
     (h_fin : lowerContentLimit D.T D.φ w Z s r < ⊤) :
     lowerContentLimit D.T D.φ w Z t r = 0 := by
   have H (N : ℕ) (hN : 1 ≤ N) : lowerContent D.T D.φ w Z t r N ≤
       (2 : ℝ≥0∞) ^ (-(t - s) * N) * lowerContentLimit D.T D.φ w Z s r :=
-    (lowerContent_critical D w Z r hr ω hω N hN s t hst).trans
+    (lowerContent_critical D w Z r N s t hst).trans
       (mul_le_mul_right (lowerContent_le_lowerContentLimit _ _ _ _ _ _ hN) _)
   have h_lt_one : (2 : ℝ≥0∞) ^ (-(t - s)) < 1 := by
     rw [← ENNReal.rpow_zero (x := (2 : ℝ≥0∞))]
@@ -259,32 +248,28 @@ private lemma lowerContentLimit_eq_zero_of_lt (D : PressureData X) (w : Pressure
   refine iSup_eq_bot.mpr fun N ↦ iSup_eq_bot.mpr fun hN ↦ le_antisymm ?_ zero_le
   refine ge_of_tendsto H_lim ?_
   filter_upwards [Ici_mem_atTop N] with M hM
-  exact (lowerContent_critical_mono_cutoff D w Z r hr ω hω t N M hN hM).trans
+  exact (lowerContent_critical_mono_cutoff D w Z r t N M hM).trans
     (H M (hN.trans hM))
 
 /-- Content is infinite strictly below its extended critical value.
 Blueprint node `pressure:critical`. -/
-theorem lowerContent_critical_top (D : PressureData X) (w : PressureWeight)
-    (Z : Set X) (r : ℝ) (hr : 0 < r) (ω : ℝ)
-    (hω : ∀ x y, dist x y < r → |D.φ x - D.φ y| ≤ ω) (s : ℝ)
+theorem lowerContent_critical_top (D : PressureData X) (w : PressureWeight) (Z : Set X) (r : ℝ)
+    (s : ℝ)
     (hs : (s : EReal) < lowerPressureAt D.T D.φ w Z r) :
     lowerContentLimit D.T D.φ w Z s r = ⊤ := by
   by_contra h
   obtain ⟨t, hst, ht⟩ := EReal.lt_iff_exists_real_btwn.mp hs
-  have h_zero := lowerContentLimit_eq_zero_of_lt D w Z r hr ω hω s t
+  have h_zero := lowerContentLimit_eq_zero_of_lt D w Z r s t
     (EReal.coe_lt_coe_iff.mp hst) (lt_top_iff_ne_top.mpr h)
   exact (not_le.mpr ht) (iInf₂_le t h_zero)
 
 /-- Vanishing content supplies an actual cover below every positive tolerance.
 Blueprint node `pressure:critical`. -/
-theorem lowerContent_critical_cover (D : PressureData X) (w : PressureWeight)
-    (Z : Set X) (r : ℝ) (hr : 0 < r) (ω : ℝ)
-    (hω : ∀ x y, dist x y < r → |D.φ x - D.φ y| ≤ ω) (s : ℝ)
-    (hs : lowerContentLimit D.T D.φ w Z s r = 0)
+theorem lowerContent_critical_cover (D : PressureData X) (w : PressureWeight) (Z : Set X) (r : ℝ)
+    (s : ℝ) (hs : lowerContentLimit D.T D.φ w Z s r = 0)
     (N : ℕ) (hN : 1 ≤ N) (ε : ℝ≥0∞) (hε : 0 < ε) :
     ∃ C : BowenCoverFamily X, IsBowenCover D.T Z r N C ∧
       bowenCoverCost D.T D.φ w s r C < ε := by
-  have _ := And.intro hr hω
   have h1 : lowerContent D.T D.φ w Z s r N = 0 :=
     le_antisymm
       ((lowerContent_le_lowerContentLimit D.T D.φ w Z s r hN).trans_eq hs) zero_le
@@ -300,9 +285,8 @@ theorem lowerContent_critical_cover (D : PressureData X) (w : PressureWeight)
 `r` is also a cover by balls of radius `R ≥ r` at the same centered cost.
 Blueprint node `pressure:lower-scale`. -/
 theorem lowerPressure_eq_centered_radius (D : PressureData X) (Z : Set X)
-    (r R : ℝ) (hr : 0 < r) (hrR : r ≤ R) :
+    (r R : ℝ) (hrR : r ≤ R) :
     lowerPressureAt D.T D.φ .centered Z R ≤ lowerPressureAt D.T D.φ .centered Z r := by
-  have _ := hr
   have hcontent (s : ℝ) (N : ℕ) :
       lowerContent D.T D.φ .centered Z s R N ≤ lowerContent D.T D.φ .centered Z s r N := by
     unfold lowerContent
@@ -327,7 +311,7 @@ theorem lowerPressure_eq_centered_radius (D : PressureData X) (Z : Set X)
 the factor `2 ^ (n * ω p)`, so shifting the exponent by `ω p` compares the two costs of a
 cover. -/
 private lemma bowenCoverCost_supremum_le_centered (D : PressureData X) (p : ℕ) (hp : D.p₀ ≤ p)
-    (s : ℝ) (C : BowenCoverFamily X) (hC : ∀ j, 1 ≤ C.order j) :
+    (s : ℝ) (C : BowenCoverFamily X) :
     bowenCoverCost D.T D.φ .supremum s (dyadicRadius p) C ≤
       bowenCoverCost D.T D.φ .centered (s - D.ω p) (dyadicRadius p) C := by
   unfold bowenCoverCost
@@ -339,7 +323,7 @@ private lemma bowenCoverCost_supremum_le_centered (D : PressureData X) (p : ℕ)
         (C.order j : ℝ) * D.ω p) := by
     refine iSup₂_le fun z hz ↦ ?_
     refine ENNReal.rpow_le_rpow_of_exponent_le (by norm_num : (1 : ℝ≥0∞) ≤ 2) ?_
-    have hd := recenter_bowen_cover_distortion D p hp (C.order j) (hC j) (C.center j) z hz
+    have hd := recenter_bowen_cover_distortion D p hp (C.order j) (C.center j) z hz
     linarith [(abs_le.mp hd).2]
   calc
     _ ≤ (2 : ℝ≥0∞) ^ (-s * (C.order j : ℝ)) *
@@ -359,8 +343,8 @@ private lemma lowerContentLimit_supremum_le_centered (D : PressureData X) (Z : S
     lowerContentLimit D.T D.φ .supremum Z s (dyadicRadius p) ≤
       lowerContentLimit D.T D.φ .centered Z (s - D.ω p) (dyadicRadius p) := by
   unfold lowerContentLimit lowerContent
-  refine iSup_mono fun N ↦ iSup_mono fun _ ↦ iInf_mono fun C ↦ iInf_mono fun hC ↦ ?_
-  exact bowenCoverCost_supremum_le_centered D p hp s C fun j ↦ (le_max_left 1 N).trans (hC.1 j)
+  refine iSup_mono fun N ↦ iSup_mono fun _ ↦ iInf_mono fun C ↦ iInf_mono fun _ ↦ ?_
+  exact bowenCoverCost_supremum_le_centered D p hp s C
 
 /-- The two fixed-scale critical values differ by at most the finite oscillation error.
 Blueprint node `pressure:lower-scale`. -/
@@ -404,10 +388,8 @@ theorem lowerPressure_eq_centered_limit (D : PressureData X) (Z : Set X) :
   have hmono : Monotone f := by
     intro p q hpq
     apply lowerPressure_eq_centered_radius
-    · change 0 < (2 : ℝ)⁻¹ ^ q
-      exact pow_pos (by norm_num) q
-    · change (2 : ℝ)⁻¹ ^ q ≤ (2 : ℝ)⁻¹ ^ p
-      exact pow_le_pow_of_le_one (by norm_num) (by norm_num) hpq
+    change (2 : ℝ)⁻¹ ^ q ≤ (2 : ℝ)⁻¹ ^ p
+    exact pow_le_pow_of_le_one (by norm_num) (by norm_num) hpq
   have hsup : ⨆ p, f p = lowerPressure D.T D.φ D.p₀ Z := by
     unfold lowerPressure
     apply le_antisymm

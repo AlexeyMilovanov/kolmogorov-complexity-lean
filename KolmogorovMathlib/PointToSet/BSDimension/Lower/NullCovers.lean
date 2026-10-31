@@ -129,15 +129,14 @@ private lemma lowerBSMass_le_nullBSMass (P : Presentation X) (T : X → X) (u : 
 
 /-- A null witness bounds classical lower dimension on the positive-average locus.
 Blueprint node `bs:null-lower`. -/
-theorem nullCoverBoundsLowerBS (P : Presentation X) (T : X → X)
-    (hT : Continuous T) (u : X → ℝ) (hu : UniformContinuous u)
-    (Z : Set X) (hZ : ∀ x ∈ Z, 0 < lowerBirkhoffAverage T u x)
+theorem nullCoverBoundsLowerBS (P : Presentation X) (T : X → X) (u : X → ℝ) (Z : Set X)
+    (hZ : ∀ x ∈ Z, 0 < lowerBirkhoffAverage T u x)
     (s : ℝ) (hs : 0 ≤ s) (E : Set (ℕ × ℕ × ℕ)) (hE : IsNullBSCover P T u Z s E) :
     lowerBSDimension T u Z ≤ ENNReal.ofReal s := by
   refine iSup_le fun p ↦ ?_
   by_contra hlt
-  have htop := lowerBSDichotomy_top P T hT u hu Z hZ s (dyadicRadius p) hs
-    (dyadicRadius_pos p) (not_le.mp hlt)
+  have htop := lowerBSDichotomy_top T u Z hZ s (dyadicRadius p) hs
+    (not_le.mp hlt)
   have hfin : lowerBSMassLimit T u Z s (dyadicRadius p) < ⊤ :=
     (iSup_le fun N ↦ iSup_le fun _ ↦ lowerBSMass_le_nullBSMass P T u Z hs E hE p N).trans_lt hE.1
   rw [htop] at hfin
@@ -173,18 +172,16 @@ theorem exists_dyadicRadius_double_le_finite_bowenPotentialSup
 
 /-- At a fixed dyadic scale below the lower dimension bound `s`, every order cutoff admits a
 Bowen cover of arbitrarily small positive cost. -/
-private lemma exists_bowenCover_cost_lt
-    (P : Presentation X) (T : X → X) (hT : Continuous T) (u : X → ℝ)
-    (hu : UniformContinuous u) (Z : Set X)
-    (hZ : ∀ x ∈ Z, 0 < lowerBirkhoffAverage T u x) (s : ℝ) (hs : 0 ≤ s)
+private lemma exists_bowenCover_cost_lt (T : X → X) (u : X → ℝ) (Z : Set X)
+    (hZ : ∀ x ∈ Z, 0 < lowerBirkhoffAverage T u x) (s : ℝ)
     (hlt : lowerBSDimension T u Z < ENNReal.ofReal s) (q N : ℕ) (hN : 1 ≤ N)
     (ε : ℝ≥0∞) (hε : 0 < ε) :
     ∃ C : BowenCoverFamily X, IsBowenCover T Z (dyadicRadius q) N C ∧
       bsCoverCost T u s (dyadicRadius q) C < ε := by
   have hdim : lowerBSDimensionAt T u Z (dyadicRadius q) < ENNReal.ofReal s :=
     (le_iSup (fun p ↦ lowerBSDimensionAt T u Z (dyadicRadius p)) q).trans_lt hlt
-  have hzero := lowerBSDichotomy_zero P T hT u hu Z hZ s (dyadicRadius q) hs
-    (dyadicRadius_pos q) hdim
+  have hzero := lowerBSDichotomy_zero T u Z hZ s (dyadicRadius q)
+    hdim
   have hmass : lowerBSMass T u Z s (dyadicRadius q) N < ε := by
     refine lt_of_le_of_lt ?_ hε
     rw [← hzero]
@@ -195,11 +192,9 @@ private lemma exists_bowenCover_cost_lt
 are encoded by pairwise distinct triples whose center-weight mass is at most `2 ^ s` times
 the cost of the cover, and which cover `Z` at the coarser scale `p` whenever `2 * r` is at
 most the radius of scale `p`. -/
-private lemma exists_triples_of_bowenCover
-    (P : Presentation X) (T : X → X) (hT : Continuous T) (u : X → ℝ)
-    (hu : UniformContinuous u) (Z : Set X) (s : ℝ) (hs : 0 ≤ s)
-    (r : ℝ) (hr : 0 < r) (p N : ℕ) (hscale : 2 * r ≤ dyadicRadius p)
-    (C : BowenCoverFamily X) (hC : IsBowenCover T Z r N C)
+private lemma exists_triples_of_bowenCover (P : Presentation X) (T : X → X) (hT : Continuous T)
+    (u : X → ℝ) (hu : UniformContinuous u) (Z : Set X) (s : ℝ) (hs : 0 ≤ s) (r : ℝ) (p N : ℕ)
+    (hscale : 2 * r ≤ dyadicRadius p) (C : BowenCoverFamily X) (hC : IsBowenCover T Z r N C)
     (hfinite : ∀ j : C.index, ∃ w : ℝ,
       bowenPotentialSup T u (C.order j) (C.center j) r = (w : EReal)) :
     ∃ E : Set (ℕ × ℕ × ℕ),
@@ -214,7 +209,7 @@ private lemma exists_triples_of_bowenCover
         bowenBall T (C.order j) (P.ι i) (2 * r) := by
     intro j
     obtain ⟨i, _, hi, hsub⟩ := recenterNearBirkhoffSupremum P T hT u hu
-      (C.order j) ((le_max_left 1 N).trans (hC.1 j)) (C.center j) r hr
+      (C.order j) (C.center j) r
       (w j) (hw j) 1 zero_lt_one
     exact ⟨i, hi, hsub⟩
   choose i hi hsub using hcenters
@@ -270,12 +265,12 @@ theorem lowerBSNullCoverCharacterization (P : Presentation X) (T : X → X)
     intro p N
     have hbudget : 0 < (2 : ℝ≥0∞)⁻¹ ^ (p + N + 2) :=
       bot_lt_iff_ne_bot.mpr (pow_ne_zero _ (by norm_num))
-    obtain ⟨C, hC, hcost⟩ := exists_bowenCover_cost_lt P T hT u hu Z hZ s hs hlt (q p)
+    obtain ⟨C, hC, hcost⟩ := exists_bowenCover_cost_lt T u Z hZ s hlt (q p)
       (max 1 N) (le_max_left _ _) ((2 : ℝ≥0∞)⁻¹ ^ (p + N + 2)) hbudget
     have hC' : IsBowenCover T Z (dyadicRadius (q p)) N C := by
       simpa only [IsBowenCover, ← max_assoc, max_self] using hC
     obtain ⟨E, hmass, hcover⟩ := exists_triples_of_bowenCover P T hT u hu Z s hs
-      (dyadicRadius (q p)) (dyadicRadius_pos _) p N (hscale p) C hC'
+      (dyadicRadius (q p)) p N (hscale p) C hC'
       (fun j ↦ hfinite p (C.order j) (C.center j))
     exact ⟨E, hmass.trans (mul_le_mul_right hcost.le _), hcover⟩
   choose E hmass hcover using hpieces
@@ -298,7 +293,7 @@ theorem lowerBSNullCoverCharacterization_iInf (P : Presentation X) (T : X → X)
     lowerBSDimension T u Z = ⨅ s : ℝ, ⨅ (_ : 0 ≤ s), ⨅ E : Set (ℕ × ℕ × ℕ),
       ⨅ (_ : IsNullBSCover P T u Z s E), ENNReal.ofReal s := by
   refine le_antisymm
-    (le_iInf₂ fun s hs ↦ le_iInf₂ fun E hE ↦ nullCoverBoundsLowerBS P T hT u hu Z hZ s hs E hE) ?_
+    (le_iInf₂ fun s hs ↦ le_iInf₂ fun E hE ↦ nullCoverBoundsLowerBS P T u Z hZ s hs E hE) ?_
   refine le_of_forall_gt_imp_ge_of_dense fun a ha ↦ ?_
   rcases eq_or_ne a ⊤ with rfl | hne
   · exact le_top
@@ -309,12 +304,10 @@ theorem lowerBSNullCoverCharacterization_iInf (P : Presentation X) (T : X → X)
 
 /-- The effective lower dimension bounds classical lower dimension.
 Blueprint node `bs:effective`. -/
-theorem effectiveBSDimensions_ge (P : Presentation X) (T : X → X) (hT : Continuous T)
-    (u : X → ℝ) (hu : UniformContinuous u) (A : Set ℕ)
-    (hA : IsAdmissible P T (fun _ : Fin 1 => u) A) (Z : Set X)
+theorem effectiveBSDimensions_ge (P : Presentation X) (T : X → X) (hT : Continuous T) (u : X → ℝ)
+    (hu : UniformContinuous u) (A : Set ℕ) (Z : Set X)
     (hZ : ∀ x ∈ Z, 0 < lowerBirkhoffAverage T u x) :
     lowerBSDimension T u Z ≤ effectiveLowerBSDimension P T u A Z := by
-  have _ := hA
   rw [lowerBSNullCoverCharacterization_iInf P T hT u hu Z hZ]
   exact iInf_mono fun s ↦ iInf_mono fun hs ↦ iInf_mono fun E ↦
     iInf_mono' fun hE ↦ ⟨hE.1, le_rfl⟩
@@ -524,9 +517,8 @@ private lemma exists_late_realizer_of_pointwiseBSDimension_lt
 /-- If the pointwise dimension of `x` is below the positive rational `s`, then at every scale
 code `p` and cutoff `k` the threshold set contains a triple `(i, n, p)` with `n ≥ max 1 k`
 whose ball around `ι i` contains `x`. -/
-private lemma exists_late_triple_mem_kraftThresholdSet (P : Presentation X) (T : X → X)
-    (hT : Continuous T) (u : X → ℝ) (hu : UniformContinuous u) (A : Set ℕ)
-    (x : X) (hx : 0 < lowerBirkhoffAverage T u x) (s : ℚ)
+private lemma exists_late_triple_mem_kraftThresholdSet (P : Presentation X) (T : X → X) (u : X → ℝ)
+    (hu : UniformContinuous u) (A : Set ℕ) (x : X) (hx : 0 < lowerBirkhoffAverage T u x) (s : ℚ)
     (hs : (pointwiseBSDimension P T u A x).1 < ENNReal.ofReal (s : ℝ)) :
     ∀ p k, ∃ i n, max 1 k ≤ n ∧
       (i, n, p) ∈ kraftThresholdSet P T u A s ∧
@@ -534,7 +526,7 @@ private lemma exists_late_triple_mem_kraftThresholdSet (P : Presentation X) (T :
   obtain ⟨t, ht0, hdt, hts⟩ := ENNReal.lt_iff_exists_real_btwn.1 hs
   have htsReal : t < (s : ℝ) :=
     (ENNReal.ofReal_lt_ofReal_iff_of_nonneg ht0).mp hts
-  obtain ⟨ρ, hρ, r₀, hr₀, hbounds⟩ := birkhoffRealizerBounds_positive P T hT u hu x hx
+  obtain ⟨ρ, hρ, r₀, hr₀, hbounds⟩ := birkhoffRealizerBounds_positive P T u hu x hx
   have hρReal : (0 : ℝ) < ρ := by exact_mod_cast hρ
   intro p k
   obtain ⟨q, hq⟩ := exists_dyadicRadius_lt (lt_min hr₀ (dyadicRadius_pos p))
@@ -577,16 +569,16 @@ private lemma effectiveLowerBSDimension_le_of_rat_isREIn_nullBSCover
 
 /-- The Kraft construction bounds effective lower dimension by the pointwise supremum.
 Blueprint node `bs:effective-lower-upper`. -/
-theorem effectiveLowerBSLeSup (P : Presentation X) (T : X → X) (hT : Continuous T)
-    (u : X → ℝ) (hu : UniformContinuous u) (A : Set ℕ)
-    (hA : IsAdmissible P T (fun _ : Fin 1 => u) A) (Z : Set X)
+theorem effectiveLowerBSLeSup (P : Presentation X) (T : X → X) (u : X → ℝ)
+    (hu : UniformContinuous u) (A : Set ℕ) (hA : IsAdmissible P T (fun _ : Fin 1 => u) A)
+    (Z : Set X)
     (hZ : ∀ x ∈ Z, 0 < lowerBirkhoffAverage T u x) :
     effectiveLowerBSDimension P T u A Z ≤ ⨆ x ∈ Z, (pointwiseBSDimension P T u A x).1 := by
   refine effectiveLowerBSDimension_le_of_rat_isREIn_nullBSCover P T u A Z _ fun s hs hsup ↦ ?_
   refine ⟨kraftThresholdSet P T u A s, ⟨?_, fun p k x hx ↦ ?_⟩,
     isREIn_kraftThresholdSet P T u A hA s hs⟩
   · exact (nullBSMass_kraftThresholdSet_le_one P T u A s).trans_lt ENNReal.one_lt_top
-  · refine exists_late_triple_mem_kraftThresholdSet P T hT u hu A x (hZ x hx) s ?_ p k
+  · refine exists_late_triple_mem_kraftThresholdSet P T u hu A x (hZ x hx) s ?_ p k
     exact (le_iSup₂_of_le x hx le_rfl).trans_lt hsup
 
 end Kolmogorov.PointToSet

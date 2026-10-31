@@ -48,12 +48,12 @@ private lemma exists_pos_precontent_of_pressureOuterEnvelope_eq_top (T : X → X
 
 /-- A real number strictly below the packing pressure threshold has infinite packing outer
 envelope. -/
-private lemma pressureOuterEnvelope_eq_top_of_lt_packingPressureAt [SeparableSpace X] (T : X → X)
-    (f : X → ℝ) (Z : Set X) (r : ℝ) (hr : 0 < r) (hω : potentialVariation f r < ⊤) {s : ℝ}
+private lemma pressureOuterEnvelope_eq_top_of_lt_packingPressureAt (T : X → X) (f : X → ℝ)
+    (Z : Set X) (r : ℝ) {s : ℝ}
     (hs : (s : EReal) < packingPressureAt T f Z r) : pressureOuterEnvelope T f Z s r = ⊤ := by
   by_contra h_ne
   refine absurd hs (not_lt.mpr ?_)
-  rw [pressureDichotomyScaleLimit_threshold T f Z r hr hω]
+  rw [pressureDichotomyScaleLimit_threshold T f Z r]
   refine iSup₂_le fun t ht ↦ ?_
   by_contra h_lt
   have hst : s < t := EReal.coe_lt_coe_iff.mp (not_le.mp h_lt)
@@ -222,16 +222,14 @@ private lemma coe_le_separatedUpperPressureAt_of_exists_large (T : X → X) (f :
 
 /-- Separated modification bounds packing at the same radius for all signed pressures.
 Blueprint node `pack:sep-to-pack`. -/
-theorem modifiedSeparatedBoundsPackPressure [SeparableSpace X] (T : X → X)
-    (hT : Continuous T) (f : X → ℝ) (Z : Set X) (r : ℝ) (hr : 0 < r)
-    (hω : potentialVariation f r < ⊤) :
+theorem modifiedSeparatedBoundsPackPressure (T : X → X) (f : X → ℝ) (Z : Set X) (r : ℝ) (hr : 0 < r)
+    :
     packingPressureAt T f Z r ≤ modifiedSeparatedPressureAt T f Z r := by
-  have _ := hT -- continuity is part of the published statement but not needed here
   refine le_of_forall_lt fun x hx ↦ ?_
   obtain ⟨s, hxs, hs⟩ := EReal.exists_between_coe_real hx
   refine hxs.trans_le (le_modifiedSeparatedPressureAt_of_forall_cover T f Z r s ?_)
   intro Y hY_sub hY_cov
-  have h_top := pressureOuterEnvelope_eq_top_of_lt_packingPressureAt T f Z r hr hω hs
+  have h_top := pressureOuterEnvelope_eq_top_of_lt_packingPressureAt T f Z r hs
   obtain ⟨j, hj_pos⟩ :=
     exists_pos_precontent_of_pressureOuterEnvelope_eq_top T f Z r s Y hY_sub hY_cov h_top
   obtain ⟨a, -, ha_pos', ha_lt⟩ := ENNReal.lt_iff_exists_real_btwn.mp hj_pos
@@ -248,20 +246,18 @@ theorem modifiedSeparatedBoundsPackPressure [SeparableSpace X] (T : X → X)
 
 /-- The covering upper capacity is bounded by separated capacity at the doubled radius.
 Blueprint node `pack:pressure-equivalence`. -/
-theorem pressureEquivalence_capacity_lower [SeparableSpace X] (T : X → X)
-    (hT : Continuous T) (f : X → ℝ) (Z : Set X) (r : ℝ) (hr : 0 < r)
-    (hω : potentialVariation f (2 * r) < ⊤) :
+theorem pressureEquivalence_capacity_lower [SeparableSpace X] (T : X → X) (hT : Continuous T)
+    (f : X → ℝ) (Z : Set X) (r : ℝ) (hr : 0 < r) :
     upperCapacity T f .supremum Z (2 * r) ≤ separatedUpperPressureAt T f Z (2 * r) := by
   refine limsup_le_limsup ?_ (isCoboundedUnder_le_of_le atTop fun _ ↦ bot_le)
     (isBoundedUnder_of ⟨⊤, fun _ ↦ le_top⟩)
   filter_upwards [eventually_ge_atTop 1] with n hn
-  exact pressureRate_le_of_le _ _ n (pressureSpanSep T hT f Z n hn r hr hω)
+  exact pressureRate_le_of_le _ _ n (pressureSpanSep T hT f Z n hn r hr)
 
 /-- The separated capacity at the doubled radius is bounded by the covering capacity at radius `r`
 plus the finite potential variation at radius `2 * r`.
 Blueprint node `pack:pressure-equivalence`. -/
-theorem pressureEquivalence_capacity_upper [SeparableSpace X] (T : X → X)
-    (hT : Continuous T) (f : X → ℝ) (Z : Set X) (r : ℝ) (hr : 0 < r)
+theorem pressureEquivalence_capacity_upper (T : X → X) (f : X → ℝ) (Z : Set X) (r : ℝ)
     (hω : potentialVariation f (2 * r) < ⊤) :
     separatedUpperPressureAt T f Z (2 * r) ≤
       upperCapacity T f .supremum Z r + ((potentialVariation f (2 * r)).toReal : EReal) := by
@@ -272,7 +268,7 @@ theorem pressureEquivalence_capacity_upper [SeparableSpace X] (T : X → X)
           ((potentialVariation f (2 * r)).toReal : EReal) := by
     filter_upwards [eventually_ge_atTop 1] with n hn
     refine pressureRate_le_add_of_le_mul _ _ _ _ (by omega) ?_
-    simpa only [mul_comm] using pressureSpanSep_upper T hT f Z n hn r hr hω
+    simpa only [mul_comm] using pressureSpanSep_upper T f Z n hn r hω
   have h_add := EReal.limsup_add_le (u := pressureRate fun n ↦ partitionSum T f .supremum Z n r)
     (v := fun _ : ℕ ↦ ((potentialVariation f (2 * r)).toReal : EReal)) (f := atTop)
     (Or.inr (by simp)) (Or.inr (by simp))
@@ -298,19 +294,17 @@ theorem pressureEquivalence_restrict_pieces (T : X → X) (f : X → ℝ)
 
 /-- The covering-to-separated comparison passes to countable modifications.
 Blueprint node `pack:pressure-equivalence`. -/
-theorem pressureEquivalence_modified_lower [SeparableSpace X] (T : X → X)
-    (hT : Continuous T) (f : X → ℝ) (Z : Set X) (r : ℝ) (hr : 0 < r)
-    (hω : potentialVariation f (2 * r) < ⊤) :
+theorem pressureEquivalence_modified_lower [SeparableSpace X] (T : X → X) (hT : Continuous T)
+    (f : X → ℝ) (Z : Set X) (r : ℝ) (hr : 0 < r) :
     modifiedUpperPressure T f .supremum Z (2 * r) ≤
       modifiedSeparatedPressureAt T f Z (2 * r) := by
   unfold modifiedUpperPressure modifiedSeparatedPressureAt
   refine le_iInf₂ fun Y hY ↦ iInf₂_le_of_le Y hY.2 (iSup_mono fun j ↦ ?_)
-  exact pressureEquivalence_capacity_lower T hT f (Y j) r hr hω
+  exact pressureEquivalence_capacity_lower T hT f (Y j) r hr
 
 /-- The reverse modified comparison retains the radius and error from the sum comparison.
 Blueprint node `pack:pressure-equivalence`. -/
-theorem pressureEquivalence_modified_upper [SeparableSpace X] (T : X → X)
-    (hT : Continuous T) (f : X → ℝ) (Z : Set X) (r : ℝ) (hr : 0 < r)
+theorem pressureEquivalence_modified_upper (T : X → X) (f : X → ℝ) (Z : Set X) (r : ℝ)
     (hω : potentialVariation f (2 * r) < ⊤) :
     modifiedSeparatedPressureAt T f Z (2 * r) ≤
       modifiedUpperPressure T f .supremum Z r +
@@ -323,6 +317,6 @@ theorem pressureEquivalence_modified_upper [SeparableSpace X] (T : X → X)
     ((iInf_mono fun Y ↦ EReal.iInf_add_coe_le _ _).trans (EReal.iInf_add_coe_le _ _))
   refine (iInf₂_le_of_le Y hY le_rfl).trans
     ((iSup_mono fun j ↦ ?_).trans (EReal.iSup_add_coe_le _ _))
-  exact pressureEquivalence_capacity_upper T hT f (Y j) r hr hω
+  exact pressureEquivalence_capacity_upper T f (Y j) r hω
 
 end Kolmogorov.PointToSet

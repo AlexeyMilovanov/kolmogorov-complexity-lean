@@ -81,9 +81,8 @@ private lemma bsPartitionCoverCost_le_of_radius_le (T : X → X) (u : X → ℝ)
 /-- Both the available separated sets and their BS weights increase at smaller radii.
 Blueprint node `pack:bs-definitions`. -/
 theorem bsPackingSeparatedDefinitions_sum_radius (T : X → X) (u : X → ℝ)
-    (Z : Set X) (a : ℝ) (ha : 0 ≤ a) (n : ℕ) (hn : 1 ≤ n) :
+    (Z : Set X) (a : ℝ) (ha : 0 ≤ a) (n : ℕ) :
     AntitoneOn (fun r => separatedBSSum T u Z a r n) (Set.Ioi 0) := by
-  have _ := hn
   intro r₁ _ r₂ _ hr
   refine iSup_mono fun F ↦ iSup_mono' fun hF ↦ ?_
   refine ⟨⟨hF.1, fun x hx y hy hxy ↦ hr.trans (hF.2 hx hy hxy)⟩, ?_⟩
@@ -98,7 +97,7 @@ private lemma separatedBSZeroCapacityAt_antitone_radius
   apply nonpos_iff_eq_zero.mp
   apply le_trans (limsup_le_limsup ?_) (le_of_eq hzero)
   exact eventually_atTop.mpr ⟨1, fun n hn ↦
-    bsPackingSeparatedDefinitions_sum_radius T u Z a ha n hn hr₁ hr₂ hr⟩
+    bsPackingSeparatedDefinitions_sum_radius T u Z a ha n hr₁ hr₂ hr⟩
 
 /-- Modified separated zero thresholds increase as the positive radius decreases.
 Blueprint node `pack:bs-definitions`. -/
@@ -304,13 +303,11 @@ private lemma tendsto_zero_of_le_mul_two_rpow
 
 /-- On a uniform positive-average piece, finite separated upper mass becomes zero.
 Blueprint node `pack:bs-finite-zero`. -/
-theorem bsFiniteZeroUniformPiece (T : X → X) (u : X → ℝ) (C : Set X)
-    (N : ℕ) (hN : 1 ≤ N) (ρ : ℝ) (hρ : 0 < ρ)
-    (hC : ∀ x ∈ C, ∀ n ≥ N, ρ * n ≤ birkhoffSum T u n x)
-    (a b r : ℝ) (ha : 0 ≤ a) (hab : a < b) (hr : 0 < r)
+theorem bsFiniteZeroUniformPiece (T : X → X) (u : X → ℝ) (C : Set X) (N : ℕ) (ρ : ℝ) (hρ : 0 < ρ)
+    (hC : ∀ x ∈ C, ∀ n ≥ N, ρ * n ≤ birkhoffSum T u n x) (a b r : ℝ) (ha : 0 ≤ a) (hab : a < b)
+    (hr : 0 < r)
     (hfinite : limsup (separatedBSSum T u C a r) atTop < ⊤) :
     limsup (separatedBSSum T u C b r) atTop = 0 := by
-  have _ := hN
   apply Tendsto.limsup_eq
   apply tendsto_zero_of_le_mul_two_rpow _ _ ((b - a) * ρ)
     (mul_pos (sub_pos.mpr hab) hρ) ?_ hfinite
@@ -359,14 +356,11 @@ private lemma bsPartitionSum_le_mul_of_le_birkhoffSum
 /-- On a uniform positive-average piece, finite covering upper mass becomes zero
 at every larger exponent. Balls missing the piece can be discarded.
 Blueprint node `pack:bs-finite-zero`. -/
-theorem bsFiniteZeroUniformPiece_covering (T : X → X) (u : X → ℝ) (C : Set X)
-    (N : ℕ) (hN : 1 ≤ N) (ρ : ℝ) (hρ : 0 < ρ)
-    (hC : ∀ x ∈ C, ∀ n ≥ N, ρ * n ≤ birkhoffSum T u n x)
-    (a b r : ℝ) (ha : 0 ≤ a) (hab : a < b) (hr : 0 < r)
+theorem bsFiniteZeroUniformPiece_covering (T : X → X) (u : X → ℝ) (C : Set X) (N : ℕ) (ρ : ℝ)
+    (hρ : 0 < ρ) (hC : ∀ x ∈ C, ∀ n ≥ N, ρ * n ≤ birkhoffSum T u n x) (a b r : ℝ) (ha : 0 ≤ a)
+    (hab : a < b)
     (hfinite : limsup (bsPartitionSum T u C a r) atTop < ⊤) :
     limsup (bsPartitionSum T u C b r) atTop = 0 := by
-  have _ := hN
-  have _ := hr
   apply Tendsto.limsup_eq
   apply tendsto_zero_of_le_mul_two_rpow _ _ ((b - a) * ρ)
     (mul_pos (sub_pos.mpr hab) hρ) ?_ hfinite
@@ -397,13 +391,12 @@ lemma _root_.ENNReal.iInf_ofReal_lt_top_eq_iInf_ofReal_eq_zero
 
 /-- Finite and zero raw separated thresholds agree on a uniform positive-average piece.
 Blueprint node `pack:bs-finite-zero`. -/
-theorem bsFiniteZeroUniformPiece_separated_threshold (T : X → X) (u : X → ℝ)
-    (C : Set X) (N : ℕ) (hN : 1 ≤ N) (ρ : ℝ) (hρ : 0 < ρ)
-    (hC : ∀ x ∈ C, ∀ n ≥ N, ρ * n ≤ birkhoffSum T u n x)
+theorem bsFiniteZeroUniformPiece_separated_threshold (T : X → X) (u : X → ℝ) (C : Set X) (N : ℕ)
+    (ρ : ℝ) (hρ : 0 < ρ) (hC : ∀ x ∈ C, ∀ n ≥ N, ρ * n ≤ birkhoffSum T u n x)
     (r : ℝ) (hr : 0 < r) :
     separatedBSFiniteCapacityAt T u C r = separatedBSZeroCapacityAt T u C r := by
   apply ENNReal.iInf_ofReal_lt_top_eq_iInf_ofReal_eq_zero
   intro a b ha hab hfinite
-  exact bsFiniteZeroUniformPiece T u C N hN ρ hρ hC a b r ha hab hr hfinite
+  exact bsFiniteZeroUniformPiece T u C N ρ hρ hC a b r ha hab hr hfinite
 
 end Kolmogorov.PointToSet

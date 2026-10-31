@@ -64,23 +64,22 @@ private lemma le_packingPressureAt_of_pressureOuterEnvelope_eq_top (T : X → X)
 
 /-- Every exponent above the supremum of the exponents with infinite envelope has zero
 envelope. -/
-private lemma pressureOuterEnvelope_eq_zero_of_iSup_lt (T : X → X) (f : X → ℝ) (Z : Set X)
-    (r t : ℝ) (hr : 0 < r) (hω : potentialVariation f r < ⊤)
+private lemma pressureOuterEnvelope_eq_zero_of_iSup_lt (T : X → X) (f : X → ℝ) (Z : Set X) (r t : ℝ)
     (hSup : (⨆ s : ℝ, ⨆ (_ : pressureOuterEnvelope T f Z s r = ⊤), (s : EReal)) < (t : EReal)) :
     pressureOuterEnvelope T f Z t r = 0 := by
   obtain ⟨s, hSupS, hST⟩ := EReal.exists_between_coe_real hSup
   have hfinite : pressureOuterEnvelope T f Z s r < ⊤ := by
     refine lt_top_iff_ne_top.mpr fun htop ↦ ?_
     exact not_lt_of_ge (le_iSup₂_of_le s htop le_rfl) hSupS
-  exact pressureDichotomyScaleLimit T f Z s t r (EReal.coe_lt_coe_iff.mp hST) hr hω hfinite
+  exact pressureDichotomyScaleLimit T f Z s t r (EReal.coe_lt_coe_iff.mp hST) hfinite
 
 /-- The packing pressure is at most the supremum of the exponents with infinite envelope. -/
 private lemma packingPressureAt_le_iSup_pressureOuterEnvelope_eq_top (T : X → X) (f : X → ℝ)
-    (Z : Set X) (r : ℝ) (hr : 0 < r) (hω : potentialVariation f r < ⊤) :
+    (Z : Set X) (r : ℝ) :
     packingPressureAt T f Z r ≤
       ⨆ s : ℝ, ⨆ (_ : pressureOuterEnvelope T f Z s r = ⊤), (s : EReal) := by
   refine EReal.le_of_forall_lt_iff_le.mp fun t ht ↦ ?_
-  have hzero := pressureOuterEnvelope_eq_zero_of_iSup_lt T f Z r t hr hω ht
+  have hzero := pressureOuterEnvelope_eq_zero_of_iSup_lt T f Z r t ht
   unfold packingPressureAt
   exact (iInf_le (fun s : ℝ ↦ ⨅ (_ : pressureOuterEnvelope T f Z s r = 0), (s : EReal)) t).trans
     (iInf_le _ hzero)
@@ -88,10 +87,10 @@ private lemma packingPressureAt_le_iSup_pressureOuterEnvelope_eq_top (T : X → 
 /-- The infinity and zero critical thresholds agree, including both signed endpoints.
 Blueprint node `pack:pressure-dichotomy`. -/
 theorem pressureDichotomyScaleLimit_threshold (T : X → X) (f : X → ℝ)
-    (Z : Set X) (r : ℝ) (hr : 0 < r) (hω : potentialVariation f r < ⊤) :
+    (Z : Set X) (r : ℝ) :
     packingPressureAt T f Z r =
       ⨆ s : ℝ, ⨆ (_ : pressureOuterEnvelope T f Z s r = ⊤), (s : EReal) :=
-  le_antisymm (packingPressureAt_le_iSup_pressureOuterEnvelope_eq_top T f Z r hr hω)
+  le_antisymm (packingPressureAt_le_iSup_pressureOuterEnvelope_eq_top T f Z r)
     (iSup₂_le fun s hs ↦ le_packingPressureAt_of_pressureOuterEnvelope_eq_top T f Z r s hs)
 
 /-- Shrinking the radius preserves the disjointness condition of a decorated packing. -/
@@ -239,10 +238,9 @@ private lemma limsup_packingPressureAt_le_liminf (T : X → X) (f : X → ℝ)
 
 /-- Uniform continuity gives convergence over all positive radii tending to zero.
 Blueprint node `pack:pressure-dichotomy`. -/
-theorem pressureDichotomyScaleLimit_limit [SeparableSpace X] (T : X → X)
-    (hT : Continuous T) (f : X → ℝ) (hf : UniformContinuous f) (Z : Set X) :
+theorem pressureDichotomyScaleLimit_limit (T : X → X)
+    (f : X → ℝ) (hf : UniformContinuous f) (Z : Set X) :
     Tendsto (packingPressureAt T f Z) (𝓝[Set.Ioi 0] 0) (𝓝 (packingPressure T f Z)) := by
-  have _ := hT
   unfold packingPressure
   exact tendsto_of_le_liminf_of_limsup_le (limsup_packingPressureAt_le_liminf T f hf Z) le_rfl
     (Filter.isBoundedUnder_of ⟨⊤, fun _ ↦ le_top⟩) (Filter.isBoundedUnder_of ⟨⊥, fun _ ↦ bot_le⟩)
@@ -427,12 +425,10 @@ private lemma modifiedSeparatedPressureAt_le_of_pressureOuterEnvelope_lt_one (T 
 
 /-- Packing bounds the modified separated pressure with the doubled-radius variation.
 Blueprint node `pack:pack-to-sep`. -/
-theorem packBoundsModifiedSeparatedPressure [SeparableSpace X] (T : X → X)
-    (hT : Continuous T) (f : X → ℝ) (Z : Set X) (r : ℝ) (hr : 0 < r)
+theorem packBoundsModifiedSeparatedPressure (T : X → X) (f : X → ℝ) (Z : Set X) (r : ℝ) (hr : 0 < r)
     (hω : potentialVariation f (2 * r) < ⊤) :
     modifiedSeparatedPressureAt T f Z (2 * r) ≤
       packingPressureAt T f Z r + ((potentialVariation f (2 * r)).toReal : EReal) := by
-  have _ := hT
   refine (EReal.sub_le_iff_le_add (Or.inl (EReal.coe_ne_bot _))
     (Or.inl (EReal.coe_ne_top _))).mp (EReal.le_of_forall_lt_iff_le.mp fun a ha ↦ ?_)
   refine (EReal.sub_le_iff_le_add (Or.inl (EReal.coe_ne_bot _))
@@ -442,7 +438,7 @@ theorem packBoundsModifiedSeparatedPressure [SeparableSpace X] (T : X → X)
   obtain ⟨hz, hsa⟩ := iInf_lt_iff.mp hs
   have hωr : potentialVariation f r < ⊤ :=
     (potentialVariation_mono f (by linarith)).trans_lt hω
-  rw [pressureDichotomyScaleLimit T f Z s a r (by exact_mod_cast hsa) hr hωr
+  rw [pressureDichotomyScaleLimit T f Z s a r (by exact_mod_cast hsa)
     (by rw [hz]; simp)]
   exact zero_lt_one
 

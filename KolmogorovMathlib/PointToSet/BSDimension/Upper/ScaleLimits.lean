@@ -259,20 +259,11 @@ private lemma exists_cover_meeting_set
 
 /-- On one uniform positive-average piece an exponent gap gives an exponential mass bound.
 Blueprint node `bs:upper-refinement`. -/
-theorem upperCapacityPositiveRefinement (P : Presentation X) (T : X → X)
-    (hT : Continuous T) (u : X → ℝ) (hu : UniformContinuous u) (Z C : Set X)
-    (N₀ : ℕ) (hN₀ : 1 ≤ N₀) (ρ : ℚ) (hρ : 0 < ρ)
+theorem upperCapacityPositiveRefinement (T : X → X) (u : X → ℝ) (Z C : Set X) (N₀ : ℕ) (ρ : ℚ)
     (hC : C ⊆ positiveAveragePiece T u Z N₀ ρ) (s t r : ℝ)
-    (hs : 0 ≤ s) (hst : s < t) (hr : 0 < r) (n : ℕ) (hn : N₀ ≤ n) :
+    (hs : 0 ≤ s) (hst : s < t) (n : ℕ) (hn : N₀ ≤ n) :
     bsPartitionSum T u C t r n ≤
       (2 : ℝ≥0∞) ^ (-(t - s) * (ρ : ℝ) * n) * bsPartitionSum T u C s r n := by
-  -- These parameters are retained in the public statement; the estimate is purely order-theoretic.
-  have _ := P
-  have _ := hT
-  have _ := hu
-  have _ := hN₀
-  have _ := hρ
-  have _ := hr
   let a : ℝ≥0∞ := (2 : ℝ≥0∞) ^ (-(t - s) * (ρ : ℝ) * n)
   have ha0 : a ≠ 0 := (ENNReal.rpow_pos (by norm_num) (by norm_num)).ne'
   have hatop : a ≠ ⊤ := ENNReal.rpow_ne_top_of_ne_zero (by norm_num) (by norm_num)
@@ -315,11 +306,9 @@ private theorem tendsto_zero_of_le_geometric_mul_of_limsup_lt_top
 
 /-- Finite upper mass limit becomes convergence to zero on a uniform positive piece.
 Blueprint node `bs:upper-refinement`. -/
-theorem upperCapacityPositiveRefinement_tendsto (P : Presentation X) (T : X → X)
-    (hT : Continuous T) (u : X → ℝ) (hu : UniformContinuous u) (Z C : Set X)
-    (N₀ : ℕ) (hN₀ : 1 ≤ N₀) (ρ : ℚ) (hρ : 0 < ρ)
-    (hC : C ⊆ positiveAveragePiece T u Z N₀ ρ) (s t r : ℝ)
-    (hs : 0 ≤ s) (hst : s < t) (hr : 0 < r)
+theorem upperCapacityPositiveRefinement_tendsto (T : X → X) (u : X → ℝ) (Z C : Set X) (N₀ : ℕ)
+    (ρ : ℚ) (hρ : 0 < ρ) (hC : C ⊆ positiveAveragePiece T u Z N₀ ρ) (s t r : ℝ) (hs : 0 ≤ s)
+    (hst : s < t)
     (hfinite : limsup (bsPartitionSum T u C s r) atTop < ⊤) :
     Tendsto (bsPartitionSum T u C t r) atTop (𝓝 0) := by
   let f := bsPartitionSum T u C t r
@@ -331,7 +320,7 @@ theorem upperCapacityPositiveRefinement_tendsto (P : Presentation X) (T : X → 
     use N₀
     intro n hn
     have h_refine :=
-      upperCapacityPositiveRefinement P T hT u hu Z C N₀ hN₀ ρ hρ hC s t r hs hst hr n hn
+      upperCapacityPositiveRefinement T u Z C N₀ ρ hC s t r hs hst n hn
     have h_eq : -(t - s) * (ρ : ℝ) * n = -a * n := by
       dsimp [a]
       ring
@@ -352,12 +341,9 @@ private lemma upperBSCapacityAt_le_zeroCapacityAt
 /-- On a uniform positive-average piece, the zero threshold is at most the finite threshold.
 Increase each finite-limsup exponent by an arbitrarily small positive amount and use
 `upperCapacityPositiveRefinement_tendsto`. -/
-private lemma upperBSZeroCapacityAt_le_capacityAt_of_positiveAveragePiece
-    (P : Presentation X) (T : X → X) (hT : Continuous T)
-    (u : X → ℝ) (hu : UniformContinuous u) (Z C : Set X)
-    (N₀ : ℕ) (hN₀ : 1 ≤ N₀) (ρ : ℚ) (hρ : 0 < ρ)
-    (hC : C ⊆ positiveAveragePiece T u Z N₀ ρ)
-    (r : ℝ) (hr : 0 < r) :
+private lemma upperBSZeroCapacityAt_le_capacityAt_of_positiveAveragePiece (T : X → X) (u : X → ℝ)
+    (Z C : Set X) (N₀ : ℕ) (ρ : ℚ) (hρ : 0 < ρ) (hC : C ⊆ positiveAveragePiece T u Z N₀ ρ)
+    (r : ℝ) :
     upperBSZeroCapacityAt T u C r ≤ upperBSCapacityAt T u C r := by
   unfold upperBSCapacityAt
   refine le_iInf₂ fun s hs ↦ le_iInf fun hfinite ↦ ?_
@@ -365,8 +351,8 @@ private lemma upperBSZeroCapacityAt_le_capacityAt_of_positiveAveragePiece
   intro ε hε _
   have hε' : 0 < (ε : ℝ) := NNReal.coe_pos.mpr hε
   have hzero : limsup (bsPartitionSum T u C (s + ε) r) atTop = 0 :=
-    (upperCapacityPositiveRefinement_tendsto P T hT u hu Z C N₀ hN₀ ρ hρ hC
-      s (s + ε) r hs (by linarith) hr hfinite).limsup_eq
+    (upperCapacityPositiveRefinement_tendsto T u Z C N₀ ρ hρ hC
+      s (s + ε) r hs (by linarith) hfinite).limsup_eq
   calc
     upperBSZeroCapacityAt T u C r ≤ ENNReal.ofReal (s + ε) := by
       unfold upperBSZeroCapacityAt
@@ -380,10 +366,8 @@ private lemma upperBSZeroCapacityAt_le_capacityAt_of_positiveAveragePiece
 pieces, enumerate the resulting countable family, and bound its zero capacities by
 the original finite capacities. The enumeration includes only positive slopes and
 cutoffs at least one. -/
-private lemma exists_cover_zeroCapacity_le_capacity
-    (P : Presentation X) (T : X → X) (hT : Continuous T)
-    (u : X → ℝ) (hu : UniformContinuous u) (Z : Set X)
-    (hZ : ∀ x ∈ Z, 0 < lowerBirkhoffAverage T u x) (r : ℝ) (hr : 0 < r)
+private lemma exists_cover_zeroCapacity_le_capacity (T : X → X) (u : X → ℝ) (Z : Set X)
+    (hZ : ∀ x ∈ Z, 0 < lowerBirkhoffAverage T u x) (r : ℝ)
     (Y : ℕ → Set X) (hY_sub : ∀ k, Y k ⊆ Z) (hY_cov : Z ⊆ ⋃ k, Y k) :
     ∃ W : ℕ → Set X, ((∀ j, W j ⊆ Z) ∧ Z ⊆ ⋃ j, W j) ∧
       (⨆ j, upperBSZeroCapacityAt T u (W j) r) ≤
@@ -400,7 +384,7 @@ private lemma exists_cover_zeroCapacity_le_capacity
     intro x hx
     obtain ⟨k, hk⟩ := Set.mem_iUnion.mp (hY_cov hx)
     have hx' := hx
-    rw [positiveAverageExhaustion P T hT u hu Z hZ] at hx'
+    rw [positiveAverageExhaustion T u Z hZ] at hx'
     simp only [Set.mem_iUnion] at hx'
     obtain ⟨N, hN, ρ, hρ, hxpiece⟩ := hx'
     obtain ⟨j, hj⟩ := he ⟨k, ⟨N, hN⟩, ⟨ρ, hρ⟩⟩
@@ -412,8 +396,8 @@ private lemma exists_cover_zeroCapacity_le_capacity
   refine ⟨W, ⟨hW_sub, hW_cov⟩, iSup_le fun j ↦ ?_⟩
   calc
     upperBSZeroCapacityAt T u (W j) r ≤ upperBSCapacityAt T u (W j) r :=
-      upperBSZeroCapacityAt_le_capacityAt_of_positiveAveragePiece P T hT u hu Z (W j)
-        (e j).2.1.1 (e j).2.1.2 (e j).2.2.1 (e j).2.2.2 Set.inter_subset_right r hr
+      upperBSZeroCapacityAt_le_capacityAt_of_positiveAveragePiece T u Z (W j)
+        (e j).2.1.1 (e j).2.2.1 (e j).2.2.2 Set.inter_subset_right r
     _ ≤ upperBSCapacityAt T u (Y (e j).1) r :=
       upperBSDimension_mono_capacity T u r Set.inter_subset_left
     _ ≤ ⨆ k, upperBSCapacityAt T u (Y k) r :=
@@ -421,9 +405,8 @@ private lemma exists_cover_zeroCapacity_le_capacity
 
 /-- After countable positive refinement, the modified finite and zero thresholds agree.
 Blueprint node `bs:upper-refinement`. -/
-theorem upperCapacityPositiveRefinement_modified (P : Presentation X) (T : X → X)
-    (hT : Continuous T) (u : X → ℝ) (hu : UniformContinuous u) (Z : Set X)
-    (hZ : ∀ x ∈ Z, 0 < lowerBirkhoffAverage T u x) (r : ℝ) (hr : 0 < r) :
+theorem upperCapacityPositiveRefinement_modified (T : X → X) (u : X → ℝ) (Z : Set X)
+    (hZ : ∀ x ∈ Z, 0 < lowerBirkhoffAverage T u x) (r : ℝ) :
     modifiedUpperBSDimension T u Z r = modifiedUpperBSZeroDimension T u Z r := by
   apply le_antisymm
   · unfold modifiedUpperBSDimension modifiedUpperBSZeroDimension
@@ -435,7 +418,7 @@ theorem upperCapacityPositiveRefinement_modified (P : Presentation X) (T : X →
   · unfold modifiedUpperBSDimension
     refine le_iInf₂ fun Y hY ↦ ?_
     obtain ⟨W, hW, hbound⟩ :=
-      exists_cover_zeroCapacity_le_capacity P T hT u hu Z hZ r hr
+      exists_cover_zeroCapacity_le_capacity T u Z hZ r
         Y hY.1 hY.2
     unfold modifiedUpperBSZeroDimension
     exact iInf_le_of_le W (iInf_le_of_le hW hbound)
@@ -527,14 +510,10 @@ private lemma upperBSCapacityAt_uniformBSNetPiece_le
 
 /-- A uniform net bounds the upper BS dimension; positive Birkhoff averages are not needed.
 Blueprint node `bs:net-lower`. -/
-theorem uniformNetBoundsUpperBS (P : Presentation X) (T : X → X)
-    (hT : Continuous T) (u : X → ℝ) (hu : UniformContinuous u)
-    (Z : Set X) (s : ℝ) (hs : 0 ≤ s) (E : Set (ℕ × ℕ × ℕ × ℕ))
+theorem uniformNetBoundsUpperBS (P : Presentation X) (T : X → X) (u : X → ℝ) (Z : Set X) (s : ℝ)
+    (hs : 0 ≤ s) (E : Set (ℕ × ℕ × ℕ × ℕ))
     (hE : IsUniformBSNet P T u Z s E) :
     upperBSDimension T u Z ≤ ENNReal.ofReal s := by
-  -- The covering argument does not require continuity.
-  have _ := hT
-  have _ := hu
   dsimp [upperBSDimension]
   apply iSup_le
   intro p

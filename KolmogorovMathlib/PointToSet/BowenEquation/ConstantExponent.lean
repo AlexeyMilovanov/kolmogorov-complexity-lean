@@ -69,9 +69,8 @@ private lemma finite_scale_bs_cost_bounds (P : Presentation X) (T : X → X)
 
 /-- A constant positive Birkhoff average gives cost bounds at all sufficiently fine scales
 and, at each such scale, all sufficiently large times. -/
-private lemma eventually_bs_cost_bounds (P : Presentation X) (T : X → X)
-    (hT : Continuous T) (u : X → ℝ) (hu : UniformContinuous u) (A : Set ℕ) (x : X)
-    (α : ℝ) (hα : 0 < α)
+private lemma eventually_bs_cost_bounds (P : Presentation X) (T : X → X) (u : X → ℝ)
+    (hu : UniformContinuous u) (A : Set ℕ) (x : X) (α : ℝ)
     (hx : lowerBirkhoffAverage T u x = (α : EReal) ∧
       upperBirkhoffAverage T u x = (α : EReal)) (η : ℝ) (hη : 0 < η) (hηα : η < α) :
     ∀ᶠ p in atTop, ∀ᶠ n in atTop,
@@ -80,7 +79,7 @@ private lemma eventually_bs_cost_bounds (P : Presentation X) (T : X → X)
         finiteScaleBSCost P T u A x n (dyadicRadius p) ≤
           finiteScaleBSCost P T (fun _ ↦ 1) A x n (dyadicRadius p) / ENNReal.ofReal (α - η) := by
   obtain ⟨r₀, hr₀, hbounds⟩ :=
-    birkhoffRealizerBounds P T hT u hu x α α hα le_rfl hx.1 hx.2 η hη
+    birkhoffRealizerBounds P T u hu x α α hx.1 hx.2 η hη
   obtain ⟨p₀, hp₀⟩ := exists_pow_lt_of_lt_one hr₀ (by norm_num : (2⁻¹ : ℝ) < 1)
   refine eventually_atTop.mpr ⟨p₀, fun p hp ↦ ?_⟩
   have hr : 0 < dyadicRadius p := by unfold dyadicRadius; positivity
@@ -148,9 +147,8 @@ private lemma eq_div_of_slack_bounds (K D : ℝ≥0∞) (α : ℝ) (hα : 0 < α
 
 /-- At a point with constant positive Birkhoff average, both effective BS dimensions are
 obtained by dividing the orbit complexities by that average. -/
-private lemma pointwise_bs_dimension_eq_div (P : Presentation X) (T : X → X)
-    (hT : Continuous T) (u : X → ℝ) (hu : UniformContinuous u) (A : Set ℕ) (x : X)
-    (α : ℝ) (hα : 0 < α)
+private lemma pointwise_bs_dimension_eq_div (P : Presentation X) (T : X → X) (u : X → ℝ)
+    (hu : UniformContinuous u) (A : Set ℕ) (x : X) (α : ℝ) (hα : 0 < α)
     (hx : lowerBirkhoffAverage T u x = (α : EReal) ∧
       upperBirkhoffAverage T u x = (α : EReal)) :
     (pointwiseBSDimension P T u A x).1 = (orbitComplexities P T A x).1 / ENNReal.ofReal α ∧
@@ -176,7 +174,7 @@ private lemma pointwise_bs_dimension_eq_div (P : Presentation X) (T : X → X)
           (orbitComplexities P T A x).2 / ENNReal.ofReal (α - η)) := by
     have ha : ENNReal.ofReal (α - η) ≠ 0 := ne_of_gt (ENNReal.ofReal_pos.mpr (sub_pos.mpr hηα))
     have hb : ENNReal.ofReal (α + η) ≠ 0 := ne_of_gt (ENNReal.ofReal_pos.mpr (by linarith))
-    have htime := (eventually_bs_cost_bounds P T hT u hu A x α hα hx η hη hηα).mono
+    have htime := (eventually_bs_cost_bounds P T u hu A x α hx η hη hηα).mono
       fun p hp ↦ time_limits_div_bounds (C (fun _ ↦ 1) p) (C u p) _ _ ha hb hp
     exact ⟨iSup_div_bounds _ _ (hinf (fun _ ↦ 1)) (hinf u) _ _ (htime.mono fun _ h ↦ h.1),
       iSup_div_bounds _ _ (hsup (fun _ ↦ 1)) (hsup u) _ _ (htime.mono fun _ h ↦ h.2)⟩
@@ -204,7 +202,7 @@ theorem bsDimensionConstantExponent (P : Presentation X) (T : X → X) (hT : Con
   intro x
   apply iSup_congr
   intro hx
-  exact (pointwise_bs_dimension_eq_div P T hT u hu A x α hα (hZ x hx)).1
+  exact (pointwise_bs_dimension_eq_div P T u hu A x α hα (hZ x hx)).1
 
 /-- The same constant exponent divides upper entropy without a finiteness hypothesis.
 Blueprint node `bs:constant-exponent`. -/
@@ -227,6 +225,6 @@ theorem bsDimensionConstantExponent_upper (P : Presentation X) (T : X → X)
   intro x
   apply iSup_congr
   intro hx
-  exact (pointwise_bs_dimension_eq_div P T hT u hu A x α hα (hZ x hx)).2
+  exact (pointwise_bs_dimension_eq_div P T u hu A x α hα (hZ x hx)).2
 
 end Kolmogorov.PointToSet

@@ -34,22 +34,20 @@ variable {X : Type*} [MetricSpace X]
 
 /-- The existing finite and zero raw covering thresholds agree on uniform positive pieces.
 Blueprint node `pack:bs-finite-zero`. -/
-theorem bsFiniteZeroUniformPiece_covering_threshold (T : X → X) (u : X → ℝ)
-    (C : Set X) (N : ℕ) (hN : 1 ≤ N) (ρ : ℝ) (hρ : 0 < ρ)
-    (hC : ∀ x ∈ C, ∀ n ≥ N, ρ * n ≤ birkhoffSum T u n x)
-    (r : ℝ) (hr : 0 < r) :
+theorem bsFiniteZeroUniformPiece_covering_threshold (T : X → X) (u : X → ℝ) (C : Set X) (N : ℕ)
+    (ρ : ℝ) (hρ : 0 < ρ) (hC : ∀ x ∈ C, ∀ n ≥ N, ρ * n ≤ birkhoffSum T u n x)
+    (r : ℝ) :
     upperBSCapacityAt T u C r = upperBSZeroCapacityAt T u C r := by
   apply ENNReal.iInf_ofReal_lt_top_eq_iInf_ofReal_eq_zero
   intro a b ha hab hfinite
-  exact bsFiniteZeroUniformPiece_covering T u C N hN ρ hρ hC a b r ha hab hr hfinite
+  exact bsFiniteZeroUniformPiece_covering T u C N ρ hρ hC a b r ha hab hfinite
 
 /-- A maximal separated net bounds the covering BS sum, without a positivity assumption.
 Blueprint node `pack:bs-span-sep`. -/
-theorem bsSpanSepModified [SeparableSpace X] (T : X → X) (hT : Continuous T)
-    (u : X → ℝ) (Z : Set X) (a r : ℝ) (ha : 0 ≤ a) (hr : 0 < r)
+theorem bsSpanSepModified [SeparableSpace X] (T : X → X) (hT : Continuous T) (u : X → ℝ) (Z : Set X)
+    (a r : ℝ) (hr : 0 < r)
     (n : ℕ) (hn : 1 ≤ n) :
     bsPartitionSum T u Z a (2 * r) n ≤ separatedBSSum T u Z a (2 * r) n := by
-  have _ := ha
   have hr' : 0 < 2 * r := mul_pos zero_lt_two hr
   rcases countableSeparatedMaximalNet T hT Z n hn (2 * r) hr' with ⟨F, hsub, hsep, hcount, _,
     hcover⟩
@@ -61,10 +59,8 @@ theorem bsSpanSepModified [SeparableSpace X] (T : X → X) (hT : Continuous T)
 
 /-- A `2r`-separated set maps injectively to the centers of any family of radius-`r` Bowen balls
 covering it, each point landing in the ball of its image. -/
-private lemma exists_injective_bowenBall_center [SeparableSpace X]
-    (T : X → X) (n : ℕ) (r : ℝ) (F C : Set X)
-    (hn : 1 ≤ n)
-    (hF_sep : IsBowenSeparated T n (2 * r) F)
+private lemma exists_injective_bowenBall_center (T : X → X) (n : ℕ) (r : ℝ) (F C : Set X)
+    (hn : 1 ≤ n) (hF_sep : IsBowenSeparated T n (2 * r) F)
     (hC : F ⊆ ⋃ y ∈ C, bowenBall T n y r) :
     ∃ π : F → C, Function.Injective π ∧
       ∀ x : F, x.1 ∈ bowenBall T n (π x).1 r := by
@@ -125,12 +121,9 @@ private lemma bsPartitionCoverCost_le_of_injective
 
 /-- Separated BS sums at twice the radius are bounded by covering BS sums.
 Blueprint node `pack:bs-span-sep`. -/
-theorem bsSpanSepModified_upper [SeparableSpace X] (T : X → X) (hT : Continuous T)
-    (u : X → ℝ) (Z : Set X) (a r : ℝ) (ha : 0 ≤ a) (hr : 0 < r)
+theorem bsSpanSepModified_upper (T : X → X) (u : X → ℝ) (Z : Set X) (a r : ℝ) (ha : 0 ≤ a)
     (n : ℕ) (hn : 1 ≤ n) :
     separatedBSSum T u Z a (2 * r) n ≤ bsPartitionSum T u Z a r n := by
-  have _ := hT
-  have _ := hr
   apply iSup_le
   intro F
   apply iSup_le
@@ -160,7 +153,7 @@ theorem bsSpanSepModified_finite_lower [SeparableSpace X] (T : X → X)
       bsPartitionSum T u Z a (2 * r) x))) (hv := isBoundedUnder_of ⟨⊤, fun (x : ℕ) ↦ (le_top :
       separatedBSSum T u Z a (2 * r) x ≤ ⊤)⟩)
     filter_upwards [Ici_mem_atTop 1] with n hn
-    exact bsSpanSepModified T hT u Z a r ha hr n hn
+    exact bsSpanSepModified T hT u Z a r hr n hn
   have h_limsup2 : limsup (bsPartitionSum T u Z a (2 * r)) atTop < ⊤ := H.trans_lt h_limsup
   apply iInf_le_of_le a
   apply iInf_le_of_le ha
@@ -169,8 +162,8 @@ theorem bsSpanSepModified_finite_lower [SeparableSpace X] (T : X → X)
 
 /-- The reverse raw comparison still uses finite thresholds on both sides.
 Blueprint node `pack:bs-span-sep`. -/
-theorem bsSpanSepModified_finite_upper [SeparableSpace X] (T : X → X)
-    (hT : Continuous T) (u : X → ℝ) (Z : Set X) (r : ℝ) (hr : 0 < r) :
+theorem bsSpanSepModified_finite_upper (T : X → X)
+    (u : X → ℝ) (Z : Set X) (r : ℝ) :
     separatedBSFiniteCapacityAt T u Z (2 * r) ≤ upperBSCapacityAt T u Z r := by
   dsimp [separatedBSFiniteCapacityAt, upperBSCapacityAt]
   apply le_iInf; intro a
@@ -182,7 +175,7 @@ theorem bsSpanSepModified_finite_upper [SeparableSpace X] (T : X → X)
       separatedBSSum T u Z a (2 * r) x))) (hv := isBoundedUnder_of ⟨⊤, fun (x : ℕ) ↦ (le_top :
       bsPartitionSum T u Z a r x ≤ ⊤)⟩)
     filter_upwards [Ici_mem_atTop 1] with n hn
-    exact bsSpanSepModified_upper T hT u Z a r ha hr n hn
+    exact bsSpanSepModified_upper T u Z a r ha n hn
   have h_limsup2 : limsup (separatedBSSum T u Z a (2 * r)) atTop < ⊤ := H.trans_lt h_limsup
   apply iInf_le_of_le a
   apply iInf_le_of_le ha
@@ -221,6 +214,7 @@ private lemma monotone_separatedBSFiniteCapacityAt
   exact iInf_le_of_le a
     (iInf_le_of_le ha (iInf_le_of_le (hlim.trans_lt hfinite) le_rfl))
 
+omit [MetricSpace X] in
 /-- A countable cover of `Z` is refined by countably many intersections of its members with the
 uniform positive-average pieces of `Z`: the refinement is indexed by a sequence of triples
 `(k, N, ρ)` with `1 ≤ N` and `0 < ρ`, selecting the member `Y k` and the piece with cutoff `N`
@@ -258,7 +252,7 @@ private lemma exists_refinement_separatedBSZeroCapacityAt_le
   obtain ⟨e, he, hcov⟩ := exists_cover_inter_positiveAveragePiece T u Z hZ Y hY_cov
   refine ⟨fun j ↦ Y (e j).1 ∩ positiveAveragePiece T u Z (e j).2.1 (e j).2.2,
     ⟨fun j ↦ Set.inter_subset_left.trans (hY_sub (e j).1), hcov⟩, iSup_le fun j ↦ ?_⟩
-  rw [← bsFiniteZeroUniformPiece_separated_threshold T u _ (e j).2.1 (he j).1
+  rw [← bsFiniteZeroUniformPiece_separated_threshold T u _ (e j).2.1
     ((e j).2.2 : ℝ) (Rat.cast_pos.mpr (he j).2) (fun x hx n hn ↦ hx.2.2 n hn) r hr]
   exact (monotone_separatedBSFiniteCapacityAt T u r Set.inter_subset_left).trans
     (le_iSup (fun k ↦ separatedBSFiniteCapacityAt T u (Y k) r) (e j).1)
@@ -299,8 +293,7 @@ theorem bsSpanSepModified_modified_lower [SeparableSpace X] (T : X → X)
 
 /-- The reverse modified comparison uses uniform-positive refinement before changing thresholds.
 Blueprint node `pack:bs-span-sep`. -/
-theorem bsSpanSepModified_modified_upper [SeparableSpace X] (T : X → X)
-    (hT : Continuous T) (u : X → ℝ) (Z : Set X)
+theorem bsSpanSepModified_modified_upper (T : X → X) (u : X → ℝ) (Z : Set X)
     (hZ : ∀ x ∈ Z, 0 < lowerBirkhoffAverage T u x) (r : ℝ) (hr : 0 < r) :
     modifiedSeparatedBSDimension T u Z (2 * r) ≤ modifiedUpperBSDimension T u Z r := by
   have hr2 : 0 < 2 * r := by positivity
@@ -311,7 +304,7 @@ theorem bsSpanSepModified_modified_upper [SeparableSpace X] (T : X → X)
   apply iInf_le_of_le Y
   apply iInf_le_of_le hY
   apply iSup_mono; intro j
-  apply bsSpanSepModified_finite_upper T hT u (Y j) r hr
+  apply bsSpanSepModified_finite_upper T u (Y j) r
 
 /-- An order-`n`, `2r`-separated set gives a radius-`r` packing above any cutoff at most `n`,
 and increasing the weight radius to `2r` decreases its cost; hence separated sums at radius
@@ -394,11 +387,10 @@ private lemma modifiedSeparatedBSDimension_le_of_bsPackingOuterEnvelope_lt_top [
 
 /-- Packing BS dimension bounds the separated modification on the positive-average locus.
 Blueprint node `pack:bs-pack-to-sep`. -/
-theorem bsPackBoundsSeparated [SeparableSpace X] (T : X → X) (hT : Continuous T)
-    (u : X → ℝ) (hu : UniformContinuous u) (Z : Set X)
+theorem bsPackBoundsSeparated [SeparableSpace X] (T : X → X) (hT : Continuous T) (u : X → ℝ)
+    (Z : Set X)
     (hZ : ∀ x ∈ Z, 0 < lowerBirkhoffAverage T u x) :
     separatedBSDimension T u Z ≤ packingBSDimension T u Z := by
-  have _ := hu
   unfold separatedBSDimension
   refine iSup_le fun p ↦ ?_
   have hr : 0 < dyadicRadius (p + 1) := by unfold dyadicRadius; positivity
@@ -607,25 +599,21 @@ private lemma packingBSDimensionAt_le_modifiedSeparatedBSDimension (T : X → X)
 
 /-- Separated modification bounds packing BS dimension after uniform-positive localization.
 Blueprint node `pack:bs-sep-to-pack`. -/
-theorem bsSeparatedBoundsPack [SeparableSpace X] (T : X → X) (hT : Continuous T)
-    (u : X → ℝ) (hu : UniformContinuous u) (Z : Set X)
+theorem bsSeparatedBoundsPack (T : X → X) (u : X → ℝ) (Z : Set X)
     (hZ : ∀ x ∈ Z, 0 < lowerBirkhoffAverage T u x) :
     packingBSDimension T u Z ≤ separatedBSDimension T u Z := by
-  have _ := hT
-  have _ := hu
   unfold packingBSDimension separatedBSDimension
   exact iSup_mono fun p ↦ packingBSDimensionAt_le_modifiedSeparatedBSDimension T u Z hZ
     (dyadicRadius p) (by unfold dyadicRadius; positivity)
 
 /-- Packing and modified separated BS dimensions agree on the positive-average locus.
 Blueprint node `pack:bs-equivalence`. -/
-theorem bsEquivalence [SeparableSpace X] (T : X → X) (hT : Continuous T)
-    (u : X → ℝ) (hu : UniformContinuous u) (Z : Set X)
+theorem bsEquivalence [SeparableSpace X] (T : X → X) (hT : Continuous T) (u : X → ℝ) (Z : Set X)
     (hZ : ∀ x ∈ Z, 0 < lowerBirkhoffAverage T u x) :
     packingBSDimension T u Z = separatedBSDimension T u Z := by
   exact le_antisymm
-    (bsSeparatedBoundsPack T hT u hu Z hZ)
-    (bsPackBoundsSeparated T hT u hu Z hZ)
+    (bsSeparatedBoundsPack T u Z hZ)
+    (bsPackBoundsSeparated T hT u Z hZ)
 
 /-- Doubling the radius maps small positive radii to small positive radii. -/
 private lemma tendsto_two_mul_nhdsWithin_Ioi_zero :
@@ -641,11 +629,10 @@ private lemma tendsto_two_mul_nhdsWithin_Ioi_zero :
 
 /-- The separated scale-zero dimension equals the existing modified covering BS dimension.
 Blueprint node `pack:bs-equivalence`. -/
-theorem bsEquivalence_covering [SeparableSpace X] (T : X → X) (hT : Continuous T)
-    (u : X → ℝ) (hu : UniformContinuous u) (Z : Set X)
+theorem bsEquivalence_covering [SeparableSpace X] (T : X → X) (hT : Continuous T) (u : X → ℝ)
+    (Z : Set X)
     (hZ : ∀ x ∈ Z, 0 < lowerBirkhoffAverage T u x) :
     separatedBSDimension T u Z = upperBSDimension T u Z := by
-  have _ := hu
   have hsep : Tendsto (fun r ↦ modifiedSeparatedBSDimension T u Z (2 * r))
       (𝓝[Set.Ioi (0 : ℝ)] 0) (𝓝 (separatedBSDimension T u Z)) :=
     (bsPackingSeparatedDefinitions_separated_scale_limit T u Z).comp
@@ -653,7 +640,7 @@ theorem bsEquivalence_covering [SeparableSpace X] (T : X → X) (hT : Continuous
   apply le_antisymm
   · refine le_of_tendsto_of_tendsto hsep (upperBSDimension_radius_limit T u Z) ?_
     filter_upwards [self_mem_nhdsWithin] with r hr
-    exact bsSpanSepModified_modified_upper T hT u Z hZ r hr
+    exact bsSpanSepModified_modified_upper T u Z hZ r hr
   · have hupper : Tendsto (fun r ↦ modifiedUpperBSDimension T u Z (2 * r))
         (𝓝[Set.Ioi (0 : ℝ)] 0) (𝓝 (upperBSDimension T u Z)) :=
       (upperBSDimension_radius_limit T u Z).comp tendsto_two_mul_nhdsWithin_Ioi_zero
@@ -663,20 +650,18 @@ theorem bsEquivalence_covering [SeparableSpace X] (T : X → X) (hT : Continuous
 
 /-- Packing BS dimension equals the frozen upper BS dimension from the point-to-set theorem.
 Blueprint node `pack:bs-equivalence`. -/
-theorem bsEquivalence_upper [SeparableSpace X] (T : X → X) (hT : Continuous T)
-    (u : X → ℝ) (hu : UniformContinuous u) (Z : Set X)
-    (hZ : ∀ x ∈ Z, 0 < lowerBirkhoffAverage T u x) :
+theorem bsEquivalence_upper [SeparableSpace X] (T : X → X) (hT : Continuous T) (u : X → ℝ)
+    (Z : Set X) (hZ : ∀ x ∈ Z, 0 < lowerBirkhoffAverage T u x) :
     packingBSDimension T u Z = upperBSDimension T u Z := by
-  exact (bsEquivalence T hT u hu Z hZ).trans (bsEquivalence_covering T hT u hu Z hZ)
+  exact (bsEquivalence T hT u Z hZ).trans (bsEquivalence_covering T hT u Z hZ)
 
 /-- The existing modified covering thresholds converge to the common dimension.
 Blueprint node `pack:bs-equivalence`. -/
-theorem bsEquivalence_covering_limit [SeparableSpace X] (T : X → X)
-    (hT : Continuous T) (u : X → ℝ) (hu : UniformContinuous u) (Z : Set X)
-    (hZ : ∀ x ∈ Z, 0 < lowerBirkhoffAverage T u x) :
+theorem bsEquivalence_covering_limit [SeparableSpace X] (T : X → X) (hT : Continuous T) (u : X → ℝ)
+    (Z : Set X) (hZ : ∀ x ∈ Z, 0 < lowerBirkhoffAverage T u x) :
     Tendsto (modifiedUpperBSDimension T u Z) (𝓝[Set.Ioi 0] 0)
       (𝓝 (packingBSDimension T u Z)) := by
-  rw [bsEquivalence_upper T hT u hu Z hZ]
+  rw [bsEquivalence_upper T hT u Z hZ]
   exact upperBSDimension_radius_limit T u Z
 
 end Kolmogorov.PointToSet

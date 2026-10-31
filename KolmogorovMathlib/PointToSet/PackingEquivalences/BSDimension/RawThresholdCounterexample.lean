@@ -482,7 +482,7 @@ private lemma packingBSDimension_Z_eq_zero : packingBSDimension T₀ u₀ Z₀ =
   let _ : TopologicalSpace.SeparableSpace Ω :=
     TopologicalSpace.SeparableSpace.of_denseRange
       binarySequencePresentation.ι binarySequencePresentation.dense
-  rw [bsEquivalence T₀ continuous_binaryShift u₀ uniformContinuous_firstBitPotential Z₀
+  rw [bsEquivalence T₀ continuous_binaryShift u₀ Z₀
     (by rintro _ ⟨j, rfl⟩; exact lowerBirkhoffAverage_point_pos j)]
   exact separatedBSDimension_Z_eq_zero
 

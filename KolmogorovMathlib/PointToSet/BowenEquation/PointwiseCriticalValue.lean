@@ -29,6 +29,7 @@ variable (P : Presentation X) (T : X → X) (hT : Continuous T) (u : X → ℝ)
   (hpos : 0 < lowerBirkhoffAverage T u x) (hupper : upperBirkhoffAverage T u x < ⊤)
 include hT hu hpos hupper
 
+omit hT in
 /-- Extract fixed positive finite bounds valid at every sufficiently small radius. -/
 private lemma exists_eventually_realizer_bounds :
     ∃ a b : ℝ, 0 < a ∧
@@ -51,7 +52,7 @@ private lemma exists_eventually_realizer_bounds :
     rw [hlow, hupp] at havg
     exact EReal.coe_le_coe_iff.mp havg
   obtain ⟨r₀, hr₀, htail⟩ :=
-    birkhoffRealizerBounds P T hT u hu x ℓ b hℓ hℓb hlow hupp (ℓ / 2) (by positivity)
+    birkhoffRealizerBounds P T u hu x ℓ b hlow hupp (ℓ / 2) (by positivity)
   refine ⟨ℓ / 2, b + ℓ / 2, by positivity, r₀, hr₀, ?_⟩
   intro r hr hrle
   obtain ⟨N, -, hbound⟩ := htail r hr hrle
@@ -105,7 +106,7 @@ private lemma tendsto_timeLimit_pressureRate (σ : LimitSide) (s : ℝ) :
   rw [heq]
   exact tendsto_atTop_iSup (timeLimit_pressureRate_monotone_scale P T u A x σ s)
 
-omit hpos hupper in
+omit hpos hupper hu in
 /-- Pass the fixed-radius sandwiches to scale zero with fixed slopes,
 assuming dimension finiteness and uniform tail bounds. -/
 private lemma pressure_sandwich_of_eventually_realizer_bounds
@@ -150,7 +151,7 @@ private lemma pressure_sandwich_of_eventually_realizer_bounds
         F p ≤ ((max (a * (D p - s)) (b * (D p - s)) : ℝ) : EReal) := by
     filter_upwards [hradius] with p hp
     have hr : 0 < dyadicRadius p := by unfold dyadicRadius; positivity
-    exact finiteScalePointwiseBowenEquation_sandwich P T hT u hu a b ha A x
+    exact finiteScalePointwiseBowenEquation_sandwich P T hT u a b ha A x
       (dyadicRadius p) hr (hbounds _ hr hp) σ
       (timeLimit_pressureRate_zero_lt_top P T A x σ hfinite p) s
   exact ⟨le_of_tendsto_of_tendsto hlower hF (hsand.mono fun _ hp ↦ hp.1),
@@ -163,9 +164,9 @@ theorem pointwiseBowenEquation (σ : LimitSide)
     let d := (σ.choose (pointwiseBSDimension P T u A x)).toReal
     σ.choose (pointwisePressure P T (fun y => -d * u y) A x) = 0 := by
   intro d
-  have hdim := pointwiseBowenEquation_finite P T hT u hu A x hpos hupper σ hfinite
-  obtain ⟨a, b, ha, r₀, hr₀, hbounds⟩ := exists_eventually_realizer_bounds P T hT u hu x hpos hupper
-  have hsand := pressure_sandwich_of_eventually_realizer_bounds P T hT u hu A x σ hfinite hdim
+  have hdim := pointwiseBowenEquation_finite P T u hu A x hpos hupper σ hfinite
+  obtain ⟨a, b, ha, r₀, hr₀, hbounds⟩ := exists_eventually_realizer_bounds P T u hu x hpos hupper
+  have hsand := pressure_sandwich_of_eventually_realizer_bounds P T hT u A x σ hfinite hdim
     a b ha r₀ hr₀ hbounds d
   simp only [d, sub_self, mul_zero, min_self, max_self, EReal.coe_zero] at hsand
   exact le_antisymm hsand.2 hsand.1
@@ -189,7 +190,7 @@ theorem pointwiseBowenEquation_sandwich (σ : LimitSide)
     F s ≤ ((max (ℓ * (d - s)) (b * (d - s)) : ℝ) : EReal)
   rcases lt_trichotomy s d with hs | hs | hs
   · have H := pointwisePressureSlopeBounds_scale
-      P T hT u hu A x hpos hupper σ s d hs
+      P T u hu A x hpos hupper σ s d hs
     change F s - (((d - s) * b : ℝ) : EReal) ≤ F d ∧
       F d ≤ F s - (((d - s) * ℓ : ℝ) : EReal) at H
     rw [hd] at H
@@ -203,7 +204,7 @@ theorem pointwiseBowenEquation_sandwich (σ : LimitSide)
   · rw [hs, hd]
     simp
   · have H := pointwisePressureSlopeBounds_scale
-      P T hT u hu A x hpos hupper σ d s hs
+      P T u hu A x hpos hupper σ d s hs
     change F d - (((s - d) * b : ℝ) : EReal) ≤ F s ∧
       F s ≤ F d - (((s - d) * ℓ : ℝ) : EReal) at H
     rw [hd] at H
@@ -229,19 +230,20 @@ theorem pointwiseBowenEquation_unique (σ : LimitSide)
   · intro hs
     rcases lt_trichotomy s d with h | h | h
     · have hfin : f s < ⊤ := by rw [hs]; exact EReal.zero_lt_top
-      have hlt := pointwisePressureSlopeBounds_strict P T hT u hu A x hpos hupper σ s d h hfin
+      have hlt := pointwisePressureSlopeBounds_strict P T u hu A x hpos hupper σ s d h hfin
       change f d < f s at hlt
       rw [hd, hs] at hlt
       exact False.elim (lt_irrefl _ hlt)
     · exact h
     · have hfin : f d < ⊤ := by rw [hd]; exact EReal.zero_lt_top
-      have hlt := pointwisePressureSlopeBounds_strict P T hT u hu A x hpos hupper σ d s h hfin
+      have hlt := pointwisePressureSlopeBounds_strict P T u hu A x hpos hupper σ d s h hfin
       change f s < f d at hlt
       rw [hd, hs] at hlt
       exact False.elim (lt_irrefl _ hlt)
   · rintro rfl
     exact hd
 
+omit hT in
 /-- At every sufficiently fine dyadic scale, the positive realizer averages have one
 common finite positive upper bound on an eventual tail of positive orders. -/
 private lemma exists_eventually_pos_realizer_average_le :
@@ -264,7 +266,7 @@ private lemma exists_eventually_pos_realizer_average_le :
     rw [hlow, hupp] at havg
     exact EReal.coe_le_coe_iff.mp havg
   obtain ⟨r₀, hr₀, htail⟩ :=
-    birkhoffRealizerBounds P T hT u hu x ℓ b hℓ hℓb hlow hupp (ℓ / 2) (by positivity)
+    birkhoffRealizerBounds P T u hu x ℓ b hlow hupp (ℓ / 2) (by positivity)
   obtain ⟨p₀, hp₀⟩ : ∃ p₀ : ℕ, dyadicRadius p₀ ≤ r₀ := by
     obtain ⟨p₀, hp₀⟩ := exists_pow_lt_of_lt_one hr₀ (by norm_num : (2⁻¹ : ℝ) < 1)
     exact ⟨p₀, hp₀.le⟩
@@ -369,13 +371,14 @@ private lemma iSup_timeLimit_le_mul_of_eventually_le
   exact hmono.trans ((htime (max p p₀) (le_max_right _ _)).trans
     (hφmono (le_iSup (fun q ↦ σ.timeLimit (g q)) (max p p₀))))
 
+omit hT in
 /-- Infinite orbit complexity forces infinite pointwise BS dimension.
 Blueprint node `bs:pointwise-critical`. -/
 theorem pointwiseBowenCriticalValue_infinite (σ : LimitSide)
     (hinfinite : σ.choose (pointwisePressure P T (fun _ => 0) A x) = ⊤) :
     σ.choose (pointwiseBSDimension P T u A x) = ⊤ := by
   obtain ⟨B, hB, p₀, htail⟩ :=
-    exists_eventually_pos_realizer_average_le P T hT u hu x hpos hupper
+    exists_eventually_pos_realizer_average_le P T u hu x hpos hupper
   have hfg : ∀ p ≥ p₀, ∀ᶠ n in atTop,
       finiteScalePressureRate P T (fun _ ↦ 0) A x n (dyadicRadius p) ≤
         ((ENNReal.ofReal B * finiteScaleBSCost P T u A x n (dyadicRadius p) : ℝ≥0∞) :
@@ -411,6 +414,7 @@ theorem pointwiseBowenCriticalValue_infinite (σ : LimitSide)
     EReal.coe_ennreal_eq_top_iff.mp (top_le_iff.mp hbound)
   exact (ENNReal.mul_eq_top.mp htop).resolve_right (fun h ↦ ENNReal.ofReal_ne_top h.1) |>.2
 
+omit hT in
 /-- Infinite orbit complexity forces infinite pressure at every real parameter.
 Blueprint node `bs:pointwise-critical`. -/
 theorem pointwiseBowenCriticalValue_infinite_pressure (σ : LimitSide)
@@ -421,14 +425,14 @@ theorem pointwiseBowenCriticalValue_infinite_pressure (σ : LimitSide)
   change f s = ⊤
   rcases lt_trichotomy s 0 with h | rfl | h
   · have hbound := (pointwisePressureSlopeBounds_scale
-      P T hT u hu A x hpos hupper σ s 0 h).2
+      P T u hu A x hpos hupper σ s 0 h).2
     change f 0 ≤ f s - ((0 - s) * (lowerBirkhoffAverage T u x).toReal : ℝ) at hbound
     rw [hf0] at hbound
     apply top_le_iff.mp
     simpa only [EReal.top_add_coe] using EReal.add_le_of_le_sub hbound
   · exact hf0
   · have hbound := (pointwisePressureSlopeBounds_scale
-      P T hT u hu A x hpos hupper σ 0 s h).1
+      P T u hu A x hpos hupper σ 0 s h).1
     change f 0 - ((s - 0) * (upperBirkhoffAverage T u x).toReal : ℝ) ≤ f s at hbound
     rw [hf0, EReal.top_sub_coe] at hbound
     exact top_le_iff.mp hbound
@@ -583,17 +587,17 @@ theorem pointwiseBowenCriticalValue (σ : LimitSide) :
       (fun s => σ.choose (pointwisePressure P T (fun y => -s * u y) A x)) := by
   let f := fun s ↦ σ.choose (pointwisePressure P T (fun y ↦ -s * u y) A x)
   by_cases hinf : σ.choose (pointwisePressure P T (fun _ ↦ 0) A x) = ⊤
-  · have hdim_inf := pointwiseBowenCriticalValue_infinite P T hT u hu A x hpos hupper σ hinf
+  · have hdim_inf := pointwiseBowenCriticalValue_infinite P T u hu A x hpos hupper σ hinf
     rw [hdim_inf]
     have hf_pos : ∀ s : ℝ, 0 ≤ s → 0 < f s := by
       intro s _
-      have hp := pointwiseBowenCriticalValue_infinite_pressure P T hT u hu A x hpos hupper σ hinf s
+      have hp := pointwiseBowenCriticalValue_infinite_pressure P T u hu A x hpos hupper σ hinf s
       have h1 : f s = ⊤ := hp
       rw [h1]
       exact EReal.zero_lt_top
     exact Eq.symm (positivePressureThreshold_eq_top_of_pos f hf_pos)
   · have hfin : σ.choose (pointwisePressure P T (fun _ ↦ 0) A x) < ⊤ := lt_top_iff_ne_top.mpr hinf
-    have hdim_fin := pointwiseBowenEquation_finite P T hT u hu A x hpos hupper σ hfin
+    have hdim_fin := pointwiseBowenEquation_finite P T u hu A x hpos hupper σ hfin
     have hd_eq : σ.choose (pointwiseBSDimension P T u A x) =
         ENNReal.ofReal (σ.choose (pointwiseBSDimension P T u A x)).toReal :=
       (ENNReal.ofReal_toReal hdim_fin.ne).symm
@@ -617,17 +621,17 @@ theorem pointwiseBowenCriticalValue_nonpositive (σ : LimitSide) :
       (fun s => σ.choose (pointwisePressure P T (fun y => -s * u y) A x)) := by
   let f := fun s ↦ σ.choose (pointwisePressure P T (fun y ↦ -s * u y) A x)
   by_cases hinf : σ.choose (pointwisePressure P T (fun _ ↦ 0) A x) = ⊤
-  · have hdim_inf := pointwiseBowenCriticalValue_infinite P T hT u hu A x hpos hupper σ hinf
+  · have hdim_inf := pointwiseBowenCriticalValue_infinite P T u hu A x hpos hupper σ hinf
     rw [hdim_inf]
     have hf_pos : ∀ s : ℝ, 0 ≤ s → ¬ (f s ≤ 0) := by
       intro s _
-      have hp := pointwiseBowenCriticalValue_infinite_pressure P T hT u hu A x hpos hupper σ hinf s
+      have hp := pointwiseBowenCriticalValue_infinite_pressure P T u hu A x hpos hupper σ hinf s
       have h1 : f s = ⊤ := hp
       rw [h1]
       exact not_le.mpr EReal.zero_lt_top
     exact Eq.symm (nonpositivePressureThreshold_eq_top_of_pos f hf_pos)
   · have hfin : σ.choose (pointwisePressure P T (fun _ ↦ 0) A x) < ⊤ := lt_top_iff_ne_top.mpr hinf
-    have hdim_fin := pointwiseBowenEquation_finite P T hT u hu A x hpos hupper σ hfin
+    have hdim_fin := pointwiseBowenEquation_finite P T u hu A x hpos hupper σ hfin
     have hd_eq : σ.choose (pointwiseBSDimension P T u A x) =
         ENNReal.ofReal (σ.choose (pointwiseBSDimension P T u A x)).toReal :=
       (ENNReal.ofReal_toReal hdim_fin.ne).symm
@@ -654,7 +658,7 @@ theorem pointwiseBowenCriticalValue_positive_iff (σ : LimitSide)
   have hcomp : σ.choose (pointwisePressure P T (fun _ ↦ 0) A x) < ⊤ := by
     by_contra h
     push Not at h
-    have h' := pointwiseBowenCriticalValue_infinite P T hT u hu A x hpos hupper σ (top_le_iff.mp h)
+    have h' := pointwiseBowenCriticalValue_infinite P T u hu A x hpos hupper σ (top_le_iff.mp h)
     rw [h'] at hfinite
     exact not_top_lt hfinite
   have h_le : lowerBirkhoffAverage T u x ≤ upperBirkhoffAverage T u x := liminf_le_limsup

@@ -167,7 +167,7 @@ theorem upperEntropy_pointToSet_cone (P : Presentation X) (T : X → X)
     rw [← upperEntropy_pointToSet_effective P T hT A Z]
     refine EReal.coe_ennreal_injective ?_
     rw [entropy_eq_zeroPotentialPressure_of_nonempty_upper P T hT Z hZ,
-      entropy_eq_zeroPotentialPressure_of_nonempty_effective_upper P T hT A Z hZ]
+      entropy_eq_zeroPotentialPressure_of_nonempty_effective_upper P T A Z hZ]
     exact (hB A hA).2.symm
 
 /-! ### One oracle for entropies and pressures of countably many potentials -/
@@ -197,7 +197,7 @@ private lemma exists_pressureData_of_uniformContinuous (P : Presentation X) (T :
 private lemma lowerPressure_eq_of_first_scale (D : PressureData X) (p q : ℕ) (Z : Set X) :
     lowerPressure D.T D.φ p Z = lowerPressure D.T D.φ q Z := by
   have hmono : Monotone fun k ↦ lowerPressureAt D.T D.φ .centered Z (dyadicRadius k) :=
-    fun m n hmn ↦ lowerPressure_eq_centered_radius D Z _ _ (pow_pos (by norm_num) _)
+    fun m n hmn ↦ lowerPressure_eq_centered_radius D Z _ _
       (pow_le_pow_of_le_one (by norm_num) (by norm_num) hmn)
   unfold lowerPressure
   rw [iSup_ge_eq_iSup_nat_add, iSup_ge_eq_iSup_nat_add, hmono.iSup_nat_add, hmono.iSup_nat_add]
@@ -207,7 +207,7 @@ private lemma upperPressure_eq_of_first_scale (D : PressureData X) (p q : ℕ) (
     upperPressure D.T D.φ p Z = upperPressure D.T D.φ q Z := by
   have hmono : Monotone fun k ↦ modifiedUpperPressure D.T D.φ .centered Z (dyadicRadius k) :=
     fun m n hmn ↦ upperPressure_scale_comparison_modified_radius D Z _ _
-      (pow_pos (by norm_num) _) (pow_le_pow_of_le_one (by norm_num) (by norm_num) hmn)
+      (pow_le_pow_of_le_one (by norm_num) (by norm_num) hmn)
   unfold upperPressure
   rw [iSup_ge_eq_iSup_nat_add, iSup_ge_eq_iSup_nat_add, hmono.iSup_nat_add, hmono.iSup_nat_add]
 

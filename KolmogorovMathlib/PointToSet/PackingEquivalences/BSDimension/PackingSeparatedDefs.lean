@@ -111,13 +111,13 @@ noncomputable def bsPackingSeparatedDefinitions (T : X → X) (u : X → ℝ)
     (Z : Set X) (r : ℝ) : ℝ≥0∞ × ℝ≥0∞ :=
   (packingBSDimensionAt T u Z r, modifiedSeparatedBSDimension T u Z r)
 
+omit [MetricSpace X] in
 /-- Positive lower averages exhaust the set by the existing rational uniform pieces.
 Blueprint node `pack:positive-pieces`. -/
 theorem uniformPositivePieces (T : X → X) (u : X → ℝ) (Z : Set X)
     (hZ : ∀ x ∈ Z, 0 < lowerBirkhoffAverage T u x) :
     Z = ⋃ N : ℕ, ⋃ (_ : 1 ≤ N), ⋃ ρ : ℚ, ⋃ (_ : 0 < ρ),
       positiveAveragePiece T u Z N ρ := by
-  have _ := (inferInstance : MetricSpace X)
   ext x
   simp only [Set.mem_iUnion]
   refine ⟨fun hx ↦ ?_, fun ⟨_, _, _, _, hx⟩ ↦ hx.1⟩
@@ -134,14 +134,10 @@ theorem uniformPositivePieces (T : X → X) (u : X → ℝ) (Z : Set X)
 
 /-- A ball meeting a uniform piece has a supremum at least its uniform Birkhoff bound.
 Blueprint node `pack:positive-pieces`. -/
-theorem uniformPositivePieces_meeting (T : X → X) (u : X → ℝ) (Z : Set X)
-    (N n : ℕ) (hN : 1 ≤ N) (hn : N ≤ n) (ρ : ℚ) (hρ : 0 < ρ)
-    (y : X) (r : ℝ) (hr : 0 < r)
+theorem uniformPositivePieces_meeting (T : X → X) (u : X → ℝ) (Z : Set X) (N n : ℕ) (hn : N ≤ n)
+    (ρ : ℚ) (y : X) (r : ℝ)
     (hmeets : (bowenBall T n y r ∩ positiveAveragePiece T u Z N ρ).Nonempty) :
     (((ρ : ℝ) * n : ℝ) : EReal) ≤ bowenPotentialSup T u n y r := by
-  have _ := hN
-  have _ := hρ
-  have _ := hr
   rcases hmeets with ⟨z, hz_ball, hz_piece⟩
   dsimp [bowenPotentialSup]
   have h1 : (ρ : ℝ) * n ≤ birkhoffSum T u n z := hz_piece.2 n hn
@@ -154,11 +150,11 @@ theorem uniformPositivePieces_meeting (T : X → X) (u : X → ℝ) (Z : Set X)
 
 /-- The same supremum bound holds when the center lies in the uniform piece.
 Blueprint node `pack:positive-pieces`. -/
-theorem uniformPositivePieces_centered (T : X → X) (u : X → ℝ) (Z : Set X)
-    (N n : ℕ) (hN : 1 ≤ N) (hn : N ≤ n) (ρ : ℚ) (hρ : 0 < ρ)
+theorem uniformPositivePieces_centered (T : X → X) (u : X → ℝ) (Z : Set X) (N n : ℕ) (hn : N ≤ n)
+    (ρ : ℚ)
     (y : X) (hy : y ∈ positiveAveragePiece T u Z N ρ) (r : ℝ) (hr : 0 < r) :
     (((ρ : ℝ) * n : ℝ) : EReal) ≤ bowenPotentialSup T u n y r := by
-  exact uniformPositivePieces_meeting T u Z N n hN hn ρ hρ y r hr
+  exact uniformPositivePieces_meeting T u Z N n hn ρ y r
     ⟨y, self_mem_bowenBall T n y r hr, hy⟩
 
 /-- A sequence of sets with finite total lower mass admits covers with summable errors. -/
@@ -248,11 +244,8 @@ private lemma tsum_ofReal_mul_inv_two_pow_succ
 /-- Lower BS contents are countably subadditive before the order limit.
 Blueprint node `pack:lower-bs-subadditive`. -/
 theorem lowerBSCountableSubadditive (T : X → X) (u : X → ℝ) (Y : ℕ → Set X)
-    (a r : ℝ) (ha : 0 ≤ a) (hr : 0 < r) (N : ℕ) (hN : 1 ≤ N) :
+    (a r : ℝ) (N : ℕ) :
     lowerBSMass T u (⋃ j, Y j) a r N ≤ ∑' j, lowerBSMass T u (Y j) a r N := by
-  have _ := ha
-  have _ := hr
-  have _ := hN
   by_cases h_top : ∑' j, lowerBSMass T u (Y j) a r N = ⊤
   · simp only [h_top, le_top]
   · have h_sum : ∑' j, lowerBSMass T u (Y j) a r N < ⊤ := lt_top_iff_ne_top.mpr h_top
@@ -284,7 +277,7 @@ theorem lowerBSCountableSubadditive (T : X → X) (u : X → ℝ) (Y : ℕ → S
 /-- Countable subadditivity persists after the increasing lower order-cutoff limit.
 Blueprint node `pack:lower-bs-subadditive`. -/
 theorem lowerBSCountableSubadditive_limit (T : X → X) (u : X → ℝ)
-    (Y : ℕ → Set X) (a r : ℝ) (ha : 0 ≤ a) (hr : 0 < r) :
+    (Y : ℕ → Set X) (a r : ℝ) :
     lowerBSMassLimit T u (⋃ j, Y j) a r ≤ ∑' j, lowerBSMassLimit T u (Y j) a r := by
   unfold lowerBSMassLimit
   apply iSup_le
@@ -293,7 +286,7 @@ theorem lowerBSCountableSubadditive_limit (T : X → X) (u : X → ℝ)
   intro hN
   calc
     lowerBSMass T u (⋃ j, Y j) a r N ≤ ∑' j, lowerBSMass T u (Y j) a r N :=
-      lowerBSCountableSubadditive T u Y a r ha hr N hN
+      lowerBSCountableSubadditive T u Y a r N
     _ ≤ ∑' j, ⨆ N : ℕ, ⨆ (_ : 1 ≤ N), lowerBSMass T u (Y j) a r N := by
       apply ENNReal.tsum_le_tsum
       intro j
@@ -501,7 +494,7 @@ private lemma lowerBSMassLimit_positive_piece_eq_zero (T : X → X) (u : X → �
 
 /-- If every uniform positive-average piece has zero lower mass, so does their union. -/
 private lemma lowerBSMassLimit_eq_zero_of_positive_pieces (T : X → X) (u : X → ℝ) (Z : Set X)
-    (b r : ℝ) (hb : 0 ≤ b) (hr : 0 < r)
+    (b r : ℝ)
     (h_pieces : ∀ N, 1 ≤ N → ∀ ρ : ℚ, 0 < ρ →
       lowerBSMassLimit T u (positiveAveragePiece T u Z N ρ) b r = 0)
     (hZ_eq : Z = ⋃ N : ℕ, ⋃ (_ : 1 ≤ N), ⋃ ρ : ℚ, ⋃ (_ : 0 < ρ), positiveAveragePiece T u Z N ρ) :
@@ -527,7 +520,7 @@ private lemma lowerBSMassLimit_eq_zero_of_positive_pieces (T : X → X) (u : X �
     · rintro ⟨j, hj⟩
       exact ⟨(e j).1.1, (e j).1.2, (e j).2.1, (e j).2.2, hj⟩
   rw [hZ_Y]
-  have h_le := lowerBSCountableSubadditive_limit T u Y b r hb hr
+  have h_le := lowerBSCountableSubadditive_limit T u Y b r
   apply le_antisymm
   · calc
       lowerBSMassLimit T u (⋃ (j : ℕ), Y j) b r ≤ ∑' j, lowerBSMassLimit T u (Y j) b r := h_le
@@ -543,10 +536,9 @@ private lemma lowerBSMassLimit_eq_zero_of_positive_pieces (T : X → X) (u : X �
 positive-average locus.
 Blueprint node `pack:lower-bs-dichotomy`. -/
 theorem lowerBSDichotomy_packing (T : X → X) (u : X → ℝ) (Z : Set X)
-    (hZ : ∀ x ∈ Z, 0 < lowerBirkhoffAverage T u x) (a b r : ℝ)
-    (ha : 0 ≤ a) (hab : a < b) (hr : 0 < r)
+    (hZ : ∀ x ∈ Z, 0 < lowerBirkhoffAverage T u x) (a b r : ℝ) (ha : 0 ≤ a) (hab : a < b)
     (hfinite : lowerBSMassLimit T u Z a r < ⊤) : lowerBSMassLimit T u Z b r = 0 := by
-  apply lowerBSMassLimit_eq_zero_of_positive_pieces T u Z b r (ha.trans hab.le) hr
+  apply lowerBSMassLimit_eq_zero_of_positive_pieces T u Z b r
   · intro N hN ρ hρ
     exact lowerBSMassLimit_positive_piece_eq_zero T u Z N hN ρ hρ a b r ha hab hfinite
   · exact uniformPositivePieces T u Z hZ
@@ -619,14 +611,14 @@ private lemma iInf_zero_eq_iSup_top_of_dichotomy {f : ℝ → ℝ≥0∞}
 /-- The lower BS zero threshold equals the nonnegative infinity threshold.
 Blueprint node `pack:lower-bs-dichotomy`. -/
 theorem lowerBSDichotomy_threshold (T : X → X) (u : X → ℝ) (Z : Set X)
-    (hZ : ∀ x ∈ Z, 0 < lowerBirkhoffAverage T u x) (r : ℝ) (hr : 0 < r) :
+    (hZ : ∀ x ∈ Z, 0 < lowerBirkhoffAverage T u x) (r : ℝ) :
     lowerBSDimensionAt T u Z r =
       ⨆ a : ℝ, ⨆ (_ : 0 ≤ a), ⨆ (_ : lowerBSMassLimit T u Z a r = ⊤),
         ENNReal.ofReal a := by
   dsimp [lowerBSDimensionAt]
   apply iInf_zero_eq_iSup_top_of_dichotomy
   intro a b ha hab h_finite
-  exact lowerBSDichotomy_packing T u Z hZ a b r ha hab hr h_finite
+  exact lowerBSDichotomy_packing T u Z hZ a b r ha hab h_finite
 
 /-- Increasing the exponent gives a geometric bound on packing sums
 whose centers lie in a uniform positive-average piece. -/

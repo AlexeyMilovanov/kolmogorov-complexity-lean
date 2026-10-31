@@ -131,7 +131,7 @@ theorem pointwiseBowenCriticalValue_nonpositive_iff (σ : LimitSide)
   have hcomp : σ.choose (pointwisePressure P T (fun _ => 0) A x) < ⊤ := by
     by_contra h
     push Not at h
-    have h' := pointwiseBowenCriticalValue_infinite P T hT u hu A x hpos hupper σ
+    have h' := pointwiseBowenCriticalValue_infinite P T u hu A x hpos hupper σ
       (top_le_iff.mp h)
     rw [h'] at hfinite
     exact not_top_lt hfinite
@@ -163,6 +163,7 @@ theorem pointwiseBowenCriticalValue_nonpositive_iff (σ : LimitSide)
     have hm : max (ℓ * (d - s)) (b * (d - s)) ≤ 0 := max_le hl_mul hb_mul
     exact le_trans h_upper_bound (EReal.coe_nonpos.mpr hm)
 
+omit hT in
 /-- A lower bound `α` on the lower Birkhoff average makes the pointwise pressure decrease at least
 linearly with slope `α` in the Bowen parameter. -/
 theorem pointwisePressure_le_sub_mul_of_le_lowerBirkhoffAverage (σ : LimitSide) (α : ℝ)
@@ -176,7 +177,7 @@ theorem pointwisePressure_le_sub_mul_of_le_lowerBirkhoffAverage (σ : LimitSide)
   have hmul : (((t - s) * α : ℝ) : EReal) ≤
       (((t - s) * (lowerBirkhoffAverage T u x).toReal : ℝ) : EReal) :=
     EReal.coe_le_coe_iff.mpr (mul_le_mul_of_nonneg_left hαℓ (sub_nonneg.mpr hst.le))
-  exact (pointwisePressureSlopeBounds_scale P T hT u hu A x hpos hupper σ s t hst).2.trans
+  exact (pointwisePressureSlopeBounds_scale P T u hu A x hpos hupper σ s t hst).2.trans
     (EReal.sub_le_sub le_rfl hmul)
 
 end Pointwise
@@ -221,7 +222,7 @@ private lemma lowerPressure_zero_eq_lowerPressure_p₀ (D : PressureData X) (Z :
     le_iSup_of_le p (le_iSup_of_le (by omega) le_rfl))
   exact lowerPressure_eq_centered_radius (D := D) (Z := Z)
     (r := dyadicRadius (max p D.p₀)) (R := dyadicRadius p)
-    (by dsimp only [dyadicRadius]; positivity) (hrad p)
+    (hrad p)
 
 /-- The upper pressure does not depend on the initial scale `0` versus the cutoff `p₀`. -/
 private lemma upperPressure_zero_eq_upperPressure_p₀ (D : PressureData X) (Z : Set X) :
@@ -235,7 +236,7 @@ private lemma upperPressure_zero_eq_upperPressure_p₀ (D : PressureData X) (Z :
     le_iSup_of_le p (le_iSup_of_le (by omega) le_rfl))
   exact upperPressure_scale_comparison_modified_radius (D := D) (Z := Z)
     (r := dyadicRadius (max p D.p₀)) (R := dyadicRadius p)
-    (by dsimp only [dyadicRadius]; positivity) (hrad p)
+    (hrad p)
 
 end PressureData
 
@@ -312,20 +313,22 @@ theorem supPointwiseBSDimensionCriticalValue_at_dimension (A : Set ℕ) (σ : Li
   exact (pointwiseBowenCriticalValue_nonpositive_iff P T hT u hu A x (hZ x hx).1 (hZ x hx).2 σ
     (hle.trans_lt hfinite) d).mpr (ENNReal.toReal_mono hfinite.ne hle)
 
+omit hT in
 /-- The pointwise pressure of every point of `Z` is nonincreasing in the Bowen parameter. -/
 private lemma pointwisePressure_anti (A : Set ℕ) (σ : LimitSide) {x : X} (hx : x ∈ Z)
     {s t : ℝ} (hst : s < t) :
     σ.choose (pointwisePressure P T (fun y => -t * u y) A x) ≤
       σ.choose (pointwisePressure P T (fun y => -s * u y) A x) := by
-  have h := pointwisePressure_le_sub_mul_of_le_lowerBirkhoffAverage P T hT u hu A x
+  have h := pointwisePressure_le_sub_mul_of_le_lowerBirkhoffAverage P T u hu A x
     (hZ x hx).1 (hZ x hx).2 σ 0 (EReal.coe_zero.le.trans (hZ x hx).1.le) s t hst
   simpa using h
 
+omit hT in
 /-- The supremum over `Z` of the pointwise pressures is nonincreasing in the Bowen parameter. -/
 private lemma iSup_pointwisePressure_anti (A : Set ℕ) (σ : LimitSide) {s t : ℝ} (hst : s < t) :
     (⨆ x ∈ Z, σ.choose (pointwisePressure P T (fun y => -t * u y) A x)) ≤
       ⨆ x ∈ Z, σ.choose (pointwisePressure P T (fun y => -s * u y) A x) :=
-  iSup₂_mono fun _ hx ↦ pointwisePressure_anti P T hT u hu Z hZ A σ hx hst
+  iSup₂_mono fun _ hx ↦ pointwisePressure_anti P T u hu Z hZ A σ hx hst
 
 omit hZ in
 /-- The classical set pressure at a Bowen parameter is the infimum over oracles of the supremum of
@@ -351,19 +354,18 @@ theorem setPressureSlopeAndRationalAttainment (σ : LimitSide) (s t : ℝ) (hst 
       upperPressure T (fun y => -s * u y) 0 Z) := by
   rw [setPressure_eq_iInf_iSup_pointwisePressure P T hT u hu Z σ t,
     setPressure_eq_iInf_iSup_pointwisePressure P T hT u hu Z σ s]
-  exact iInf_mono fun A ↦ iSup_pointwisePressure_anti P T hT u hu Z hZ A σ hst
+  exact iInf_mono fun A ↦ iSup_pointwisePressure_anti P T u hu Z hZ A σ hst
 
 /-- A uniform positive lower average gives an extended-real quantitative slope bound. (The
 positivity of `α` is part of the blueprint statement but the argument does not use it.)
 Blueprint node `bs:set-slope-join`. -/
-theorem setPressureSlopeAndRationalAttainment_slope (σ : LimitSide) (α : ℝ) (hα : 0 < α)
+theorem setPressureSlopeAndRationalAttainment_slope (σ : LimitSide) (α : ℝ)
     (hlower : ∀ x ∈ Z, (α : EReal) ≤ lowerBirkhoffAverage T u x)
     (s t : ℝ) (hst : s < t) :
     σ.choose (lowerPressure T (fun y => -t * u y) 0 Z,
       upperPressure T (fun y => -t * u y) 0 Z) ≤
     σ.choose (lowerPressure T (fun y => -s * u y) 0 Z,
       upperPressure T (fun y => -s * u y) 0 Z) - ((t - s) * α : ℝ) := by
-  have _ := hα
   rw [setPressure_eq_iInf_iSup_pointwisePressure P T hT u hu Z σ t,
     setPressure_eq_iInf_iSup_pointwisePressure P T hT u hu Z σ s]
   have hc_ne_top : (((t - s) * α : ℝ) : EReal) ≠ ⊤ := EReal.coe_ne_top _
@@ -372,7 +374,7 @@ theorem setPressureSlopeAndRationalAttainment_slope (σ : LimitSide) (α : ℝ) 
   refine le_iInf fun A ↦ ?_
   rw [← EReal.le_sub_iff_add_le (Or.inl hc_ne_bot) (Or.inl hc_ne_top)]
   refine (iInf_le _ A).trans (iSup₂_le fun x hx ↦ ?_)
-  exact (pointwisePressure_le_sub_mul_of_le_lowerBirkhoffAverage P T hT u hu A x (hZ x hx).1
+  exact (pointwisePressure_le_sub_mul_of_le_lowerBirkhoffAverage P T u hu A x (hZ x hx).1
     (hZ x hx).2 σ α (hlower x hx) s t hst).trans
     (EReal.sub_le_sub (le_iSup₂_of_le x hx le_rfl) le_rfl)
 
@@ -438,7 +440,7 @@ theorem setBowenCriticalValue (σ : LimitSide) :
   rw [hd, supPointwiseBSDimensionCriticalValue P T hT u hu Z hZ A₀ σ]
   exact (monotoneDenseAgreementCriticalValue _ _ (setPressure_antitoneOn P T hT u hu Z hZ σ)
     (antitoneOn_iff_forall_lt.2 fun _ _ _ _ hst ↦
-      iSup_pointwisePressure_anti P T hT u hu Z hZ A₀ σ hst) hq).symm
+      iSup_pointwisePressure_anti P T u hu Z hZ A₀ σ hst) hq).symm
 
 /-- The same classical dimension is the nonpositive-pressure threshold.
 Blueprint node `bs:set-critical`. -/
@@ -451,7 +453,7 @@ theorem setBowenCriticalValue_nonpositive (σ : LimitSide) :
   rw [hd, supPointwiseBSDimensionCriticalValue_nonpositive P T hT u hu Z hZ A₀ σ]
   exact (nonpositivePressureThreshold_eq_of_rat_eq (setPressure_antitoneOn P T hT u hu Z hZ σ)
     (antitoneOn_iff_forall_lt.2 fun _ _ _ _ hst ↦
-      iSup_pointwisePressure_anti P T hT u hu Z hZ A₀ σ hst) hq).symm
+      iSup_pointwisePressure_anti P T u hu Z hZ A₀ σ hst) hq).symm
 
 /-- Both critical-parameter oracle minima are attained on one admissible upper cone.
 Blueprint node `bs:set-critical`. -/

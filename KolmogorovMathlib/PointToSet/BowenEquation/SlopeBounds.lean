@@ -291,6 +291,7 @@ variable (P : Presentation X) (T : X → X) (hT : Continuous T) (u : X → ℝ)
 
 include hT hu ha hn hr hbounds
 
+omit hT hu ha hr in
 /-- If every Birkhoff average over the order-`n` Bowen ball lies in `[a, b]`, then for `s < t`
 the finite-order pressure at the parameter `t` lies between the pressure at `s` minus `(t - s) b`
 and the pressure at `s` minus `(t - s) a`.  Blueprint node `bs:affine-slope`. -/
@@ -299,10 +300,6 @@ theorem pointwisePressureSlopeBounds (s t : ℝ) (hst : s < t) :
       finiteScalePressureRate P T (fun y => -t * u y) A x n r ∧
     finiteScalePressureRate P T (fun y => -t * u y) A x n r ≤
       finiteScalePressureRate P T (fun y => -s * u y) A x n r - ((t - s) * a : ℝ) := by
-  have _ := hT
-  have _ := hu
-  have _ := ha
-  have _ := hr
   have hn0 : n ≠ 0 := by omega
   let f : ℝ → ℕ → ℝ := fun v i ↦
     ((oracleNatComplexity A i : ℝ) + birkhoffSum T (fun y ↦ -v * u y) n (P.ι i)) / n
@@ -332,15 +329,16 @@ theorem pointwisePressureSlopeBounds (s t : ℝ) (hst : s < t) :
         have h := mul_le_mul_of_nonneg_left (hbounds i hi).1 (sub_nonneg.mpr hst.le)
         nlinarith only [h]
 
+omit hu in
 /-- Positive bounded realizer denominators make the frozen ratio infimum finite.
 Blueprint node `bs:signed-comparison`. -/
 theorem ratioPressureSignedComparison_finite : finiteScaleBSCost P T u A x n r < ⊤ := by
-  have _ := hu
   obtain ⟨i₀, hi₀⟩ := bowen_ball_dense P T hT x n hn r hr
   have hU := pos_of_le_div_natCast ha hn (hbounds i₀ hi₀).1
   exact (finiteScaleBSCost_le_div P T u A (Nat.one_le_iff_ne_zero.mp hn) hi₀ hU).trans_lt
     (ENNReal.div_lt_top (ENNReal.natCast_ne_top _) (ENNReal.ofReal_pos.mpr hU).ne')
 
+omit hu in
 /-- The signed finite-order sandwich compares pressure to the finite ratio minus the
 real parameter, with the order of the two slopes determined by its sign.
 Blueprint node `bs:signed-comparison`. -/
@@ -351,7 +349,6 @@ theorem ratioPressureSignedComparison (s : ℝ) :
     finiteScalePressureRate P T (fun y => -s * u y) A x n r ≤
       ((max (a * q) (b * q) : ℝ) : EReal) := by
   intro q
-  have _ := hu
   have hn' : (0 : ℝ) < n := Nat.cast_pos.mpr hn
   obtain ⟨i₀, hi₀, hcost⟩ := finite_scale_min_attained_ratio P T hT u A x n hn r hr (a * n)
     (b * n) (mul_pos ha hn') fun i hi ↦ mul_bounds_of_div_bounds hn (hbounds i hi)
@@ -361,12 +358,13 @@ theorem ratioPressureSignedComparison (s : ℝ) :
     iInf_le_of_le i₀ (iInf_le_of_le hi₀ (EReal.coe_le_coe_iff.mpr
       (realizer_cost_le_max_mul ha hn s (hbounds i₀ hi₀) hcost)))⟩
 
+omit hu in
 /-- Finite-order pressure is positive exactly when the ratio exceeds the parameter.
 Blueprint node `bs:signed-comparison`. -/
 theorem ratioPressureSignedComparison_positive (s : ℝ) :
     0 < finiteScalePressureRate P T (fun y => -s * u y) A x n r ↔
       s < (finiteScaleBSCost P T u A x n r).toReal := by
-  have H := ratioPressureSignedComparison P T hT u hu a b ha A x n hn r hr hbounds s
+  have H := ratioPressureSignedComparison P T hT u a b ha A x n hn r hr hbounds s
   have hab := le_of_realizer_bounds hT hn hr hbounds
   dsimp only at H
   constructor
@@ -382,13 +380,14 @@ theorem ratioPressureSignedComparison_positive (s : ℝ) :
     have hmin := lt_min (mul_pos ha hq) (mul_pos (ha.trans_le hab) hq)
     exact (EReal.coe_pos.mpr hmin).trans_le H.1
 
+omit hu in
 /-- Finite-order pressure is zero exactly at the attained ratio.
 Blueprint node `bs:signed-comparison`. -/
 theorem ratioPressureSignedComparison_zero (s : ℝ) :
     finiteScalePressureRate P T (fun y => -s * u y) A x n r = 0 ↔
       s = (finiteScaleBSCost P T u A x n r).toReal := by
   have hb : 0 < b := ha.trans_le (le_of_realizer_bounds hT hn hr hbounds)
-  have hsand := ratioPressureSignedComparison P T hT u hu a b ha A x n hn r hr hbounds s
+  have hsand := ratioPressureSignedComparison P T hT u a b ha A x n hn r hr hbounds s
   dsimp only at hsand
   constructor
   · intro hzero
@@ -407,13 +406,14 @@ theorem ratioPressureSignedComparison_zero (s : ℝ) :
     simp only [sub_self, mul_zero, min_self, max_self, EReal.coe_zero] at hsand
     exact le_antisymm hsand.2 hsand.1
 
+omit hu in
 /-- Finite-order pressure is negative exactly when the ratio is below the parameter.
 Blueprint node `bs:signed-comparison`. -/
 theorem ratioPressureSignedComparison_negative (s : ℝ) :
     finiteScalePressureRate P T (fun y => -s * u y) A x n r < 0 ↔
       (finiteScaleBSCost P T u A x n r).toReal < s := by
   have hb : 0 < b := ha.trans_le (le_of_realizer_bounds hT hn hr hbounds)
-  have H := ratioPressureSignedComparison P T hT u hu a b ha A x n hn r hr hbounds s
+  have H := ratioPressureSignedComparison P T hT u a b ha A x n hn r hr hbounds s
   dsimp only at H
   constructor
   · intro hneg
@@ -427,6 +427,7 @@ theorem ratioPressureSignedComparison_negative (s : ℝ) :
     have hmax := max_lt (mul_neg_of_pos_of_neg ha hq) (mul_neg_of_pos_of_neg hb hq)
     exact H.2.trans_lt (by exact_mod_cast hmax)
 
+omit hu in
 /-- At an order whose averages satisfy the bounds, a finite pressure above `t > 0` bounds the BS
 cost below by the parameter plus `t / b`. -/
 private lemma add_div_le_finiteScaleBSCost (s t : ℝ) (ht : 0 < t)
@@ -434,10 +435,10 @@ private lemma add_div_le_finiteScaleBSCost (s t : ℝ) (ht : 0 < t)
     ((s + t / b : ℝ) : EReal) ≤ (finiteScaleBSCost P T u A x n r : EReal) := by
   have hab := le_of_realizer_bounds hT hn hr hbounds
   have hb : 0 < b := ha.trans_le hab
-  have H := ratioPressureSignedComparison P T hT u hu a b ha A x n hn r hr hbounds s
+  have H := ratioPressureSignedComparison P T hT u a b ha A x n hn r hr hbounds s
   dsimp only at H
   have hs : s < (finiteScaleBSCost P T u A x n r).toReal :=
-    (ratioPressureSignedComparison_positive P T hT u hu a b ha A x n hn r hr hbounds s).mp
+    (ratioPressureSignedComparison_positive P T hT u a b ha A x n hn r hr hbounds s).mp
       ((EReal.coe_pos.mpr ht).trans h)
   have hq : 0 ≤ (finiteScaleBSCost P T u A x n r).toReal - s := sub_nonneg.mpr hs.le
   rw [max_eq_right (mul_le_mul_of_nonneg_right hab hq)] at H
@@ -449,7 +450,7 @@ private lemma add_div_le_finiteScaleBSCost (s t : ℝ) (ht : 0 < t)
     ((s + t / b : ℝ) : EReal) ≤ ((finiteScaleBSCost P T u A x n r).toReal : EReal) :=
       EReal.coe_le_coe_iff.mpr (by linarith)
     _ = (finiteScaleBSCost P T u A x n r : EReal) := EReal.coe_ennreal_toReal
-      (ratioPressureSignedComparison_finite P T hT u hu a b ha A x n hn r hr hbounds).ne
+      (ratioPressureSignedComparison_finite P T hT u a b ha A x n hn r hr hbounds).ne
 
 end FixedOrder
 
@@ -462,6 +463,7 @@ variable (P : Presentation X) (T : X → X) (hT : Continuous T) (u : X → ℝ)
 
 include hT hu ha hr hbounds
 
+omit hT hu ha hr in
 /-- Eventual average bounds pass the two-sided affine slope inequality to either time limit.
 Blueprint node `bs:affine-slope`. -/
 theorem pointwisePressureSlopeBounds_time (σ : LimitSide) (s t : ℝ) (hst : s < t) :
@@ -470,8 +472,9 @@ theorem pointwisePressureSlopeBounds_time (σ : LimitSide) (s t : ℝ) (hst : s 
     f s - ((t - s) * b : ℝ) ≤ f t ∧ f t ≤ f s - ((t - s) * a : ℝ) := by
   refine timeLimit_sub_coe_sandwich σ ?_
   filter_upwards [hbounds, eventually_ge_atTop 1] with n hbn hn
-  exact pointwisePressureSlopeBounds P T hT u hu a b ha A x n hn r hr hbn s t hst
+  exact pointwisePressureSlopeBounds P T u a b A x n hn r hbn s t hst
 
+omit hu in
 /-- A finite positive time-limit pressure at the parameter `s` gives the lower bound
 `s + v / b` on the time limit of the BS cost.  Blueprint node `bs:signed-comparison`. -/
 theorem ratioPressureSignedComparison_limit_positive (σ : LimitSide) (s v : ℝ)
@@ -496,8 +499,9 @@ theorem ratioPressureSignedComparison_limit_positive (σ : LimitSide) (s v : ℝ
   refine le_timeLimit_of_lt_imp_le σ hlt ?_
   filter_upwards [hbounds, eventually_ge_atTop 1] with n hbn hn hRn
   exact (EReal.coe_le_coe_iff.mpr hwt).trans
-    (add_div_le_finiteScaleBSCost P T hT u hu a b ha A x n hn r hr hbn s t ht0 hRn)
+    (add_div_le_finiteScaleBSCost P T hT u a b ha A x n hn r hr hbn s t ht0 hRn)
 
+omit hu in
 /-- A finite negative time-limit pressure at the parameter `s` gives the upper bound
 `s + v / b` on the time limit of the BS cost.  Blueprint node `bs:signed-comparison`. -/
 theorem ratioPressureSignedComparison_limit_negative (σ : LimitSide) (s v : ℝ)
@@ -506,7 +510,6 @@ theorem ratioPressureSignedComparison_limit_negative (σ : LimitSide) (s v : ℝ
     (hneg : v < 0) :
     (σ.timeLimit (fun n => finiteScaleBSCost P T u A x n r) : EReal) ≤
       ((s + v / b : ℝ) : EReal) := by
-  have _ := hu
   have hb := pos_of_eventually_realizer_bounds hT ha hr hbounds
   apply EReal.le_of_forall_lt_iff_le.mp
   intro w hw
@@ -529,6 +532,7 @@ variable (σ : LimitSide)
 
 include hfinite
 
+omit hu in
 /-- Finite orbit complexity and positive bounded denominators imply finite BS dimension
 at a fixed radius. Blueprint node `bs:finite-scale-root`. -/
 theorem finiteScalePointwiseBowenEquation_finite :
@@ -538,10 +542,10 @@ theorem finiteScalePointwiseBowenEquation_finite :
     ?_).trans_lt ENNReal.ofReal_lt_top
   filter_upwards [hbounds, eventually_ge_atTop 1] with n hbn hn hg
   have hab := le_of_realizer_bounds hT hn hr hbn
-  have hcmp := (ratioPressureSignedComparison P T hT u hu a b ha A x n hn r hr hbn 0).1
+  have hcmp := (ratioPressureSignedComparison P T hT u a b ha A x n hn r hr hbn 0).1
   simp only [neg_zero, zero_mul, sub_zero,
     min_eq_left (mul_le_mul_of_nonneg_right hab ENNReal.toReal_nonneg)] at hcmp
-  have hcost := ratioPressureSignedComparison_finite P T hT u hu a b ha A x n hn r hr hbn
+  have hcost := ratioPressureSignedComparison_finite P T hT u a b ha A x n hn r hr hbn
   have hlt : a * (finiteScaleBSCost P T u A x n r).toReal < M :=
     EReal.coe_lt_coe_iff.mp (hcmp.trans_lt hg)
   have hle : (finiteScaleBSCost P T u A x n r).toReal ≤ M / a :=
@@ -549,6 +553,7 @@ theorem finiteScalePointwiseBowenEquation_finite :
   rw [← ENNReal.ofReal_toReal hcost.ne]
   exact ENNReal.ofReal_le_ofReal hle
 
+omit hT hu ha hr in
 /-- The time limits of the pressure at every real parameter are finite. -/
 private lemma exists_coe_eq_timeLimit_pressureRate (s : ℝ) :
     ∃ v : ℝ, σ.timeLimit
@@ -565,32 +570,33 @@ private lemma exists_coe_eq_timeLimit_pressureRate (s : ℝ) :
     ⟨_, (EReal.coe_toReal (h0 ▸ hfinite.ne)
       (h0 ▸ (lt_of_lt_of_le EReal.bot_lt_zero hlow).ne')).symm⟩
   rcases lt_trichotomy s 0 with hs | rfl | hs
-  · have h := pointwisePressureSlopeBounds_time P T hT u hu a b ha A x r hr hbounds σ s 0 hs
+  · have h := pointwisePressureSlopeBounds_time P T u a b A x r hbounds σ s 0 hs
     dsimp only at h
     rw [hk] at h
     exact exists_coe_eq_of_sub_coe_le h
   · exact ⟨k, hk⟩
-  · have h := pointwisePressureSlopeBounds_time P T hT u hu a b ha A x r hr hbounds σ 0 s hs
+  · have h := pointwisePressureSlopeBounds_time P T u a b A x r hbounds σ 0 s hs
     dsimp only at h
     rw [hk] at h
     exact exists_coe_eq_of_le_sub_coe h
 
+omit hu in
 /-- The finite fixed-radius dimension is a zero of the corresponding pressure.
 Blueprint node `bs:finite-scale-root`. -/
 theorem finiteScalePointwiseBowenEquation :
     let d := (σ.timeLimit (fun n => finiteScaleBSCost P T u A x n r)).toReal
     σ.timeLimit (fun n => finiteScalePressureRate P T (fun y => -d * u y) A x n r) = 0 := by
   intro d
-  obtain ⟨v, hv⟩ := exists_coe_eq_timeLimit_pressureRate P T hT u hu a b ha A x r hr hbounds σ
+  obtain ⟨v, hv⟩ := exists_coe_eq_timeLimit_pressureRate P T u a b A x r hbounds σ
     hfinite d
   have hb := pos_of_eventually_realizer_bounds hT ha hr hbounds
   have hd : (d : EReal) = σ.timeLimit (fun n => (finiteScaleBSCost P T u A x n r : EReal)) := by
     rw [← coe_timeLimit_ennreal]
     exact (EReal.coe_ennreal_toReal
-      (finiteScalePointwiseBowenEquation_finite P T hT u hu a b ha A x r hr hbounds σ hfinite).ne)
+      (finiteScalePointwiseBowenEquation_finite P T hT u a b ha A x r hr hbounds σ hfinite).ne)
   have hle : v ≤ 0 := by
     by_contra hpos
-    have H := ratioPressureSignedComparison_limit_positive P T hT u hu a b ha A x r hr hbounds σ
+    have H := ratioPressureSignedComparison_limit_positive P T hT u a b ha A x r hr hbounds σ
       d v hv (not_le.mp hpos)
     rw [← hd] at H
     have := EReal.coe_le_coe_iff.mp H
@@ -598,7 +604,7 @@ theorem finiteScalePointwiseBowenEquation :
     linarith
   have hge : 0 ≤ v := by
     by_contra hneg
-    have H := ratioPressureSignedComparison_limit_negative P T hT u hu a b ha A x r hr hbounds σ
+    have H := ratioPressureSignedComparison_limit_negative P T hT u a b ha A x r hr hbounds σ
       d v hv (not_le.mp hneg)
     rw [← hd] at H
     have := EReal.coe_le_coe_iff.mp H

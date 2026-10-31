@@ -157,9 +157,8 @@ private lemma mem_bowenBall_shift_iff {α : Type*} [MetricSpace (ℕ → α)] {�
 /-- Strict symbolic Bowen balls observe `n - 1` transitions, giving exponent `n + k - 1`.
 The distance hypothesis specifies exactly the geometric first-difference metric.
 Blueprint node `pressure:symbolic`. -/
-theorem symbolic_orbitComplexity {α : Type*} [Countable α] [MetricSpace (ℕ → α)]
-    (β : ℝ) (hβ : 0 < β) (hβ₁ : β < 1)
-    (hd : ∀ x y : ℕ → α, x ≠ y → dist x y = β ^ PiNat.firstDiff x y)
+theorem symbolic_orbitComplexity {α : Type*} [MetricSpace (ℕ → α)] (β : ℝ) (hβ : 0 < β)
+    (hβ₁ : β < 1) (hd : ∀ x y : ℕ → α, x ≠ y → dist x y = β ^ PiNat.firstDiff x y)
     (x : ℕ → α) (n k : ℕ) (hn : 1 ≤ n) :
     bowenBall (fun y j => y (j + 1)) n x (β ^ k) = Metric.ball x (β ^ (n + k - 1)) := by
   ext y
@@ -168,9 +167,8 @@ theorem symbolic_orbitComplexity {α : Type*} [Countable α] [MetricSpace (ℕ �
 
 /-- Under the shift, the finite scale cost at scale `β ^ k` and order `n ≥ 1` is the precision
 complexity at scale `β ^ (n + k - 1)` divided by `n`. -/
-private lemma finiteScaleBSCost_shift_eq {α : Type*} [Countable α] [MetricSpace (ℕ → α)]
-    {β : ℝ} (hβ : 0 < β) (hβ₁ : β < 1)
-    (hd : ∀ x y : ℕ → α, x ≠ y → dist x y = β ^ PiNat.firstDiff x y)
+private lemma finiteScaleBSCost_shift_eq {α : Type*} [MetricSpace (ℕ → α)] {β : ℝ} (hβ : 0 < β)
+    (hβ₁ : β < 1) (hd : ∀ x y : ℕ → α, x ≠ y → dist x y = β ^ PiNat.firstDiff x y)
     (P : Presentation (ℕ → α)) (A : Set ℕ) (x : ℕ → α) (k : ℕ) {n : ℕ} (hn : 1 ≤ n) :
     finiteScaleBSCost P (fun y j ↦ y (j + 1)) (fun _ ↦ 1) A x n (β ^ k) =
       (precisionComplexityNat P A x (β ^ (n + k - 1)) : ℝ≥0∞) / n := by
@@ -295,9 +293,8 @@ private lemma limsup_div_add_sub_one (K : ℕ → ℝ≥0∞) (k : ℕ) :
 
 /-- The lower limit of the finite scale costs of the shift at scale `β ^ k` is `-log₂ β` times
 the lower limit of the normalized precision complexities at the scales `β ^ (m + 1)`. -/
-private lemma liminf_finiteScaleBSCost_shift {α : Type*} [Countable α] [MetricSpace (ℕ → α)]
-    {β : ℝ} (hβ : 0 < β) (hβ₁ : β < 1)
-    (hd : ∀ x y : ℕ → α, x ≠ y → dist x y = β ^ PiNat.firstDiff x y)
+private lemma liminf_finiteScaleBSCost_shift {α : Type*} [MetricSpace (ℕ → α)] {β : ℝ} (hβ : 0 < β)
+    (hβ₁ : β < 1) (hd : ∀ x y : ℕ → α, x ≠ y → dist x y = β ^ PiNat.firstDiff x y)
     (P : Presentation (ℕ → α)) (A : Set ℕ) (x : ℕ → α) (k : ℕ) :
     liminf (fun n ↦ finiteScaleBSCost P (fun y j ↦ y (j + 1)) (fun _ ↦ 1) A x n (β ^ k))
         atTop =
@@ -315,9 +312,8 @@ private lemma liminf_finiteScaleBSCost_shift {α : Type*} [Countable α] [Metric
 
 /-- The upper limit of the finite scale costs of the shift at scale `β ^ k` is `-log₂ β` times
 the upper limit of the normalized precision complexities at the scales `β ^ m`. -/
-private lemma limsup_finiteScaleBSCost_shift {α : Type*} [Countable α] [MetricSpace (ℕ → α)]
-    {β : ℝ} (hβ : 0 < β) (hβ₁ : β < 1)
-    (hd : ∀ x y : ℕ → α, x ≠ y → dist x y = β ^ PiNat.firstDiff x y)
+private lemma limsup_finiteScaleBSCost_shift {α : Type*} [MetricSpace (ℕ → α)] {β : ℝ} (hβ : 0 < β)
+    (hβ₁ : β < 1) (hd : ∀ x y : ℕ → α, x ≠ y → dist x y = β ^ PiNat.firstDiff x y)
     (P : Presentation (ℕ → α)) (A : Set ℕ) (x : ℕ → α) (k : ℕ) :
     limsup (fun n ↦ finiteScaleBSCost P (fun y j ↦ y (j + 1)) (fun _ ↦ 1) A x n (β ^ k))
         atTop =
@@ -333,9 +329,8 @@ private lemma limsup_finiteScaleBSCost_shift {α : Type*} [Countable α] [Metric
 
 /-- Symbolic lower orbit complexity is static lower dimension times the logarithmic metric
 scale, using the same fixed dense sequence. Blueprint node `pressure:symbolic`. -/
-theorem symbolic_orbitComplexity_lower {α : Type*} [Countable α] [MetricSpace (ℕ → α)]
-    (β : ℝ) (hβ : 0 < β) (hβ₁ : β < 1)
-    (hd : ∀ x y : ℕ → α, x ≠ y → dist x y = β ^ PiNat.firstDiff x y)
+theorem symbolic_orbitComplexity_lower {α : Type*} [MetricSpace (ℕ → α)] (β : ℝ) (hβ : 0 < β)
+    (hβ₁ : β < 1) (hd : ∀ x y : ℕ → α, x ≠ y → dist x y = β ^ PiNat.firstDiff x y)
     (P : Presentation (ℕ → α)) (A : Set ℕ) (x : ℕ → α) :
     (orbitComplexities P (fun y j => y (j + 1)) A x).1 =
       ENNReal.ofReal (-Real.logb 2 β) * (staticPointDimensions P A x).1 := by
@@ -352,9 +347,8 @@ theorem symbolic_orbitComplexity_lower {α : Type*} [Countable α] [MetricSpace 
 
 /-- Symbolic upper orbit complexity has the corresponding static upper-dimension formula.
 Blueprint node `pressure:symbolic`. -/
-theorem symbolic_orbitComplexity_upper {α : Type*} [Countable α] [MetricSpace (ℕ → α)]
-    (β : ℝ) (hβ : 0 < β) (hβ₁ : β < 1)
-    (hd : ∀ x y : ℕ → α, x ≠ y → dist x y = β ^ PiNat.firstDiff x y)
+theorem symbolic_orbitComplexity_upper {α : Type*} [MetricSpace (ℕ → α)] (β : ℝ) (hβ : 0 < β)
+    (hβ₁ : β < 1) (hd : ∀ x y : ℕ → α, x ≠ y → dist x y = β ^ PiNat.firstDiff x y)
     (P : Presentation (ℕ → α)) (A : Set ℕ) (x : ℕ → α) :
     (orbitComplexities P (fun y j => y (j + 1)) A x).2 =
       ENNReal.ofReal (-Real.logb 2 β) * (staticPointDimensions P A x).2 := by

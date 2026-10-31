@@ -497,7 +497,7 @@ theorem entropy_effectiveCharacterization_allOracles_cone (P : Presentation X)
       rw [entropiesAndOrbitComplexities_empty, iSup_emptyset, bot_eq_zero]⟩
   · obtain ⟨B, hB⟩ := lowerPressure_pointToSet_cone (zeroPotentialData P T hT) Z
     refine ⟨B, fun A hA ↦ EReal.coe_ennreal_injective ?_⟩
-    rw [entropy_eq_zeroPotentialPressure_of_nonempty P T hT Z hZ, EReal.coe_ennreal_biSup hZ]
+    rw [entropy_eq_zeroPotentialPressure_of_nonempty T Z hZ, EReal.coe_ennreal_biSup hZ]
     exact (hB A hA).trans (iSup_congr fun x ↦ iSup_congr fun _ ↦
       pointwisePressure_zero_fst P T A x)
 
@@ -510,7 +510,7 @@ theorem entropy_effectiveCharacterization_allOracles_pointToSet (P : Presentatio
   · apply le_iInf
     intro A
     have h1 := entropy_eq_zeroPotentialPressure_of_nonempty_le_effective P T hT A Z
-    have h2 := entropy_effectiveCharacterization_allOracles P T hT A Z
+    have h2 := entropy_effectiveCharacterization_allOracles P T A Z
     rwa [h2] at h1
   · obtain ⟨B, hB⟩ := entropy_effectiveCharacterization_allOracles_cone P T hT Z
     have h3 := hB B (TuringReducible.refl _)

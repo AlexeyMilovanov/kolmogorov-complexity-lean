@@ -83,21 +83,20 @@ private theorem eventually_potentialVariation_two_mul_lt_top (f : X → ℝ)
 
 /-- Packing and modified separated pressure have the same scale-zero value.
 Blueprint node `pack:pressure-equivalence`. -/
-theorem pressureEquivalence [SeparableSpace X] (T : X → X) (hT : Continuous T)
-    (f : X → ℝ) (hf : UniformContinuous f) (Z : Set X) :
+theorem pressureEquivalence (T : X → X) (f : X → ℝ) (hf : UniformContinuous f) (Z : Set X) :
     packingPressure T f Z = modifiedSeparatedPressure T f Z := by
   apply le_antisymm
   · refine limsup_le_limsup ?_
     filter_upwards [eventually_potentialVariation_lt_top hf, self_mem_nhdsWithin]
       with r hr_fin hr_pos
-    exact modifiedSeparatedBoundsPackPressure T hT f Z r hr_pos hr_fin
+    exact modifiedSeparatedBoundsPackPressure T f Z r hr_pos
   · dsimp [packingPressure, modifiedSeparatedPressure]
     rw [← limsup_comp_two_mul (modifiedSeparatedPressureAt T f Z)]
     have H_ineq : ∀ᶠ r in 𝓝[>] (0 : ℝ), modifiedSeparatedPressureAt T f Z (2 * r) ≤
         packingPressureAt T f Z r + ((potentialVariation f (2 * r)).toReal : EReal) := by
       filter_upwards [eventually_potentialVariation_two_mul_lt_top f hf, self_mem_nhdsWithin]
         with r hr_fin hr_pos
-      exact packBoundsModifiedSeparatedPressure T hT f Z r hr_pos hr_fin
+      exact packBoundsModifiedSeparatedPressure T f Z r hr_pos hr_fin
     exact (limsup_le_limsup H_ineq).trans (limsup_add_le_of_tendsto_zero _ _
       (tendsto_potentialVariation_two_mul_toReal f hf))
 
@@ -116,7 +115,7 @@ theorem pressureEquivalence_covering [SeparableSpace X] (T : X → X)
         modifiedUpperPressure T f .supremum Z r +
           ((potentialVariation f (2 * r)).toReal : EReal) := by
       filter_upwards [H_finite, H_pos] with r hr_fin hr_pos
-      exact pressureEquivalence_modified_upper T hT f Z r hr_pos hr_fin
+      exact pressureEquivalence_modified_upper T f Z r hr_fin
     exact (limsup_le_limsup H_ineq).trans (limsup_add_le_of_tendsto_zero _ _
       (tendsto_potentialVariation_two_mul_toReal f hf))
   · dsimp [modifiedSeparatedPressure]
@@ -125,7 +124,7 @@ theorem pressureEquivalence_covering [SeparableSpace X] (T : X → X)
     have H_ineq : ∀ᶠ r in 𝓝[>] (0 : ℝ), modifiedUpperPressure T f .supremum Z (2 * r) ≤
         modifiedSeparatedPressureAt T f Z (2 * r) := by
       filter_upwards [H_finite, H_pos] with r hr_fin hr_pos
-      exact pressureEquivalence_modified_lower T hT f Z r hr_pos hr_fin
+      exact pressureEquivalence_modified_lower T hT f Z r hr_pos
     exact limsup_le_limsup H_ineq
       (isCoboundedUnder_le_of_le _ fun _ ↦ bot_le) (isBoundedUnder_of ⟨⊤, fun _ ↦ le_top⟩)
 
@@ -266,18 +265,18 @@ Blueprint node `pack:pressure-equivalence`. -/
 theorem pressureEquivalence_upper [SeparableSpace X] (T : X → X)
     (hT : Continuous T) (f : X → ℝ) (hf : UniformContinuous f) (Z : Set X) :
     packingPressure T f Z = upperPressure T f 0 Z := by
-  rw [pressureEquivalence T hT f hf Z, pressureEquivalence_covering T hT f hf Z]
+  rw [pressureEquivalence T f hf Z, pressureEquivalence_covering T hT f hf Z]
   exact Tendsto.limsup_eq (tendsto_modifiedUpperPressure_supremum T f hf Z)
 
 /-- The separated radius limsup is a genuine limit, including infinite endpoints.
 Blueprint node `pack:pressure-equivalence`. -/
-theorem pressureEquivalence_separated_limit [SeparableSpace X] (T : X → X)
-    (hT : Continuous T) (f : X → ℝ) (hf : UniformContinuous f) (Z : Set X) :
+theorem pressureEquivalence_separated_limit (T : X → X) (f : X → ℝ) (hf : UniformContinuous f)
+    (Z : Set X) :
     Tendsto (modifiedSeparatedPressureAt T f Z) (𝓝[Set.Ioi 0] 0)
       (𝓝 (modifiedSeparatedPressure T f Z)) := by
-  rw [← pressureEquivalence T hT f hf Z]
+  rw [← pressureEquivalence T f hf Z]
   have hg : Tendsto (packingPressureAt T f Z) (𝓝[>] 0) (𝓝 (packingPressure T f Z)) :=
-    pressureDichotomyScaleLimit_limit T hT f hf Z
+    pressureDichotomyScaleLimit_limit T f hf Z
   have h_half : Tendsto (fun r : ℝ ↦ r / 2) (𝓝[>] 0) (𝓝[>] 0) :=
     (tendsto_const_mul_nhdsGT_zero (inv_pos.mpr two_pos)).congr fun r ↦ by ring
   refine tendsto_of_tendsto_of_tendsto_of_le_of_le' hg
@@ -285,11 +284,11 @@ theorem pressureEquivalence_separated_limit [SeparableSpace X] (T : X → X)
     ?_ ?_
   · filter_upwards [eventually_potentialVariation_lt_top hf, self_mem_nhdsWithin]
       with r hr_fin hr_pos
-    exact modifiedSeparatedBoundsPackPressure T hT f Z r hr_pos hr_fin
+    exact modifiedSeparatedBoundsPackPressure T f Z r hr_pos
   · filter_upwards [eventually_potentialVariation_lt_top hf, self_mem_nhdsWithin]
       with r hr_fin hr_pos
     have h2 : 2 * (r / 2) = r := mul_div_cancel₀ r two_ne_zero
-    simpa only [Function.comp_apply, h2] using packBoundsModifiedSeparatedPressure T hT f Z
+    simpa only [Function.comp_apply, h2] using packBoundsModifiedSeparatedPressure T f Z
       (r / 2) (half_pos hr_pos) (by rwa [h2])
 
 /-- The sup-weight covering modifications converge along all positive radii.
@@ -298,7 +297,7 @@ theorem pressureEquivalence_covering_limit [SeparableSpace X] (T : X → X)
     (hT : Continuous T) (f : X → ℝ) (hf : UniformContinuous f) (Z : Set X) :
     Tendsto (modifiedUpperPressure T f .supremum Z) (𝓝[Set.Ioi 0] 0)
       (𝓝 (upperPressure T f 0 Z)) := by
-  have h_sep := pressureEquivalence_separated_limit T hT f hf Z
+  have h_sep := pressureEquivalence_separated_limit T f hf Z
   have h_lower_lim : Tendsto (fun r : ℝ ↦ modifiedSeparatedPressureAt T f Z (2 * r) -
       ((potentialVariation f (2 * r)).toReal : EReal)) (𝓝[>] 0)
       (𝓝 (modifiedSeparatedPressure T f Z)) :=
@@ -310,16 +309,15 @@ theorem pressureEquivalence_covering_limit [SeparableSpace X] (T : X → X)
     filter_upwards [eventually_potentialVariation_two_mul_lt_top f hf, self_mem_nhdsWithin]
       with r hr_fin hr_pos
     exact (EReal.sub_le_iff_le_add (Or.inl (EReal.coe_ne_bot _)) (Or.inl (EReal.coe_ne_top _))).mpr
-      (pressureEquivalence_modified_upper T hT f Z r hr_pos hr_fin)
+      (pressureEquivalence_modified_upper T f Z r hr_fin)
   have h_upper : ∀ᶠ r : ℝ in 𝓝[>] 0,
       modifiedUpperPressure T f .supremum Z r ≤ modifiedSeparatedPressureAt T f Z r := by
     filter_upwards [eventually_potentialVariation_lt_top hf, self_mem_nhdsWithin]
       with r hr_fin hr_pos
     have h2 : 2 * (r / 2) = r := mul_div_cancel₀ r two_ne_zero
     simpa only [h2] using pressureEquivalence_modified_lower T hT f Z (r / 2) (half_pos hr_pos)
-      (by rwa [h2])
   have h_eq : modifiedSeparatedPressure T f Z = upperPressure T f 0 Z :=
-    (pressureEquivalence T hT f hf Z).symm.trans (pressureEquivalence_upper T hT f hf Z)
+    (pressureEquivalence T f hf Z).symm.trans (pressureEquivalence_upper T hT f hf Z)
   rw [← h_eq]
   exact tendsto_of_tendsto_of_tendsto_of_le_of_le' h_lower_lim h_sep h_lower h_upper
 

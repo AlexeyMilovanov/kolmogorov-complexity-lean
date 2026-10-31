@@ -126,6 +126,7 @@ private lemma tendsto_modifiedUpperPressure_self_sub_variation :
   rwa [H_eq, H_eq2] at H3
 
 
+omit [SeparableSpace X] hT in
 /-- For small `r`, the variation-corrected modified self-centered upper pressure at radius
 `2 * r` lies below the unrestricted self-centered upper pressure at radius `r`. -/
 private lemma eventually_modifiedUpperPressure_self_sub_variation_le :
@@ -147,7 +148,7 @@ private lemma eventually_modifiedUpperPressure_self_sub_variation_le :
     have h2 := h1.comp hm
     exact h2.eventually (gt_mem_nhds (by simp : (0 : ℝ≥0∞) < ⊤))
   filter_upwards [Hfin, self_mem_nhdsWithin] with r hr hpos
-  have hsandwich := pressureIndependentOfCoverCenters_unrestricted_sandwich T hT f hf E r hpos hr
+  have hsandwich := pressureIndependentOfCoverCenters_unrestricted_sandwich T f E r hr
   have h2 := hsandwich.2
   apply (EReal.sub_le_iff_le_add _ _).mpr h2
   · left
@@ -179,20 +180,15 @@ theorem pressureIndependentOfCoverCenters_unrestricted :
     dsimp [LimitSide.choose] at h_lim
     exact h_lim
   apply tendsto_of_tendsto_of_tendsto_of_le_of_le' hl_lower hl_upper
-  · exact eventually_modifiedUpperPressure_self_sub_variation_le T hT f hf E
+  · exact eventually_modifiedUpperPressure_self_sub_variation_le T f hf E
   · exact eventually_unrestrictedSelfUpperPressure_le_modified T f E
 end Pressure
 
 section BS
 
-variable [SeparableSpace X] (T : X → X) (hT : Continuous T) (u : X → ℝ)
-  (hu : UniformContinuous u) (E : Set X) (hpos : ∀ x ∈ E, 0 < lowerBirkhoffAverage T u x)
-
-include hT hu hpos
+variable (T : X → X) (u : X → ℝ) (E : Set X)
 
 section RelocatedFamily
-
-omit [TopologicalSpace.SeparableSpace X] hT hu hpos
 
 /-- The Bowen cover family obtained from `C` by discarding the balls that miss `E` and
 moving each remaining ball to a chosen center in its intersection with `E`. -/
@@ -205,9 +201,8 @@ private noncomputable def relocatedBowenCoverFamily
 
 /-- Relocating the balls of a Bowen cover of `E` at radius `r` gives a Bowen cover of `E` at
 radius `2 * r` whose centers lie in `E`. -/
-private lemma isBowenCover_relocatedBowenCoverFamily
-    (T : X → X) (E : Set X) (r : ℝ) (hr : 0 < r)
-    (N : ℕ) (C : BowenCoverFamily X)
+private lemma isBowenCover_relocatedBowenCoverFamily (T : X → X) (E : Set X) (r : ℝ) (N : ℕ)
+    (C : BowenCoverFamily X)
     (hC : IsBowenCover T E r N C) :
     IsBowenCover T E (2 * r) N (relocatedBowenCoverFamily T E r C) ∧
       ∀ j, (relocatedBowenCoverFamily T E r C).center j ∈ E := by
@@ -228,7 +223,7 @@ private lemma isBowenCover_relocatedBowenCoverFamily
       dsimp [relocatedBowenCoverFamily]
       have hz : Classical.choose j'.2.2 ∈ E ∩ bowenBall T (C.order j) (C.center j) r :=
         Classical.choose_spec j'.2.2
-      exact relocateCoverBall T E (C.order j) (C.center j) (Classical.choose j'.2.2) r hr hz hj
+      exact relocateCoverBall T E (C.order j) (C.center j) (Classical.choose j'.2.2) r hz hj
   · intro j
     dsimp [relocatedBowenCoverFamily]
     have hz : Classical.choose j.2.2 ∈ E ∩ bowenBall T (C.order ⟨j.1, j.2.1⟩) (C.center ⟨j.1,
@@ -237,9 +232,8 @@ private lemma isBowenCover_relocatedBowenCoverFamily
 
 /-- Relocating the balls of a cover to centers in `E`, at doubled radius, does not increase the
 BS cost for nonnegative exponents. -/
-private lemma bsCoverCost_relocatedBowenCoverFamily_le
-    (T : X → X) (u : X → ℝ) (E : Set X)
-    (a : ℝ) (ha : 0 ≤ a) (r : ℝ) (hr : 0 < r)
+private lemma bsCoverCost_relocatedBowenCoverFamily_le (T : X → X) (u : X → ℝ) (E : Set X) (a : ℝ)
+    (ha : 0 ≤ a) (r : ℝ)
     (C : BowenCoverFamily X) :
     bsCoverCost T u a (2 * r) (relocatedBowenCoverFamily T E r C) ≤
       bsCoverCost T u a r C := by
@@ -265,7 +259,7 @@ private lemma bsCoverCost_relocatedBowenCoverFamily_le
   have hz : Classical.choose j.property.2 ∈ E ∩ bowenBall T (C.order ⟨j.val, j.property.1⟩)
     (C.center ⟨j.val, j.property.1⟩) r := Classical.choose_spec j.property.2
   have h_incl := relocateCoverBall T E (C.order ⟨j.val, j.property.1⟩) (C.center ⟨j.val,
-    j.property.1⟩) (Classical.choose j.property.2) r hr hz
+    j.property.1⟩) (Classical.choose j.property.2) r hz
   use h_incl hw
 
 end RelocatedFamily
@@ -273,14 +267,9 @@ end RelocatedFamily
 /-- Lower BS cutoff masses compare without a variation error for nonnegative exponents.
 Blueprint node `geometry:bs-centers`. -/
 theorem bsDimensionIndependentOfCoverCenters_content (a : ℝ) (ha : 0 ≤ a)
-    (r : ℝ) (hr : 0 < r) (N : ℕ) (hN : 1 ≤ N) :
+    (r : ℝ) (N : ℕ) :
     lowerBSMass T u E a (2 * r) N ≤ lowerBSMassWithCenters .self T u E a (2 * r) N ∧
       lowerBSMassWithCenters .self T u E a (2 * r) N ≤ lowerBSMass T u E a r N := by
-  have _ := hT
-  have _ := hu
-  have _ := hpos
-  have _ := (inferInstance : SeparableSpace X)
-  have _ := hN
   classical
   constructor
   · change
@@ -302,20 +291,15 @@ theorem bsDimensionIndependentOfCoverCenters_content (a : ℝ) (ha : 0 ≤ a)
   · unfold lowerBSMass lowerBSMassWithCenters
     refine le_iInf (fun C => le_iInf (fun hC => ?_))
     refine iInf_le_of_le (relocatedBowenCoverFamily T E r C) ?_
-    refine iInf_le_of_le (isBowenCover_relocatedBowenCoverFamily T E r hr N C hC) ?_
-    exact bsCoverCost_relocatedBowenCoverFamily_le T u E a ha r hr C
+    refine iInf_le_of_le (isBowenCover_relocatedBowenCoverFamily T E r N C hC) ?_
+    exact bsCoverCost_relocatedBowenCoverFamily_le T u E a ha r C
 
 /-- Fixed-order BS partition infima compare with no finite-to-zero threshold conversion.
 Blueprint node `geometry:bs-centers`. -/
 theorem bsDimensionIndependentOfCoverCenters_partition (a : ℝ) (ha : 0 ≤ a)
-    (r : ℝ) (hr : 0 < r) (n : ℕ) (hn : 1 ≤ n) :
+    (r : ℝ) (n : ℕ) :
     bsPartitionSum T u E a (2 * r) n ≤ bsPartitionSumWithCenters .self T u E a (2 * r) n ∧
       bsPartitionSumWithCenters .self T u E a (2 * r) n ≤ bsPartitionSum T u E a r n := by
-  have _ := hT
-  have _ := hu
-  have _ := hpos
-  have _ := (inferInstance : SeparableSpace X)
-  have _ := hn
   classical
   constructor
   · unfold bsPartitionSum bsPartitionSumWithCenters
@@ -341,7 +325,7 @@ theorem bsDimensionIndependentOfCoverCenters_partition (a : ℝ) (ha : 0 ≤ a)
         simpa only [Set.mem_iUnion, exists_prop] using hF.2 hx
       let i : I := ⟨⟨y, hy⟩, ⟨x, hx, hxy⟩⟩
       have hball : x ∈ bowenBall T n (z i) (2 * r) :=
-        relocateCoverBall T E n y (z i) r hr (hz i) hxy
+        relocateCoverBall T E n y (z i) r (hz i) hxy
       exact Set.mem_iUnion.mpr ⟨z i,
         Set.mem_iUnion.mpr ⟨Set.mem_range_self i, hball⟩⟩
     have hcost : bsPartitionCoverCost T u a (2 * r) n G ≤
@@ -365,7 +349,7 @@ theorem bsDimensionIndependentOfCoverCenters_partition (a : ℝ) (ha : 0 ≤ a)
           apply iSup₂_le
           intro w hw
           exact le_iSup₂_of_le w
-            (relocateCoverBall T E n y.val (z y) r hr (hz y) hw) le_rfl
+            (relocateCoverBall T E n y.val (z y) r (hz y) hw) le_rfl
         _ ≤ ∑' y : F, bsBallWeight T u a n y r :=
           ENNReal.tsum_comp_le_tsum_of_injective
             (f := fun y : I => y.val) Subtype.val_injective
@@ -384,10 +368,10 @@ theorem bsDimensionIndependentOfCoverCenters_lower (r : ℝ) (hr : 0 < r) :
     constructor
     · apply iSup_mono; intro N
       apply iSup_mono; intro hN
-      exact (bsDimensionIndependentOfCoverCenters_content T hT u hu E hpos a ha r' hr' N hN).1
+      exact (bsDimensionIndependentOfCoverCenters_content T u E a ha r' N).1
     · apply iSup_mono; intro N
       apply iSup_mono; intro hN
-      exact (bsDimensionIndependentOfCoverCenters_content T hT u hu E hpos a ha r' hr' N hN).2
+      exact (bsDimensionIndependentOfCoverCenters_content T u E a ha r' N).2
   constructor
   · apply iInf_mono; intro s
     apply iInf_mono; intro hs
@@ -406,29 +390,29 @@ theorem bsDimensionIndependentOfCoverCenters_lower (r : ℝ) (hr : 0 < r) :
 
 /-- Raw upper capacities compare using the finite threshold on both sides.
 Blueprint node `geometry:bs-centers`. -/
-theorem bsDimensionIndependentOfCoverCenters_capacity (r : ℝ) (hr : 0 < r) :
+theorem bsDimensionIndependentOfCoverCenters_capacity (r : ℝ) :
     upperBSCapacityAt T u E (2 * r) ≤ upperBSCapacityAtWithCenters .self T u E (2 * r) ∧
       upperBSCapacityAtWithCenters .self T u E (2 * r) ≤ upperBSCapacityAt T u E r := by
   unfold upperBSCapacityAt upperBSCapacityAtWithCenters
   constructor
   · refine iInf_mono (fun s => iInf_mono (fun hs => ?_))
     refine le_iInf (fun h => iInf_le_of_le ?_ (le_refl _))
-    have hs_ineq := bsDimensionIndependentOfCoverCenters_partition T hT u hu E hpos s hs r hr
+    have hs_ineq := bsDimensionIndependentOfCoverCenters_partition T u E s hs r
     have H : ∀ᶠ n in atTop, bsPartitionSum T u E s (2 * r) n ≤ bsPartitionSumWithCenters .self T u
       E s (2 * r) n := by
-      apply eventually_atTop.mpr ⟨1, fun n hn => (hs_ineq n hn).1⟩
+      apply eventually_atTop.mpr ⟨1, fun n _ => (hs_ineq n).1⟩
     apply lt_of_le_of_lt (limsup_le_limsup H) h
   · refine iInf_mono (fun s => iInf_mono (fun hs => ?_))
     refine le_iInf (fun h => iInf_le_of_le ?_ (le_refl _))
-    have hs_ineq := bsDimensionIndependentOfCoverCenters_partition T hT u hu E hpos s hs r hr
+    have hs_ineq := bsDimensionIndependentOfCoverCenters_partition T u E s hs r
     have H : ∀ᶠ n in atTop, bsPartitionSumWithCenters .self T u E s (2 * r) n ≤ bsPartitionSum T u
       E s r n := by
-      apply eventually_atTop.mpr ⟨1, fun n hn => (hs_ineq n hn).2⟩
+      apply eventually_atTop.mpr ⟨1, fun n _ => (hs_ineq n).2⟩
     apply lt_of_le_of_lt (limsup_le_limsup H) h
 
 /-- Modified upper BS capacities relocate to centers in each target piece separately.
 Blueprint node `geometry:bs-centers`. -/
-theorem bsDimensionIndependentOfCoverCenters_modified (r : ℝ) (hr : 0 < r) :
+theorem bsDimensionIndependentOfCoverCenters_modified (r : ℝ) :
     modifiedUpperBSDimension T u E (2 * r) ≤
         modifiedUpperBSDimensionWithCenters .self T u E (2 * r) ∧
       modifiedUpperBSDimensionWithCenters .self T u E (2 * r) ≤
@@ -440,8 +424,7 @@ theorem bsDimensionIndependentOfCoverCenters_modified (r : ℝ) (hr : 0 < r) :
     intro hY
     apply iSup_mono
     intro j
-    have := bsDimensionIndependentOfCoverCenters_capacity T hT u hu (Y j) (fun x hx => hpos x
-      (hY.1 j hx)) r hr
+    have := bsDimensionIndependentOfCoverCenters_capacity T u (Y j) r
     exact this.1
   · apply iInf_mono
     intro Y
@@ -449,8 +432,7 @@ theorem bsDimensionIndependentOfCoverCenters_modified (r : ℝ) (hr : 0 < r) :
     intro hY
     apply iSup_mono
     intro j
-    have := bsDimensionIndependentOfCoverCenters_capacity T hT u hu (Y j) (fun x hx => hpos x
-      (hY.1 j hx)) r hr
+    have := bsDimensionIndependentOfCoverCenters_capacity T u (Y j) r
     exact this.2
 
 /-- The two BS center policies give the frozen lower or modified upper dimension.
@@ -475,9 +457,9 @@ theorem bsDimensionIndependentOfCoverCenters (policy : CoverCenterPolicy) (σ : 
   | self =>
     cases σ with
     | lower =>
-      exact hsup _ _ (bsDimensionIndependentOfCoverCenters_lower T hT u hu E hpos)
+      exact hsup _ _ (bsDimensionIndependentOfCoverCenters_lower T u E)
     | upper =>
-      exact hsup _ _ (bsDimensionIndependentOfCoverCenters_modified T hT u hu E hpos)
+      exact hsup _ _ fun r _ ↦ bsDimensionIndependentOfCoverCenters_modified T u E r
 
 /-- The self-centered lower BS dimension at scale `r` converges to the lower BS dimension as
 `r → 0⁺`. -/
@@ -501,7 +483,7 @@ private theorem tendsto_lowerBSDimensionAtWithCenters_self :
     filter_upwards [self_mem_nhdsWithin] with r hr
     have hr' : 0 < r := hr
     have hr_half : 0 < r / 2 := half_pos hr'
-    have H := bsDimensionIndependentOfCoverCenters_lower T hT u hu E hpos (r / 2) hr_half
+    have H := bsDimensionIndependentOfCoverCenters_lower T u E (r / 2) hr_half
     have H_mul : 2 * (r / 2) = r := by ring
     rw [H_mul] at H
     exact H.1
@@ -510,7 +492,7 @@ private theorem tendsto_lowerBSDimensionAtWithCenters_self :
     filter_upwards [self_mem_nhdsWithin] with r hr
     have hr' : 0 < r := hr
     have hr_half : 0 < r / 2 := half_pos hr'
-    have H := bsDimensionIndependentOfCoverCenters_lower T hT u hu E hpos (r / 2) hr_half
+    have H := bsDimensionIndependentOfCoverCenters_lower T u E (r / 2) hr_half
     have H_mul : 2 * (r / 2) = r := by ring
     rw [H_mul] at H
     exact H.2
@@ -538,7 +520,7 @@ private theorem tendsto_modifiedUpperBSDimensionWithCenters_self :
     filter_upwards [self_mem_nhdsWithin] with r hr
     have hr' : 0 < r := hr
     have hr_half : 0 < r / 2 := half_pos hr'
-    have H := bsDimensionIndependentOfCoverCenters_modified T hT u hu E hpos (r / 2) hr_half
+    have H := bsDimensionIndependentOfCoverCenters_modified T u E (r / 2)
     have H_mul : 2 * (r / 2) = r := by ring
     rw [H_mul] at H
     exact H.1
@@ -547,7 +529,7 @@ private theorem tendsto_modifiedUpperBSDimensionWithCenters_self :
     filter_upwards [self_mem_nhdsWithin] with r hr
     have hr' : 0 < r := hr
     have hr_half : 0 < r / 2 := half_pos hr'
-    have H := bsDimensionIndependentOfCoverCenters_modified T hT u hu E hpos (r / 2) hr_half
+    have H := bsDimensionIndependentOfCoverCenters_modified T u E (r / 2)
     have H_mul : 2 * (r / 2) = r := by ring
     rw [H_mul] at H
     exact H.2
@@ -573,15 +555,14 @@ theorem bsDimensionIndependentOfCoverCenters_limit (policy : CoverCenterPolicy) 
       exact upperBSDimension_radius_limit T u E
   · cases σ
     · dsimp [LimitSide.choose]
-      exact tendsto_lowerBSDimensionAtWithCenters_self T hT u hu E hpos
+      exact tendsto_lowerBSDimensionAtWithCenters_self T u E
     · dsimp [LimitSide.choose]
-      exact tendsto_modifiedUpperBSDimensionWithCenters_self T hT u hu E hpos
+      exact tendsto_modifiedUpperBSDimensionWithCenters_self T u E
 
-omit [SeparableSpace X] hT hu hpos in
 /-- Fixed-order self-centered BS partition sums of `Y ∩ E` at radius `2 * r` are bounded by those
 of `Y` at radius `r`, for nonnegative exponents. -/
 private lemma bsPartitionSumWithCenters_self_inter_le
-    (Y : Set X) (a : ℝ) (ha : 0 ≤ a) (r : ℝ) (hr : 0 < r) (n : ℕ) :
+    (Y : Set X) (a : ℝ) (ha : 0 ≤ a) (r : ℝ) (n : ℕ) :
     bsPartitionSumWithCenters .self T u (Y ∩ E) a (2 * r) n ≤
       bsPartitionSumWithCenters .self T u Y a r n := by
   classical
@@ -605,7 +586,7 @@ private lemma bsPartitionSumWithCenters_self_inter_le
       simpa only [Set.mem_iUnion, exists_prop] using hF.2.2 hx.1
     let i : I := ⟨⟨y, hy⟩, ⟨x, hx, hxy⟩⟩
     have hball : x ∈ bowenBall T n (z i) (2 * r) :=
-      relocateCoverBall T (Y ∩ E) n y (z i) r hr (hz i) hxy
+      relocateCoverBall T (Y ∩ E) n y (z i) r (hz i) hxy
     exact Set.mem_iUnion.mpr ⟨z i,
       Set.mem_iUnion.mpr ⟨Set.mem_range_self i, hball⟩⟩
   have hcost : bsPartitionCoverCost T u a (2 * r) n G ≤
@@ -629,18 +610,17 @@ private lemma bsPartitionSumWithCenters_self_inter_le
         intro w
         apply iSup_mono'
         intro hw
-        use relocateCoverBall T (Y ∩ E) n y.val (z y) r hr (hz y) hw
+        use relocateCoverBall T (Y ∩ E) n y.val (z y) r (hz y) hw
       _ ≤ ∑' y : F, bsBallWeight T u a n y r :=
         ENNReal.tsum_comp_le_tsum_of_injective
           (f := fun y : I => y.val) Subtype.val_injective
           (fun y : F => bsBallWeight T u a n y r)
   exact iInf_le_of_le G (iInf_le_of_le ⟨hGcount, hGE, hGcover⟩ hcost)
 
-omit [SeparableSpace X] hT hu hpos in
 /-- The self-centered upper BS capacity of `Y ∩ E` at radius `2 * r` is bounded by that of `Y`
 at radius `r`: covers of `Y` relocate to centers in the intersection at doubled radius. -/
 private lemma upperBSCapacityAtWithCenters_self_inter_le
-    (Y : Set X) (r : ℝ) (hr : 0 < r) :
+    (Y : Set X) (r : ℝ) :
     upperBSCapacityAtWithCenters .self T u (Y ∩ E) (2 * r) ≤
       upperBSCapacityAtWithCenters .self T u Y r := by
   unfold upperBSCapacityAtWithCenters
@@ -649,14 +629,13 @@ private lemma upperBSCapacityAtWithCenters_self_inter_le
   have H : ∀ᶠ n in atTop, bsPartitionSumWithCenters .self T u (Y ∩ E) s (2 * r) n ≤
     bsPartitionSumWithCenters .self T u Y s r n := by
     apply eventually_atTop.mpr
-      ⟨1, fun n _ => bsPartitionSumWithCenters_self_inter_le T u E Y s hs r hr n⟩
+      ⟨1, fun n _ => bsPartitionSumWithCenters_self_inter_le T u E Y s hs r n⟩
   apply lt_of_le_of_lt (limsup_le_limsup H) h
 
-omit [SeparableSpace X] hT hu hpos in
 /-- The modified self-centered upper BS dimension at radius `2 * r` is bounded by the
 unrestricted self-centered one at radius `r`: intersect each unrestricted piece with `E`. -/
 private lemma modifiedUpperBSDimensionWithCenters_self_two_mul_le
-    (r : ℝ) (hr : 0 < r) :
+    (r : ℝ) :
     modifiedUpperBSDimensionWithCenters .self T u E (2 * r) ≤
       unrestrictedSelfUpperBSDimension T u E r := by
   unfold modifiedUpperBSDimensionWithCenters unrestrictedSelfUpperBSDimension
@@ -671,9 +650,8 @@ private lemma modifiedUpperBSDimensionWithCenters_self_two_mul_le
       rcases hx' with ⟨j, hj⟩
       exact ⟨j, hj, hx⟩
   refine iInf_le_of_le Y' (iInf_le_of_le hY' (iSup_mono (fun j => ?_)))
-  exact upperBSCapacityAtWithCenters_self_inter_le T u E (Y j) r hr
+  exact upperBSCapacityAtWithCenters_self_inter_le T u E (Y j) r
 
-omit [SeparableSpace X] hT hu hpos in
 /-- The unrestricted self-centered upper BS dimension is bounded by the modified one, since
 restricted decompositions are special unrestricted ones. -/
 private lemma unrestrictedSelfUpperBSDimension_le_modified
@@ -687,17 +665,13 @@ private lemma unrestrictedSelfUpperBSDimension_le_modified
 /-- Relocation compares unrestricted self pieces to their intersections with the target.
 No positivity is required on the discarded points outside the target.
 Blueprint node `geometry:bs-centers`. -/
-theorem bsDimensionIndependentOfCoverCenters_unrestricted_sandwich (r : ℝ) (hr : 0 < r) :
+theorem bsDimensionIndependentOfCoverCenters_unrestricted_sandwich (r : ℝ) :
     unrestrictedSelfUpperBSDimension T u E r ≤
         modifiedUpperBSDimensionWithCenters .self T u E r ∧
       modifiedUpperBSDimensionWithCenters .self T u E (2 * r) ≤
         unrestrictedSelfUpperBSDimension T u E r := by
-  have _ := hT
-  have _ := hu
-  have _ := hpos
-  have _ := (inferInstance : SeparableSpace X)
   exact ⟨unrestrictedSelfUpperBSDimension_le_modified T u E r,
-         modifiedUpperBSDimensionWithCenters_self_two_mul_le T u E r hr⟩
+         modifiedUpperBSDimensionWithCenters_self_two_mul_le T u E r⟩
 
 /-- Unrestricted self BS pieces give the same scale-zero modified upper dimension.
 Blueprint node `geometry:bs-centers`. -/
@@ -706,7 +680,7 @@ theorem bsDimensionIndependentOfCoverCenters_unrestricted :
       (𝓝 (upperBSDimension T u E)) := by
   have h1 : Tendsto (fun r => modifiedUpperBSDimensionWithCenters .self T u E r) (𝓝[Set.Ioi 0] 0)
     (𝓝 (upperBSDimension T u E)) :=
-    bsDimensionIndependentOfCoverCenters_limit T hT u hu E hpos .self .upper
+    bsDimensionIndependentOfCoverCenters_limit T u E .self .upper
   have h_map : Tendsto (fun r : ℝ => 2 * r) (𝓝[Set.Ioi 0] 0) (𝓝[Set.Ioi 0] 0) := by
     have ht1 : Tendsto (fun r : ℝ => 2 * r) (𝓝 0) (𝓝 (2 * 0)) := (tendsto_id : Tendsto (fun r : ℝ
       => r) (𝓝 0) (𝓝 0)).const_mul (2:ℝ)
@@ -727,11 +701,11 @@ theorem bsDimensionIndependentOfCoverCenters_unrestricted :
   have H1 : (fun x => modifiedUpperBSDimensionWithCenters .self T u E (2 * x)) ≤ᶠ[𝓝[Set.Ioi 0] 0]
     unrestrictedSelfUpperBSDimension T u E := by
     refine eventually_of_mem self_mem_nhdsWithin (fun r hr => ?_)
-    exact (bsDimensionIndependentOfCoverCenters_unrestricted_sandwich T hT u hu E hpos r hr).2
+    exact (bsDimensionIndependentOfCoverCenters_unrestricted_sandwich T u E r).2
   have H2 : unrestrictedSelfUpperBSDimension T u E ≤ᶠ[𝓝[Set.Ioi 0] 0] (fun x =>
     modifiedUpperBSDimensionWithCenters .self T u E x) := by
     refine eventually_of_mem self_mem_nhdsWithin (fun r hr => ?_)
-    exact (bsDimensionIndependentOfCoverCenters_unrestricted_sandwich T hT u hu E hpos r hr).1
+    exact (bsDimensionIndependentOfCoverCenters_unrestricted_sandwich T u E r).1
   exact tendsto_of_tendsto_of_tendsto_of_le_of_le' h2 h1 H1 H2
 
 end BS

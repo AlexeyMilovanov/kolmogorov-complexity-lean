@@ -46,7 +46,7 @@ theorem bsPointToSet (P : Presentation X) (T : X → X) (hT : Continuous T)
     have hB := hB_attainment A₀ hA₀_refl
     have hB_adm := hB.1
     have hB_eq := hB.2
-    have h_effective := effectiveLowerBSEqSup P T hT u hu A₀ hB_adm Z hZ
+    have h_effective := effectiveLowerBSEqSup P T u hu A₀ hB_adm Z hZ
     rw [← hB_eq]
     rw [h_effective]
 
@@ -90,7 +90,7 @@ theorem bsPointToSet_cone (P : Presentation X) (T : X → X) (hT : Continuous T)
   · dsimp [LimitSide.choose]
     have eq1 : effectiveLowerBSDimension P T u A Z = lowerBSDimension T u Z := hA_L_res.2
     rw [← eq1]
-    exact effectiveLowerBSEqSup P T hT u hu A hA_L_res.1 Z hZ
+    exact effectiveLowerBSEqSup P T u hu A hA_L_res.1 Z hZ
   · dsimp [LimitSide.choose]
     have eq1 : effectiveUpperBSDimension P T u A Z = upperBSDimension T u Z := hA_U_res.2
     rw [← eq1]

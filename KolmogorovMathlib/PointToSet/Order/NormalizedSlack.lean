@@ -244,12 +244,10 @@ private lemma monotone_finiteScaleBSCost (P : Presentation X) (T : X → X) (u :
 
 /-- Oracle monotonicity passes to lower BS dimension on the positive-average locus of a
 uniformly continuous potential. Blueprint node `order:slack`. -/
-theorem normalized_additive_slack_bs (P : Presentation X) (T : X → X)
-    (hT : Continuous T) (u : X → ℝ) (hu : UniformContinuous u) (A B : Set ℕ)
+theorem normalized_additive_slack_bs (P : Presentation X) (T : X → X) (u : X → ℝ)
+    (hu : UniformContinuous u) (A B : Set ℕ)
     (hAB : charOracle A ≤ᵀ charOracle B) (x : X) (hx : 0 < lowerBirkhoffAverage T u x) :
     (pointwiseBSDimension P T u B x).1 ≤ (pointwiseBSDimension P T u A x).1 := by
-  -- Continuity of the dynamics is retained in the interface but is not needed here.
-  have _ := hT
   dsimp only [pointwiseBSDimension]
   obtain ⟨c, hc⟩ := oracle_monotonicity A B hAB
   obtain ⟨p₀, ρ, hρ, hbound⟩ := exists_birkhoffSum_lower_bound T u hu x hx
@@ -276,12 +274,10 @@ theorem normalized_additive_slack_bs (P : Presentation X) (T : X → X)
 
 /-- Oracle monotonicity passes to upper BS dimension on the positive-average locus of a
 uniformly continuous potential. Blueprint node `order:slack`. -/
-theorem normalized_additive_slack_bs_upper (P : Presentation X) (T : X → X)
-    (hT : Continuous T) (u : X → ℝ) (hu : UniformContinuous u) (A B : Set ℕ)
+theorem normalized_additive_slack_bs_upper (P : Presentation X) (T : X → X) (u : X → ℝ)
+    (hu : UniformContinuous u) (A B : Set ℕ)
     (hAB : charOracle A ≤ᵀ charOracle B) (x : X) (hx : 0 < lowerBirkhoffAverage T u x) :
     (pointwiseBSDimension P T u B x).2 ≤ (pointwiseBSDimension P T u A x).2 := by
-  -- Continuity of the dynamics is retained in the interface but is not needed here.
-  have _ := hT
   dsimp only [pointwiseBSDimension]
   obtain ⟨c, hc⟩ := oracle_monotonicity A B hAB
   obtain ⟨p₀, ρ, hρ, hbound⟩ := exists_birkhoffSum_lower_bound T u hu x hx

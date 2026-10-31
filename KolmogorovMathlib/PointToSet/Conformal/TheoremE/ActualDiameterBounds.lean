@@ -500,7 +500,7 @@ lemma factorialProduct_partitionSum_le
   let := m
   have hr : 0 < dyadicRadius k := by unfold dyadicRadius; positivity
   obtain ⟨S, hcard, hcov⟩ := exists_factorialProduct_ball_cover m h_dist n k hn hk2
-  rw [packingEqModifiedUpperBox_open_covering _ _ hr]
+  rw [packingEqModifiedUpperBox_open_covering _ _]
   refine le_trans (iInf_le_of_le (S : Set FactorialProduct) (iInf_le_of_le hcov le_rfl)) ?_
   simpa using (Nat.cast_le.mpr hcard : (S.card : ℝ≥0∞) ≤ _)
 

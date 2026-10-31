@@ -574,7 +574,8 @@ Files: `PointToSet/BSDimension/` (definitions, `Lower/`, `Upper/`) and
 * **`bs:set-root-unique`** — Uniform lower bound ✎: with `0 < α ≤ ℓ`, finite entropy gives a
   real-valued, strictly decreasing set pressure with at most one zero and
   `d_σ(Z) ≤ h_σ(Z)/α`; with a common upper bound `β` the zero exists and equals `d_σ(Z)`.
-  `Kolmogorov.PointToSet.setBowenRootUniqueness` (`PointToSet/BowenEquation/SetRoot.lean`);
+  `Kolmogorov.PointToSet.setBowenRootUniqueness` (`PointToSet/BowenEquation/SetRoot.lean`;
+  the formal uniqueness statement needs neither finite entropy nor `Z ≠ ∅`);
   same file: `_real`, `_strict`, `_dimension_le`, `_dimension_finite`;
   `setBowenRootUniqueness_exists` (`PointToSet/BowenEquation/NonuniformCounterexample.lean`).
 * **`bs:counterexample-existence`** — ⚠ Counterexample to the uncorrected existence claim:

@@ -187,11 +187,9 @@ theorem countableSeparatedMaximalNet [SeparableSpace X] (T : X → X)
 
 /-- The center sum is bounded by the extended supremum at every valid radius.
 Blueprint node `pack:supweight`. -/
-theorem supWeightBounds (T : X → X) (f : X → ℝ) (n : ℕ) (hn : 1 ≤ n)
-    (x : X) (r : ℝ) (hr : 0 < r) (hω : potentialVariation f r < ⊤) :
+theorem supWeightBounds (T : X → X) (f : X → ℝ) (n : ℕ)
+    (x : X) (r : ℝ) (hr : 0 < r) :
     ((birkhoffSum T f n x : ℝ) : EReal) ≤ bowenPotentialSup T f n x r := by
-  have _ := hn
-  have _ := hω
   unfold bowenPotentialSup
   refine le_iSup₂_of_le x ?_ le_rfl
   dsimp [bowenBall]
@@ -226,12 +224,10 @@ lemma abs_birkhoffSum_sub_le_mul_variation
 
 /-- Finite variation bounds the supremum by the center sum plus the order times variation.
 Blueprint node `pack:supweight`. -/
-theorem supWeightBounds_upper (T : X → X) (f : X → ℝ) (n : ℕ) (hn : 1 ≤ n)
-    (x : X) (r : ℝ) (hr : 0 < r) (hω : potentialVariation f r < ⊤) :
+theorem supWeightBounds_upper (T : X → X) (f : X → ℝ) (n : ℕ)
+    (x : X) (r : ℝ) (hω : potentialVariation f r < ⊤) :
     bowenPotentialSup T f n x r ≤
       ((birkhoffSum T f n x + n * (potentialVariation f r).toReal : ℝ) : EReal) := by
-  have _ := hn
-  have _ := hr
   unfold bowenPotentialSup
   refine iSup₂_le fun z hz ↦ EReal.coe_le_coe_iff.mpr ?_
   have hdiff := abs_birkhoffSum_sub_le_mul_variation T f n x z r hω hz
@@ -239,13 +235,13 @@ theorem supWeightBounds_upper (T : X → X) (f : X → ℝ) (n : ℕ) (hn : 1 �
 
 /-- Finite variation gives a real supremum before any real-valued reduction is used.
 Blueprint node `pack:supweight`. -/
-theorem supWeightBounds_finite (T : X → X) (f : X → ℝ) (n : ℕ) (hn : 1 ≤ n)
+theorem supWeightBounds_finite (T : X → X) (f : X → ℝ) (n : ℕ)
     (x : X) (r : ℝ) (hr : 0 < r) (hω : potentialVariation f r < ⊤) :
     ∃ w : ℝ, bowenPotentialSup T f n x r = (w : EReal) := by
   have htop : bowenPotentialSup T f n x r < ⊤ :=
-    (supWeightBounds_upper T f n hn x r hr hω).trans_lt (EReal.coe_lt_top _)
+    (supWeightBounds_upper T f n x r hω).trans_lt (EReal.coe_lt_top _)
   have hbot : ⊥ < bowenPotentialSup T f n x r :=
-    (EReal.bot_lt_coe _).trans_le (supWeightBounds T f n hn x r hr hω)
+    (EReal.bot_lt_coe _).trans_le (supWeightBounds T f n x r hr)
   exact ⟨(bowenPotentialSup T f n x r).toReal,
     (EReal.coe_toReal htop.ne hbot.ne').symm⟩
 
@@ -264,11 +260,9 @@ theorem supWeightBounds_birkhoff (T : X → X) (f : X → ℝ) (n : ℕ)
 
 /-- A maximal separated net bounds the covering sum at the doubled radius.
 Blueprint node `pack:span-sep`. -/
-theorem pressureSpanSep [SeparableSpace X] (T : X → X) (hT : Continuous T)
-    (f : X → ℝ) (Z : Set X) (n : ℕ) (hn : 1 ≤ n) (r : ℝ) (hr : 0 < r)
-    (hω : potentialVariation f (2 * r) < ⊤) :
+theorem pressureSpanSep [SeparableSpace X] (T : X → X) (hT : Continuous T) (f : X → ℝ) (Z : Set X)
+    (n : ℕ) (hn : 1 ≤ n) (r : ℝ) (hr : 0 < r) :
     partitionSum T f .supremum Z n (2 * r) ≤ separatedPressureSum T f Z n (2 * r) := by
-  have _ := hω
   obtain ⟨F, hF, hsep, hcount, _, hcover⟩ :=
     countableSeparatedMaximalNet T hT Z n hn (2 * r) (mul_pos zero_lt_two hr)
   calc
@@ -353,14 +347,11 @@ private lemma partitionCoverCost_le_mul_of_separated
 
 /-- Injective assignment to covering centers bounds separated sums with the precise error.
 Blueprint node `pack:span-sep`. -/
-theorem pressureSpanSep_upper [SeparableSpace X] (T : X → X) (hT : Continuous T)
-    (f : X → ℝ) (Z : Set X) (n : ℕ) (hn : 1 ≤ n) (r : ℝ) (hr : 0 < r)
+theorem pressureSpanSep_upper (T : X → X) (f : X → ℝ) (Z : Set X) (n : ℕ) (hn : 1 ≤ n) (r : ℝ)
     (hω : potentialVariation f (2 * r) < ⊤) :
     separatedPressureSum T f Z n (2 * r) ≤
       (2 : ℝ≥0∞) ^ ((n : ℝ) * (potentialVariation f (2 * r)).toReal) *
         partitionSum T f .supremum Z n r := by
-  have _ := hT
-  have _ := hr
   unfold separatedPressureSum
   refine iSup₂_le fun F hF ↦ ?_
   have hc0 : (2 : ℝ≥0∞) ^ ((n : ℝ) * (potentialVariation f (2 * r)).toReal) ≠ 0 :=
@@ -570,12 +561,9 @@ private lemma packingPressurePrecontent_eq_zero_of_finite_content
 
 /-- Finite packing outer content becomes zero after any strict real exponent increase.
 Blueprint node `pack:pressure-dichotomy`. -/
-theorem pressureDichotomyScaleLimit (T : X → X) (f : X → ℝ) (Z : Set X)
-    (s t r : ℝ) (hst : s < t) (hr : 0 < r) (hω : potentialVariation f r < ⊤)
+theorem pressureDichotomyScaleLimit (T : X → X) (f : X → ℝ) (Z : Set X) (s t r : ℝ) (hst : s < t)
     (hfinite : pressureOuterEnvelope T f Z s r < ⊤) :
     pressureOuterEnvelope T f Z t r = 0 := by
-  have _ := hr
-  have _ := hω
   obtain ⟨Y, hY⟩ := iInf_lt_iff.mp hfinite
   obtain ⟨hcover, hsum⟩ := iInf_lt_iff.mp hY
   apply le_antisymm _ bot_le

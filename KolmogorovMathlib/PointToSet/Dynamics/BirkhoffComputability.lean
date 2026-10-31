@@ -246,7 +246,7 @@ private theorem exists_computable_orbit_names
     ∃ a : (ℕ × ℕ) → ℕ → ℕ,
       ComputableIn {charOracle A} (fun z : (ℕ × ℕ) × ℕ ↦ a z.1 z.2) ∧
       ∀ n i, IsCauchyName P (T^[n] (P.ι i)) (a (n, i)) := by
-  have ⟨E, hE, hE_sound⟩ := eval_computable_names_uniform P P A hP hP T hT
+  have ⟨E, hE, hE_sound⟩ := eval_computable_names_uniform P P A hP T hT
   obtain ⟨c, hc_comp, hc⟩ := exists_constant_oracle_indices A
   obtain ⟨s, hs_comp, hs⟩ := exists_oracle_specialization A E hE
   obtain ⟨e, he_comp, he_base, he_step⟩ := exists_iterate_indices c s hc_comp hs_comp
@@ -370,7 +370,7 @@ private theorem computable_real_family_of_indexed_names
   let d : ℕ → ℚ := fun n ↦ (@Encodable.decode ℚ Rat.instEncodable n).getD 0
   have hdcomp : Computable d := computable_decode_rat
   have hReal := computable_realPresentation A
-  have ⟨E, hE, hE_sound⟩ := eval_computable_names_uniform P realPresentation A hP hReal f hf
+  have ⟨E, hE, hE_sound⟩ := eval_computable_names_uniform P realPresentation A hP f hf
   have hE_dom : ∀ u p, (E (e u, p)).Dom := by
     intro u p
     have H := hE_sound (x u) (a u) (e u) (ha u) (hia u) p

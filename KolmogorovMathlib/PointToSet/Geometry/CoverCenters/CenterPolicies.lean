@@ -192,9 +192,8 @@ theorem modifiedUpperPressureWithCenters_ambient (T : X → X) (f : X → ℝ)
 /-- Relocating a useful ball to a point of the target doubles its radius and contains it.
 Blueprint node `geometry:center-relocation`. -/
 theorem relocateCoverBall (T : X → X) (E : Set X) (n : ℕ) (y z : X) (r : ℝ)
-    (hr : 0 < r) (hz : z ∈ E ∩ bowenBall T n y r) :
+    (hz : z ∈ E ∩ bowenBall T n y r) :
     bowenBall T n y r ⊆ bowenBall T n z (2 * r) := by
-  have _ := hr
   intro w hw
   rw [bowenBall] at hw hz ⊢
   simp only [Dynamics.mem_dynEntourage, Set.mem_ofPred_eq] at hw hz ⊢
@@ -207,15 +206,15 @@ theorem relocateCoverBall (T : X → X) (E : Set X) (n : ℕ) (y z : X) (r : ℝ
 
 /-- The relocated global potential supremum is bounded by the original one plus finite
 variation at twice the radius. Blueprint node `geometry:center-relocation`. -/
-theorem relocateCoverBall_sup (T : X → X) (f : X → ℝ) (E : Set X) (n : ℕ)
-    (y z : X) (r : ℝ) (hr : 0 < r) (hz : z ∈ E ∩ bowenBall T n y r)
+theorem relocateCoverBall_sup (T : X → X) (f : X → ℝ) (E : Set X) (n : ℕ) (y z : X) (r : ℝ)
+    (hz : z ∈ E ∩ bowenBall T n y r)
     (hvar : potentialVariation f (2 * r) < ⊤) :
     bowenPotentialSup T f n y r ≤ bowenPotentialSup T f n z (2 * r) ∧
       bowenPotentialSup T f n z (2 * r) ≤ bowenPotentialSup T f n y r +
         ((n * (potentialVariation f (2 * r)).toReal : ℝ) : EReal) := by
   constructor
   · exact iSup₂_le fun w hw ↦
-      le_iSup₂_of_le w (relocateCoverBall T E n y z r hr hz hw) le_rfl
+      le_iSup₂_of_le w (relocateCoverBall T E n y z r hz hw) le_rfl
   · refine iSup₂_le fun w hw ↦ ?_
     have hdiff := abs_birkhoffSum_sub_le_mul_variation T f n z w (2 * r) hvar hw
     have hsum : birkhoffSum T f n w ≤
@@ -249,13 +248,12 @@ private lemma pressureBallWeight_supremum_le_centered_mul (T : X → X) (f : X �
 
 /-- Pressure relocation shifts the real time exponent by the finite variation error.
 Blueprint node `geometry:center-relocation`. -/
-theorem relocateCoverBall_pressure (T : X → X) (f : X → ℝ) (E : Set X) (n : ℕ)
-    (y z : X) (r : ℝ) (hr : 0 < r) (hz : z ∈ E ∩ bowenBall T n y r)
+theorem relocateCoverBall_pressure (T : X → X) (f : X → ℝ) (E : Set X) (n : ℕ) (y z : X) (r : ℝ)
+    (hz : z ∈ E ∩ bowenBall T n y r)
     (hvar : potentialVariation f (2 * r) < ⊤) (t : ℝ) :
     (2 : ℝ≥0∞) ^ (-t * n) * pressureBallWeight T f .supremum n z (2 * r) ≤
       (2 : ℝ≥0∞) ^ (-(t - (potentialVariation f (2 * r)).toReal) * n) *
         pressureBallWeight T f .supremum n y r := by
-  have _ := hr
   let c := (potentialVariation f (2 * r)).toReal
   have hweight : pressureBallWeight T f .supremum n z (2 * r) ≤
       (2 : ℝ≥0∞) ^ (n * c) * pressureBallWeight T f .supremum n y r := by
@@ -275,14 +273,13 @@ theorem relocateCoverBall_pressure (T : X → X) (f : X → ℝ) (E : Set X) (n 
 
 /-- A nonnegative BS exponent reverses the supremum inequality, so relocation has no
 variation penalty. Blueprint node `geometry:center-relocation`. -/
-theorem relocateCoverBall_bs (T : X → X) (u : X → ℝ) (E : Set X) (n : ℕ)
-    (y z : X) (r : ℝ) (hr : 0 < r) (hz : z ∈ E ∩ bowenBall T n y r)
-    (hvar : potentialVariation u (2 * r) < ⊤) (a : ℝ) (ha : 0 ≤ a) :
+theorem relocateCoverBall_bs (T : X → X) (u : X → ℝ) (E : Set X) (n : ℕ) (y z : X) (r : ℝ)
+    (hz : z ∈ E ∩ bowenBall T n y r)
+    (a : ℝ) (ha : 0 ≤ a) :
     bsBallWeight T u a n z (2 * r) ≤ bsBallWeight T u a n y r := by
-  have _ := hvar
   apply ENNReal.antitone_rpow_of_nonpos (-a) (neg_nonpos.mpr ha)
   exact iSup₂_le fun w hw ↦
-    le_iSup₂_of_le w (relocateCoverBall T E n y z r hr hz hw) le_rfl
+    le_iSup₂_of_le w (relocateCoverBall T E n y z r hz hw) le_rfl
 
 section Pressure
 
@@ -462,7 +459,7 @@ private lemma lowerContentLimit_le_self (r t : ℝ) :
 
 /-- Recentering a cover at points of `E` costs at most a shift of the exponent by the
 potential variation at twice the radius. -/
-theorem lowerContentLimit_self_le_shift (r : ℝ) (hr : 0 < r)
+theorem lowerContentLimit_self_le_shift (r : ℝ)
     (hvar : potentialVariation f (2 * r) < ⊤) (t : ℝ) :
     lowerContentLimitWithCenters .self T f E t (2 * r) ≤
       lowerContentLimit T f .supremum E (t - (potentialVariation f (2 * r)).toReal) r := by
@@ -495,7 +492,7 @@ theorem lowerContentLimit_self_le_shift (r : ℝ) (hr : 0 < r)
       apply Set.mem_iUnion.mpr
       refine ⟨k, ?_⟩
       apply relocateCoverBall T E (C.order (p k))
-        (C.center (p k)) (z k) r hr (hz k)
+        (C.center (p k)) (z k) r (hz k)
       simpa only [hp] using hj
   refine iInf_le_of_le D
     (iInf_le_of_le ⟨hD, fun j ↦ (hz j).1⟩ ?_)
@@ -508,7 +505,7 @@ theorem lowerContentLimit_self_le_shift (r : ℝ) (hr : 0 < r)
         pressureBallWeight T f .supremum (D.order j) (D.center j) (2 * r)
         ≤ g (p j) :=
     relocateCoverBall_pressure T f E (C.order (p j))
-      (C.center (p j)) (z j) r hr (hz j) hvar t
+      (C.center (p j)) (z j) r (hz j) hvar t
   have hp : Function.Injective p := fun a b hab ↦
     Subtype.ext (congrArg (fun (x : C.index) ↦ x.val) hab)
   exact (ENNReal.tsum_le_tsum hterm).trans
@@ -523,7 +520,7 @@ private lemma lowerPressureAt_le_self (r : ℝ) :
 
 /-- The lower pressure with centers in `E` at radius `2 r` exceeds the supremum-weight lower
 pressure at radius `r` by at most the potential variation at `2 r`. -/
-theorem lowerPressureAt_self_le_add_variation (r : ℝ) (hr : 0 < r)
+theorem lowerPressureAt_self_le_add_variation (r : ℝ)
     (hvar : potentialVariation f (2 * r) < ⊤) :
     lowerPressureAtWithCenters .self T f E (2 * r) ≤
       lowerPressureAt T f .supremum E r + ((potentialVariation f (2 * r)).toReal : EReal) := by
@@ -536,7 +533,7 @@ theorem lowerPressureAt_self_le_add_variation (r : ℝ) (hr : 0 < r)
   unfold lowerPressureAt
   refine le_iInf (fun t ↦ le_iInf (fun ht ↦ ?_))
   have hz : lowerContentLimitWithCenters .self T f E (t + c) (2 * r) = 0 := by
-    have h := lowerContentLimit_self_le_shift T f E r hr hvar (t + c)
+    have h := lowerContentLimit_self_le_shift T f E r hvar (t + c)
     have heq : t + c - (potentialVariation f (2 * r)).toReal = t := by
       dsimp [c]
       ring
@@ -552,7 +549,7 @@ theorem lowerPressureAt_self_le_add_variation (r : ℝ) (hr : 0 < r)
 /-- Self-centered lower pressure lies between ambient pressure at twice the radius and
 ambient pressure at the original radius plus its variation error.
 Blueprint node `geometry:center-relocation`. -/
-lemma lowerPressureAt_self_bounds (r : ℝ) (hr : 0 < r)
+lemma lowerPressureAt_self_bounds (r : ℝ)
     (hvar : potentialVariation f (2 * r) < ⊤) :
     lowerPressureAt T f .supremum E (2 * r) ≤
         lowerPressureAtWithCenters .self T f E (2 * r) ∧
@@ -560,7 +557,7 @@ lemma lowerPressureAt_self_bounds (r : ℝ) (hr : 0 < r)
         lowerPressureAt T f .supremum E r +
           ((potentialVariation f (2 * r)).toReal : EReal) := by
   exact ⟨lowerPressureAt_le_self T f E (2 * r),
-    lowerPressureAt_self_le_add_variation T f E r hr hvar⟩
+    lowerPressureAt_self_le_add_variation T f E r hvar⟩
 
 end Pressure
 

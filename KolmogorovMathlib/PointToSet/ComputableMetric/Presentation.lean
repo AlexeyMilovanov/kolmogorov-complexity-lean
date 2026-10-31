@@ -248,15 +248,13 @@ private lemma computableIn₂_nameCertificateTest
   exact (Primrec.and.to_comp.computableIn₂.comp
     (Primrec.and.to_comp.computableIn₂.comp hpos hsmall) hcert).to₂
 
-/-- A represented map between computable presentations sends a computable name to a
-computable name. The computability of the target metric table is not needed, since the
-output name is read off the listed target balls. Blueprint node `metric:evaluation`. -/
+/-- A represented map out of a computable presentation sends a computable name to a computable
+name; the output name is read off the listed target balls. Blueprint node `metric:evaluation`. -/
 theorem eval_computable_names (P : Presentation X) (Q : Presentation Y) (A : Set ℕ)
-    (hP : ComputablePresentationIn P A) (hQ : ComputablePresentationIn Q A)
-    (f : X → Y) (hf : IsRepresentedMapIn P Q A f) (x : X) (a : ℕ → ℕ)
+    (hP : ComputablePresentationIn P A) (f : X → Y) (hf : IsRepresentedMapIn P Q A f) (x : X)
+    (a : ℕ → ℕ)
     (ha : IsCauchyName P x a) (hcomp : ComputableIn {charOracle A} a) :
     ∃ b : ℕ → ℕ, IsCauchyName Q (f x) b ∧ ComputableIn {charOracle A} b := by
-  have _ := hQ
   obtain ⟨q, hq, hqerr⟩ := hP
   obtain ⟨R, hR, hsound, hcomplete⟩ := hf
   obtain ⟨e, he, herange⟩ := (relative_enumeration A R).mp hR
@@ -543,12 +541,11 @@ private lemma dist_lt_of_isCertifiedOutput
 of a valid input name and a precision; it is total on every valid name index.
 Blueprint node `metric:evaluation`. -/
 theorem eval_computable_names_uniform (P : Presentation X) (Q : Presentation Y) (A : Set ℕ)
-    (hP : ComputablePresentationIn P A) (hQ : ComputablePresentationIn Q A)
+    (hP : ComputablePresentationIn P A)
     (f : X → Y) (hf : IsRepresentedMapIn P Q A f) :
     ∃ E : ℕ × ℕ →. ℕ, PartrecIn {charOracle A} E ∧
       ∀ x a e, IsCauchyName P x a → (∀ p, a p ∈ oracleEval A e p) →
         ∀ p, ∃ i, i ∈ E (e, p) ∧ dist (Q.ι i) (f x) < dyadicRadius p := by
-  have _ := hQ
   obtain ⟨R, hR, hsound, hcomp⟩ := hf
   obtain ⟨E, hE, hE_sound, hE_complete⟩ := exists_partrecIn_certified_search P A hP R hR
   refine ⟨fun p => (E p).map (fun c => c.1),
@@ -614,15 +611,11 @@ private lemma isREIn_relationComp (A : Set ℕ) {Sf Sg : BallPair → Prop}
         exact ⟨c, (hf _).mpr ⟨_, h_ef⟩, (hg _).mpr ⟨_, h_eg⟩⟩
       · simp [composeEntry, h_ef, h_eg, hcc] at ht
 
-/-- Composition preserves representations over computable presentations. The computability
-of the metric tables is not needed, since the composite relation is built from the listed
+/-- Composition preserves representations; the composite relation is built from the listed
 balls. Blueprint node `metric:evaluation`. -/
-theorem eval_computable_names_comp (P : Presentation X) (Q : Presentation Y)
-    (R : Presentation Z) (A : Set ℕ) (hP : ComputablePresentationIn P A)
-    (hQ : ComputablePresentationIn Q A) (hR : ComputablePresentationIn R A)
-    (f : X → Y) (g : Y → Z) (hf : IsRepresentedMapIn P Q A f)
+theorem eval_computable_names_comp (P : Presentation X) (Q : Presentation Y) (R : Presentation Z)
+    (A : Set ℕ) (f : X → Y) (g : Y → Z) (hf : IsRepresentedMapIn P Q A f)
     (hg : IsRepresentedMapIn Q R A g) : IsRepresentedMapIn P R A (g ∘ f) := by
-  have _ := And.intro hP (And.intro hQ hR)
   obtain ⟨Sf, hSf, hfsound, hfcomplete⟩ := hf
   obtain ⟨Sg, hSg, hgsound, hgcomplete⟩ := hg
   refine ⟨fun bd => ∃ c, Sf (bd.1, c) ∧ Sg (c, bd.2), isREIn_relationComp A hSf hSg, ?_, ?_⟩

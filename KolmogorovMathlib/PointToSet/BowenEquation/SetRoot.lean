@@ -88,15 +88,15 @@ private lemma exists_oracle_attaining_dimension_and_pressure
 
 /-- If the supremum of the pointwise dimensions over `Z` is finite, the zero-potential pointwise
 pressure is finite at every point of `Z`. -/
-private lemma pointwisePressure_zero_lt_top_of_iSup_lt_top
-    (P : Presentation X) (T : X → X) (hT : Continuous T) (u : X → ℝ) (hu : UniformContinuous u)
-    (Z : Set X) (hZ : ∀ x ∈ Z, 0 < lowerBirkhoffAverage T u x ∧ upperBirkhoffAverage T u x < ⊤)
-    (σ : LimitSide) (A : Set ℕ)
+private lemma pointwisePressure_zero_lt_top_of_iSup_lt_top (P : Presentation X) (T : X → X)
+    (u : X → ℝ) (hu : UniformContinuous u) (Z : Set X)
+    (hZ : ∀ x ∈ Z, 0 < lowerBirkhoffAverage T u x ∧ upperBirkhoffAverage T u x < ⊤) (σ : LimitSide)
+    (A : Set ℕ)
     (hfinite : (⨆ x ∈ Z, σ.choose (pointwiseBSDimension P T u A x)) < ⊤) :
     ∀ x ∈ Z, σ.choose (pointwisePressure P T (fun _ ↦ 0) A x) < ⊤ := by
   intro x hx
   refine lt_top_iff_ne_top.2 fun htop ↦ ?_
-  have hdim := pointwiseBowenCriticalValue_infinite P T hT u hu A x (hZ x hx).1 (hZ x hx).2 σ htop
+  have hdim := pointwiseBowenCriticalValue_infinite P T u hu A x (hZ x hx).1 (hZ x hx).2 σ htop
   have hle : σ.choose (pointwiseBSDimension P T u A x) ≤
       ⨆ y ∈ Z, σ.choose (pointwiseBSDimension P T u A y) := le_iSup₂_of_le x hx le_rfl
   rw [hdim] at hle
@@ -150,7 +150,7 @@ private lemma zero_le_iSup_pointwisePressure
   have hZ' : ∀ x ∈ Z, 0 < lowerBirkhoffAverage T u x ∧ upperBirkhoffAverage T u x < ⊤ :=
     fun x hx ↦ ⟨(hZ x hx).1, (hZ x hx).2.trans_lt (EReal.coe_lt_top β)⟩
   have hPointFinite :=
-    pointwisePressure_zero_lt_top_of_iSup_lt_top P T hT u hu Z hZ' σ A hfinite
+    pointwisePressure_zero_lt_top_of_iSup_lt_top P T u hu Z hZ' σ A hfinite
   obtain ⟨x₀, hx₀⟩ := hne
   have hβ : 0 < β := by
     obtain ⟨hℓ, hℓb, hbβ⟩ := birkhoffAverage_toReal_bounds T u (hZ x₀ hx₀).1 (hZ x₀ hx₀).2
@@ -288,16 +288,15 @@ private lemma pointwisePressure_zero_le_orbitComplexities (P : Presentation X) (
 
 /-- A pointwise pressure of the potential `-s * u`, at a point with positive lower and finite upper
 Birkhoff average and nonnegative `s`, is at least `-s * b`, where `b` is the upper average. -/
-private lemma neg_mul_le_pointwisePressure
-    (P : Presentation X) (T : X → X) (hT : Continuous T) (u : X → ℝ) (hu : UniformContinuous u)
-    (A : Set ℕ) (x : X) (hpos : 0 < lowerBirkhoffAverage T u x)
+private lemma neg_mul_le_pointwisePressure (P : Presentation X) (T : X → X) (u : X → ℝ)
+    (hu : UniformContinuous u) (A : Set ℕ) (x : X) (hpos : 0 < lowerBirkhoffAverage T u x)
     (hupper : upperBirkhoffAverage T u x < ⊤) (σ : LimitSide) {s : ℝ} (hs : 0 ≤ s) :
     ((-s * (upperBirkhoffAverage T u x).toReal : ℝ) : EReal) ≤
       σ.choose (pointwisePressure P T (fun y ↦ -s * u y) A x) := by
   have hzero := zero_le_pointwisePressure_zero P T A x σ
   rcases hs.eq_or_lt with rfl | hspos
   · simpa only [neg_zero, zero_mul, EReal.coe_zero] using hzero
-  · have hslope := (pointwisePressureSlopeBounds_scale P T hT u hu A x hpos hupper σ 0 s hspos).1
+  · have hslope := (pointwisePressureSlopeBounds_scale P T u hu A x hpos hupper σ 0 s hspos).1
     simp only [neg_zero, zero_mul, sub_zero] at hslope
     calc ((-s * (upperBirkhoffAverage T u x).toReal : ℝ) : EReal)
         = (0 : EReal) - ((s * (upperBirkhoffAverage T u x).toReal : ℝ) : EReal) := by
@@ -325,28 +324,27 @@ variable (P : Presentation X) (T : X → X) (hT : Continuous T) (u : X → ℝ)
 
 include hT hu hne hα hZ hfinite
 
-/-- Under the uniform lower bound and finite entropy there is at most one real root.
-Blueprint node `bs:set-root-unique`. -/
+omit hne hfinite in
+include P in
+/-- Under the uniform positive lower bound on the Birkhoff averages there is at most one real
+root. Blueprint node `bs:set-root-unique`. -/
 theorem setBowenRootUniqueness (s t : ℝ)
     (hs : σ.choose (lowerPressure T (fun y => -s * u y) 0 Z,
       upperPressure T (fun y => -s * u y) 0 Z) = 0)
     (ht : σ.choose (lowerPressure T (fun y => -t * u y) 0 Z,
       upperPressure T (fun y => -t * u y) 0 Z) = 0) : s = t := by
-  -- The public interface retains `hne` and `hfinite`; the slope estimate does not need them.
-  have _ := hne
-  have _ := hfinite
   have hpos := birkhoffAverage_pos_of_lower_bound T u hα hZ
   have hlower : ∀ x ∈ Z, (α : EReal) ≤ lowerBirkhoffAverage T u x := fun x hx ↦ (hZ x hx).1
   rcases lt_trichotomy s t with hst | hst | hts
   · have h := setPressureSlopeAndRationalAttainment_slope
-      P T hT u hu Z hpos σ α hα hlower s t hst
+      P T hT u hu Z hpos σ α hlower s t hst
     rw [hs, ht, zero_sub, ← EReal.coe_neg] at h
     have hnonneg := EReal.coe_nonneg.mp h
     have hprod := mul_pos (sub_pos.mpr hst) hα
     linarith
   · exact hst
   · have h := setPressureSlopeAndRationalAttainment_slope
-      P T hT u hu Z hpos σ α hα hlower t s hts
+      P T hT u hu Z hpos σ α hlower t s hts
     rw [hs, ht, zero_sub, ← EReal.coe_neg] at h
     have hnonneg := EReal.coe_nonneg.mp h
     have hprod := mul_pos (sub_pos.mpr hts) hα
@@ -362,13 +360,13 @@ private lemma setPressure_lt_top (s : ℝ) (hs : 0 ≤ s) :
     have hent : σ.choose (lowerPressure T (fun _ ↦ 0) 0 Z, upperPressure T (fun _ ↦ 0) 0 Z) =
         ((σ.choose (lowerEntropy T Z, upperEntropy P T Z) : ℝ≥0∞) : EReal) := by
       cases σ with
-      | lower => exact (entropy_eq_zeroPotentialPressure_of_nonempty P T hT Z hne).symm
+      | lower => exact (entropy_eq_zeroPotentialPressure_of_nonempty T Z hne).symm
       | upper => exact (entropy_eq_zeroPotentialPressure_of_nonempty_upper P T hT Z hne).symm
     rw [hent]
     exact lt_top_iff_ne_top.2 fun h ↦ hfinite.ne (EReal.coe_ennreal_eq_top_iff.1 h)
   rcases hs.eq_or_lt with rfl | hspos
   · simpa only [neg_zero, zero_mul] using hzero
-  · have hslope := setPressureSlopeAndRationalAttainment_slope P T hT u hu Z hpos σ α hα
+  · have hslope := setPressureSlopeAndRationalAttainment_slope P T hT u hu Z hpos σ α
       (fun x hx ↦ (hZ x hx).1) 0 s hspos
     simp only [neg_zero, zero_mul] at hslope
     calc _ ≤ _ := hslope
@@ -388,7 +386,7 @@ private lemma bot_lt_setPressure (s : ℝ) (hs : 0 ≤ s) :
   rw [setPressure_eq_iInf_iSup_pointwisePressure P T hT u hu Z σ s]
   exact (EReal.bot_lt_coe (-s * (upperBirkhoffAverage T u x).toReal)).trans_le
     (le_iInf fun A ↦ le_iSup₂_of_le x hx
-      (neg_mul_le_pointwisePressure P T hT u hu A x (hpos x hx).1 (hpos x hx).2 σ hs))
+      (neg_mul_le_pointwisePressure P T u hu A x (hpos x hx).1 (hpos x hx).2 σ hs))
 
 /-- On nonnegative parameters the pressure is real-valued under these hypotheses.
 Blueprint node `bs:set-root-unique`. -/
@@ -405,7 +403,7 @@ theorem setBowenRootUniqueness_strict :
       upperPressure T (fun y => -s * u y) 0 Z)) (Set.Ici 0) := by
   intro s hs t _ hst
   have hpos := birkhoffAverage_pos_of_lower_bound T u hα hZ
-  have hslope := setPressureSlopeAndRationalAttainment_slope P T hT u hu Z hpos σ α hα
+  have hslope := setPressureSlopeAndRationalAttainment_slope P T hT u hu Z hpos σ α
     (fun x hx ↦ (hZ x hx).1) s t hst
   obtain ⟨v, hv⟩ := setBowenRootUniqueness_real P T hT u hu Z hne α hα hZ σ hfinite s hs
   dsimp only
@@ -429,7 +427,7 @@ private lemma pointwiseBSDimension_le_orbitComplexities_div
   have hpos : 0 < lowerBirkhoffAverage T u x :=
     (EReal.coe_pos.mpr hα).trans_le (hZ x hx).1
   have hupper := (hZ x hx).2
-  have hdim := pointwiseBowenEquation_finite P T hT u hu A x hpos hupper σ hzero_finite
+  have hdim := pointwiseBowenEquation_finite P T u hu A x hpos hupper σ hzero_finite
   have havg : lowerBirkhoffAverage T u x ≤ upperBirkhoffAverage T u x :=
     liminf_le_limsup
   have hℓtop : lowerBirkhoffAverage T u x ≠ ⊤ := (havg.trans_lt hupper).ne
@@ -463,13 +461,12 @@ private lemma pointwiseBSDimension_le_orbitComplexities_div
       ENNReal.ofReal_le_ofReal hreal
     _ = _ := by rw [ENNReal.ofReal_div_of_pos hα, ENNReal.ofReal_toReal hk]
 
+omit hne in
 /-- Entropy divided by the uniform lower average bounds the relevant BS dimension.
 Blueprint node `bs:set-root-unique`. -/
 theorem setBowenRootUniqueness_dimension_le :
     σ.choose (lowerBSDimension T u Z, upperBSDimension T u Z) ≤
       σ.choose (lowerEntropy T Z, upperEntropy P T Z) / ENNReal.ofReal α := by
-  -- The public interface retains `hne`; the oracle argument does not need it.
-  have _ := hne
   obtain ⟨A, hA⟩ := upperEntropy_pointToSet_simultaneous P T hT (fun _ _ ↦ 0)
     (fun _ ↦ uniformContinuous_const) (fun _ ↦ 0) Z
   have hentropy : σ.choose (lowerEntropy T Z, upperEntropy P T Z) =
@@ -489,11 +486,12 @@ theorem setBowenRootUniqueness_dimension_le :
   rw [hentropy]
   exact hdim.trans hsup
 
+omit hne in
 /-- In particular the relevant BS dimension is finite.
 Blueprint node `bs:set-root-unique`. -/
 theorem setBowenRootUniqueness_dimension_finite :
     σ.choose (lowerBSDimension T u Z, upperBSDimension T u Z) < ⊤ :=
-  (setBowenRootUniqueness_dimension_le P T hT u hu Z hne α hα hZ σ hfinite).trans_lt
+  (setBowenRootUniqueness_dimension_le P T hT u hu Z α hα hZ σ hfinite).trans_lt
     (ENNReal.div_lt_top hfinite.ne (by simpa using hα))
 
 end UniformLower

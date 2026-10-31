@@ -45,9 +45,9 @@ variable {X : Type*} [MetricSpace X]
 
 /-- Bounded Birkhoff distortion multiplies the partition sum by at most `2 ^ (n * ω p)` when
 passing from centered to supremum weights. -/
-private lemma partitionSum_supremum_le_mul_centered
-    (D : PressureData X) (Y : Set X) (p : ℕ) (hp : D.p₀ ≤ p)
-    (n : ℕ) (hn : 1 ≤ n) :
+private lemma partitionSum_supremum_le_mul_centered (D : PressureData X) (Y : Set X) (p : ℕ)
+    (hp : D.p₀ ≤ p)
+    (n : ℕ) :
     partitionSum D.T D.φ .supremum Y n (dyadicRadius p) ≤
       partitionSum D.T D.φ .centered Y n (dyadicRadius p) *
         (2 : ℝ≥0∞) ^ ((n : ℝ) * D.ω p) := by
@@ -67,7 +67,7 @@ private lemma partitionSum_supremum_le_mul_centered
   intro z hz
   rw [← ENNReal.rpow_add _ _ (by norm_num) (by norm_num)]
   apply ENNReal.rpow_le_rpow_of_exponent_le (by norm_num)
-  have hdist := recenter_bowen_cover_distortion D p hp n hn y z hz
+  have hdist := recenter_bowen_cover_distortion D p hp n y z hz
   linarith [(abs_le.mp hdist).2]
 
 /-- The upper capacities for centered and supremum weights differ by at most the oscillation
@@ -92,7 +92,7 @@ theorem upperPressure_scale_comparison (D : PressureData X) (Y : Set X)
             (D.ω p : EReal) := by
       filter_upwards [eventually_ge_atTop 1] with n hn
       exact pressureRate_le_add_of_le_mul _ _ (D.ω p) n hn
-        (partitionSum_supremum_le_mul_centered D Y p hp n hn)
+        (partitionSum_supremum_le_mul_centered D Y p hp n)
     refine (limsup_le_limsup hr).trans ?_
     have hlim := EReal.limsup_add_le
       (u := pressureRate (fun n => partitionSum D.T D.φ .centered Y n (dyadicRadius p)))
@@ -134,9 +134,8 @@ private lemma partitionSum_centered_antitone_radius (T : X → X) (φ : X → �
 /-- Centered upper capacity increases when a positive radius decreases.
 Blueprint node `pressure:upper-scale`. -/
 theorem upperPressure_scale_comparison_capacity_radius (D : PressureData X) (Y : Set X)
-    (r R : ℝ) (hr : 0 < r) (hrR : r ≤ R) :
+    (r R : ℝ) (hrR : r ≤ R) :
     upperCapacity D.T D.φ .centered Y R ≤ upperCapacity D.T D.φ .centered Y r := by
-  have _ := hr
   unfold upperCapacity
   refine limsup_le_limsup (Eventually.of_forall fun n => ?_) (by isBoundedDefault)
     (by isBoundedDefault)
@@ -145,12 +144,12 @@ theorem upperPressure_scale_comparison_capacity_radius (D : PressureData X) (Y :
 /-- The centered countable modification is also antitone in the positive radius.
 Blueprint node `pressure:upper-scale`. -/
 theorem upperPressure_scale_comparison_modified_radius (D : PressureData X) (Z : Set X)
-    (r R : ℝ) (hr : 0 < r) (hrR : r ≤ R) :
+    (r R : ℝ) (hrR : r ≤ R) :
     modifiedUpperPressure D.T D.φ .centered Z R ≤
       modifiedUpperPressure D.T D.φ .centered Z r := by
   unfold modifiedUpperPressure
   exact iInf_mono fun Y => iInf_mono fun _ => iSup_mono fun k =>
-    upperPressure_scale_comparison_capacity_radius D (Y k) r R hr hrR
+    upperPressure_scale_comparison_capacity_radius D (Y k) r R hrR
 
 /-- A supremum over the indices `p ≥ p₀` of a monotone sequence is the supremum over all
 indices. -/
@@ -168,9 +167,7 @@ theorem upperPressure_scale_comparison_centered_limit (D : PressureData X) (Z : 
       Monotone (fun p => modifiedUpperPressure D.T D.φ .centered Z (dyadicRadius p)) := by
     intro p q hpq
     refine upperPressure_scale_comparison_modified_radius D Z (dyadicRadius q) (dyadicRadius p)
-      ?_ (dyadicRadius_antitone hpq)
-    unfold dyadicRadius
-    positivity
+      (dyadicRadius_antitone hpq)
   have heq : upperPressure D.T D.φ D.p₀ Z =
       ⨆ p, modifiedUpperPressure D.T D.φ .centered Z (dyadicRadius p) :=
     iSup_ge_eq_iSup_of_monotone h_mono D.p₀
@@ -200,13 +197,9 @@ theorem upperPressure_scale_comparison_limit (D : PressureData X) (Z : Set X) :
 
 /-- At a valid radius, either countable modification is stable under countable coverings.
 Blueprint node `pressure:upper-scale`. -/
-theorem upperPressure_scale_comparison_countable (D : PressureData X) (w : PressureWeight)
-    (r : ℝ) (hr : 0 < r) (ω : ℝ)
-    (hω : ∀ x y, dist x y < r → |D.φ x - D.φ y| ≤ ω)
+theorem upperPressure_scale_comparison_countable (D : PressureData X) (w : PressureWeight) (r : ℝ)
     (Z : Set X) (Y : ℕ → Set X) (hZY : Z ⊆ ⋃ j, Y j) :
     modifiedUpperPressure D.T D.φ w Z r ≤ ⨆ j, modifiedUpperPressure D.T D.φ w (Y j) r := by
-  have _ := hr
-  have _ := hω
   refine le_of_forall_gt_imp_ge_of_dense fun a ha => ?_
   have H : ∀ j, ∃ Y' : ℕ → Set X, Y j ⊆ ⋃ k, Y' k ∧
       ⨆ k, upperCapacity D.T D.φ w (Y' k) r < a := by
@@ -236,17 +229,14 @@ theorem upperPressure_scale_comparison_countable_limit (D : PressureData X)
     upperPressure D.T D.φ D.p₀ Z ≤ ⨆ j, upperPressure D.T D.φ D.p₀ (Y j) := by
   unfold upperPressure
   refine iSup₂_le fun p hp => ?_
-  have hr : 0 < dyadicRadius p := by
-    unfold dyadicRadius
-    positivity
-  exact (upperPressure_scale_comparison_countable D .centered (dyadicRadius p) hr (D.ω p)
-    (D.oscillation p hp) Z Y hZY).trans
+  exact (upperPressure_scale_comparison_countable D .centered (dyadicRadius p)
+    Z Y hZY).trans
     (iSup_mono fun j => le_iSup₂_of_le p hp le_rfl)
 
 /-- At a valid scale the partition infimum of a nonempty set is strictly positive.
 Blueprint node `pressure:partition-approx`. -/
 theorem exists_partitionSum_approximation_pos (D : PressureData X) (w : PressureWeight)
-    (Y : Set X) (hY : Y.Nonempty) (p : ℕ) (hp : D.p₀ ≤ p) (n : ℕ) (hn : 1 ≤ n) :
+    (Y : Set X) (hY : Y.Nonempty) (p : ℕ) (hp : D.p₀ ≤ p) (n : ℕ) :
     0 < partitionSum D.T D.φ w Y n (dyadicRadius p) := by
   obtain ⟨x, hx⟩ := hY
   refine lt_of_lt_of_le
@@ -258,7 +248,7 @@ theorem exists_partitionSum_approximation_pos (D : PressureData X) (w : Pressure
     simpa only [Set.mem_iUnion, exists_prop] using hF.2 hx
   refine le_trans ?_ (ENNReal.le_tsum
     (f := fun z : F => pressureBallWeight D.T D.φ w n z (dyadicRadius p)) ⟨y, hyF⟩)
-  have hdist := recenter_bowen_cover_distortion D p hp n hn y x hxy
+  have hdist := recenter_bowen_cover_distortion D p hp n y x hxy
   have hωn : 0 ≤ (n : ℝ) * D.ω p := mul_nonneg (Nat.cast_nonneg n) (D.ω_pos p hp).le
   cases w with
   | centered =>
@@ -271,13 +261,13 @@ theorem exists_partitionSum_approximation_pos (D : PressureData X) (w : Pressure
 
 /-- A finite partition infimum of a nonempty set is approximated within a factor two by the cost
 of a countable cover.  Blueprint node `pressure:partition-approx`. -/
-theorem exists_partitionSum_approximation (D : PressureData X) (w : PressureWeight)
-    (Y : Set X) (hY : Y.Nonempty) (p : ℕ) (hp : D.p₀ ≤ p) (n : ℕ) (hn : 1 ≤ n)
+theorem exists_partitionSum_approximation (D : PressureData X) (w : PressureWeight) (Y : Set X)
+    (hY : Y.Nonempty) (p : ℕ) (hp : D.p₀ ≤ p) (n : ℕ)
     (hfinite : partitionSum D.T D.φ w Y n (dyadicRadius p) < ⊤) :
     ∃ F : Set X, F.Countable ∧ Y ⊆ ⋃ y ∈ F, bowenBall D.T n y (dyadicRadius p) ∧
       partitionCoverCost D.T D.φ w F n (dyadicRadius p) <
         2 * partitionSum D.T D.φ w Y n (dyadicRadius p) := by
-  have hpos := exists_partitionSum_approximation_pos D w Y hY p hp n hn
+  have hpos := exists_partitionSum_approximation_pos D w Y hY p hp n
   have hdouble : partitionSum D.T D.φ w Y n (dyadicRadius p) <
       2 * partitionSum D.T D.φ w Y n (dyadicRadius p) := by
     rw [two_mul]
@@ -327,7 +317,7 @@ private lemma exists_covers_cost_le_two_mul (D : PressureData X) (w : PressureWe
         · exact ⟨∅, fun _ => ⟨Set.countable_empty, Set.empty_subset _⟩,
             fun _ => by simp [partitionCoverCost]⟩
         · obtain ⟨F, hF_count, hF_cov, hF_cost⟩ :=
-            exists_partitionSum_approximation D w Y hY p hp n hn (h_finite n hMn)
+            exists_partitionSum_approximation D w Y hY p hp n (h_finite n hMn)
           exact ⟨F, fun _ => ⟨hF_count, hF_cov⟩, fun _ => hF_cost.le⟩
       · exact ⟨Set.range D.presentation.ι, fun _ => ⟨Set.countable_range _, hrange n hn⟩,
           fun h => absurd h hMn⟩

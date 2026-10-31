@@ -836,10 +836,8 @@ private lemma lowerEntropy_baire_shift_eq_top
     [MetricSpace (ℕ → ℕ)]
     (hd : ∀ x y : ℕ → ℕ, x ≠ y → dist x y = (1 / 2 : ℝ) ^ PiNat.firstDiff x y) :
     lowerEntropy (fun (y : ℕ → ℕ) j ↦ y (j + 1)) Set.univ = ⊤ := by
-  have hP := nonempty_presentation_of_firstDiff_metric hd
-  let P := Classical.choice hP
-  have hT := continuous_baire_shift hd
-  have H := entropy_eq_zeroPotentialPressure_of_nonempty P _ hT Set.univ Set.univ_nonempty
+  have H := entropy_eq_zeroPotentialPressure_of_nonempty (fun (y : ℕ → ℕ) j ↦ y (j + 1)) Set.univ
+    Set.univ_nonempty
   have H2 := lowerPressure_baire_shift_eq_top hd 0
   have h_eq : (fun (_ : ℕ → ℕ) ↦ -(0 : ℝ)) = (fun _ ↦ 0) := by
     funext y

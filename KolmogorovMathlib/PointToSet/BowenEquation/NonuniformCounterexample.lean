@@ -54,7 +54,7 @@ theorem setBowenRootUniqueness_exists (β : ℝ)
       ENNReal.ofReal d = σ.choose (lowerBSDimension T u Z, upperBSDimension T u Z) ∧
       ∀ s : ℝ, σ.choose (lowerPressure T (fun y => -s * u y) 0 Z,
         upperPressure T (fun y => -s * u y) 0 Z) = 0 ↔ s = d := by
-  have Hdim_finite := setBowenRootUniqueness_dimension_finite P T hT u hu Z hne α hα hZ σ hfinite
+  have Hdim_finite := setBowenRootUniqueness_dimension_finite P T hT u hu Z α hα hZ σ hfinite
   have Hcond : ∀ x ∈ Z, 0 < lowerBirkhoffAverage T u x ∧
       upperBirkhoffAverage T u x ≤ (β : EReal) := fun x hx ↦
     ⟨lt_of_lt_of_le (EReal.coe_pos.mpr hα) (hZ x hx).1, hupper x hx⟩
@@ -63,7 +63,7 @@ theorem setBowenRootUniqueness_exists (β : ℝ)
   have Hdim_eq : ENNReal.ofReal d = σ.choose (lowerBSDimension T u Z, upperBSDimension T u Z) :=
     ENNReal.ofReal_toReal (ne_top_of_lt Hdim_finite)
   refine ⟨d, ENNReal.toReal_nonneg, Hdim_eq, fun s ↦ ⟨fun hs ↦ ?_, fun hs ↦ ?_⟩⟩
-  · exact setBowenRootUniqueness P T hT u hu Z hne α hα hZ σ hfinite s d hs Hroot
+  · exact setBowenRootUniqueness P T hT u hu Z α hα hZ σ s d hs Hroot
   · rw [hs]
     exact Hroot
 
@@ -707,7 +707,7 @@ theorem counterexampleNonuniformBowenExistence :
       cases σ with
       | lower =>
         simpa only [f, LimitSide.choose, neg_zero, zero_mul] using
-          entropy_eq_zeroPotentialPressure_of_nonempty presentation shift continuous_shift
+          entropy_eq_zeroPotentialPressure_of_nonempty shift
             Set.univ hne
       | upper =>
         simpa only [f, LimitSide.choose, neg_zero, zero_mul] using

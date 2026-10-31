@@ -157,7 +157,7 @@ private lemma exists_slice_of_countable_covers (D : PressureData X) (p q k : ℕ
             (2 : ℝ≥0∞) ^ birkhoffSum D.T D.φ n y := by
       have hyball : D.presentation.ι (g n hn y) ∈ bowenBall D.T n y (dyadicRadius q) :=
         (bowen_ball_dense_iff D.T n hn y _ _).mpr (hg n hn y)
-      have hdist := recenter_bowen_cover_distortion D q hq n hn y _ hyball
+      have hdist := recenter_bowen_cover_distortion D q hq n y _ hyball
       calc
         _ ≤ (2 : ℝ≥0∞) ^ (birkhoffSum D.T D.φ n y + (n : ℝ) * D.ω q) := by
           apply ENNReal.rpow_le_rpow_of_exponent_le (by norm_num)
@@ -500,11 +500,10 @@ private lemma exists_slack_for_early_orders (D : PressureData X) (A : Set ℕ) (
 /-- The rational upper threshold is a uniform net of its strict upper-pressure sublevel.
 Blueprint node `pressure:upper-threshold`. -/
 theorem upperThreshold_isUniformNet (D : PressureData X) (A : Set ℕ)
-    (hA : IsAdmissible D.presentation D.T (fun _ : Fin 1 => D.φ) A) (s : ℚ) :
+    (s : ℚ) :
     IsUniformPressureNet D.presentation D.T D.φ D.p₀
       {x | (pointwisePressure D.presentation D.T D.φ A x).2 < ((s : ℝ) : EReal)} s
       (upperPressureThreshold D.presentation D.T D.φ D.p₀ A s) := by
-  have _ := hA
   refine ⟨fun t ht ↦ ⟨ht.1, ht.2.1⟩,
     fun p _ k ↦ limsup_pressureRate_upperPressureThreshold_le D A s p k, ?_⟩
   intro p hp x hx

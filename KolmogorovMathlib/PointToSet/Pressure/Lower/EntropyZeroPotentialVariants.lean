@@ -142,10 +142,9 @@ private lemma nonneg_of_isUniformPressureNet (P : Presentation X) (T : X → X) 
 /-- Effective lower entropy embeds as zero-potential effective pressure for every oracle.
 Blueprint node `pressure:entropy-nonnegative`. -/
 theorem entropy_eq_zeroPotentialPressure_of_nonempty_effective (P : Presentation X)
-    (T : X → X) (hT : Continuous T) (A : Set ℕ) (Z : Set X) (hZ : Z.Nonempty) :
+    (T : X → X) (A : Set ℕ) (Z : Set X) (hZ : Z.Nonempty) :
     (effectiveLowerEntropy P T A Z : EReal) =
       effectiveLowerPressure P T (fun _ => 0) 0 A Z := by
-  have _ := hT
   refine (coe_iInf_ofReal_nonneg fun s E ↦
     IsNullPressureCover P T (fun _ ↦ 0) 0 Z s E ∧ IsREIn A E).trans
     (iInf_exponent_eq_iInf_nonneg _ fun _ E h ↦ ?_).symm
@@ -154,10 +153,9 @@ theorem entropy_eq_zeroPotentialPressure_of_nonempty_effective (P : Presentation
 /-- The effective upper comparison also holds for every oracle.
 Blueprint node `pressure:entropy-nonnegative`. -/
 theorem entropy_eq_zeroPotentialPressure_of_nonempty_effective_upper (P : Presentation X)
-    (T : X → X) (hT : Continuous T) (A : Set ℕ) (Z : Set X) (hZ : Z.Nonempty) :
+    (T : X → X) (A : Set ℕ) (Z : Set X) (hZ : Z.Nonempty) :
     (effectiveUpperEntropy P T A Z : EReal) =
       effectiveUpperPressure P T (fun _ => 0) 0 A Z := by
-  have _ := hT
   refine (coe_iInf_ofReal_nonneg fun s E ↦
     IsUniformPressureNet P T (fun _ ↦ 0) 0 Z s E ∧ IsREIn A E).trans
     (iInf_exponent_eq_iInf_nonneg _ fun _ _ h ↦ ?_).symm
@@ -200,13 +198,10 @@ private lemma zero_le_modifiedUpperPressure_zero (T : X → X) {Z : Set X} (hZ :
   exact le_iSup_of_le k (zero_le_upperCapacity_zero T ⟨x, hk⟩ r)
 
 /-- The signed upper zero-potential pressure of a nonempty set is nonnegative.
-The presentation `P` and the continuity of `T` are not needed.
 Blueprint node `pressure:entropy-nonnegative`. -/
-theorem entropy_eq_zeroPotentialPressure_of_nonempty_nonneg_upper (P : Presentation X)
-    (T : X → X) (hT : Continuous T) (Z : Set X) (hZ : Z.Nonempty) :
+theorem entropy_eq_zeroPotentialPressure_of_nonempty_nonneg_upper (T : X → X) (Z : Set X)
+    (hZ : Z.Nonempty) :
     0 ≤ upperPressure T (fun _ => 0) 0 Z := by
-  have _ := P
-  have _ := hT
   exact (zero_le_modifiedUpperPressure_zero T hZ (dyadicRadius 0)).trans
     (le_iSup₂_of_le 0 le_rfl le_rfl)
 
@@ -219,12 +214,10 @@ theorem entropy_eq_zeroPotentialPressure_of_nonempty_nonneg_effective (P : Prese
     (effectiveLowerPressure_ge (zeroPotentialData P T hT) A Z)
 
 /-- Effective upper zero-potential pressure is likewise nonnegative for every oracle.
-The continuity of `T` is not needed.
 Blueprint node `pressure:entropy-nonnegative`. -/
 theorem entropy_eq_zeroPotentialPressure_of_nonempty_nonneg_effective_upper (P : Presentation X)
-    (T : X → X) (hT : Continuous T) (A : Set ℕ) (Z : Set X) (hZ : Z.Nonempty) :
+    (T : X → X) (A : Set ℕ) (Z : Set X) (hZ : Z.Nonempty) :
     0 ≤ effectiveUpperPressure P T (fun _ => 0) 0 A Z := by
-  have _ := hT
   exact le_iInf₂ fun _ _ ↦ le_iInf fun hE ↦
     EReal.coe_nonneg.2 (nonneg_of_isUniformPressureNet P T hZ hE.1)
 
@@ -252,12 +245,10 @@ theorem entropy_eq_zeroPotentialPressure_of_nonempty_le_effective (P : Presentat
     lowerEntropy_le_ofReal_of_isNullPressureCover P T hT hs hE.1
 
 /-- The same universal inequality holds for upper entropy, including the empty set.
-The continuity of `T` is not needed.
 Blueprint node `pressure:entropy-nonnegative`. -/
 theorem entropy_eq_zeroPotentialPressure_of_nonempty_upper_le_effective (P : Presentation X)
-    (T : X → X) (hT : Continuous T) (A : Set ℕ) (Z : Set X) :
+    (T : X → X) (A : Set ℕ) (Z : Set X) :
     upperEntropy P T Z ≤ effectiveUpperEntropy P T A Z := by
-  have _ := hT
   exact iInf_mono fun _ ↦ iInf_mono fun _ ↦ iInf_mono fun _ ↦
     le_iInf fun hE ↦ iInf_le_of_le hE.1 le_rfl
 

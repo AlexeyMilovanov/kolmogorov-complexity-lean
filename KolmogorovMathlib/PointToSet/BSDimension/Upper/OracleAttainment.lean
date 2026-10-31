@@ -335,17 +335,17 @@ private lemma le_ofReal_of_forall_rat_lt (d : ℝ≥0∞) (s : ℝ)
 /-- Coding positive truncations of a net bounds every positive-average point's upper
 dimension, without a positivity assumption on other points.
 Blueprint node `bs:effective-upper-lower`. -/
-theorem pointwiseUpperBSLeEffective (P : Presentation X) (T : X → X)
-    (hT : Continuous T) (u : X → ℝ) (hu : UniformContinuous u) (A : Set ℕ)
-    (hA : IsAdmissible P T (fun _ : Fin 1 => u) A) (Z : Set X) (s : ℝ) (hs : 0 ≤ s)
-    (E : Set (ℕ × ℕ × ℕ × ℕ)) (hE : IsUniformBSNet P T u Z s E) (hRE : IsREIn A E)
+theorem pointwiseUpperBSLeEffective (P : Presentation X) (T : X → X) (u : X → ℝ)
+    (hu : UniformContinuous u) (A : Set ℕ) (hA : IsAdmissible P T (fun _ : Fin 1 => u) A)
+    (Z : Set X) (s : ℝ) (hs : 0 ≤ s) (E : Set (ℕ × ℕ × ℕ × ℕ)) (hE : IsUniformBSNet P T u Z s E)
+    (hRE : IsREIn A E)
     (x : X) (hx : x ∈ Z) (hpos : 0 < lowerBirkhoffAverage T u x) :
     (pointwiseBSDimension P T u A x).2 ≤ ENNReal.ofReal s := by
   apply le_ofReal_of_forall_rat_lt
   intro t ht
   have htpos : 0 < t := by exact_mod_cast (lt_of_le_of_lt hs ht)
   obtain ⟨δ, hδ, r₀, hr₀, hrealizer⟩ :=
-    birkhoffRealizerBounds_positive P T hT u hu x hpos
+    birkhoffRealizerBounds_positive P T u hu x hpos
   have hδR : (0 : ℝ) < δ := by exact_mod_cast hδ
   obtain ⟨p₀, hp₀⟩ : ∃ p₀ : ℕ, dyadicRadius p₀ ≤ r₀ := by
     obtain ⟨p₀, hp₀⟩ := exists_pow_lt_of_lt_one hr₀ (by norm_num : (2⁻¹ : ℝ) < 1)
@@ -401,11 +401,11 @@ theorem effectiveUpperBSEqSup (P : Presentation X) (T : X → X) (hT : Continuou
     (hZ : ∀ x ∈ Z, 0 < lowerBirkhoffAverage T u x) :
     effectiveUpperBSDimension P T u A Z = ⨆ x ∈ Z, (pointwiseBSDimension P T u A x).2 := by
   apply le_antisymm
-  · exact effectiveUpperBSLeSup P T hT u hu A hA Z hZ
+  · exact effectiveUpperBSLeSup P T hT u A hA Z
   · refine iSup₂_le fun x hx ↦ ?_
     unfold effectiveUpperBSDimension
     refine le_iInf₂ fun s hs ↦ le_iInf₂ fun E h ↦ ?_
-    exact pointwiseUpperBSLeEffective P T hT u hu A hA Z s hs E h.1 h.2 x hx (hZ x hx)
+    exact pointwiseUpperBSLeEffective P T u hu A hA Z s hs E h.1 h.2 x hx (hZ x hx)
 
 /-- A set is enumerable relative to the join of the set of its codes with any oracle. -/
 private lemma isREIn_oracleJoin_encode_image {α : Type*} [Primcodable α] (E : Set α)
@@ -541,7 +541,7 @@ theorem bsOracleAttainment (P : Presentation X) (T : X → X) (hT : Continuous T
   exists_admissible_cone_eq P T hT u hu (fun A ↦ effectiveLowerBSDimension P T u A Z)
     (lowerBSDimension T u Z)
     (fun _ _ hAB ↦ effectiveLowerBSDimension_antitone_oracle P T u Z hAB)
-    (fun B hB ↦ effectiveBSDimensions_ge P T hT u hu B hB Z hZ)
+    (fun B _ ↦ effectiveBSDimensions_ge P T hT u hu B Z hZ)
     (fun C r hr ↦ exists_oracle_effectiveLowerBSDimension_lt P T hT u hu Z hZ C r hr)
 
 /-- An admissible upper cone attains the classical upper dimension by effective dimension.
@@ -561,15 +561,14 @@ theorem bsOracleAttainment_upper (P : Presentation X) (T : X → X) (hT : Contin
 
 /-- Oracle strengthening decreases either pointwise dimension on the positive-average locus.
 Blueprint node `bs:point-to-set`. -/
-theorem bsPointToSet_mono_oracle (P : Presentation X) (T : X → X) (hT : Continuous T)
-    (u : X → ℝ) (hu : UniformContinuous u) (A B : Set ℕ)
-    (hAB : charOracle A ≤ᵀ charOracle B) (x : X)
+theorem bsPointToSet_mono_oracle (P : Presentation X) (T : X → X) (u : X → ℝ)
+    (hu : UniformContinuous u) (A B : Set ℕ) (hAB : charOracle A ≤ᵀ charOracle B) (x : X)
     (hx : 0 < lowerBirkhoffAverage T u x) (σ : LimitSide) :
     σ.choose (pointwiseBSDimension P T u B x) ≤
       σ.choose (pointwiseBSDimension P T u A x) := by
   cases σ with
-  | lower => exact normalized_additive_slack_bs P T hT u hu A B hAB x hx
-  | upper => exact normalized_additive_slack_bs_upper P T hT u hu A B hAB x hx
+  | lower => exact normalized_additive_slack_bs P T u hu A B hAB x hx
+  | upper => exact normalized_additive_slack_bs_upper P T u hu A B hAB x hx
 
 /-- Every oracle, including a nonadmissible one, satisfies the lower bound in Main B.
 Blueprint node `bs:point-to-set`. -/
@@ -585,8 +584,8 @@ theorem bsPointToSet_all_oracles (P : Presentation X) (T : X → X) (hT : Contin
     calc lowerBSDimension T u Z
         = effectiveLowerBSDimension P T u (oracleJoin A₀ A) Z := hBeq.symm
       _ = ⨆ x ∈ Z, (pointwiseBSDimension P T u (oracleJoin A₀ A) x).1 :=
-        effectiveLowerBSEqSup P T hT u hu _ hB Z hZ
-      _ ≤ _ := iSup₂_mono fun x hx ↦ bsPointToSet_mono_oracle P T hT u hu
+        effectiveLowerBSEqSup P T u hu _ hB Z hZ
+      _ ≤ _ := iSup₂_mono fun x hx ↦ bsPointToSet_mono_oracle P T u hu
         A _ (oracle_joins_right A₀ A) x (hZ x hx) LimitSide.lower
   | upper =>
     obtain ⟨A₀, -, hattain⟩ := bsOracleAttainment_upper P T hT u hu Z hZ
@@ -595,7 +594,7 @@ theorem bsPointToSet_all_oracles (P : Presentation X) (T : X → X) (hT : Contin
         = effectiveUpperBSDimension P T u (oracleJoin A₀ A) Z := hBeq.symm
       _ = ⨆ x ∈ Z, (pointwiseBSDimension P T u (oracleJoin A₀ A) x).2 :=
         effectiveUpperBSEqSup P T hT u hu _ hB Z hZ
-      _ ≤ _ := iSup₂_mono fun x hx ↦ bsPointToSet_mono_oracle P T hT u hu
+      _ ≤ _ := iSup₂_mono fun x hx ↦ bsPointToSet_mono_oracle P T u hu
         A _ (oracle_joins_right A₀ A) x (hZ x hx) LimitSide.upper
 
 end Kolmogorov.PointToSet

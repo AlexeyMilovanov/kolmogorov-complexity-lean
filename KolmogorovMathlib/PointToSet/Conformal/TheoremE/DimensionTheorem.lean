@@ -70,7 +70,7 @@ theorem dimensionTheorem_packing (P : Presentation X) (C : UniformConformalData 
     TopologicalSpace.SeparableSpace.of_denseRange P.ι P.dense
   rw [dimensionTheorem_upper P C Z hZ]
   exact (bsEquivalence_upper C.T C.uniformContinuous_T.continuous C.potential
-    (distortionModuli C) Z (by
+    Z (by
       intro x hx
       exact (hZ hx).1.1.1)).symm
 
@@ -157,7 +157,8 @@ variable (hne : Z.Nonempty) (α : ℝ) (hα : 0 < α)
 
 include hne hα hlower hfinite
 
-/-- A uniform positive lower average and finite relevant entropy give at most one real root.
+omit hne hfinite in
+/-- A uniform positive lower average gives at most one real root.
 Blueprint node `conf:bowen`. -/
 theorem bowenEquation_unique (s t : ℝ)
     (hs : σ.choose (lowerPressure C.T (fun y => -s * C.potential y) 0 Z,
@@ -165,7 +166,7 @@ theorem bowenEquation_unique (s t : ℝ)
     (ht : σ.choose (lowerPressure C.T (fun y => -t * C.potential y) 0 Z,
       upperPressure C.T (fun y => -t * C.potential y) 0 Z) = 0) : s = t := by
   exact setBowenRootUniqueness P C.T C.uniformContinuous_T.continuous C.potential
-    (distortionModuli C) Z hne α hα (fun x hx ↦ ⟨hlower x hx, (hZ hx).1.1.2.2⟩) σ hfinite s t hs ht
+    (distortionModuli C) Z α hα (fun x hx ↦ ⟨hlower x hx, (hZ hx).1.1.2.2⟩) σ s t hs ht
 
 /-- Under these hypotheses the corresponding pressure is finite on nonnegative parameters.
 Blueprint node `conf:bowen`. -/
@@ -184,6 +185,7 @@ theorem bowenEquation_strict :
   exact setBowenRootUniqueness_strict P C.T C.uniformContinuous_T.continuous C.potential
     (distortionModuli C) Z hne α hα (fun x hx ↦ ⟨hlower x hx, (hZ hx).1.1.2.2⟩) σ hfinite
 
+omit hne in
 /-- The corresponding entropy divided by the common lower average bounds classical dimension.
 Blueprint node `conf:bowen`. -/
 theorem bowenEquation_dimension_le :
@@ -191,13 +193,14 @@ theorem bowenEquation_dimension_le :
       σ.choose (lowerEntropy C.T Z, upperEntropy P C.T Z) / ENNReal.ofReal α := by
   rw [dimensionTheorem P C Z hZ, dimensionTheorem_upper P C Z hZ]
   exact setBowenRootUniqueness_dimension_le P C.T C.uniformContinuous_T.continuous C.potential
-    (distortionModuli C) Z hne α hα (fun x hx ↦ ⟨hlower x hx, (hZ hx).1.1.2.2⟩) σ hfinite
+    (distortionModuli C) Z α hα (fun x hx ↦ ⟨hlower x hx, (hZ hx).1.1.2.2⟩) σ hfinite
 
+omit hne in
 /-- Finite entropy and the uniform positive lower average imply finite classical dimension.
 Blueprint node `conf:bowen`. -/
 theorem bowenEquation_dimension_finite :
     σ.choose (_root_.dimH Z, metricPackingDimension Z) < ⊤ := by
-  exact (bowenEquation_dimension_le P C Z hZ hne α hα hlower σ hfinite).trans_lt
+  exact (bowenEquation_dimension_le P C Z hZ α hα hlower σ hfinite).trans_lt
     (ENNReal.div_lt_top hfinite.ne (ne_of_gt (ENNReal.ofReal_pos.mpr hα)))
 
 /-- Adding a common finite upper average gives the unique real root at classical dimension.

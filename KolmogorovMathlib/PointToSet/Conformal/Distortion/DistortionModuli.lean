@@ -174,9 +174,8 @@ private lemma ofReal_abs_potential_sub_le (C : UniformConformalData X) {δ : ℝ
 /-- Potential variation is bounded by twice the ratio-to-diagonal distortion.
 Blueprint node `conf:moduli`. -/
 theorem distortionModuli_potential (C : UniformConformalData X) (δ : ℝ)
-    (hδ : 0 < δ) (hδr : δ < C.r₀) :
+    (hδr : δ < C.r₀) :
     potentialVariation C.potential δ ≤ 2 * conformalDistortion C δ := by
-  have _ := hδ
   unfold potentialVariation
   exact iSup_le fun x ↦ iSup_le fun y ↦ iSup_le fun h ↦ ofReal_abs_potential_sub_le C hδr h
 
@@ -206,8 +205,8 @@ private lemma ofReal_abs_birkhoffSum_sub_le (C : UniformConformalData X) (δ : �
 
 /-- The corrected accumulated Birkhoff error has the factor two, in the extended domain.
 Blueprint node `conf:moduli`. -/
-theorem distortionModuli_birkhoff (C : UniformConformalData X) (δ : ℝ)
-    (hδ : 0 < δ) (hδr : δ < C.r₀) (n : ℕ) (x y : X)
+theorem distortionModuli_birkhoff (C : UniformConformalData X) (δ : ℝ) (hδr : δ < C.r₀) (n : ℕ)
+    (x y : X)
     (hy : y ∈ bowenBall C.T n x δ) :
     ENNReal.ofReal |birkhoffSum C.T C.potential n y - birkhoffSum C.T C.potential n x| ≤
       2 * n * conformalDistortion C δ := by
@@ -215,7 +214,7 @@ theorem distortionModuli_birkhoff (C : UniformConformalData X) (δ : ℝ)
       ≤ (n : ℝ≥0∞) * potentialVariation C.potential δ :=
         ofReal_abs_birkhoffSum_sub_le C δ n x y hy
     _ ≤ (n : ℝ≥0∞) * (2 * conformalDistortion C δ) :=
-        by gcongr; exact distortionModuli_potential C δ hδ hδr
+        by gcongr; exact distortionModuli_potential C δ hδr
     _ = 2 * (n : ℝ≥0∞) * conformalDistortion C δ := by
         rw [← mul_assoc, mul_comm (n : ℝ≥0∞) 2]
 
@@ -244,12 +243,10 @@ theorem temperedConstant (C : UniformConformalData X) (x : X)
 /-- Multiplying the local lower bounds controls the initial distance by the final one.
 Blueprint node `conf:iterate-distance`. -/
 theorem iterateDistance (C : UniformConformalData X) (τ δ₀ δ : ℝ)
-    (hτ : 0 < τ) (hδ₀ : 0 < δ₀) (hδ₀r : δ₀ < C.r₀)
-    (hbound : HasConformalDistortionBound C τ δ₀) (hδ : 0 < δ) (hδδ₀ : δ < δ₀)
+    (hbound : HasConformalDistortionBound C τ δ₀) (hδδ₀ : δ < δ₀)
     (x y : X) (n : ℕ) (hclose : ∀ k ≤ n, dist (C.T^[k] x) (C.T^[k] y) < δ) :
     dist x y ≤ dist (C.T^[n] x) (C.T^[n] y) *
       (2 : ℝ) ^ (-birkhoffSum C.T C.potential n x + n * τ / 2) := by
-  have _ : _ ∧ _ ∧ _ ∧ _ := ⟨hτ, hδ₀, hδ₀r, hδ⟩
   induction n with
   | zero => simp [birkhoffSum]
   | succ n ih =>
@@ -315,13 +312,10 @@ private lemma dist_iterate_le_of_forall_lt (C : UniformConformalData X) (τ δ�
 /-- A finite infimum of the required initial radii ensures all intermediate orbit bounds.
 Blueprint node `conf:iterate-distance`. -/
 theorem iterateDistance_small_initial (C : UniformConformalData X) (τ δ₀ δ : ℝ)
-    (hτ : 0 < τ) (hδ₀ : 0 < δ₀) (hδ₀r : δ₀ < C.r₀)
-    (hbound : HasConformalDistortionBound C τ δ₀) (hδ : 0 < δ) (hδδ₀ : δ < δ₀)
-    (x y : X) (n : ℕ)
+    (hbound : HasConformalDistortionBound C τ δ₀) (hδ : 0 < δ) (hδδ₀ : δ < δ₀) (x y : X) (n : ℕ)
     (hsmall : dist x y < δ * ⨅ k : Fin (n + 1),
       (2 : ℝ) ^ (-birkhoffSum C.T C.potential k.val x - k.val * τ / 2)) :
     ∀ k ≤ n, dist (C.T^[k] x) (C.T^[k] y) < δ := by
-  have _ : _ ∧ _ ∧ _ := ⟨hτ, hδ₀, hδ₀r⟩
   intro k hk
   induction k using Nat.strong_induction_on with
   | _ k ih =>
@@ -369,11 +363,11 @@ theorem ballInclusion (C : UniformConformalData X) (x : X)
         _ = δ * (η * (2 : ℝ) ^ (-birkhoffSum C.T C.potential n x - n * τ)) := by ring
         _ ≤ _ := mul_le_mul_of_nonneg_left hinf hδ.le
     exact mem_bowenBall_iff.2 fun k hk ↦
-      iterateDistance_small_initial C τ δ₀ δ hτ hδ₀ hδ₀r hbound hδ hδδ₀ x y n hsmall k
+      iterateDistance_small_initial C τ δ₀ δ hbound hδ hδδ₀ x y n hsmall k
         (Nat.lt_succ_iff.mp hk)
   · have hclose : ∀ k ≤ n, dist (C.T^[k] x) (C.T^[k] y) < δ := fun k hk ↦
       mem_bowenBall_iff.1 hy k (Nat.lt_succ_of_le hk)
-    have hd := iterateDistance C τ δ₀ δ hτ hδ₀ hδ₀r hbound hδ hδδ₀ x y n hclose
+    have hd := iterateDistance C τ δ₀ δ hbound hδδ₀ x y n hclose
     have hnτ : 0 ≤ (n : ℝ) * τ := by positivity
     rw [Metric.mem_ball]
     calc dist y x = dist x y := dist_comm y x
@@ -556,11 +550,11 @@ variable (C : UniformConformalData X) (x : X)
 
 include hx hgrowth hα hτ hτα hη hηone hδ hvar
 
+omit hx hgrowth hηone hvar in
 /-- Both logarithmic orbit precisions tend to infinity, without tempered contraction.
 Blueprint node `conf:denominators`. -/
 theorem orbitScaleDenominators (σ : LimitSide) :
     Tendsto (conformalOrbitPrecision C σ x η δ τ) atTop atTop := by
-  have _ : _ ∧ _ ∧ _ ∧ _ := ⟨hx, hgrowth, hηone, hvar⟩
   have hsum := eventually_mul_le_birkhoffSum hα (a := 2 * τ) (by linarith)
   have hs : -τ ≤ σ.choose (τ, -τ) := by
     cases σ <;> dsimp only [LimitSide.choose] <;> linarith
@@ -572,12 +566,12 @@ theorem orbitScaleDenominators (σ : LimitSide) :
   rw [conformalOrbitPrecision_eq C σ x hη hδ n]
   nlinarith [mul_le_mul_of_nonneg_left hs (Nat.cast_nonneg n : (0 : ℝ) ≤ n)]
 
+omit hx hηone hvar in
 /-- Adjacent logarithmic orbit precisions have ratio tending to one.
 Blueprint node `conf:denominators`. -/
 theorem orbitScaleDenominators_ratio (σ : LimitSide) :
     Tendsto (fun n => conformalOrbitPrecision C σ x η δ τ (n + 1) /
       conformalOrbitPrecision C σ x η δ τ n) atTop (𝓝 1) := by
-  have _ : _ ∧ _ ∧ _ := ⟨hx, hηone, hvar⟩
   let t := conformalOrbitPrecision C σ x η δ τ
   let s : ℝ := σ.choose (τ, -τ)
   let k : ℝ := σ.choose (Real.logb 2 (η * δ), Real.logb 2 δ)
@@ -623,6 +617,7 @@ theorem orbitScaleDenominators_ratio (σ : LimitSide) :
   field_simp [ht.ne']
   ring
 
+omit hx hgrowth hα hτ hτα hη hηone in
 /-- Uniformly on the correctly indexed ball, the denominator differs by potential
 variation and the last term at the reference point. Blueprint node `conf:denominators`. -/
 theorem orbitScaleDenominators_variation (n : ℕ) (y : X)
@@ -630,7 +625,6 @@ theorem orbitScaleDenominators_variation (n : ℕ) (y : X)
     |birkhoffSum C.T C.potential (n + 1) y - birkhoffSum C.T C.potential n x| ≤
       (n + 1 : ℕ) * (potentialVariation C.potential δ).toReal +
         |C.potential (C.T^[n] x)| := by
-  have _ : _ ∧ _ ∧ _ ∧ _ ∧ _ ∧ _ ∧ _ := ⟨hx, hgrowth, hα, hτ, hτα, hη, hηone⟩
   have hdist : bowenDist C.T (n + 1) x y < δ := bowenDist_lt_of_mem_bowenBall hδ hy
   have h1 := supWeightBounds_birkhoff C.T C.potential (n + 1) x y δ hvar hdist
   have hS := birkhoffSum_succ_apply C.T C.potential n x

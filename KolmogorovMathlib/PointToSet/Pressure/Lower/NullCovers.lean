@@ -145,13 +145,12 @@ private lemma lowerContent_centered_eq_zero_of_nullCover (D : PressureData X) (Z
     (hE : IsNullPressureCover D.presentation D.T D.φ D.p₀ Z s E)
     (p : ℕ) (hp : D.p₀ ≤ p) (N : ℕ) (hN : 1 ≤ N) (t : ℝ) (hst : s < t) :
     lowerContent D.T D.φ .centered Z t (dyadicRadius p) N = 0 := by
-  have hr : 0 < dyadicRadius p := by unfold dyadicRadius; positivity
   have hbound (M : ℕ) (hM : N ≤ M) : lowerContent D.T D.φ .centered Z t (dyadicRadius p) N ≤
       (2 : ℝ≥0∞) ^ (-(t - s) * (M : ℝ)) * nullPressureMass D.presentation D.T D.φ s E := by
     have hM1 : 1 ≤ M := hN.trans hM
     calc _ ≤ lowerContent D.T D.φ .centered Z t (dyadicRadius p) M :=
-          lowerContent_critical_mono_cutoff D .centered Z (dyadicRadius p) hr (D.ω p)
-            (D.oscillation p hp) t N M hN hM
+          lowerContent_critical_mono_cutoff D .centered Z (dyadicRadius p)
+            t N M hM
       _ ≤ bowenCoverCost D.T D.φ .centered t (dyadicRadius p) (nullCoverSlice D E p M) :=
           iInf₂_le _ (isBowenCover_nullCoverSlice D Z s E hE p hp M hM1)
       _ ≤ _ := bowenCoverCost_nullCoverSlice_le D s E p M t hst
@@ -214,14 +213,11 @@ private lemma exists_bowenCover_cost_lt (D : PressureData X) (Z : Set X) (a : �
       IsBowenCover D.T Z (dyadicRadius (q p)) (k + 1) C ∧
         bowenCoverCost D.T D.φ .centered a (dyadicRadius (q p)) C <
           (2 : ℝ≥0∞) ^ (-(p : ℝ) - k - 2) := by
-    have hr : 0 < dyadicRadius (q p) := by unfold dyadicRadius; positivity
     have hscale : lowerPressureAt D.T D.φ .centered Z (dyadicRadius (q p)) ≤
         lowerPressure D.T D.φ D.p₀ Z :=
       le_iSup₂_of_le (q p) (hq p) le_rfl
-    have hω : ∀ x y, dist x y < dyadicRadius (q p) → |D.φ x - D.φ y| ≤ D.ω (q p) :=
-      fun x y hxy ↦ D.oscillation (q p) (hq p) x y hxy
-    have hzero := lowerContent_critical_zero D .centered Z _ hr _ hω a (hscale.trans_lt ha)
-    exact lowerContent_critical_cover D .centered Z _ hr _ hω a hzero (k + 1) (by omega) _
+    have hzero := lowerContent_critical_zero D .centered Z _ a (hscale.trans_lt ha)
+    exact lowerContent_critical_cover D .centered Z _ a hzero (k + 1) (by omega) _
       (by positivity)
   choose C hC using hchoose
   exact ⟨C, hC⟩
@@ -251,7 +247,7 @@ private lemma two_rpow_neg_mul_add_birkhoffSum_le (D : PressureData X) (a s : �
       (2 : ℝ≥0∞) ^ (-a * (n : ℝ) + birkhoffSum D.T D.φ n y) := by
   have hz : D.presentation.ι i ∈ bowenBall D.T n y (dyadicRadius q) :=
     (bowen_ball_dense_iff D.T n hn y _ _).mpr h_dist
-  have hsum := (abs_le.mp (recenter_bowen_cover_distortion D q hq n hn y _ hz)).2
+  have hsum := (abs_le.mp (recenter_bowen_cover_distortion D q hq n y _ hz)).2
   have hmul := mul_lt_mul_of_pos_left h_omega (by exact_mod_cast hn : (0 : ℝ) < n)
   exact ENNReal.rpow_le_rpow_of_exponent_le (by norm_num) (by nlinarith)
 

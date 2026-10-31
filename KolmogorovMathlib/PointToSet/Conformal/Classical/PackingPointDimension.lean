@@ -46,10 +46,9 @@ private lemma partitionCoverCost_zero_centered (F : Set X) (r : ℝ) :
 /-- The existing zero-potential order-one partition sum is the open-ball covering number.
 Its value is the extended cardinal infimum, so infinite covering numbers are retained.
 Blueprint node `conf:packing-box-interface`. -/
-theorem packingEqModifiedUpperBox_open_covering (Z : Set X) (r : ℝ) (hr : 0 < r) :
+theorem packingEqModifiedUpperBox_open_covering (Z : Set X) (r : ℝ) :
     partitionSum id (fun _ : X => 0) .centered Z 1 r =
       ⨅ F : Set X, ⨅ (_ : Z ⊆ ⋃ x ∈ F, Metric.ball x r), (F.encard : ℝ≥0∞) := by
-  have _ := hr -- positivity is not needed for the identity; the hypothesis is kept for callers
   simp only [partitionSum, partitionCoverCost_zero_centered, bowenBall_id_one]
   refine iInf_congr fun F ↦ le_antisymm (le_iInf fun hcover ↦ ?_) (le_iInf fun hcover ↦ ?_)
   · by_cases hF : F.Countable
@@ -63,7 +62,7 @@ number at the same radius. -/
 private lemma externalCoveringNumber_le_partitionSum (Z : Set X) {r : ℝ} (hr : 0 < r) :
     (Metric.externalCoveringNumber r.toNNReal Z : ℝ≥0∞) ≤
       partitionSum id (fun _ : X => 0) .centered Z 1 r := by
-  rw [packingEqModifiedUpperBox_open_covering Z r hr]
+  rw [packingEqModifiedUpperBox_open_covering Z r]
   refine le_iInf fun F ↦ le_iInf fun hF ↦ ?_
   have hcover : Metric.IsCover r.toNNReal Z F := fun z hz ↦ by
     obtain ⟨x, hx, hzx⟩ := Set.mem_iUnion₂.mp (hF hz)
@@ -87,7 +86,7 @@ private lemma partitionSum_le_externalCoveringNumber (Z : Set X) {r s : ℝ} (hs
     obtain ⟨x, hx, hzx⟩ := hC hz
     exact Set.mem_iUnion₂.mpr ⟨x, hx, Metric.mem_ball.mpr
       (lt_of_le_of_lt ((edist_le_ofReal hs.le).1 hzx) hsr)⟩
-  rw [hcard, packingEqModifiedUpperBox_open_covering Z r (hs.trans hsr)]
+  rw [hcard, packingEqModifiedUpperBox_open_covering Z r]
   exact iInf_le_of_le C (iInf_le_of_le hsub le_rfl)
 
 /-- Away from order zero, the nonnegative projection of `pressureRate` is the product of the
@@ -255,10 +254,10 @@ private lemma exists_ideal_complexity_le_of_mem_lowComplexityPiece (P : Presenta
 
 /-- A cover by open balls of radius `r > 0` with centers in `F` bounds the order-one partition
 sum by the extended cardinality of `F`. -/
-private lemma partitionSum_le_encard_of_cover (Z F : Set X) {r : ℝ} (hr : 0 < r)
+private lemma partitionSum_le_encard_of_cover (Z F : Set X) {r : ℝ}
     (hcover : Z ⊆ ⋃ x ∈ F, Metric.ball x r) :
     partitionSum id (fun _ : X => 0) .centered Z 1 r ≤ (F.encard : ℝ≥0∞) := by
-  rw [packingEqModifiedUpperBox_open_covering Z r hr]
+  rw [packingEqModifiedUpperBox_open_covering Z r]
   exact iInf_le_of_le F (iInf_le_of_le hcover le_rfl)
 
 /-- For `r ≥ max N 1`, the balls of radius `2⁻ʳ` around the finitely many ideal points of
@@ -281,7 +280,7 @@ private lemma partitionSum_lowComplexityPiece_le (P : Presentation X) (A : Set �
   calc partitionSum id (fun _ : X => 0) .centered (lowComplexityPiece P A Z s N) 1
         (dyadicRadius r)
       ≤ ((P.ι '' (I : Set ℕ)).encard : ℝ≥0∞) :=
-        partitionSum_le_encard_of_cover _ _ (dyadicRadius_pos r) hcover
+        partitionSum_le_encard_of_cover _ _ hcover
     _ ≤ (I.card : ℝ≥0∞) := by
         have : (P.ι '' (I : Set ℕ)).encard ≤ (I.card : ℕ∞) :=
           (Set.encard_image_le _ _).trans (Set.encard_coe_eq_coe_finsetCard I).le

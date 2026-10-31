@@ -144,8 +144,8 @@ private theorem dimH_eq_lowerEntropy_div_of_isEmpty {α : Type*} [IsEmpty α]
 
 /-- For a fixed presentation, a single oracle attains the lower entropy of the map `T` and the
 Hausdorff dimension of `Z` at the same time. -/
-private theorem exists_oracle_attaining_lowerEntropy_and_dimH {α : Type*} [Countable α]
-    [MetricSpace (ℕ → α)] (P : Presentation (ℕ → α)) (T : (ℕ → α) → (ℕ → α))
+private theorem exists_oracle_attaining_lowerEntropy_and_dimH {α : Type*} [MetricSpace (ℕ → α)]
+    (P : Presentation (ℕ → α)) (T : (ℕ → α) → (ℕ → α))
     (hT : Continuous T) (Z : Set (ℕ → α)) :
     ∃ A : Set ℕ,
       (lowerEntropy T Z = ⨆ x ∈ Z, (orbitComplexities P T A x).1) ∧
@@ -239,9 +239,8 @@ end EmptySet
 /-- With a fixed presentation, the packing dimension of any symbolic subset is the upper entropy
 of the shift divided by the metric scale. The same presentation is used for every oracle.
 Blueprint node `pressure:symbolic-set`. -/
-theorem symbolic_setDimensions_eq_entropies_upper_entropy {α : Type*} [Countable α]
-    [MetricSpace (ℕ → α)] (β : ℝ) (hβ : 0 < β) (hβ₁ : β < 1)
-    (hd : ∀ x y : ℕ → α, x ≠ y → dist x y = β ^ PiNat.firstDiff x y)
+theorem symbolic_setDimensions_eq_entropies_upper_entropy {α : Type*} [MetricSpace (ℕ → α)] (β : ℝ)
+    (hβ : 0 < β) (hβ₁ : β < 1) (hd : ∀ x y : ℕ → α, x ≠ y → dist x y = β ^ PiNat.firstDiff x y)
     (P : Presentation (ℕ → α)) (Z : Set (ℕ → α)) :
     metricPackingDimension Z = upperEntropy P (fun y j => y (j + 1)) Z /
       ENNReal.ofReal (-Real.logb 2 β) := by

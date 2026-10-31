@@ -302,15 +302,14 @@ private lemma le_ofReal_of_forall_rat_gt {a : ℝ≥0∞} {s : ℝ} (hs : 0 ≤ 
 
 /-- Coding an enumerable null cover bounds each lower pointwise dimension. Its real
 exponent is not assumed computable. Blueprint node `bs:effective-lower-lower`. -/
-theorem pointwiseLowerBSLeEffective (P : Presentation X) (T : X → X)
-    (hT : Continuous T) (u : X → ℝ) (hu : UniformContinuous u) (A : Set ℕ)
-    (hA : IsAdmissible P T (fun _ : Fin 1 => u) A) (Z : Set X)
-    (hZ : ∀ x ∈ Z, 0 < lowerBirkhoffAverage T u x) (s : ℝ) (hs : 0 ≤ s)
+theorem pointwiseLowerBSLeEffective (P : Presentation X) (T : X → X) (u : X → ℝ)
+    (hu : UniformContinuous u) (A : Set ℕ) (hA : IsAdmissible P T (fun _ : Fin 1 => u) A)
+    (Z : Set X) (hZ : ∀ x ∈ Z, 0 < lowerBirkhoffAverage T u x) (s : ℝ) (hs : 0 ≤ s)
     (E : Set (ℕ × ℕ × ℕ)) (hE : IsNullBSCover P T u Z s E) (hRE : IsREIn A E)
     (x : X) (hx : x ∈ Z) :
     (pointwiseBSDimension P T u A x).1 ≤ ENNReal.ofReal s := by
   refine le_ofReal_of_forall_rat_gt hs fun t hst ↦ ?_
-  obtain ⟨ρ, hρ, r₀, hr₀, hRealizer⟩ := birkhoffRealizerBounds_positive P T hT u hu x (hZ x hx)
+  obtain ⟨ρ, hρ, r₀, hr₀, hRealizer⟩ := birkhoffRealizerBounds_positive P T u hu x (hZ x hx)
   refine pointwiseBSDimension_fst_le_of_eventually P T u A x ?_
   filter_upwards [eventually_dyadicRadius_le hr₀] with p hp
   obtain ⟨N, -, hN⟩ := hRealizer (dyadicRadius p) (dyadicRadius_pos p) hp
@@ -321,24 +320,23 @@ theorem pointwiseLowerBSLeEffective (P : Presentation X) (T : X → X)
 
 /-- Taking the actual witness infimum bounds the supremum of lower pointwise dimensions.
 Blueprint node `bs:effective-lower-lower`. -/
-theorem pointwiseLowerBSLeEffective_iSup (P : Presentation X) (T : X → X)
-    (hT : Continuous T) (u : X → ℝ) (hu : UniformContinuous u) (A : Set ℕ)
-    (hA : IsAdmissible P T (fun _ : Fin 1 => u) A) (Z : Set X)
+theorem pointwiseLowerBSLeEffective_iSup (P : Presentation X) (T : X → X) (u : X → ℝ)
+    (hu : UniformContinuous u) (A : Set ℕ) (hA : IsAdmissible P T (fun _ : Fin 1 => u) A)
+    (Z : Set X)
     (hZ : ∀ x ∈ Z, 0 < lowerBirkhoffAverage T u x) :
     (⨆ x ∈ Z, (pointwiseBSDimension P T u A x).1) ≤ effectiveLowerBSDimension P T u A Z := by
   refine iSup_le fun x ↦ iSup_le fun hx ↦ ?_
   unfold effectiveLowerBSDimension
   refine le_iInf fun s ↦ le_iInf fun hs ↦ le_iInf fun E ↦ le_iInf fun hE ↦ ?_
-  exact pointwiseLowerBSLeEffective P T hT u hu A hA Z hZ s hs E hE.1 hE.2 x hx
+  exact pointwiseLowerBSLeEffective P T u hu A hA Z hZ s hs E hE.1 hE.2 x hx
 
 /-- Effective lower BS dimension equals the lower pointwise supremum for admissible oracles.
 Blueprint node `bs:effective-lower-equality`. -/
-theorem effectiveLowerBSEqSup (P : Presentation X) (T : X → X) (hT : Continuous T)
-    (u : X → ℝ) (hu : UniformContinuous u) (A : Set ℕ)
-    (hA : IsAdmissible P T (fun _ : Fin 1 => u) A) (Z : Set X)
-    (hZ : ∀ x ∈ Z, 0 < lowerBirkhoffAverage T u x) :
+theorem effectiveLowerBSEqSup (P : Presentation X) (T : X → X) (u : X → ℝ)
+    (hu : UniformContinuous u) (A : Set ℕ) (hA : IsAdmissible P T (fun _ : Fin 1 => u) A)
+    (Z : Set X) (hZ : ∀ x ∈ Z, 0 < lowerBirkhoffAverage T u x) :
     effectiveLowerBSDimension P T u A Z = ⨆ x ∈ Z, (pointwiseBSDimension P T u A x).1 :=
-  le_antisymm (effectiveLowerBSLeSup P T hT u hu A hA Z hZ)
-    (pointwiseLowerBSLeEffective_iSup P T hT u hu A hA Z hZ)
+  le_antisymm (effectiveLowerBSLeSup P T u hu A hA Z hZ)
+    (pointwiseLowerBSLeEffective_iSup P T u hu A hA Z hZ)
 
 end Kolmogorov.PointToSet

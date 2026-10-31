@@ -97,7 +97,7 @@ private lemma exists_finset_cover_of_dyadicPartitionSum_lt {X : Type*} [MetricSp
     {Z : Set X} {c : ℝ≥0∞} {n : ℕ} (h : dyadicPartitionSum Z n < c) :
     ∃ F : Finset X, Z ⊆ ⋃ x ∈ F, Metric.ball x (dyadicRadius n) ∧ (F.card : ℝ≥0∞) < c := by
   unfold dyadicPartitionSum at h
-  rw [packingEqModifiedUpperBox_open_covering Z _ (dyadicRadius_pos n)] at h
+  rw [packingEqModifiedUpperBox_open_covering Z _] at h
   obtain ⟨F, hF⟩ := iInf_lt_iff.mp h
   obtain ⟨hcov, hlt⟩ := iInf_lt_iff.mp hF
   have hfin : F.Finite := by
@@ -277,7 +277,7 @@ private lemma dyadicPartitionSum_le_pow_ceil {X : Type*} [MetricSpace X] {Z : Se
     dyadicPartitionSum Z n ≤ 2 ^ ⌈((n : ℝ) + 1) * (Real.log 2 / Real.log 3)⌉₊ := by
   obtain ⟨F, hcard, hZ⟩ := hcover ⌈((n : ℝ) + 1) * (Real.log 2 / Real.log 3)⌉₊
   unfold dyadicPartitionSum
-  rw [packingEqModifiedUpperBox_open_covering Z _ (dyadicRadius_pos n)]
+  rw [packingEqModifiedUpperBox_open_covering Z _]
   have hcov : Z ⊆ ⋃ x ∈ (F : Set X), Metric.ball x (dyadicRadius n) := by
     intro z hz
     obtain ⟨a, ha, hza⟩ := Set.mem_iUnion₂.mp (hZ hz)

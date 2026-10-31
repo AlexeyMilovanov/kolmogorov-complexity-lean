@@ -108,16 +108,13 @@ private lemma eventually_birkhoffSum_div_le {T : X → X} {u : X → ℝ} {x : X
     (isBoundedUnder_of ⟨⊤, fun _ ↦ le_top⟩)] with n hn
   exact (EReal.coe_lt_coe_iff.1 hn).le
 
+omit [MetricSpace X] in
 /-- Positive lower averages give a countable exhaustion by rational uniform tail bounds.
 Blueprint node `bs:exhaustion`. -/
-theorem positiveAverageExhaustion (P : Presentation X) (T : X → X)
-    (hT : Continuous T) (u : X → ℝ) (hu : UniformContinuous u) (Z : Set X)
+theorem positiveAverageExhaustion (T : X → X) (u : X → ℝ) (Z : Set X)
     (hZ : ∀ x ∈ Z, 0 < lowerBirkhoffAverage T u x) :
     Z = ⋃ N : ℕ, ⋃ (_ : 1 ≤ N), ⋃ ρ : ℚ, ⋃ (_ : 0 < ρ),
       positiveAveragePiece T u Z N ρ := by
-  have _ := P
-  have _ := hT
-  have _ := hu
   ext x
   simp only [Set.mem_iUnion]
   refine ⟨fun hx ↦ ?_, fun ⟨_, _, _, _, hx⟩ ↦ hx.1⟩
@@ -130,17 +127,13 @@ theorem positiveAverageExhaustion (P : Presentation X) (T : X → X)
 
 /-- Every ideal realizer has the two-sided average bounds at all sufficiently small
 positive radii and all sufficiently large orders. Blueprint node `bs:realizer-bounds`. -/
-theorem birkhoffRealizerBounds (P : Presentation X) (T : X → X) (hT : Continuous T)
-    (u : X → ℝ) (hu : UniformContinuous u) (x : X) (ℓ b : ℝ) (hℓ : 0 < ℓ)
-    (hℓb : ℓ ≤ b) (hlower : lowerBirkhoffAverage T u x = (ℓ : EReal))
+theorem birkhoffRealizerBounds (P : Presentation X) (T : X → X) (u : X → ℝ)
+    (hu : UniformContinuous u) (x : X) (ℓ b : ℝ) (hlower : lowerBirkhoffAverage T u x = (ℓ : EReal))
     (hupper : upperBirkhoffAverage T u x = (b : EReal)) (η : ℝ) (hη : 0 < η) :
     ∃ r₀ : ℝ, 0 < r₀ ∧ ∀ r : ℝ, 0 < r → r ≤ r₀ →
       ∃ N : ℕ, 1 ≤ N ∧ ∀ n ≥ N, ∀ i, P.ι i ∈ bowenBall T n x r →
         ℓ - η ≤ birkhoffSum T u n (P.ι i) / n ∧
           birkhoffSum T u n (P.ι i) / n ≤ b + η := by
-  have _ := hT
-  have _ := hℓ
-  have _ := hℓb
   obtain ⟨p, hp⟩ := exists_dyadicRadius_oscillation_le hu (half_pos hη)
   refine ⟨dyadicRadius p, dyadicRadius_pos p, fun r _ hr ↦ ?_⟩
   have h_lower : ((ℓ - η / 2 : ℝ) : EReal) < lowerBirkhoffAverage T u x := by
@@ -164,14 +157,13 @@ theorem birkhoffRealizerBounds (P : Presentation X) (T : X → X) (hT : Continuo
 
 /-- Positive lower average alone supplies a rational positive bound for every realizer
 on arbitrarily small radii and an eventual tail. Blueprint node `bs:realizer-bounds`. -/
-theorem birkhoffRealizerBounds_positive (P : Presentation X) (T : X → X)
-    (hT : Continuous T) (u : X → ℝ) (hu : UniformContinuous u) (x : X)
+theorem birkhoffRealizerBounds_positive (P : Presentation X) (T : X → X) (u : X → ℝ)
+    (hu : UniformContinuous u) (x : X)
     (hx : 0 < lowerBirkhoffAverage T u x) :
     ∃ ρ : ℚ, 0 < ρ ∧ ∃ r₀ : ℝ, 0 < r₀ ∧ ∀ r : ℝ, 0 < r → r ≤ r₀ →
       ∃ N : ℕ, 1 ≤ N ∧ ∀ n ≥ N, ∀ i, P.ι i ∈ bowenBall T n x r →
         (ρ : ℝ) * n ≤ birkhoffSum T u n (P.ι i) ∧
           0 < birkhoffSum T u n (P.ι i) := by
-  have _ := hT
   obtain ⟨ρ, hρ, hlt⟩ := exists_rat_pos_lt_lowerBirkhoffAverage hx
   have hρ_real : (0 : ℝ) < ρ := Rat.cast_pos.2 hρ
   obtain ⟨p, hp⟩ := exists_dyadicRadius_oscillation_le hu (half_pos hρ_real)
@@ -273,7 +265,7 @@ theorem idealRealizerInfimumAttained (P : Presentation X) (T : X → X)
         0 < birkhoffSum T u n (P.ι i) ∧ finiteScaleBSCost P T u A x n r =
           (oracleNatComplexity A i : ℝ≥0∞) /
             ENNReal.ofReal (birkhoffSum T u n (P.ι i)) := by
-  obtain ⟨ρ, hρ, r₁, hr₁, hbound⟩ := birkhoffRealizerBounds_positive P T hT u hu x hx
+  obtain ⟨ρ, hρ, r₁, hr₁, hbound⟩ := birkhoffRealizerBounds_positive P T u hu x hx
   obtain ⟨p, hp⟩ := exists_dyadicRadius_oscillation_le hu one_pos
   refine ⟨min r₁ (dyadicRadius p), lt_min hr₁ (dyadicRadius_pos p), fun r hr hr_le ↦ ?_⟩
   obtain ⟨N, hN, hN_bound⟩ := hbound r hr (hr_le.trans (min_le_left _ _))
@@ -288,10 +280,8 @@ theorem idealRealizerInfimumAttained (P : Presentation X) (T : X → X)
 
 /-- Two-sided realizer average bounds give attainment of each affine normalized cost.
 Blueprint node `bs:attainment`. -/
-theorem idealRealizerInfimumAttained_affine (P : Presentation X) (T : X → X)
-    (hT : Continuous T) (u : X → ℝ) (hu : UniformContinuous u) (A : Set ℕ)
-    (x : X) (r : ℝ) (hr : 0 < r)
-    (n : ℕ) (hn : 1 ≤ n) (a b : ℝ) (ha : 0 < a)
+theorem idealRealizerInfimumAttained_affine (P : Presentation X) (T : X → X) (hT : Continuous T)
+    (u : X → ℝ) (A : Set ℕ) (x : X) (r : ℝ) (hr : 0 < r) (n : ℕ) (hn : 1 ≤ n) (a b : ℝ) (ha : 0 < a)
     (hbounds : ∀ i, P.ι i ∈ bowenBall T n x r →
       a ≤ birkhoffSum T u n (P.ι i) / n ∧ birkhoffSum T u n (P.ι i) / n ≤ b)
     (s : ℝ) :
@@ -299,7 +289,6 @@ theorem idealRealizerInfimumAttained_affine (P : Presentation X) (T : X → X)
       finiteScalePressureRate P T (fun y => -s * u y) A x n r =
         (((oracleNatComplexity A i - s * birkhoffSum T u n (P.ι i)) / n : ℝ) : EReal) := by
   classical
-  have _ := hu
   have hn0 : n ≠ 0 := by omega
   have hnpos : (0 : ℝ) < n := Nat.cast_pos.mpr (by omega)
   obtain ⟨i₀, hi₀⟩ := bowen_ball_dense P T hT x n hn r hr

@@ -442,7 +442,8 @@ defined by Kolmogorov complexity. All theorems are in the namespace `Kolmogorov.
   retained). `setBowenRootOfFiniteBSDimension`: if the relevant dimension is finite, `Z` is
   nonempty and the upper Birkhoff averages are bounded by a common `β`, the dimension is a root
   of the set-level Bowen equation. `setBowenRootUniqueness`: under a uniform positive lower bound
-  of the averages and finite entropy there is at most one real root.
+  of the averages there is at most one real root (neither finite entropy nor nonemptiness of `Z`
+  is needed).
 * **Main E, conformal systems.** `dimensionTheorem`: on the conformal locus of uniformly
   conformal data `C`, the Hausdorff dimension is the lower Barreira-Schmeling dimension; the
   upper version identifies the (specified-radius) packing dimension with the upper dimension, and

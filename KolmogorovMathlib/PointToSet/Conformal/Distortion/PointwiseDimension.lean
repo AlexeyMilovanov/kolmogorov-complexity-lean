@@ -109,6 +109,7 @@ variable (C : UniformConformalData X) (x : X)
   (hvar : potentialVariation C.potential δ < ⊤)
 include hx hgrowth hα hτ hτα hη hηone hδ hvar
 
+omit hx hτα hηone in
 /-- The eventual two-sided denominator bound is uniform over every point in the Bowen ball.
 Blueprint node `conf:denominators`. -/
 theorem orbitScaleDenominators_bounds (a c : ℝ) (hta : τ < a) (haα : a < α)
@@ -126,7 +127,7 @@ theorem orbitScaleDenominators_bounds (a c : ℝ) (hta : τ < a) (haα : a < α)
     (fun n ↦ C.potential (C.T^[n] x)) a τ (potentialVariation C.potential δ).toReal K c
     hτ.le ENNReal.toReal_nonneg hta hc (eventually_mul_le_birkhoffSum hα haα) hK hgrowth
   filter_upwards [hbudget] with n hn y hy
-  have H_var := orbitScaleDenominators_variation C x hx hgrowth α τ η δ hα hτ hτα hη hηone hδ hvar
+  have H_var := orbitScaleDenominators_variation C x δ hδ hvar
     n y hy
   have H_diff : |birkhoffSum C.T C.potential (n + 1) y -
       conformalOrbitPrecision C σ x η δ τ n| ≤
@@ -476,21 +477,21 @@ private lemma choose_staticPointDimensions_eq_choose_pointwiseBSDimension
   have hrpos (side : LimitSide) (n : ℕ) :
       0 < conformalOrbitRadius C side x η (dyadicRadius p) τ n := by
     cases side <;> dsimp [conformalOrbitRadius, LimitSide.choose] <;> positivity
-  have ht (side : LimitSide) := orbitScaleDenominators C x havg hgrowth α τ η (dyadicRadius p)
-    hα hτ hτα hη hηone hδ hvar side
+  have ht (side : LimitSide) := orbitScaleDenominators C x α τ η (dyadicRadius p)
+    hα hτ hτα hη hδ side
   have hpos (side : LimitSide) :
       ∀ᶠ n in atTop, 0 < conformalOrbitPrecision C side x η (dyadicRadius p) τ n :=
     (ht side).eventually (eventually_gt_atTop 0)
   have hsample (side : LimitSide) := choose_staticPointDimensions_eq_timeLimit σ P A x
     (conformalOrbitRadius C side x η (dyadicRadius p) τ) (hrpos side) (ht side)
-    (orbitScaleDenominators_ratio C x havg hgrowth α τ η (dyadicRadius p)
-      hα hτ hτα hη hηone hδ hvar side)
+    (orbitScaleDenominators_ratio C x hgrowth α τ η (dyadicRadius p)
+      hα hτ hτα hη hδ side)
   refine choose_staticPointDimensions_squeeze_timeLimit σ P C A x (dyadicRadius p) c hc.le hc1
     (conformalOrbitRadius C .lower x η (dyadicRadius p) τ)
     (conformalOrbitRadius C .upper x η (dyadicRadius p) τ) (hrpos .lower) (hpos .lower)
     (hpos .upper) (hsample .lower) (hsample .upper) hballs ?_
-  have hd (side : LimitSide) := orbitScaleDenominators_bounds C x havg hgrowth α τ η
-    (dyadicRadius p) hα hτ hτα hη hηone hδ hvar (α / 2) c (by linarith) (by linarith) herror side
+  have hd (side : LimitSide) := orbitScaleDenominators_bounds C x hgrowth α τ η
+    (dyadicRadius p) hα hτ hη hδ hvar (α / 2) c (by linarith) (by linarith) herror side
   filter_upwards [hpos .lower, hpos .upper, hd .lower, hd .upper] with n hnlo hnhi hdlo hdhi y hy
   exact ⟨(le_div_iff₀ hnlo).mp (hdlo y hy).1, (div_le_iff₀ hnhi).mp (hdhi y hy).2⟩
 

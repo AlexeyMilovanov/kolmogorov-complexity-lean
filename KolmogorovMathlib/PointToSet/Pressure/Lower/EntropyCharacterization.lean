@@ -385,7 +385,7 @@ theorem bowenEntropy_eq_lowerPressure_zero_nonempty (P : Presentation X) (T : X 
     (hT : Continuous T) (Z : Set X) (hZ : Z.Nonempty) :
     (residenceEntropy T Z : EReal) = lowerPressure T (fun _ => 0) 0 Z := by
   rw [bowenEntropy_eq_lowerPressure_zero P T hT Z]
-  rw [entropy_eq_zeroPotentialPressure_of_nonempty P T hT Z hZ]
+  rw [entropy_eq_zeroPotentialPressure_of_nonempty T Z hZ]
 
 /-- Rational linear costs `t * n` on an enumerable domain of pair codes `(i, n)` are upper
 semicomputable relative to every oracle. -/
@@ -738,10 +738,8 @@ private theorem exists_isREIn_isNullPressureCover_of_lt
 /-- Effective lower entropy is the pointwise lower orbit-complexity supremum for every oracle.
 Blueprint node `pressure:entropy-pts`. -/
 theorem entropy_effectiveCharacterization_allOracles (P : Presentation X) (T : X → X)
-    (hT : Continuous T) (A : Set ℕ) (Z : Set X) :
+    (A : Set ℕ) (Z : Set X) :
     effectiveLowerEntropy P T A Z = ⨆ x ∈ Z, (orbitComplexities P T A x).1 := by
-  -- continuity of `T` is part of the frozen statement but is not needed here
-  have _ := hT
   apply le_antisymm
   · refine ENNReal.le_of_forall_pos_le_add fun ε hε hS ↦ ?_
     set S := ⨆ x ∈ Z, (orbitComplexities P T A x).1 with hSdef

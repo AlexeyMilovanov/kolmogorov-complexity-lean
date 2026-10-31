@@ -75,7 +75,7 @@ private lemma factorialProduct_partitionSum_ge
   have hr_pos : 0 < dyadicRadius ((n - 1).factorial) := by
     unfold dyadicRadius
     positivity
-  rw [packingEqModifiedUpperBox_open_covering U _ hr_pos,
+  rw [packingEqModifiedUpperBox_open_covering U _,
     prod_factorialBranching_div_eq q n hn]
   have hρ := dyadicRadius_factorial_le_scale
     n (by omega)
@@ -288,8 +288,8 @@ private lemma partitionSum_closure_le_shift
         A 1 (dyadicRadius k) := by
   have h_r_pos : 0 < dyadicRadius k := by dsimp [dyadicRadius]; positivity
   have h_r'_pos : 0 < dyadicRadius (k - 1) := by dsimp [dyadicRadius]; positivity
-  rw [packingEqModifiedUpperBox_open_covering A (dyadicRadius k) h_r_pos]
-  rw [packingEqModifiedUpperBox_open_covering (closure A) (dyadicRadius (k - 1)) h_r'_pos]
+  rw [packingEqModifiedUpperBox_open_covering A (dyadicRadius k)]
+  rw [packingEqModifiedUpperBox_open_covering (closure A) (dyadicRadius (k - 1))]
   apply le_iInf
   intro F
   apply le_iInf

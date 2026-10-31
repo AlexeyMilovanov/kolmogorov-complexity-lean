@@ -130,14 +130,10 @@ private lemma exists_isBowenCover_bsCoverCost_lt {T : X → X} {u : X → ℝ} {
   exact ⟨C, hC, hcost⟩
 
 /-- Lower BS cutoff masses are countably subadditive.
-The hypotheses `P`, `hT`, `hu`, `hs`, `hr` and `hN` are not needed by the argument.
 Blueprint node `bs:subadditivity`. -/
-theorem lowerBSMassCountableSubadditive (P : Presentation X) (T : X → X)
-    (hT : Continuous T) (u : X → ℝ) (hu : UniformContinuous u) (Z : ℕ → Set X)
-    (s r : ℝ) (hs : 0 ≤ s) (hr : 0 < r) (N : ℕ) (hN : 1 ≤ N) :
+theorem lowerBSMassCountableSubadditive (T : X → X) (u : X → ℝ) (Z : ℕ → Set X)
+    (s r : ℝ) (N : ℕ) :
     lowerBSMass T u (⋃ j, Z j) s r N ≤ ∑' j, lowerBSMass T u (Z j) s r N := by
-  have _ := P
-  have _ := And.intro hT (And.intro hu (And.intro hs (And.intro hr hN)))
   refine ENNReal.le_of_forall_pos_le_add fun ε hε hsum ↦ ?_
   obtain ⟨δ, hδ, hδsum⟩ := ENNReal.exists_pos_sum_of_countable (ENNReal.coe_ne_zero.2 hε.ne') ℕ
   have hex (j : ℕ) : ∃ C, IsBowenCover T (Z j) r N C ∧
@@ -156,12 +152,11 @@ theorem lowerBSMassCountableSubadditive (P : Presentation X) (T : X → X)
 
 /-- The order-limit masses are countably subadditive without exchanging a limit and sum.
 Blueprint node `bs:subadditivity`. -/
-theorem lowerBSMassCountableSubadditive_limit (P : Presentation X) (T : X → X)
-    (hT : Continuous T) (u : X → ℝ) (hu : UniformContinuous u)
-    (Z : ℕ → Set X) (s r : ℝ) (hs : 0 ≤ s) (hr : 0 < r) :
+theorem lowerBSMassCountableSubadditive_limit (T : X → X) (u : X → ℝ)
+    (Z : ℕ → Set X) (s r : ℝ) :
     lowerBSMassLimit T u (⋃ j, Z j) s r ≤ ∑' j, lowerBSMassLimit T u (Z j) s r := by
   refine iSup₂_le fun N hN ↦
-    (lowerBSMassCountableSubadditive P T hT u hu Z s r hs hr N hN).trans ?_
+    (lowerBSMassCountableSubadditive T u Z s r N).trans ?_
   exact ENNReal.tsum_le_tsum fun j ↦ le_iSup₂_of_le N hN le_rfl
 
 /-! ### Dichotomy -/
@@ -301,54 +296,48 @@ private lemma exists_seq_subset_iUnion_of_eq_iUnion {Z : Set X} {S : ℕ → ℚ
 
 /-- Finite lower mass becomes zero after a strict exponent increase on the positive locus.
 Blueprint node `bs:lower-dichotomy`. -/
-theorem lowerBSDichotomy (P : Presentation X) (T : X → X)
-    (hT : Continuous T) (u : X → ℝ) (hu : UniformContinuous u) (Z : Set X)
-    (hZ : ∀ x ∈ Z, 0 < lowerBirkhoffAverage T u x) (s t r : ℝ)
-    (hs : 0 ≤ s) (hst : s < t) (hr : 0 < r)
+theorem lowerBSDichotomy (T : X → X) (u : X → ℝ) (Z : Set X)
+    (hZ : ∀ x ∈ Z, 0 < lowerBirkhoffAverage T u x) (s t r : ℝ) (hs : 0 ≤ s) (hst : s < t)
     (hmass : lowerBSMassLimit T u Z s r < ⊤) :
     lowerBSMassLimit T u Z t r = 0 := by
   obtain ⟨f, g, hg, hcover⟩ :=
-    exists_seq_subset_iUnion_of_eq_iUnion (positiveAverageExhaustion P T hT u hu Z hZ)
+    exists_seq_subset_iUnion_of_eq_iUnion (positiveAverageExhaustion T u Z hZ)
   refine le_antisymm ?_ bot_le
   calc lowerBSMassLimit T u Z t r
       ≤ lowerBSMassLimit T u (⋃ j, positiveAveragePiece T u Z (f j) (g j)) t r :=
         lowerBSMassLimit_mono T u t r hcover
     _ ≤ ∑' j, lowerBSMassLimit T u (positiveAveragePiece T u Z (f j) (g j)) t r :=
-        lowerBSMassCountableSubadditive_limit P T hT u hu _ t r (hs.trans hst.le) hr
+        lowerBSMassCountableSubadditive_limit T u _ t r
     _ = 0 := by
         simp only [lowerBSMassLimit_positiveAveragePiece_eq_zero T u Z _ (hg _) hs hst r hmass,
           tsum_zero]
 
 /-- Below the nonnegative critical parameter the lower mass is infinite.
 Blueprint node `bs:lower-dichotomy`. -/
-theorem lowerBSDichotomy_top (P : Presentation X) (T : X → X)
-    (hT : Continuous T) (u : X → ℝ) (hu : UniformContinuous u) (Z : Set X)
+theorem lowerBSDichotomy_top (T : X → X) (u : X → ℝ) (Z : Set X)
     (hZ : ∀ x ∈ Z, 0 < lowerBirkhoffAverage T u x) (s r : ℝ)
-    (hs : 0 ≤ s) (hr : 0 < r) (hbelow : ENNReal.ofReal s < lowerBSDimensionAt T u Z r) :
+    (hs : 0 ≤ s) (hbelow : ENNReal.ofReal s < lowerBSDimensionAt T u Z r) :
     lowerBSMassLimit T u Z s r = ⊤ := by
   by_contra h_not_top
   obtain ⟨t, ht0, hst, htd⟩ := ENNReal.lt_iff_exists_real_btwn.1 hbelow
   have hst' : s < t := (ENNReal.ofReal_lt_ofReal_iff_of_nonneg hs).1 hst
   have hzero : lowerBSMassLimit T u Z t r = 0 :=
-    lowerBSDichotomy P T hT u hu Z hZ s t r hs hst' hr (lt_top_iff_ne_top.2 h_not_top)
+    lowerBSDichotomy T u Z hZ s t r hs hst' (lt_top_iff_ne_top.2 h_not_top)
   exact htd.not_ge ((iInf₂_le t ht0).trans (iInf_le _ hzero))
 
 /-- Above the nonnegative critical parameter the lower mass vanishes.
-The hypothesis `hs` is not needed by the argument.
 Blueprint node `bs:lower-dichotomy`. -/
-theorem lowerBSDichotomy_zero (P : Presentation X) (T : X → X)
-    (hT : Continuous T) (u : X → ℝ) (hu : UniformContinuous u) (Z : Set X)
+theorem lowerBSDichotomy_zero (T : X → X) (u : X → ℝ) (Z : Set X)
     (hZ : ∀ x ∈ Z, 0 < lowerBirkhoffAverage T u x) (s r : ℝ)
-    (hs : 0 ≤ s) (hr : 0 < r) (habove : lowerBSDimensionAt T u Z r < ENNReal.ofReal s) :
+    (habove : lowerBSDimensionAt T u Z r < ENNReal.ofReal s) :
     lowerBSMassLimit T u Z s r = 0 := by
-  have _ := hs
   unfold lowerBSDimensionAt at habove
   simp only [iInf_lt_iff] at habove
   obtain ⟨s', hs', hmass, hlt⟩ := habove
   have hlt' : s' < s := by
     by_contra h
     exact (hlt.trans_le (ENNReal.ofReal_le_ofReal (not_lt.1 h))).false
-  exact lowerBSDichotomy P T hT u hu Z hZ s' s r hs' hlt' hr (hmass ▸ ENNReal.zero_lt_top)
+  exact lowerBSDichotomy T u Z hZ s' s r hs' hlt' (hmass ▸ ENNReal.zero_lt_top)
 
 /-! ### Recentering -/
 
@@ -385,15 +374,13 @@ private lemma bowenBall_subset_bowenBall_two_mul (T : X → X) (n : ℕ) {y z : 
 
 /-- If `W` is the (finite) supremum of the Birkhoff sums over a Bowen ball, an ideal point of
 the ball has Birkhoff sum above `W - a`, and the doubled Bowen ball around it contains the
-original ball.  The hypothesis `hn` is not needed by the argument.
+original ball.
 Blueprint node `bs:recenter`. -/
-theorem recenterNearBirkhoffSupremum (P : Presentation X) (T : X → X)
-    (hT : Continuous T) (u : X → ℝ) (hu : UniformContinuous u) (n : ℕ) (hn : 1 ≤ n)
-    (y : X) (r : ℝ) (hr : 0 < r) (w : ℝ)
+theorem recenterNearBirkhoffSupremum (P : Presentation X) (T : X → X) (hT : Continuous T)
+    (u : X → ℝ) (hu : UniformContinuous u) (n : ℕ) (y : X) (r : ℝ) (w : ℝ)
     (hw : bowenPotentialSup T u n y r = (w : EReal)) (a : ℝ) (ha : 0 < a) :
     ∃ i, P.ι i ∈ bowenBall T n y r ∧ w - a < birkhoffSum T u n (P.ι i) ∧
       bowenBall T n y r ⊆ bowenBall T n (P.ι i) (2 * r) := by
-  have _ := And.intro hn hr
   obtain ⟨z, hz, hz'⟩ := exists_mem_bowenBall_lt_birkhoffSum T u n y r w hw ha
   have hopen : IsOpen (bowenBall T n y r ∩ {x | w - a < birkhoffSum T u n x}) :=
     (bowen_ball_dense_open T hT n y r).inter

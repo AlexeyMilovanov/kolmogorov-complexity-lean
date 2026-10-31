@@ -65,12 +65,9 @@ private lemma lowerContentLimit_inf_eq_nonneg (T : X → X) {Z : Set X}
 
 /-- On nonempty sets, lower entropy embeds as the zero-potential signed lower pressure.
 Blueprint node `pressure:entropy-nonnegative`. -/
-theorem entropy_eq_zeroPotentialPressure_of_nonempty (P : Presentation X) (T : X → X)
-    (hT : Continuous T) (Z : Set X) (hZ : Z.Nonempty) :
+theorem entropy_eq_zeroPotentialPressure_of_nonempty (T : X → X)
+    (Z : Set X) (hZ : Z.Nonempty) :
     (lowerEntropy T Z : EReal) = lowerPressure T (fun _ => 0) 0 Z := by
-  -- The public interface retains these assumptions; this identity needs only nonemptiness.
-  have _ := P
-  have _ := hT
   unfold lowerEntropy lowerPressure lowerPressureAt
   rw [EReal.coe_ennreal_iSup]
   apply iSup_congr

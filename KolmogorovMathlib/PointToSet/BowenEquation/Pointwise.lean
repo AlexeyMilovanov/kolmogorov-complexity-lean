@@ -67,6 +67,7 @@ variable (σ : LimitSide)
   (hfinite : σ.timeLimit (fun n => finiteScalePressureRate P T (fun _ => 0) A x n r) < ⊤)
 include hfinite
 
+omit hu in
 /-- The fixed-radius pressure has no other real zero.
 Blueprint node `bs:finite-scale-root`. -/
 theorem finiteScalePointwiseBowenEquation_unique (s : ℝ) :
@@ -76,13 +77,13 @@ theorem finiteScalePointwiseBowenEquation_unique (s : ℝ) :
   let f := fun s : ℝ ↦
     σ.timeLimit (fun n ↦ finiteScalePressureRate P T (fun y ↦ -s * u y) A x n r)
   have hd : f d = 0 :=
-    finiteScalePointwiseBowenEquation P T hT u hu a b ha A x r hr hbounds σ hfinite
+    finiteScalePointwiseBowenEquation P T hT u a b ha A x r hr hbounds σ hfinite
   change f s = 0 ↔ s = d
   constructor
   · intro hs
     rcases lt_trichotomy s d with h | h | h
     · have hle := (pointwisePressureSlopeBounds_time
-        P T hT u hu a b ha A x r hr hbounds σ s d h).2
+        P T u a b A x r hbounds σ s d h).2
       change f d ≤ f s - (((d - s) * a : ℝ) : EReal) at hle
       rw [hd, hs, zero_sub] at hle
       have hpos : (0 : EReal) < (((d - s) * a : ℝ) : EReal) :=
@@ -90,7 +91,7 @@ theorem finiteScalePointwiseBowenEquation_unique (s : ℝ) :
       exact False.elim ((EReal.neg_lt_zero.mpr hpos).not_ge hle)
     · exact h
     · have hle := (pointwisePressureSlopeBounds_time
-        P T hT u hu a b ha A x r hr hbounds σ d s h).2
+        P T u a b A x r hbounds σ d s h).2
       change f s ≤ f d - (((s - d) * a : ℝ) : EReal) at hle
       rw [hd, hs, zero_sub] at hle
       have hpos : (0 : EReal) < (((s - d) * a : ℝ) : EReal) :=
@@ -99,6 +100,7 @@ theorem finiteScalePointwiseBowenEquation_unique (s : ℝ) :
   · rintro rfl
     exact hd
 
+omit hu in
 /-- The pressure at every real parameter is trapped between the two slopes through its root.
 Blueprint node `bs:finite-scale-root`. -/
 theorem finiteScalePointwiseBowenEquation_sandwich (s : ℝ) :
@@ -111,13 +113,13 @@ theorem finiteScalePointwiseBowenEquation_sandwich (s : ℝ) :
   let F : ℝ → EReal := fun t ↦ σ.timeLimit (fun n ↦
     finiteScalePressureRate P T (fun y ↦ -t * u y) A x n r)
   have hd : F d = 0 :=
-    finiteScalePointwiseBowenEquation P T hT u hu a b ha A x r hr
+    finiteScalePointwiseBowenEquation P T hT u a b ha A x r hr
       hbounds σ hfinite
   change ((min (a * (d - s)) (b * (d - s)) : ℝ) : EReal) ≤ F s ∧
     F s ≤ ((max (a * (d - s)) (b * (d - s)) : ℝ) : EReal)
   rcases lt_trichotomy s d with hs | hs | hs
   · have H := pointwisePressureSlopeBounds_time
-      P T hT u hu a b ha A x r hr hbounds σ s d hs
+      P T u a b A x r hbounds σ s d hs
     change F s - (((d - s) * b : ℝ) : EReal) ≤ F d ∧
       F d ≤ F s - (((d - s) * a : ℝ) : EReal) at H
     rw [hd] at H
@@ -131,7 +133,7 @@ theorem finiteScalePointwiseBowenEquation_sandwich (s : ℝ) :
   · rw [hs, hd]
     simp
   · have H := pointwisePressureSlopeBounds_time
-      P T hT u hu a b ha A x r hr hbounds σ d s hs
+      P T u a b A x r hbounds σ d s hs
     change F d - (((s - d) * b : ℝ) : EReal) ≤ F s ∧
       F s ≤ F d - (((s - d) * a : ℝ) : EReal) at H
     rw [hd] at H
@@ -168,11 +170,11 @@ private lemma birkhoffAverage_toReal_bounds :
   rw [← hlower, ← hupper'] at hle
   exact EReal.coe_le_coe_iff.mp hle
 
+omit hT in
 /-- The time-limit slope bounds hold at all sufficiently small positive radii,
 with any positive slack smaller than the lower average. -/
-private lemma pressure_slope_bounds_small_radius
-    (σ : LimitSide) (s t η : ℝ) (hst : s < t) (hη : 0 < η)
-    (hηℓ : η < (lowerBirkhoffAverage T u x).toReal) :
+private lemma pressure_slope_bounds_small_radius (σ : LimitSide) (s t η : ℝ) (hst : s < t)
+    (hη : 0 < η) :
     let ℓ := (lowerBirkhoffAverage T u x).toReal
     let b := (upperBirkhoffAverage T u x).toReal
     ∃ r₀ : ℝ, 0 < r₀ ∧ ∀ r : ℝ, 0 < r → r ≤ r₀ →
@@ -181,14 +183,14 @@ private lemma pressure_slope_bounds_small_radius
       f s - ((t - s) * (b + η) : ℝ) ≤ f t ∧
         f t ≤ f s - ((t - s) * (ℓ - η) : ℝ) := by
   obtain ⟨hℓ, hℓb, hlower, hupper'⟩ := birkhoffAverage_toReal_bounds T u x hpos hupper
-  obtain ⟨r₀, hr₀, hbounds⟩ := birkhoffRealizerBounds P T hT u hu x
+  obtain ⟨r₀, hr₀, hbounds⟩ := birkhoffRealizerBounds P T u hu x
     (lowerBirkhoffAverage T u x).toReal (upperBirkhoffAverage T u x).toReal
-    hℓ hℓb hlower hupper' η hη
+    hlower hupper' η hη
   refine ⟨r₀, hr₀, fun r hr hrle ↦ ?_⟩
   obtain ⟨N, -, hN⟩ := hbounds r hr hrle
-  exact pointwisePressureSlopeBounds_time P T hT u hu
+  exact pointwisePressureSlopeBounds_time P T u
     ((lowerBirkhoffAverage T u x).toReal - η) ((upperBirkhoffAverage T u x).toReal + η)
-    (sub_pos.mpr hηℓ) A x r hr (eventually_atTop.mpr ⟨N, hN⟩) σ s t hst
+    A x r (eventually_atTop.mpr ⟨N, hN⟩) σ s t hst
 
 omit hT hu hpos hupper in
 /-- The time-limit pressure increases as the dyadic radius decreases. -/
@@ -208,6 +210,7 @@ lemma timeLimit_pressureRate_monotone_scale (σ : LimitSide) (v : ℝ) :
   · exact liminf_le_liminf (Eventually.of_forall hrate)
   · exact limsup_le_limsup (Eventually.of_forall hrate)
 
+omit hT in
 /-- At scale zero the lower and upper Birkhoff averages give the two affine slopes.
 Blueprint node `bs:affine-slope`. -/
 theorem pointwisePressureSlopeBounds_scale (σ : LimitSide) (s t : ℝ) (hst : s < t) :
@@ -226,7 +229,7 @@ theorem pointwisePressureSlopeBounds_scale (σ : LimitSide) (s t : ℝ) (hst : s
   apply sub_coe_sandwich_of_pos_slack hℓ
   intro η hη hηℓ
   obtain ⟨r₀, hr₀, hbounds⟩ :=
-    pressure_slope_bounds_small_radius P T hT u hu A x hpos hupper σ s t η hst hη hηℓ
+    pressure_slope_bounds_small_radius P T u hu A x hpos hupper σ s t η hst hη
   have hradius : ∀ᶠ p in atTop, dyadicRadius p ≤ r₀ := by
     have hzero : Tendsto dyadicRadius atTop (𝓝 0) :=
       tendsto_pow_atTop_nhds_zero_of_lt_one (by norm_num) (by norm_num)
@@ -241,6 +244,7 @@ theorem pointwisePressureSlopeBounds_scale (σ : LimitSide) (s t : ℝ) (hst : s
     le_of_tendsto_of_tendsto (hlimit t) (tendsto_sub_coe (hlimit s) tendsto_const_nhds)
       (hslopes.mono fun _ hp ↦ hp.2)⟩
 
+omit hT in
 /-- Positive lower and finite upper averages prevent pressure from being negative infinity. -/
 private lemma pointwisePressure_ne_bot
     (σ : LimitSide) (s : ℝ) :
@@ -250,7 +254,7 @@ private lemma pointwisePressure_ne_bot
   let ℓ := (lowerBirkhoffAverage T u x).toReal
   let b := (upperBirkhoffAverage T u x).toReal
   obtain ⟨r₀, hr₀, hrealizer⟩ :=
-    birkhoffRealizerBounds P T hT u hu x ℓ b hℓ hℓb hlower hupper'
+    birkhoffRealizerBounds P T u hu x ℓ b hlower hupper'
       (ℓ / 2) (half_pos hℓ)
   obtain ⟨p, hp⟩ : ∃ p : ℕ, dyadicRadius p ≤ r₀ := by
     obtain ⟨p, hp⟩ := exists_pow_lt_of_lt_one hr₀ (by norm_num : (2⁻¹ : ℝ) < 1)
@@ -297,6 +301,7 @@ private lemma pointwisePressure_ne_bot
         finiteScalePressureRate P T (fun y ↦ -s * u y) A x n (dyadicRadius q)) atTop
       exact (EReal.bot_lt_coe c).trans_le (le_iSup_of_le p hupp)
 
+omit hT in
 /-- Strict decrease is asserted only when the right-hand pressure is finite.
 Blueprint node `bs:affine-slope`. -/
 theorem pointwisePressureSlopeBounds_strict (σ : LimitSide) (s t : ℝ) (hst : s < t)
@@ -306,10 +311,10 @@ theorem pointwisePressureSlopeBounds_strict (σ : LimitSide) (s t : ℝ) (hst : 
   let ℓ := (lowerBirkhoffAverage T u x).toReal
   let f := fun v : ℝ ↦ σ.choose (pointwisePressure P T (fun y ↦ -v * u y) A x)
   have hℓ : 0 < ℓ := (birkhoffAverage_toReal_bounds T u x hpos hupper).1
-  have hbot : f s ≠ ⊥ := pointwisePressure_ne_bot P T hT u hu A x hpos hupper σ s
+  have hbot : f s ≠ ⊥ := pointwisePressure_ne_bot P T u hu A x hpos hupper σ s
   have hreal : ((f s).toReal : EReal) = f s := EReal.coe_toReal hfinite.ne hbot
   have hbound := (pointwisePressureSlopeBounds_scale
-    P T hT u hu A x hpos hupper σ s t hst).2
+    P T u hu A x hpos hupper σ s t hst).2
   change f t ≤ f s - (((t - s) * ℓ : ℝ) : EReal) at hbound
   change f t < f s
   rw [← hreal] at hbound ⊢
@@ -404,6 +409,7 @@ private lemma mul_iSup_timeLimit_le_of_eventually_le
     (htime'.trans (EReal.toENNReal_le_toENNReal
       (le_iSup (fun q ↦ σ.timeLimit (f q)) (max p p₀))))
 
+omit hT in
 /-- Finite relevant orbit complexity implies finite scale-zero pointwise BS dimension.
 Blueprint node `bs:pointwise-root`. -/
 theorem pointwiseBowenEquation_finite (σ : LimitSide)
@@ -413,7 +419,7 @@ theorem pointwiseBowenEquation_finite (σ : LimitSide)
   let b := (upperBirkhoffAverage T u x).toReal
   obtain ⟨hℓ, hℓb, hlow, hupp⟩ := birkhoffAverage_toReal_bounds T u x hpos hupper
   obtain ⟨r₀, hr₀, htail⟩ :=
-    birkhoffRealizerBounds P T hT u hu x ℓ b hℓ hℓb hlow hupp (ℓ / 2) (by positivity)
+    birkhoffRealizerBounds P T u hu x ℓ b hlow hupp (ℓ / 2) (by positivity)
   obtain ⟨p₀, hp₀⟩ : ∃ p₀ : ℕ, dyadicRadius p₀ ≤ r₀ := by
     obtain ⟨p₀, hp₀⟩ := exists_pow_lt_of_lt_one hr₀ (by norm_num : (2⁻¹ : ℝ) < 1)
     exact ⟨p₀, hp₀.le⟩

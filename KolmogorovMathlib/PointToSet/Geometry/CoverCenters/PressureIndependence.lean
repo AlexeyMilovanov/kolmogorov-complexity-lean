@@ -48,7 +48,7 @@ omit [SeparableSpace X] hT hf in
 /-- Relocating a radius-`r` Bowen cover of `E` gives a radius-`2 * r` Bowen cover of `E`
 whose centers all lie in `E`. -/
 private lemma isBowenCover_relocatedBowenCover (C :
-  BowenCoverFamily X) (r : ℝ) (N : ℕ) (hr : 0 < r)
+  BowenCoverFamily X) (r : ℝ) (N : ℕ)
     (hC : IsBowenCover T E r N C) :
     IsBowenCover T E (2 * r) N (relocatedBowenCover T E
       C r) ∧
@@ -77,7 +77,7 @@ private lemma isBowenCover_relocatedBowenCover (C :
       let j_sub : C.index := ⟨j.val, Classical.choose j.property⟩
       have h_j_eq : j' = j_sub := Subtype.ext rfl
       have h_subset := relocateCoverBall T E (C.order j_sub) (C.center j_sub) (Classical.choose
-        (Classical.choose_spec j.property)) r hr hz_prop
+        (Classical.choose_spec j.property)) r hz_prop
       have hx_ball : x ∈ bowenBall T (C.order j_sub) (C.center j_sub) r := by
         rw [← h_j_eq]
         exact hj'
@@ -91,7 +91,6 @@ omit [SeparableSpace X] hT hf in
 /-- Relocating a cover to radius `2 * r` costs at most the original cover with the exponent
 shifted by the potential variation. -/
 private lemma bowenCoverCost_relocatedBowenCover_le (C : BowenCoverFamily X) (t r : ℝ)
-    (hr : 0 < r)
     (hvar : potentialVariation f (2 * r) < ⊤) :
     bowenCoverCost T f .supremum t (2 * r)
       (relocatedBowenCover T E C r) ≤
@@ -111,7 +110,7 @@ private lemma bowenCoverCost_relocatedBowenCover_le (C : BowenCoverFamily X) (t 
       Classical.choose_spec (Classical.choose_spec j.property)
     have H := relocateCoverBall_pressure T f E (C.order ⟨j.val, Classical.choose j.property⟩)
       (C.center ⟨j.val, Classical.choose j.property⟩) (Classical.choose (Classical.choose_spec
-      j.property)) r hr hz hvar t
+      j.property)) r hz hvar t
     exact H
   let I_set : Set C.index := { j | (E ∩ bowenBall T (C.order j) (C.center j) r).Nonempty }
   have h2 : (∑' (j : I.index), (2 : ℝ≥0∞) ^ (-(t - (potentialVariation f (2 * r)).toReal) *
@@ -164,40 +163,35 @@ private lemma bowenCoverCost_relocatedBowenCover_le (C : BowenCoverFamily X) (t 
     _ = _ := h2
     _ ≤ _ := h3
 
+omit [SeparableSpace X] hT hf in
 /-- The lower cutoff-content sandwich uses the existing ambient sup-weight content.
 Blueprint node `geometry:pressure-centers`. -/
-theorem pressureIndependentOfCoverCenters_content (t r : ℝ) (hr : 0 < r)
-    (hvar : potentialVariation f (2 * r) < ⊤) (N : ℕ) (hN : 1 ≤ N) :
+theorem pressureIndependentOfCoverCenters_content (t r : ℝ)
+    (hvar : potentialVariation f (2 * r) < ⊤) (N : ℕ) :
     lowerContent T f .supremum E t (2 * r) N ≤
         lowerContentWithCenters .self T f E t (2 * r) N ∧
       lowerContentWithCenters .self T f E t (2 * r) N ≤
         lowerContent T f .supremum E (t - (potentialVariation f (2 * r)).toReal) r N := by
-  have _ := hT
-  have _ := hf
-  have _ := (inferInstance : SeparableSpace X)
-  have _ := hN
   constructor
   · apply lowerContent_supremum_le_self T f E t r N
   · unfold lowerContentWithCenters lowerContent
     refine le_iInf (fun C => le_iInf (fun hC => ?_))
     refine iInf_le_of_le (relocatedBowenCover T E C r) ?_
     have h3 := isBowenCover_relocatedBowenCover T E C r N
-      hr hC
+      hC
     refine iInf_le_of_le ⟨h3.1, h3.2⟩ ?_
-    apply bowenCoverCost_relocatedBowenCover_le T f E C t r hr hvar
+    apply bowenCoverCost_relocatedBowenCover_le T f E C t r hvar
 
+omit [SeparableSpace X] hT hf in
 /-- The fixed-order partition sandwich has the exponential finite-variation factor.
 Blueprint node `geometry:pressure-centers`. -/
-theorem pressureIndependentOfCoverCenters_partition (r : ℝ) (hr : 0 < r)
+theorem pressureIndependentOfCoverCenters_partition (r : ℝ)
     (hvar : potentialVariation f (2 * r) < ⊤) (n : ℕ) (hn : 1 ≤ n) :
     partitionSum T f .supremum E n (2 * r) ≤
         partitionSumWithCenters .self T f E n (2 * r) ∧
       partitionSumWithCenters .self T f E n (2 * r) ≤
         (2 : ℝ≥0∞) ^ ((n : ℝ) * (potentialVariation f (2 * r)).toReal) *
           partitionSum T f .supremum E n r := by
-  have _ := hT
-  have _ := hf
-  have _ := (inferInstance : SeparableSpace X)
   classical
   constructor
   · unfold partitionSum partitionSumWithCenters
@@ -232,7 +226,7 @@ theorem pressureIndependentOfCoverCenters_partition (r : ℝ) (hr : 0 < r)
         simpa only [Set.mem_iUnion, exists_prop] using hF.2 hx
       let i : I := ⟨⟨y, hy⟩, ⟨x, hx, hxy⟩⟩
       have hball : x ∈ bowenBall T n (z i) (2 * r) :=
-        relocateCoverBall T E n y (z i) r hr (hz i) hxy
+        relocateCoverBall T E n y (z i) r (hz i) hxy
       exact Set.mem_iUnion.mpr ⟨z i,
         Set.mem_iUnion.mpr ⟨Set.mem_range_self i, hball⟩⟩
     have hcost : partitionCoverCost T f .supremum G n (2 * r) ≤
@@ -250,7 +244,7 @@ theorem pressureIndependentOfCoverCenters_partition (r : ℝ) (hr : 0 < r)
         _ ≤ ∑' y : I, c * pressureBallWeight T f .supremum n y.val r := by
           apply ENNReal.tsum_le_tsum
           intro y
-          have h := relocateCoverBall_pressure T f E n y.val (z y) r hr (hz y) hvar 0
+          have h := relocateCoverBall_pressure T f E n y.val (z y) r (hz y) hvar 0
           simpa only [neg_zero, zero_mul, ENNReal.rpow_zero, one_mul, zero_sub,
             neg_neg, mul_comm (potentialVariation f (2 * r)).toReal (n : ℝ)] using h
         _ = c * ∑' y : I, pressureBallWeight T f .supremum n y.val r :=
@@ -263,21 +257,23 @@ theorem pressureIndependentOfCoverCenters_partition (r : ℝ) (hr : 0 < r)
     unfold partitionSumWithCenters
     exact iInf_le_of_le G (iInf_le_of_le ⟨hGcount, hGE, hGcover⟩ hcost)
 
+omit [SeparableSpace X] hT hf in
 /-- The ambient lower content limit is at most the self-centered one. -/
-private lemma lowerContentLimit_supremum_le_self (r : ℝ) (hr : 0 < r)
+private lemma lowerContentLimit_supremum_le_self (r : ℝ)
     (hvar : potentialVariation f (2 * r) < ⊤) (t : ℝ) :
     lowerContentLimit T f .supremum E t (2 * r) ≤
       lowerContentLimitWithCenters .self T f E t (2 * r) := by
-  have H := pressureIndependentOfCoverCenters_content T hT f hf E t r hr hvar
+  have H := pressureIndependentOfCoverCenters_content T f E t r hvar
   unfold lowerContentLimit lowerContentLimitWithCenters
   apply iSup_mono
   intro N
   apply iSup_mono
-  intro hN
-  exact (H N hN).1
+  intro _
+  exact (H N).1
 
+omit [SeparableSpace X] hT hf in
 /-- The ambient lower pressure at radius `2 * r` is at most the self-centered one. -/
-private lemma lowerPressureAt_supremum_le_self (r : ℝ) (hr : 0 < r)
+private lemma lowerPressureAt_supremum_le_self (r : ℝ)
     (hvar : potentialVariation f (2 * r) < ⊤) :
     lowerPressureAt T f .supremum E (2 * r) ≤
       lowerPressureAtWithCenters .self T f E (2 * r) := by
@@ -285,22 +281,23 @@ private lemma lowerPressureAt_supremum_le_self (r : ℝ) (hr : 0 < r)
   refine le_iInf (fun t => le_iInf (fun ht => ?_))
   have hz : lowerContentLimit T f .supremum E t (2 * r) = 0 := by
     have h := lowerContentLimit_supremum_le_self
-      T hT f hf E r hr hvar t
+      T f E r hvar t
     rw [ht] at h
     exact le_antisymm h bot_le
   exact iInf_le_of_le t (iInf_le _ hz)
 
+omit [SeparableSpace X] hT hf in
 /-- Lower critical pressures inherit the radius-doubled additive-error sandwich.
 Blueprint node `geometry:pressure-centers`. -/
-theorem pressureIndependentOfCoverCenters_lower (r : ℝ) (hr : 0 < r)
+theorem pressureIndependentOfCoverCenters_lower (r : ℝ)
     (hvar : potentialVariation f (2 * r) < ⊤) :
     lowerPressureAt T f .supremum E (2 * r) ≤
         lowerPressureAtWithCenters .self T f E (2 * r) ∧
       lowerPressureAtWithCenters .self T f E (2 * r) ≤
         lowerPressureAt T f .supremum E r +
           ((potentialVariation f (2 * r)).toReal : EReal) := by
-  exact ⟨lowerPressureAt_supremum_le_self T hT f hf E r hr hvar,
-    lowerPressureAt_self_le_add_variation T f E r hr hvar⟩
+  exact ⟨lowerPressureAt_supremum_le_self T f E r hvar,
+    lowerPressureAt_self_le_add_variation T f E r hvar⟩
 
 omit hT hf in
 /-- A finite exponential factor `2 ^ (n * C)` between two sequences becomes an additive
@@ -352,9 +349,10 @@ private lemma limsup_pressureRate_le_add_of_le_mul
     (f := atTop) (Or.inr (by simp)) (Or.inr (by simp))
   simpa only [Pi.add_def, limsup_const] using hlim
 
+omit [SeparableSpace X] hT hf in
 /-- Taking upper logarithmic rates gives the corresponding raw capacity sandwich.
 Blueprint node `geometry:pressure-centers`. -/
-theorem pressureIndependentOfCoverCenters_capacity (r : ℝ) (hr : 0 < r)
+theorem pressureIndependentOfCoverCenters_capacity (r : ℝ)
     (hvar : potentialVariation f (2 * r) < ⊤) :
     upperCapacity T f .supremum E (2 * r) ≤
         upperCapacityWithCenters .self T f E (2 * r) ∧
@@ -370,17 +368,18 @@ theorem pressureIndependentOfCoverCenters_capacity (r : ℝ) (hr : 0 < r)
         0 (fun n hn => by
           simpa using
             (pressureIndependentOfCoverCenters_partition
-              T hT f hf E r hr hvar n hn).1))
+              T f E r hvar n hn).1))
   · exact limsup_pressureRate_le_add_of_le_mul
       (fun n => partitionSumWithCenters .self T f E n (2 * r))
       (fun n => partitionSum T f .supremum E n r)
       (potentialVariation f (2 * r)).toReal
       (fun n hn => (pressureIndependentOfCoverCenters_partition
-        T hT f hf E r hr hvar n hn).2)
+        T f E r hvar n hn).2)
 
+omit [SeparableSpace X] hT hf in
 /-- The capacity comparison survives modification with self centers in each piece.
 Blueprint node `geometry:pressure-centers`. -/
-theorem pressureIndependentOfCoverCenters_modified (r : ℝ) (hr : 0 < r)
+theorem pressureIndependentOfCoverCenters_modified (r : ℝ)
     (hvar : potentialVariation f (2 * r) < ⊤) :
     modifiedUpperPressure T f .supremum E (2 * r) ≤
         modifiedUpperPressureWithCenters .self T f E (2 * r) ∧
@@ -404,7 +403,7 @@ theorem pressureIndependentOfCoverCenters_modified (r : ℝ) (hr : 0 < r)
     have H2 : upperCapacityWithCenters .ambient T f (Y j) (2 * r) = upperCapacity T f .supremum (Y
       j) (2 * r) := rfl
     rw [H2]
-    exact (pressureIndependentOfCoverCenters_capacity T hT f hf (Y j) r hr hvar).1
+    exact (pressureIndependentOfCoverCenters_capacity T f (Y j) r hvar).1
   · rw [← modifiedUpperPressureWithCenters_ambient T f E r]
     unfold modifiedUpperPressureWithCenters
     let c : ℝ := (potentialVariation f (2 * r)).toReal
@@ -424,7 +423,7 @@ theorem pressureIndependentOfCoverCenters_modified (r : ℝ) (hr : 0 < r)
     have H_cap : ∀ j, upperCapacityWithCenters .self T f (Y j) (2 * r) ≤ upperCapacityWithCenters
       .ambient T f (Y j) r + (c : EReal) := by
       intro j
-      have H3 := (pressureIndependentOfCoverCenters_capacity T hT f hf (Y j) r hr hvar).2
+      have H3 := (pressureIndependentOfCoverCenters_capacity T f (Y j) r hvar).2
       exact H3
     have H_sup : (⨆ j, upperCapacityWithCenters .self T f (Y j) (2 * r)) ≤ (⨆ j,
       upperCapacityWithCenters .ambient T f (Y j) r) + (c : EReal) := by
@@ -509,10 +508,10 @@ theorem pressureIndependentOfCoverCenters_limit (policy : CoverCenterPolicy) (σ
       cases σ with
       | lower =>
         simpa only [LimitSide.choose, two_mul, add_halves] using
-          pressureIndependentOfCoverCenters_lower T hT f hf E (r / 2) (half_pos hr') hv'
+          pressureIndependentOfCoverCenters_lower T f E (r / 2) hv'
       | upper =>
         simpa only [LimitSide.choose, two_mul, add_halves] using
-          pressureIndependentOfCoverCenters_modified T hT f hf E (r / 2) (half_pos hr') hv'
+          pressureIndependentOfCoverCenters_modified T f E (r / 2) hv'
     exact tendsto_of_tendsto_of_tendsto_of_le_of_le' hamb hadd
       (hbounds.mono fun _ h => h.1) (hbounds.mono fun _ h => h.2)
 
@@ -539,7 +538,7 @@ omit [SeparableSpace X] hT hf in
 /-- The fixed-order self-centered partition sum of `Y ∩ E` at radius `2 * r` is at most that
 of `Y` at radius `r` times the variation factor `2 ^ (n * ω)`. -/
 private lemma self_partitionSum_inter_le_mul
-    (r : ℝ) (hr : 0 < r) (hvar : potentialVariation f (2 * r) < ⊤) (Y : Set X) (n : ℕ) (hn : 1 ≤
+    (r : ℝ) (hvar : potentialVariation f (2 * r) < ⊤) (Y : Set X) (n : ℕ) (hn : 1 ≤
       n) :
     partitionSumWithCenters .self T f (Y ∩ E) n (2 * r) ≤
       (2 : ℝ≥0∞) ^ ((n : ℝ) * (potentialVariation f (2 * r)).toReal) *
@@ -573,7 +572,7 @@ private lemma self_partitionSum_inter_le_mul
       simpa only [Set.mem_iUnion, exists_prop] using hF.2.2 hx.1
     let i : I := ⟨⟨y, hy⟩, ⟨x, hx, hxy⟩⟩
     have hball : x ∈ bowenBall T n (z i) (2 * r) :=
-      relocateCoverBall T (Y ∩ E) n y (z i) r hr (hz i) hxy
+      relocateCoverBall T (Y ∩ E) n y (z i) r (hz i) hxy
     exact Set.mem_iUnion.mpr ⟨z i,
       Set.mem_iUnion.mpr ⟨Set.mem_range_self i, hball⟩⟩
   have hcost : partitionCoverCost T f .supremum G n (2 * r) ≤
@@ -590,7 +589,7 @@ private lemma self_partitionSum_inter_le_mul
       _ ≤ ∑' y : I, c * pressureBallWeight T f .supremum n y.val r := by
         apply ENNReal.tsum_le_tsum
         intro y
-        have h := relocateCoverBall_pressure T f (Y ∩ E) n y.val (z y) r hr (hz y) hvar 0
+        have h := relocateCoverBall_pressure T f (Y ∩ E) n y.val (z y) r (hz y) hvar 0
         simpa only [neg_zero, zero_mul, ENNReal.rpow_zero, one_mul, zero_sub,
           neg_neg, mul_comm (potentialVariation f (2 * r)).toReal (n : ℝ)] using h
       _ = c * ∑' y : I, pressureBallWeight T f .supremum n y.val r :=
@@ -605,8 +604,7 @@ private lemma self_partitionSum_inter_le_mul
 omit [SeparableSpace X] hT hf in
 /-- Intersecting a piece with `E` and relocating its self-centered covers doubles the radius
 at the cost of an additive potential-variation error in the self-centered upper capacity. -/
-private theorem self_upperCapacity_inter_le_add
-    (r : ℝ) (hr : 0 < r) (hvar : potentialVariation f (2 * r) < ⊤)
+private theorem self_upperCapacity_inter_le_add (r : ℝ) (hvar : potentialVariation f (2 * r) < ⊤)
     (Y : Set X) :
     upperCapacityWithCenters .self T f (Y ∩ E) (2 * r) ≤
       upperCapacityWithCenters .self T f Y r +
@@ -614,19 +612,19 @@ private theorem self_upperCapacity_inter_le_add
   unfold upperCapacityWithCenters
   apply limsup_pressureRate_le_add_of_le_mul
   intro n hn
-  exact self_partitionSum_inter_le_mul T f E r hr hvar Y n hn
+  exact self_partitionSum_inter_le_mul T f E r hvar Y n hn
 
 omit [SeparableSpace X] hT hf in
 /-- The additive error of `self_upperCapacity_inter_le_add` passes through the supremum over
 a sequence of pieces. -/
-private lemma iSup_self_upperCapacity_inter_le_add (r : ℝ) (hr : 0 < r)
+private lemma iSup_self_upperCapacity_inter_le_add (r : ℝ)
     (hvar : potentialVariation f (2 * r) < ⊤) (Y : ℕ → Set X) :
     (⨆ j, upperCapacityWithCenters .self T f (Y j ∩ E) (2 * r)) ≤
       (⨆ j, upperCapacityWithCenters .self T f (Y j) r) + ((potentialVariation f (2 * r)).toReal :
         EReal) := by
   let c : ℝ := (potentialVariation f (2 * r)).toReal
   have h1 : ∀ j, upperCapacityWithCenters .self T f (Y j ∩ E) (2 * r) ≤ upperCapacityWithCenters
-    .self T f (Y j) r + (c : EReal) := fun j => self_upperCapacity_inter_le_add T f E r hr
+    .self T f (Y j) r + (c : EReal) := fun j => self_upperCapacity_inter_le_add T f E r
     hvar (Y j)
   have h2 : ∀ j, upperCapacityWithCenters .self T f (Y j ∩ E) (2 * r) ≤ (⨆ j,
     upperCapacityWithCenters .self T f (Y j) r) + (c : EReal) := fun j => le_trans (h1 j)
@@ -638,7 +636,7 @@ omit [SeparableSpace X] hT hf in
 /-- The modified self-centered upper pressure at radius `2 * r` is at most the unrestricted
 one at radius `r` plus the potential variation: pieces of an unrestricted decomposition are
 intersected with `E`. -/
-private lemma modified_self_le_unrestricted_add (r : ℝ) (hr : 0 < r)
+private lemma modified_self_le_unrestricted_add (r : ℝ)
     (_hvar : potentialVariation f (2 * r) < ⊤) :
     modifiedUpperPressureWithCenters .self T f E (2 * r) ≤
       unrestrictedSelfUpperPressure T f E r + ((potentialVariation f (2 * r)).toReal : EReal) := by
@@ -668,28 +666,26 @@ private lemma modified_self_le_unrestricted_add (r : ℝ) (hr : 0 < r)
     exact le_trans H1 H2
   have H4_hyp : (⨆ j, upperCapacityWithCenters .self T f (Y j ∩ E) (2 * r)) ≤ (⨆ j,
     upperCapacityWithCenters .self T f (Y j) r) + ↑c :=
-      iSup_self_upperCapacity_inter_le_add T f E r hr _hvar Y
+      iSup_self_upperCapacity_inter_le_add T f E r _hvar Y
   have H4 : (⨆ j, upperCapacityWithCenters .self T f (Y j ∩ E) (2 * r)) - ↑c ≤ ⨆ j,
     upperCapacityWithCenters .self T f (Y j) r := by
     apply (EReal.sub_le_iff_le_add (Or.inl (EReal.coe_ne_bot c)) (Or.inl (EReal.coe_ne_top c))).mpr
     exact H4_hyp
   exact le_trans H3 H4
 
+omit [SeparableSpace X] hT hf in
 /-- Unrestricted self decompositions compare to restricted ones only after relocation.
 No same-radius monotonicity under intersection is assumed.
 Blueprint node `geometry:pressure-centers`. -/
-theorem pressureIndependentOfCoverCenters_unrestricted_sandwich (r : ℝ) (hr : 0 < r)
+theorem pressureIndependentOfCoverCenters_unrestricted_sandwich (r : ℝ)
     (hvar : potentialVariation f (2 * r) < ⊤) :
     unrestrictedSelfUpperPressure T f E r ≤ modifiedUpperPressureWithCenters .self T f E r ∧
       modifiedUpperPressureWithCenters .self T f E (2 * r) ≤
         unrestrictedSelfUpperPressure T f E r +
           ((potentialVariation f (2 * r)).toReal : EReal) := by
-  have _ := hT
-  have _ := hf
-  have _ := (inferInstance : SeparableSpace X)
   constructor
   · exact unrestrictedSelfUpperPressure_le_modified T f E r
-  · exact modified_self_le_unrestricted_add T f E r hr hvar
+  · exact modified_self_le_unrestricted_add T f E r hvar
 
 end Pressure
 end Kolmogorov.PointToSet

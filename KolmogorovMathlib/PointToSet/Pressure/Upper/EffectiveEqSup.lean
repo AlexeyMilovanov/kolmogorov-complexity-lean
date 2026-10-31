@@ -237,16 +237,12 @@ private lemma tsum_rpow_neg_lt_top_of_coded_mass
 
 /-- Exponential-rate slack gives finite total request mass after discarding an initial
 segment; early slices need not have finite mass. Blueprint node `pressure:net-tail`. -/
-theorem uniformNet_tail_weight_summable_mass (D : PressureData X) (A : Set ℕ)
-    (hA : IsAdmissible D.presentation D.T (fun _ : Fin 1 => D.φ) A) (Z : Set X)
-    (s : ℝ) (E : Set (ℕ × ℕ × ℕ × ℕ))
-    (hE : IsUniformPressureNet D.presentation D.T D.φ D.p₀ Z s E) (hRE : IsREIn A E)
+theorem uniformNet_tail_weight_summable_mass (D : PressureData X) (Z : Set X) (s : ℝ)
+    (E : Set (ℕ × ℕ × ℕ × ℕ)) (hE : IsUniformPressureNet D.presentation D.T D.φ D.p₀ Z s E)
     (t : ℚ) (hst : s < (t : ℝ)) (p : ℕ) (hp : D.p₀ ≤ p) (k : ℕ) :
     ∃ N₀ : ℕ, 1 ≤ N₀ ∧
       (∑' n : {n : ℕ | N₀ ≤ n}, (2 : ℝ≥0∞) ^ (-(t : ℝ) * n.val) *
         uniformPressureSum D.presentation D.T D.φ E n.val p k) < ⊤ := by
-  have _ := hA
-  have _ := hRE
   exact tsum_tail_rpow_mul_lt_top (fun n ↦ uniformPressureSum D.presentation D.T D.φ E n p k)
     s (t : ℝ) hst (hE.2.1 p hp k)
 
@@ -262,7 +258,7 @@ theorem uniformNet_tail_weight_summable (D : PressureData X) (A : Set ℕ)
       (oracleNatComplexity A i : ℝ) + birkhoffSum D.T D.φ n (D.presentation.ι i) ≤
         (t : ℝ) * n + c := by
   obtain ⟨N₀, hN₀, hmass⟩ :=
-    uniformNet_tail_weight_summable_mass D A hA Z s E hE hRE t hst p hp k
+    uniformNet_tail_weight_summable_mass D Z s E hE t hst p hp k
   let F : BitString → Prop := fun w ↦ ∃ i n : ℕ,
     w = pairCode (natBits i) (natBits n) ∧ N₀ ≤ n ∧ (i, n, p, k) ∈ E
   let g : BitString → ℝ := fun w ↦ (t : ℝ) * decodeBits (decodeSecond w) -
@@ -350,7 +346,7 @@ theorem effectiveUpperPressure_eq_iSup_pointwise (D : PressureData X) (A : Set �
     have h_q_lt : ⨆ x ∈ Z, (pointwisePressure D.presentation D.T D.φ A x).2 <
         ((q : ℝ) : EReal) :=
       hr'.1.trans (EReal.coe_lt_coe_iff.mpr hq1)
-    have hnet := upperThreshold_isUniformNet D A hA q
+    have hnet := upperThreshold_isUniformNet D A q
     have hnet_Z : IsUniformPressureNet D.presentation D.T D.φ D.p₀ Z (q : ℝ)
         (upperPressureThreshold D.presentation D.T D.φ D.p₀ A q) := by
       refine ⟨hnet.1, hnet.2.1, fun p hp x hx ↦ hnet.2.2 p hp x ?_⟩

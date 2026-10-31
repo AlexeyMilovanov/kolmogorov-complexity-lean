@@ -41,18 +41,15 @@ private lemma exists_cover_upperBSCapacityAt_lt
 
 /-- On a uniform positive-average piece, an exponent above capacity has partition sums
 tending to zero. -/
-private lemma bsPartitionSum_tendsto_zero_of_capacity_lt
-    (P : Presentation X) (T : X → X) (hT : Continuous T)
-    (u : X → ℝ) (hu : UniformContinuous u) (Z C : Set X)
-    (N₀ : ℕ) (hN₀ : 1 ≤ N₀) (ρ : ℚ) (hρ : 0 < ρ)
-    (hC : C ⊆ positiveAveragePiece T u Z N₀ ρ) (s r : ℝ) (hr : 0 < r)
+private lemma bsPartitionSum_tendsto_zero_of_capacity_lt (T : X → X) (u : X → ℝ) (Z C : Set X)
+    (N₀ : ℕ) (ρ : ℚ) (hρ : 0 < ρ) (hC : C ⊆ positiveAveragePiece T u Z N₀ ρ) (s r : ℝ)
     (hcap : upperBSCapacityAt T u C r < ENNReal.ofReal s) :
     Tendsto (bsPartitionSum T u C s r) atTop (𝓝 0) := by
   simp only [upperBSCapacityAt, iInf_lt_iff] at hcap
   obtain ⟨t, ht, hfinite, hts⟩ := hcap
   have htsReal : t < s := (ENNReal.ofReal_lt_ofReal_iff_of_nonneg ht).mp hts
-  exact upperCapacityPositiveRefinement_tendsto P T hT u hu Z C
-    N₀ hN₀ ρ hρ hC t s r ht htsReal hr hfinite
+  exact upperCapacityPositiveRefinement_tendsto T u Z C
+    N₀ ρ hρ hC t s r ht htsReal hfinite
 
 /-- A cover with finite Birkhoff suprema can be recentered at ideal points. Doubling the
 radius preserves coverage, and the center-weight mass increases by at most `2 ^ s`. -/
@@ -179,7 +176,7 @@ theorem upperBSUniformNetCharacterization (P : Presentation X) (T : X → X)
     · intro x hx
       obtain ⟨k, hk⟩ := Set.mem_iUnion.mp (hY hx)
       have hx' := hx
-      rw [positiveAverageExhaustion P T hT u hu Z hZ] at hx'
+      rw [positiveAverageExhaustion T u Z hZ] at hx'
       simp only [Set.mem_iUnion] at hx'
       obtain ⟨N, hN, ρ, hρ, hxpiece⟩ := hx'
       obtain ⟨j, hj⟩ := he ⟨k, ⟨N, hN⟩, ⟨ρ, hρ⟩⟩
@@ -189,9 +186,9 @@ theorem upperBSUniformNetCharacterization (P : Presentation X) (T : X → X)
       rw [hj]
       exact ⟨hk, hxpiece⟩
     · intro j
-      apply bsPartitionSum_tendsto_zero_of_capacity_lt P T hT u hu Z (C j)
-        (e j).2.1.1 (e j).2.1.2 (e j).2.2.1 (e j).2.2.2
-        Set.inter_subset_right s (dyadicRadius (q p)) (by unfold dyadicRadius; positivity)
+      apply bsPartitionSum_tendsto_zero_of_capacity_lt T u Z (C j)
+        (e j).2.1.1 (e j).2.2.1 (e j).2.2.2
+        Set.inter_subset_right s (dyadicRadius (q p))
       exact (upperBSDimension_mono_capacity T u (dyadicRadius (q p))
         Set.inter_subset_left).trans_lt (hcap (e j).1)
   choose C hC hdecay using hpieces
@@ -249,7 +246,7 @@ theorem upperBSUniformNetCharacterization_iInf (P : Presentation X) (T : X → X
     apply le_iInf; intro hs
     apply le_iInf; intro E
     apply le_iInf; intro hE
-    exact uniformNetBoundsUpperBS P T hT u hu Z s hs E hE
+    exact uniformNetBoundsUpperBS P T u Z s hs E hE
   · apply le_of_forall_gt_imp_ge_of_dense
     intro r hr
     by_cases hr_top : r = ⊤
@@ -516,15 +513,9 @@ private lemma isUniformBSNet_complexityNet
 
 /-- The Kraft net construction bounds effective upper dimension by the pointwise supremum.
 Blueprint node `bs:effective-upper-upper`. -/
-theorem effectiveUpperBSLeSup (P : Presentation X) (T : X → X) (hT : Continuous T)
-    (u : X → ℝ) (hu : UniformContinuous u) (A : Set ℕ)
-    (hA : IsAdmissible P T (fun _ : Fin 1 => u) A) (Z : Set X)
-    (hZ : ∀ x ∈ Z, 0 < lowerBirkhoffAverage T u x) :
+theorem effectiveUpperBSLeSup (P : Presentation X) (T : X → X) (hT : Continuous T) (u : X → ℝ)
+    (A : Set ℕ) (hA : IsAdmissible P T (fun _ : Fin 1 => u) A) (Z : Set X) :
     effectiveUpperBSDimension P T u A Z ≤ ⨆ x ∈ Z, (pointwiseBSDimension P T u A x).2 := by
-  -- These hypotheses are retained in the public interface; finite-scale costs already
-  -- restrict to positive denominators.
-  have _ := hu
-  have _ := hZ
   let RHS := ⨆ x ∈ Z, (pointwiseBSDimension P T u A x).2
   by_contra hcontra
   have hlt : RHS < effectiveUpperBSDimension P T u A Z := not_le.mp hcontra
