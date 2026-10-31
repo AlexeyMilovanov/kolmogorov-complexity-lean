@@ -182,7 +182,7 @@ private lemma exists_oracleNatComplexity_le_cost (D : PressureData X) (A : Set �
     intro i n
     simp only [g, decodeFirst_pairCode, decodeSecond_pairCode, natBits, decodeBits_natBits]
   have hmass := tsum_two_rpow_neg_cost_le_nullPressureMass D s E F (fun _ hw ↦ hw) g hgeval
-  obtain ⟨c, hc⟩ := oracle_coding_finite_mass A F (fun w ↦ g w.val) hF hg
+  obtain ⟨c, hc⟩ := oracle_coding_finite_mass A F (fun w ↦ g w.val) hg
     (nullPressureMass D.presentation D.T D.φ s E) hmass hE_mass
   obtain ⟨d, hd⟩ := oracle_tuple_bounds A
   refine ⟨c + d, fun t ht ↦ ?_⟩

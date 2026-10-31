@@ -370,15 +370,12 @@ private lemma shifted_cost_nonneg (t : ℝ) (b : ℕ)
 prefix complexity when its exponential mass has a finite real bound. The constant may
 depend on that bound, but is chosen before the output. Blueprint node `oracle:coding`. -/
 theorem oracle_coding_finite_mass (A : Set ℕ) (F : BitString → Prop)
-    (g : Subtype F → ℝ) (hF : IsREIn A F) (hg : IsUpperSemicomputableOnIn A F g)
+    (g : Subtype F → ℝ) (hg : IsUpperSemicomputableOnIn A F g)
     (M : ℝ≥0∞) (hM : (∑' w : Subtype F, (2 : ℝ≥0∞) ^ (-g w)) ≤ M)
     (hM_finite : M < ⊤) :
     ∃ c : ℕ, ∀ w : Subtype F, (oracleComplexity A w.val : ℝ) ≤ g w + c := by
   obtain ⟨b, hscale⟩ := exists_dyadic_scale M hM_finite
   let R : BitString × ℕ → Prop := fun p ↦ ∃ h : F p.1, g ⟨p.1, h⟩ + (b : ℝ) < (p.2 : ℝ)
-  -- the enumerable bounds of `hg` already capture the domain; `hF` belongs to the frozen
-  -- statement of this main theorem
-  have _ := hF
   have hR : IsREIn A R := cost_requests_isREIn A F g hg b
   obtain ⟨e, henum, hinj⟩ := relative_enumeration_injective A R hR
   have hmass : oracleRequestMass e ≤ 1 := by

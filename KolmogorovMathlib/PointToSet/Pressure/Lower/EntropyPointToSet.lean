@@ -372,7 +372,7 @@ private lemma exists_complexity_le_of_isUniformPressureNet (P : Presentation X) 
         rw [← ENNReal.tsum_mul_left]
         refine tsum_congr fun i ↦ ?_
         simp only [birkhoffSum, Finset.sum_const_zero, ENNReal.rpow_zero, mul_one]
-  obtain ⟨c, hc⟩ := oracle_coding_finite_mass A F (fun w ↦ g w.val) hF hg
+  obtain ⟨c, hc⟩ := oracle_coding_finite_mass A F (fun w ↦ g w.val) hg
     (∑' w : Subtype F, (2 : ℝ≥0∞) ^ (-g w.val)) le_rfl hcmass
   obtain ⟨d, hd⟩ := oracle_tuple_bounds A
   refine ⟨N₀, hN₀, (c : ℝ) + d, fun n hn i hi ↦ ?_⟩

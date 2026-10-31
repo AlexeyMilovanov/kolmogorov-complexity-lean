@@ -528,8 +528,8 @@ theorem pressureIndependentOfCoverCenters (policy : CoverCenterPolicy) (σ : Lim
 omit [SeparableSpace X] hT hf in
 /-- The unrestricted self-centered upper pressure is at most the modified one, since
 restricted decompositions are particular unrestricted ones. -/
-private lemma unrestrictedSelfUpperPressure_le_modified (T : X → X) (f : X → ℝ) (E : Set X) (r :
-  ℝ) (_hr : 0 < r) (_hvar : potentialVariation f (2 * r) < ⊤) :
+private lemma unrestrictedSelfUpperPressure_le_modified (T : X → X) (f : X → ℝ) (E : Set X)
+    (r : ℝ) :
     unrestrictedSelfUpperPressure T f E r ≤ modifiedUpperPressureWithCenters .self T f E r := by
   unfold unrestrictedSelfUpperPressure modifiedUpperPressureWithCenters
   refine le_iInf (fun Y => le_iInf (fun hY => ?_))
@@ -688,7 +688,7 @@ theorem pressureIndependentOfCoverCenters_unrestricted_sandwich (r : ℝ) (hr : 
   have _ := hf
   have _ := (inferInstance : SeparableSpace X)
   constructor
-  · exact unrestrictedSelfUpperPressure_le_modified T f E r hr hvar
+  · exact unrestrictedSelfUpperPressure_le_modified T f E r
   · exact modified_self_le_unrestricted_add T f E r hr hvar
 
 end Pressure

@@ -138,14 +138,13 @@ private lemma isUpperSemicomputableOnIn_ratCast_mul
 finite total mass to bit strings, where the relative coding theorem bounds the oracle
 complexity of the code by the cost plus a constant. -/
 private lemma exists_oracleComplexity_le_of_tsum_lt_top
-    {α : Type*} [Primcodable α] (A : Set ℕ) (D : α → Prop) (hD : IsREIn A D)
+    {α : Type*} [Primcodable α] (A : Set ℕ) (D : α → Prop)
     (v : α → ℝ) (hv : IsUpperSemicomputableOnIn A D (fun a ↦ v a.val))
     (hmass : (∑' a : Subtype D, (2 : ℝ≥0∞) ^ (-v a.val)) < ⊤)
     (code : α → BitString) (decode : BitString → α)
     (hcode : Computable code) (hleft : Function.LeftInverse decode code) :
     ∃ c : ℕ, ∀ a, D a → (oracleComplexity A (code a) : ℝ) ≤ v a + c := by
   let F : BitString → Prop := fun w ↦ ∃ a, D a ∧ code a = w
-  have hF : IsREIn A F := hD.image hcode
   let g : Subtype F → ℝ := fun w ↦ v (decode w.val)
   obtain ⟨U, hU, hUsound, hUclose⟩ := hv
   let V : BitString × ℚ → Prop := fun wq ↦
@@ -182,7 +181,7 @@ private lemma exists_oracleComplexity_le_of_tsum_lt_top
   have hgmass : (∑' w : Subtype F, (2 : ℝ≥0∞) ^ (-g w)) < ⊤ :=
     lt_of_le_of_lt (ENNReal.tsum_comp_le_tsum_of_injective hdecinj
       (fun a : Subtype D ↦ (2 : ℝ≥0∞) ^ (-v a.val))) hmass
-  obtain ⟨c, hc⟩ := oracle_coding_finite_mass A F g hF hg _ le_rfl hgmass
+  obtain ⟨c, hc⟩ := oracle_coding_finite_mass A F g hg _ le_rfl hgmass
   refine ⟨c, fun a ha ↦ ?_⟩
   have h := hc ⟨code a, ⟨a, ha, rfl⟩⟩
   simpa [g, hleft a] using h
@@ -240,7 +239,7 @@ private lemma exists_oracleNatComplexity_le_of_truncated_mass
     simp [code, decode, decodeFirst_pairCode, decodeSecond_pairCode, natBits,
       decodeBits_natBits]
   have hupper := isUpperSemicomputableOnIn_ratCast_mul A v hv D hD t ht
-  obtain ⟨c, hc⟩ := exists_oracleComplexity_le_of_tsum_lt_top A D hD
+  obtain ⟨c, hc⟩ := exists_oracleComplexity_le_of_tsum_lt_top A D
     (fun ni ↦ (t : ℝ) * v ni) hupper (by simpa only [neg_mul, D, v] using hmass)
     code decode hcode hleft
   obtain ⟨c', hc'⟩ := oracle_tuple_bounds A

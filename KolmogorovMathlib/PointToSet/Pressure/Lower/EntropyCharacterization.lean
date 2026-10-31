@@ -462,7 +462,7 @@ private lemma oracleNatComplexity_le_of_finiteMass_cover
           (fun z : E => (2 : ℝ≥0∞) ^ (-a * z.val.2.1))
       _ = nullPressureMass P T (fun _ => 0) a E := by
         simp only [nullPressureMass, birkhoffSum, Finset.sum_const_zero, add_zero]
-  obtain ⟨c, hc⟩ := oracle_coding_finite_mass A F (fun w => g w.val) hF hg
+  obtain ⟨c, hc⟩ := oracle_coding_finite_mass A F (fun w => g w.val) hg
     (nullPressureMass P T (fun _ => 0) a E) hbound hmass
   obtain ⟨d, hd⟩ := oracle_tuple_bounds A
   refine ⟨c + d, ?_⟩

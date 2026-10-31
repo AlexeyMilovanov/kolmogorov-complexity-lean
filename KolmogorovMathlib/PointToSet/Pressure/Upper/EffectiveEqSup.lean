@@ -277,7 +277,7 @@ theorem uniformNet_tail_weight_summable (D : PressureData X) (A : Set ℕ)
     simp only [g, decodeFirst_pairCode, decodeSecond_pairCode, natBits, decodeBits_natBits]
   have hcmass := tsum_rpow_neg_lt_top_of_coded_mass D E p k N₀ t F
     (fun _ hw ↦ hw) g hgeval hmass
-  obtain ⟨c, hc⟩ := oracle_coding_finite_mass A F (fun w ↦ g w.val) hF hg
+  obtain ⟨c, hc⟩ := oracle_coding_finite_mass A F (fun w ↦ g w.val) hg
     (∑' w : Subtype F, (2 : ℝ≥0∞) ^ (-g w.val)) le_rfl hcmass
   obtain ⟨d, hd⟩ := oracle_tuple_bounds A
   refine ⟨N₀, hN₀, (c : ℝ) + d, ?_⟩

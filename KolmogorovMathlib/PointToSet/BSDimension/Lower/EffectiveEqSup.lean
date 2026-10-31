@@ -115,14 +115,13 @@ effective injection `code : α → BitString` with a left inverse transports an 
 semicomputable cost with finite mass to bit strings, and the coding theorem then bounds the
 oracle complexity of the codes by the cost plus a constant. -/
 private lemma exists_oracleComplexity_code_le {α : Type*} [Primcodable α] {A : Set ℕ}
-    {D : α → Prop} (hD : IsREIn A D) {v : α → ℝ}
+    {D : α → Prop} {v : α → ℝ}
     (hv : IsUpperSemicomputableOnIn A D (fun a ↦ v a.val))
     (hmass : (∑' a : Subtype D, (2 : ℝ≥0∞) ^ (-v a.val)) < ⊤)
     {code : α → BitString} {decode : BitString → α}
     (hcode : Computable code) (hleft : Function.LeftInverse decode code) :
     ∃ c : ℕ, ∀ a, D a → (oracleComplexity A (code a) : ℝ) ≤ v a + c := by
   let F : BitString → Prop := fun w ↦ ∃ a, D a ∧ code a = w
-  have hF : IsREIn A F := hD.image hcode
   let g : Subtype F → ℝ := fun w ↦ v (decode w.val)
   obtain ⟨U, hU, hUsound, hUclose⟩ := hv
   have hV : IsREIn A (fun wq : BitString × ℚ ↦ ∃ aq : α × ℚ, U aq ∧ (code aq.1, aq.2) = wq) :=
@@ -150,7 +149,7 @@ private lemma exists_oracleComplexity_code_le {α : Type*} [Primcodable α] {A :
   have hgmass : (∑' w : Subtype F, (2 : ℝ≥0∞) ^ (-g w)) < ⊤ :=
     lt_of_le_of_lt (ENNReal.tsum_comp_le_tsum_of_injective hdecinj
       (fun a : Subtype D ↦ (2 : ℝ≥0∞) ^ (-v a.val))) hmass
-  obtain ⟨c, hc⟩ := oracle_coding_finite_mass A F g hF hg _ le_rfl hgmass
+  obtain ⟨c, hc⟩ := oracle_coding_finite_mass A F g hg _ le_rfl hgmass
   exact ⟨c, fun a ha ↦ by simpa [g, hleft a] using hc ⟨code a, ⟨a, ha, rfl⟩⟩⟩
 
 /-- Coding the finite-mass slice of an enumerable cover bounds the oracle complexity of the
@@ -189,7 +188,7 @@ private lemma exists_oracleNatComplexity_le (P : Presentation X) (T : X → X) (
       (fun w ↦ (decodeBits (decodeFirst w), decodeBits (decodeSecond w)))
       (fun a : ℕ × ℕ ↦ pairCode (natBits a.1) (natBits a.2)) := fun a ↦ by
     simp [decodeFirst_pairCode, decodeSecond_pairCode, natBits, decodeBits_natBits]
-  obtain ⟨c, hc⟩ := exists_oracleComplexity_code_le hD (v := fun a ↦ (t : ℝ) * v a)
+  obtain ⟨c, hc⟩ := exists_oracleComplexity_code_le (v := fun a ↦ (t : ℝ) * v a)
     (isUpperSemicomputableOnIn_ratMul hv hD t) hmass hcode hleft
   obtain ⟨cTuple, hTuple⟩ := oracle_tuple_bounds A
   refine ⟨c + cTuple, fun i n hi hn hpos ↦ ?_⟩
