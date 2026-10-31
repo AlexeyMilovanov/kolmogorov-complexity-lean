@@ -28,6 +28,12 @@ The development is based on Mathlib's computability infrastructure. Decompressor
   theorem that a decidable set polynomial-time reducible to the `K_U`-random strings for
   every optimal prefix machine `U` lies in `EXPSPACE` (resource-bounded machines, complexity
   classes and the game construction in `KolmogorovMathlib/RandomStrings/`).
+- **C-random strings:** the theorem of Milovanov, *Limit on the Computational Power
+  of C-Random Strings* (FOCS 2026), that some optimal plain decompressor `U` has a
+  cumulative complexity oracle and a set of `C_U`-random strings neither of which computes
+  the halting language in polynomial time
+  (`Kolmogorov.Milovanov.exists_optimal_native_halting_oracle_separation` in
+  `KolmogorovMathlib/RandomStrings/Plain/`).
 - **New strong-merging results:** the square-root merger of two strong sufficient
   statistics, its matching obstruction and the questions of survey Section 7.9.
 

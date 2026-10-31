@@ -141,6 +141,89 @@ is stated for a general family of oracle machines and a general complexity class
 record the truth-table and sub-adaptive variants with `PSPACE` and `EXP` as targets, under explicit
 evaluation hypotheses.
 
+`KolmogorovMathlib/RandomStrings/Plain/` formalizes the theorem of Alexey Milovanov, *Limit on the
+Computational Power of C-Random Strings* (FOCS 2026): some optimal plain decompressor `U` has a
+cumulative complexity oracle, and a set of `C_U`-random strings, that do not compute the halting
+language in polynomial time.  Here the cumulative oracle is the set of encoded pairs `(x, k)` with
+`C_U(x) ≤ k`, the random strings are those `x` with `|x| ≤ C_U(x)`, "compute in polynomial time"
+means membership in `RandomStrings.PolyTimeOracle` of the oracle (polynomial-time reducibility
+through one-tape oracle machines), and the halting language `HBin` is the set of canonical binary
+words `haltWord e y` such that the `e`-th partial recursive code halts on `y`.  Everything is
+explicit: the encoding of queries, the halting language and the optimality predicate are all
+defined in the library, and the decompressor `U` is a concrete, noncomputably chosen
+constructed machine, not an existential hypothesis.  The final statement is
+
+```lean
+theorem Kolmogorov.Milovanov.exists_optimal_native_halting_oracle_separation :
+    ∃ U : Map, isOptimalConditional U ∧
+      HBin ∉ RandomStrings.PolyTimeOracle (CumulativeOracle encF U) ∧
+      HBin ∉ RandomStrings.PolyTimeOracle (PlainRandomOracle U)
+```
+
+(`KolmogorovMathlib.RandomStrings.Plain.Target`), and it is obtained from the following statement
+about the constructed machine `nativeSeparatingMachine`, where `nativeOracle` selects the cumulative
+oracle for `NativeOracleFlag.cumulative` and the random strings for `NativeOracleFlag.random`
+(`KolmogorovMathlib.RandomStrings.Plain.Main`):
+
+```lean
+theorem Kolmogorov.Milovanov.native_halting_not_poly_time (flag : NativeOracleFlag) :
+    HBin ∉ PolyTimeOracle (nativeOracle flag nativeSeparatingMachine)
+```
+
+The other main theorems are `Kolmogorov.Milovanov.native_separating_machine_spec` (the machine is
+optimal and has the literal length bound `C_U(x) ≤ |x| + O(1)`),
+`Kolmogorov.Milovanov.native_halting_not_poly_time_cumulative` and
+`Kolmogorov.Milovanov.native_halting_not_poly_time_random` (the two instances of the previous
+theorem), `Kolmogorov.Milovanov.native_halting_oracle_separation_joint` (the joint statement for
+`nativeSeparatingMachine`), and in `Target` the two separate statements
+`Kolmogorov.Milovanov.exists_optimal_halting_not_poly_time_cumulative` and
+`Kolmogorov.Milovanov.exists_optimal_halting_not_poly_time_random`.  The proofs are complete and
+use no `sorry`: `exists_optimal_native_halting_oracle_separation` and `native_halting_not_poly_time`
+depend only on the axioms `propext`, `Classical.choice` and `Quot.sound`.  The paper-level proof
+structure, with the blueprint node of every declaration, is in
+[`docs/crs_random_strings_blueprint.md`](crs_random_strings_blueprint.md).
+
+The files of `KolmogorovMathlib/RandomStrings/Plain/` are, in dependency order:
+
+- `Basic.lean`: bounded plain complexity `Simple`, the cumulative and plain-random oracles, and
+  the fixed interpreter data.
+- `Encoding.lean`: self-delimiting binary codes for numbers, tuples and cumulative queries `encF`.
+- `HaltingLanguage.lean`: the binary halting language `HBin`.
+- `PrefixInterface.lean`: conditional prefix-complexity interfaces and decoder chains used to
+  compare plain and prefix complexity of the constructed machine.
+- `Enumeration.lean`, `Enumeration/`: one synchronized enumeration of plain and prefix
+  computations (`Schedule.lean`) and its correctness (`CanonicalSpec.lean`).
+- `Markers.lean`, `Markers/`: last-program markers of the enumeration, stage prefix complexity
+  and the bound on the tail after the marker.
+- `ExtensionDensity.lean`, `ExtensionDensity/`: counts of string extensions at exponential scales
+  (`Bounds.lean`), strict (`Density.lean`) and relaxed (`Relaxed.lean`) extension density.
+- `ExtensionPrice.lean`, `ExtensionPrice/`: two-scale extension prices from past counts and
+  future decoding (`PastFuture.lean`), two volume decompositions (`Decompositions.lean`) and the
+  square-root volume estimates (`SquareRoot.lean`).
+- `StructuralProxy.lean`, `StructuralProxy/`: towers of parameters, the finite crossing, the
+  bounded structural proxy (`Towers.lean`) and its symmetry properties (`Symmetry.lean`).
+- `FiniteGame.lean`, `FiniteGame/`: the finite counter game, its rules, the computability of
+  legal moves, determinacy with exchange of the two roles, and a computable bounded solver.
+- `Construction/State.lean`, `Construction/Actions.lean`: the finite state of the fighter family,
+  guarded allocations, buffered play and finite event closure.
+- `Construction/Referees.lean`, `Construction/Conditional.lean`: finite referees and admissible
+  levels, and the conditional machine with an arbitrary directive branch.
+- `Construction/Effective.lean`, `Construction/Effective/`: uniform effectiveness of the guarded
+  decompressor family: state machine, allocations, game transitions and live invariants.
+- `Construction/Accounting.lean`, `Construction/Accounting/`: phase counts, disjoint target
+  ranges, description capacity, dummy-string bookkeeping and uniform rank descriptions.
+- `Construction/Stability.lean`, `Construction/Stability/`: behaviour of the construction along
+  the true marker: the padding constant, funded requests, phase separation, legal play of the
+  opponent, closure buffers and the common winning game.
+- `Construction/Diagonal.lean`, `Construction/Diagonal/`: eventual agreement of the virtual and
+  the actual oracle, allocation provenance and the counting diagonal against polynomial time.
+- `Native/Adapters.lean`, `Native/Instances.lean`, `Native/Referees.lean`, `Native/Referees/`:
+  the two native oracle adapters, binary threshold instances, and the native counting referees
+  with the correct clocked deciders and their effective family.
+- `Main.lean`: the single constructed machine `nativeSeparatingMachine` and the proof of
+  `native_halting_not_poly_time`.
+- `Target.lean`: the final separation statements.
+
 The stopping-complexity part, `KolmogorovMathlib/StoppingComplexity/`, originates from the
 public `lean-4.28-stopping` branch. It formalizes randomized stopping machines, which read an
 input and fair random bits and may halt, the monotone stopping complexity `K_stop`
@@ -356,6 +439,7 @@ KolmogorovMathlib/
 │   ├── Upper/
 │   └── Lower/
 ├── RandomStrings/               # Resource-bounded reductions to random strings: oracle machines, complexity classes, the Allender–Friedman–Gasarch EXPSPACE theorem
+│   └── Plain/                   # Milovanov's theorem: an optimal plain decompressor whose C-random strings do not compute the halting language in polynomial time
 ├── Restricted/                  # Description families and restricted profiles from Section 6
 │   ├── FamilyCurve/             # Effective multiscale construction and general curve realization
 │   └── Examples/                # Cylinders, masks, and Hamming-ball families
