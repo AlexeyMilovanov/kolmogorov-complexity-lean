@@ -569,6 +569,59 @@ KolmogorovMathlib/
 
 The blueprint with the dependency graph of all nodes is [`docs/point_to_set_blueprint.md`](point_to_set_blueprint.md).
 
+## Prediction and MDL for Infinite Sequences
+
+`KolmogorovMathlib/MDLPrediction/` formalizes Alexey Milovanov's paper *Prediction and MDL for
+infinite sequences* ([Theory of Computing Systems, 2024](https://doi.org/10.1007/s00224-024-10180-0);
+[arXiv:2005.03467](https://arxiv.org/abs/2005.03467)), following a corrected blueprint
+([`docs/mdl_prediction_blueprint.md`](mdl_prediction_blueprint.md)). The setting is Cantor space
+with computable probability measures (`IsComputableMeasure`) as sources, a fixed optimal prefix
+decompressor `U`, and the complexity `computableMeasureComplexity U P` of a source, the least
+complexity of an index computing it. After observing a prefix `x`, the global predictor chooses a
+computable measure `Q` with `Q(x) > 0` minimizing the two-part score `3·K(Q) − log₂ Q(x)`
+(`score`, `IsGlobalWinner`) and predicts the next bit with the conditional probability
+`Q(xb) / Q(x)` (`predictor`). Minimizers need not be unique, so every theorem holds for every
+classical choice of them (`IsGlobalChoice`). The randomness deficiency of a path `w` is measured
+by the budget `PathBudget P w D`, i.e. `M(w₁…wₙ) ≤ 2^D · P(w₁…wₙ)` for all `n`, where `M` is the
+universal continuous semimeasure; a path is Martin-Löf random for `P` iff it has some budget
+(`random_iff_exists_budget`). All declarations are in the namespace `Kolmogorov.MDLPrediction`.
+
+### What is proved
+
+* **Theorem 4, merging.** `predictor_merges_on_random`: for every computable source `P` and
+  every `P`-Martin-Löf-random path, the predicted probability of the next bit converges to the
+  conditional probability of the source.
+* **Theorem 7, pathwise bound.** `pathwise_sq_bound`: there are constants `c` and `C > 0` such
+  that along every path with budget `D` the squared differences between predicted and true
+  conditional probabilities are summable, with sum at most
+  `C · (K(P) + D + 1) · 2^((3·K(P) + D + c)/2)`.
+* **Theorem 3, expected bound.** `expected_sq_bound`: the `P`-weighted sum over all prefixes of
+  the squared prediction error is finite and at most `C · (K(P) + 1) · 2^(3·K(P)/2)`.
+* **Corrected Theorems 9 and 10, effective classes.** For an effective class `A` of computable
+  measures closed under finite uniform mixtures (`EffectiveMixtureClass`), the class predictor
+  minimizes the score over the class, with the complexity of a member relative to the
+  enumeration of the class (`classScore`, `classComplexity`, `classPredictor`).
+  `class_pathwise_sq_polynomial` and `class_expected_sq_polynomial`: the pathwise and the
+  expected squared-error sums are bounded by a polynomial in `classComplexity U hU A P + D + 1`,
+  resp. `classComplexity U hU A P + 1`, whose constant and exponent depend only on the class.
+* **Counterexample to the uniform Lemma 5.** `uniformPrefixDropFalse`: there is no constant `C`
+  such that for every computable measure `Q` and all prefixes `s ⊑ h` of positive `Q`-mass the
+  deficiency at `h` is at least the deficiency at `s` minus `2·log₂(max 1 (deficiency at s)) + C`.
+  The printed proof of Theorem 9 uses such a uniform drop; the formal proof replaces it by the
+  complete-block domination argument of the blueprint, which codes whole blocks of the class
+  enumeration and charges each winner once.
+
+### Corrections to the printed paper
+
+Theorems 3, 4 and 7 are proved as stated, for proper computable measures as sources. The route
+to Theorems 9 and 10 is repaired: the measure-uniform prefix-deficiency drop (Lemma 5) is
+refuted, the dyadic bucketing and the deduplication of computable distributions in Lemma 4
+(which is not decidable) are replaced by an enumeration of indices and complete-block codes,
+the summation indices of Theorem 7 are corrected, and the pointwise mean of two measures used in
+the pairwise argument is constructed as a lower semicomputable continuous semimeasure rather
+than asserted to be a computable measure. Every correction is recorded in the blueprint map
+with the line numbers of the arXiv source.
+
 ## Project Layout
 
 ```text

@@ -41,6 +41,15 @@ The development is based on Mathlib's computability infrastructure. Decompressor
   to the printed claims that fail (`Kolmogorov.PointToSet.lowerPressure_pointToSet`,
   `bsPointToSet`, `dimensionTheorem` in `KolmogorovMathlib/PointToSet/`, built on the oracle
   prefix complexity of `KolmogorovMathlib/Oracle/`).
+- **Prediction and MDL for infinite sequences:** Milovanov's theorems (*Theory of Computing
+  Systems*, 2024) that the predictor which selects, at each observed prefix `x`, a computable
+  measure `Q` of minimal two-part score `3·K(Q) − log₂ Q(x)` merges with every computable
+  source on its random paths and has finite pathwise and expected squared-error sums, the
+  corrected polynomial bounds for effective classes closed under finite mixtures, and a
+  counterexample to the measure-uniform Lemma 5 of the printed proof
+  (`Kolmogorov.MDLPrediction.predictor_merges_on_random`, `pathwise_sq_bound`,
+  `expected_sq_bound`, `class_pathwise_sq_polynomial`, `class_expected_sq_polynomial`,
+  `uniformPrefixDropFalse` in `KolmogorovMathlib/MDLPrediction/`).
 - **New strong-merging results:** the square-root merger of two strong sufficient
   statistics, its matching obstruction and the questions of survey Section 7.9.
 

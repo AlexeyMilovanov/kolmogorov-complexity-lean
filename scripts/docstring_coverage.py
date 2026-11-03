@@ -43,6 +43,7 @@ COMPLETE = [
     'KolmogorovMathlib/MonotoneComplexity',
     'KolmogorovMathlib/Prefix',
     'KolmogorovMathlib/Oracle',
+    'KolmogorovMathlib/MDLPrediction',
     'KolmogorovMathlib/PointToSet',
     'KolmogorovMathlib/RandomStrings',
     'KolmogorovMathlib/Restricted',
