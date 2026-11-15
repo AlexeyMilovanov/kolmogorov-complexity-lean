@@ -37,6 +37,7 @@ COMPLETE = [
     'KolmogorovMathlib/Encoding',
     'KolmogorovMathlib/Entropy',
     'KolmogorovMathlib/Foundation',
+    'KolmogorovMathlib/InformationLogic',
     'KolmogorovMathlib/Interface',
     'KolmogorovMathlib/InformationInequalities',
     'KolmogorovMathlib/Multisource',

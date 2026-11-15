@@ -15,6 +15,16 @@ The development is based on Mathlib's computability infrastructure. Decompressor
 - **The SUV book:** selected results on plain, prefix and monotone complexity,
   algorithmic probability and randomness, Shannon entropy, information inequalities,
   common information and multisource information theory.
+- **SUV Chapters 6, 8, 9 and 13:** the general scheme for complexities (decision complexity
+  `KR`, description modes, conditions given by sets and oracles), applications of complexity
+  (crossing sequences, multihead automata, laws of large numbers, forbidden substrings, the
+  Lovász local lemma), frequency and game approaches to randomness (selection rules,
+  martingales, gales, change of measure) and the complexity of problems compared with
+  intuitionistic logic; every numbered item of these chapters except Problem 207 is
+  formalized, six of them only in part or in a weaker form, as the chapter notes
+  [`docs/suv_chapter_06.md`](docs/suv_chapter_06.md),
+  [`docs/suv_chapters_08_09.md`](docs/suv_chapters_08_09.md) and
+  [`docs/suv_chapter_13.md`](docs/suv_chapter_13.md) record.
 - **Algorithmic statistics:** finite-set and distribution models, stochasticity
   profiles, restricted descriptions and strong sufficient statistics, following
   the Vereshchagin-Shen survey.

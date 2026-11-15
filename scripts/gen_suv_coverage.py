@@ -126,6 +126,11 @@ def render() -> str:
         f'{existing} existing, {archived} archived, '
         f'{partly} partly archived.',
         '',
+        'For a few `proved` items of chapters 6, 8 and 9 the declaration covers',
+        'the item only in part or in a weaker form (Problems 197 (c), 203, 204,',
+        '210, 245 and 277); the deviation sections of `docs/suv_chapter_06.md`',
+        'and `docs/suv_chapters_08_09.md` say exactly what is proved.',
+        '',
         '| Book item | Status | Theorem | Module |',
         '| --- | --- | --- | --- |',
     ]

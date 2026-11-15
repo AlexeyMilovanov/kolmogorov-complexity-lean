@@ -307,6 +307,38 @@ the general realization theorem, while `prop_hamming_gap` proves an
 asymptotically linear separation between the unrestricted and restricted
 profiles.
 
+The general-scheme part, `KolmogorovMathlib/Complexity/GeneralScheme/`, formalizes Chapter 6 of
+Shen-Uspensky-Vereshchagin, on the unified description of `C`, `K`, `KM` and the decision
+complexity `KR`. Complexities are `ℕ∞`-valued, no decompressor is fixed, and every statement
+takes an optimal machine as a hypothesis; the declarations are in `Kolmogorov.GeneralScheme`.
+`Kolmogorov.GeneralScheme.exists_optimal_decisionDecompressor`
+(`KolmogorovMathlib.Complexity.GeneralScheme.DecisionBasic`, Problem 192) gives an optimal
+decision machine, `Kolmogorov.GeneralScheme.computable_iff_KROf_prefixes_bounded` (Theorem 127)
+characterizes computable sequences by bounded `KR` of the prefixes, and
+`Kolmogorov.GeneralScheme.exists_const_KMOf_le_KROf_add_log` bounds `KM` by `KR + O(log KR)`.
+`Kolmogorov.GeneralScheme.exists_isOptimalDescriptionMode`
+(`KolmogorovMathlib.Complexity.GeneralScheme.Comparing.RegularRelations`, Theorem 128) is the
+existence of an optimal decompressor for each of the four `α`-`β` description modes, which are
+identified with `C`, `K`, `KM` and `KR` (for `KR`,
+`Kolmogorov.GeneralScheme.exists_const_modeComplexity_eq_compat_KROf` in
+`KolmogorovMathlib.Complexity.GeneralScheme.Comparing.OptimalModes`); its conditional form is
+`Kolmogorov.GeneralScheme.exists_isOptimalCondDescriptionMode`
+(`KolmogorovMathlib.Complexity.GeneralScheme.Conditional`, Theorem 129), and
+`Kolmogorov.GeneralScheme.exists_isOptimalNumbering`
+(`KolmogorovMathlib.Complexity.GeneralScheme.Numberings`, Theorem 130) is Schnorr's optimal
+numbering. For conditions given by sets and by oracles,
+`Kolmogorov.GeneralScheme.exists_const_iInf_setCondK_atLeast_eq_plainK_jump`
+(`KolmogorovMathlib.Complexity.GeneralScheme.LargeConditionsPlain.PlainJumpLimit`, Theorem 131)
+and `Kolmogorov.GeneralScheme.exists_const_limsup_condK_eq_plainK_jump`
+(`KolmogorovMathlib.Complexity.GeneralScheme.LargeConditionsPlain.LimsupJump`, Theorem 132)
+express `C^{0'}(x)` as a limit of conditional complexities with large conditions,
+`Kolmogorov.GeneralScheme.exists_const_limsup_KP_eq_KP_jump`
+(`KolmogorovMathlib.Complexity.GeneralScheme.LargeConditionsPrefix`, Theorem 133) is the same
+for prefix complexity, and `Kolmogorov.GeneralScheme.exists_computable_lowerFreq_maximal`
+(`KolmogorovMathlib.Complexity.GeneralScheme.Frequencies.MaximalFrequency`) realizes a maximal
+`0'`-semimeasure as the lower frequencies of a computable sequence. The item-by-item map and the
+deviations from the printed statements are in `docs/suv_chapter_06.md`.
+
 The entropy part formalizes Chapter 7 of Shen-Uspensky-Vereshchagin, on Shannon entropy and
 its relation to Kolmogorov complexity. Codes over a finite alphabet come first:
 `Kolmogorov.Code.kraftSum_le_one_of_isUniquelyDecodable`
@@ -335,6 +367,60 @@ complexity of an i.i.d. word concentrates around `N H` at scale `sqrt N` (Theore
 Shannon's coding theorem is `Kolmogorov.exists_code_error_le_iff_exists_card_le` and
 `Kolmogorov.exists_const_code_error_le`
 (`KolmogorovMathlib.Entropy.Complexity.ShannonCoding.Basic`, Theorems 150 and 151).
+
+The applications part, `KolmogorovMathlib/Complexity/Applications/`, formalizes Chapter 8 of
+Shen-Uspensky-Vereshchagin: complexity arguments in prime numbers, Turing machines, finite
+automata, the laws of large numbers, combinatorics of forbidden substrings and subsequences, the
+Loomis-Whitney inequality and the Besicovitch distance; the declarations are in
+`Kolmogorov.Applications`. `Kolmogorov.Applications.rightComplexity_le`
+(`KolmogorovMathlib.Complexity.Applications.CrossingSequences.DuplicationLowerBound`,
+Theorem 152) bounds the complexity of the right part of a tape by the crossing sequences at a
+border, the basis of the quadratic lower bound for duplication on one-tape machines.
+`Kolmogorov.Applications.exists_language_isRecognizedBy_succ_not`
+(`KolmogorovMathlib.Complexity.Applications.MultiheadAutomata.HeadHierarchy`, Theorem 154) is
+the hierarchy of multihead automata: for every `k` some language is recognized with `k + 1`
+heads and not with `k`. For the combinatorial part,
+`Kolmogorov.Applications.exists_forall_substring_le_plainK`
+(`KolmogorovMathlib.Complexity.Applications.ComplexSubstrings.LevinLemma`, Theorem 158) gives,
+for every `α < 1`, an infinite sequence all of whose long substrings of length `n` have
+complexity at least `αn`, and
+`Kolmogorov.Applications.lovasz_local_lemma`
+(`KolmogorovMathlib.Complexity.Applications.LovaszLocalLemma`, Theorem 160) is the Lovász local
+lemma. `Kolmogorov.Applications.sq_sum_mul_mul_le`
+(`KolmogorovMathlib.Complexity.Applications.LoomisWhitney`, Theorem 164) is the Loomis-Whitney
+inequality in its Cauchy-Schwarz form, and
+`Kolmogorov.Applications.not_isBesicovitchTransitive_of_isCantorLipschitz`
+(`KolmogorovMathlib.Complexity.Applications.LipschitzBesicovitch`, Theorem 165) shows that a
+Lipschitz map of Cantor space cannot be transitive for the Besicovitch distance. The item-by-item
+map and the deviations from the printed statements are in `docs/suv_chapters_08_09.md`.
+
+The frequency-and-games part, `KolmogorovMathlib/AlgorithmicRandomness/FrequencyGames/`,
+formalizes Chapter 9 of Shen-Uspensky-Vereshchagin, on randomness defined by selection rules and
+by betting strategies; the declarations are in `Kolmogorov.FrequencyGames`.
+`Kolmogorov.FrequencyGames.isMisesChurchRandom_of_isMartinLofRandom`
+(`KolmogorovMathlib.AlgorithmicRandomness.FrequencyGames.MisesChurch.Defs`, Theorem 167) shows
+that Martin-Löf random sequences are Mises-Church random, and
+`Kolmogorov.FrequencyGames.exists_isMisesChurchRandom_not_isMartinLofRandom`
+(`KolmogorovMathlib.AlgorithmicRandomness.FrequencyGames.VilleExample.EffectivelyNullSet`,
+Theorem 174) shows that the converse fails. For martingales,
+`Kolmogorov.FrequencyGames.exists_lsc_stronglyWins_of_isEffectivelyNull`
+(`KolmogorovMathlib.AlgorithmicRandomness.FrequencyGames.LowerSemicomputable.Theorem181`,
+Theorem 181) gives a lower semicomputable martingale that strongly wins on every effectively null
+set, and `Kolmogorov.FrequencyGames.effectiveHausdorffDim_eq_sInf_gale`
+(`KolmogorovMathlib.AlgorithmicRandomness.FrequencyGames.Gales.EffectiveDimensionViaGales`,
+Theorem 187) expresses the effective Hausdorff dimension through gales. For the change of
+measure, `Kolmogorov.FrequencyGames.isMartinLofRandom_iff_of_summable`
+(`KolmogorovMathlib.AlgorithmicRandomness.FrequencyGames.ChangeOfMeasure.SeparatedCriterion`,
+Theorem 196) shows that two separated computable product measures whose parameters differ by a
+square-summable sequence have the same Martin-Löf random sequences, and
+`Kolmogorov.FrequencyGames.isMisesKLRandomAt_of_isMartinLofRandom`
+(`KolmogorovMathlib.AlgorithmicRandomness.FrequencyGames.ChangeOfMeasure.KLRandomness`,
+Theorem 202) shows that Martin-Löf random sequences are random for non-monotone
+Kolmogorov-Loveland selection rules. Whether Kolmogorov-Loveland randomness coincides with
+Martin-Löf randomness is open; it is only named, as the proposition
+`Kolmogorov.FrequencyGames.KLRandomnessEqualsMartinLofQuestion`, and nothing asserts it. The
+item-by-item map and the deviations from the printed statements are in
+`docs/suv_chapters_08_09.md`.
 
 The information-inequalities part formalizes Chapter 10 of Shen-Uspensky-Vereshchagin: linear
 inequalities for entropies, complexities, sizes of finite sets, subgroups and subspaces.
@@ -392,6 +478,33 @@ minimal sufficient statistics, `Kolmogorov.exists_pair_with_minimal_profile`
 (`KolmogorovMathlib.Multisource.MinimalSufficientStatistics`, Theorem 237) shows that the
 profile of a pair is not determined by the complexities of its components.
 
+The information-and-logic part, `KolmogorovMathlib/InformationLogic/`, formalizes Chapter 13 of
+Shen-Uspensky-Vereshchagin: the complexity of a mass problem `X` is `C(X) = min {C(x) | x ∈ X}`,
+and the operations `∧`, `∨`, `→` on problems are compared with intuitionistic propositional
+logic. Every theorem holds for an arbitrary admissible `ProblemCalculus`, a pairing and a Gödel
+language; the declarations are in `Kolmogorov.InformationLogic`.
+`Kolmogorov.InformationLogic.exists_finite_sets_le_mul_problemK_eval`
+(`KolmogorovMathlib.InformationLogic.MedvedevReduction`, Theorem 238) is Chernov's theorem: a
+formula that is not provable intuitionistically has complexity at least `εn` on suitable finite
+sets of strings of length at most `n`.
+`Kolmogorov.InformationLogic.problemK_peirce_singleton_le_log`
+(`KolmogorovMathlib.InformationLogic.SingletonFormulas.PeirceLogBound`, Theorem 239) shows that
+Peirce's law, which is not provable intuitionistically, has complexity only `O(log n)` on
+singletons, so Theorem 238 needs sets of strings and not single strings.
+`Kolmogorov.InformationLogic.condK_others_le_problemK_criticalData`
+(`KolmogorovMathlib.InformationLogic.DiagonalLowerBounds.CriticalImplications`, Theorem 244)
+is the lower bound for the complexity of critical implications behind Theorem 238, and
+`Kolmogorov.InformationLogic.exists_problems_problemK_eval_ge`
+(`KolmogorovMathlib.InformationLogic.KripkeComplexity`, Theorem 246) is Muchnik's companion
+statement with problems of complexity `O(n)`, obtained from finite Kripke countermodels. Finally
+`Kolmogorov.InformationLogic.exists_quadruples_profileClose_problemK_quad_gap`
+(`KolmogorovMathlib.InformationLogic.NonTupleLemmas.QuadrupleGap`, Theorem 247) gives two
+quadruples of strings whose strings, pairs, triples and quadruples have complexities equal up to
+`O(log n)`, while the complexity of `(a → c) ∧ (b → d)` differs by a linear amount; the proof
+uses the incidence bound `Kolmogorov.InformationLogic.incidence_pairs_card_sq_le` over finite
+fields. The item-by-item map and the deviations from the printed statements are in
+`docs/suv_chapter_13.md`.
+
 `KolmogorovCounterexamples` is a second, independent library root: it holds machine-checked
 refutations of readings of the source material that turned out to be false, and nothing in
 `KolmogorovMathlib` depends on a refuted notion. `Kolmogorov.AdmissibleCurve_unsatisfiable`
@@ -405,7 +518,7 @@ for computable measures becomes false; and
 `Kolmogorov.levin_information_conservation`.
 
 Which theorem covers which item of the book is tabulated in `docs/SUV_COVERAGE.md`, generated
-from the tree: of 342 items, 305 are proved here, 5 were already available, 30 are archived
+from the tree: of 486 items, 449 are proved here, 5 were already available, 30 are archived
 with their statements preserved in `docs/ARCHIVED_TARGETS.md`, and 2 are partly archived.
 
 ## Point-to-Set Principles in Dynamical Systems
@@ -691,7 +804,10 @@ KolmogorovMathlib/
 │                                #   fixed-point-free functions and Arslanov's criterion, r-separability
 ├── Core/                        # Partial decompressors, plain complexity, universal decompressor, invariance
 ├── Complexity/                  # Bounds, incompressibility, uncomputability, incompleteness interfaces,
-│                                #   enumerable families, canonical objects, pairs, information, the busy beaver
+│   │                            #   enumerable families, canonical objects, pairs, information, the busy beaver
+│   ├── GeneralScheme/           # Chapter 6: decision complexity, description modes, oracles
+│   └── Applications/            # Chapter 8: tape machines, automata, forbidden substrings
+├── InformationLogic/            # Chapter 13: complexity of problems, intuitionistic logic
 ├── Encoding/                    # Codes for tuples and lists of bit strings
 ├── Entropy/                     # Shannon entropy of finite random variables, codes over a finite
 │                                #   alphabet, and the entropy side of Chapter 7
@@ -704,6 +820,7 @@ KolmogorovMathlib/
 │                                #   Levin-Schnorr, Omega and Solovay functions, effective dimension
 ├── AlgorithmicProbability/      # Semimeasures, mixtures, domination, universal semimeasures, coding tools
 ├── AlgorithmicRandomness/       # Martin-Löf randomness and lower-semicomputable characterisations
+│   └── FrequencyGames/          # Chapter 9: selection rules, martingales, gales, change of measure
 ├── AlgorithmicStatistics/       # Stochasticity, deficiencies, models, non-stochasticity, two-part profiles
 │   ├── TwoPart/                 # Descriptions, gap counting, profiles, curve realization, paper-facing theorems
 │   ├── BoundedLists/            # Lists of strings of bounded complexity, Section 4 of the survey
@@ -733,7 +850,9 @@ KolmogorovCounterexamples/       # Refutations of superseded readings of the sou
 └── Deprecated/                  # `@[deprecated] alias`es for the old names of that library
 ```
 
-There is no directory organised by book chapter: a proved exercise is a
+Apart from `Complexity/GeneralScheme/`, `Complexity/Applications/`,
+`AlgorithmicRandomness/FrequencyGames/` and `InformationLogic/`, which hold Chapters 6, 8, 9
+and 13 of the book, no directory is organised by book chapter: a proved exercise is a
 statement about its topic and lives with the rest of that topic.  The map from
 book items to declarations is `docs/SUV_COVERAGE.md`.
 
