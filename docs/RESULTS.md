@@ -517,9 +517,11 @@ for computable measures becomes false; and
 `-l + O(C(n))` in Problem 59, the book's own `-l + O(C(n) + C(l))` being proved as
 `Kolmogorov.levin_information_conservation`.
 
-Which theorem covers which item of the book is tabulated in `docs/SUV_COVERAGE.md`, generated
-from the tree: of 486 items, 449 are proved here, 5 were already available, 30 are archived
-with their statements preserved in `docs/ARCHIVED_TARGETS.md`, and 2 are partly archived.
+Essentially the whole book is formalized: 246 of its 261 numbered theorems and 275 of its 368
+problems are proved in full.  `docs/SUV_STATUS.md` counts the items by chapter and lists the
+rest (proved in part, archived with their statements in `docs/ARCHIVED_TARGETS.md`, or not
+formalized), and `docs/SUV_COVERAGE.md`, generated from the tree, tabulates which declaration
+covers which item.
 
 ## Point-to-Set Principles in Dynamical Systems
 

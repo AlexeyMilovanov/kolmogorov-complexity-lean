@@ -15,12 +15,14 @@ archived` that one half of the item is proved (the declarations
 listed) and the other half is archived there.  `stated` means the
 item is formalised as a statement whose proof is still `sorry`.
 
-486 items: 449 proved, 0 stated, 5 existing, 30 archived, 2 partly archived.
+557 items: 520 proved, 0 stated, 5 existing, 30 archived, 2 partly archived.
 
 For a few `proved` items of chapters 6, 8 and 9 the declaration covers
 the item only in part or in a weaker form (Problems 197 (c), 203, 204,
 210, 245 and 277); the deviation sections of `docs/suv_chapter_06.md`
-and `docs/suv_chapters_08_09.md` say exactly what is proved.
+and `docs/suv_chapters_08_09.md` say exactly what is proved  The state of
+every numbered item of the book, including the items that are not
+formalized, is in `docs/SUV_STATUS.md`.
 
 | Book item | Status | Theorem | Module |
 | --- | --- | --- | --- |
@@ -510,3 +512,74 @@ and `docs/suv_chapters_08_09.md` say exactly what is proved.
 | Problem 342 | proved | `Kolmogorov.InformationLogic.problemK_quad_le_condK_add_condK`, `Kolmogorov.InformationLogic.problemK_quad_le_condK_add_plainK_left`, `Kolmogorov.InformationLogic.problemK_quad_le_condK_add_plainK_right`, `Kolmogorov.InformationLogic.condK_triple_le_problemK_quad_add_left`, `Kolmogorov.InformationLogic.condK_triple_le_problemK_quad_add_right` | `KolmogorovMathlib.InformationLogic.NonTupleComplexity` |
 | Problem 343 | proved | `Kolmogorov.InformationLogic.exists_quadruples_lowerBound342_add_le_upperBound342` | `KolmogorovMathlib.InformationLogic.NonTupleComplexity` |
 | Problem 344 | proved | `Kolmogorov.InformationLogic.exists_quadruples_profileClose_problemK_disjImp_gap` | `KolmogorovMathlib.InformationLogic.NonTupleLemmas.DisjunctiveImplication` |
+| Problem 289 | proved | `Kolmogorov.cover_iff_complexity_inequality` | `KolmogorovMathlib.InformationInequalities.Combinatorial.Cover` |
+| Problem 302 | proved | `Kolmogorov.exists_common_information_of_pairwiseCondInfoSum_eq_zero` | `KolmogorovMathlib.InformationInequalities.NonShannonTheorems` |
+| Problem 72 | proved | `Kolmogorov.exists_singleton_not_isEffectivelyNull_uniform` | `KolmogorovMathlib.AlgorithmicRandomness.EffectiveLaws` |
+| Problem 73 | proved | `isComputableReal_iff_exists_computable_lowerApprox` | `KolmogorovMathlib.AlgorithmicRandomness.EffectiveReal` |
+| Problem 75 | proved | `Kolmogorov.isComputableReal_exp_one`, `Kolmogorov.isComputableReal_pi` | `KolmogorovMathlib.AlgorithmicRandomness.EulerComputable`, `KolmogorovMathlib.AlgorithmicRandomness.PiComputable` |
+| Problem 81 | proved | `Kolmogorov.isMartinLofRandom_uniform_complement`, `Kolmogorov.isMartinLofRandom_uniform_complement_iff` | `KolmogorovMathlib.AlgorithmicRandomness.Complement` |
+| Problem 82 | proved | `Kolmogorov.isMartinLofRandom_uniform_selectSeq` | `KolmogorovMathlib.AlgorithmicRandomness.Subsequence` |
+| Problem 83 | proved | `Kolmogorov.isMartinLofRandom_bernoulli34_blockMap` | `KolmogorovMathlib.AlgorithmicRandomness.BlockMap` |
+| Problem 84 | proved | `Kolmogorov.exists_isMartinLofRandom_uniform_of_isMartinLofRandom_bernoulli34` | `KolmogorovMathlib.AlgorithmicRandomness.BlockMap` |
+| Problem 85 | proved | `Kolmogorov.exists_largest_effectivelyNullReal`, `Kolmogorov.problem_158_isMartinLofRandomReal_iff`, `Kolmogorov.isMartinLofRandomReal_iff_isMartinLofRandom_cantorReal` | `KolmogorovMathlib.MonotoneComplexity.Omega.Basic.Part01`, `KolmogorovMathlib.MonotoneComplexity.Omega.Exercises`, `KolmogorovMathlib.MonotoneComplexity.Omega.NullRealCantor` |
+| Problem 90 | proved | `Kolmogorov.FrequencyGames.not_isSchnorrRandom_iff_exists_series` | `KolmogorovMathlib.AlgorithmicRandomness.FrequencyGames.SchnorrKurtz.SchnorrSeries` |
+| Problem 92 | proved | `Kolmogorov.FrequencyGames.isBalanced_of_isSchnorrRandom`, `Kolmogorov.FrequencyGames.exists_isKurtzRandom_not_isBalanced` | `KolmogorovMathlib.AlgorithmicRandomness.FrequencyGames.SchnorrKurtz.RandomnessHierarchy` |
+| Problem 93 | proved | `Kolmogorov.deficiency_bounds_sharp` | `KolmogorovMathlib.AlgorithmicRandomness.DeficiencyComparison` |
+| Theorem 27 | proved | `Kolmogorov.strongLaw_bernoulli`, `Kolmogorov.strongLaw_uniform` | `KolmogorovMathlib.AlgorithmicRandomness.StrongLaw` |
+| Theorem 28 | proved | `Kolmogorov.exists_universal_martinLof_test`, `Kolmogorov.IsUniversalMartinLofTest` | `KolmogorovMathlib.AlgorithmicRandomness.MartinLof` |
+| Theorem 30 | proved | `Kolmogorov.isEffectivelyNull_setOf_computable` | `KolmogorovMathlib.AlgorithmicRandomness.MartinLof` |
+| Theorem 31 | proved | `Kolmogorov.not_isMartinLofRandom_iff_solovay_test`, `Kolmogorov.not_isMartinLofRandom_of_solovay_test` | `KolmogorovMathlib.AlgorithmicRandomness.MartinLof` |
+| Theorem 32 | proved | `Kolmogorov.isEffectivelyNull_notTendsto_freqOne`, `Kolmogorov.isEffectivelyNull_notTendsto_freqOne_bernoulli` | `KolmogorovMathlib.AlgorithmicRandomness.EffectiveSLLN`, `KolmogorovMathlib.AlgorithmicRandomness.EffectiveSLLNBernoulli` |
+| Theorem 33 | proved | `Kolmogorov.tendsto_freqOne_of_isMartinLofRandom_uniform` | `KolmogorovMathlib.AlgorithmicRandomness.EffectiveLaws` |
+| Theorem 34 | proved | `Kolmogorov.tendsto_freqOne_of_isMartinLofRandom_bernoulli'`, `Kolmogorov.tendsto_freqOne_of_isMartinLofRandom_bernoulli` | `KolmogorovMathlib.AlgorithmicRandomness.EffectiveSLLNBernoulli`, `KolmogorovMathlib.AlgorithmicRandomness.EffectiveLaws` |
+| Theorem 35 | proved | `Kolmogorov.isMartinLofRandom_uniform_of_isFiniteEdit`, `Kolmogorov.isMartinLofRandom_uniform_of_hasCommonTail`, `Kolmogorov.isMartinLofRandom_cons_of_isMartinLofRandom_uniform`, `Kolmogorov.isMartinLofRandom_tail_of_isMartinLofRandom_uniform` | `KolmogorovMathlib.AlgorithmicRandomness.FiniteEdits`, `KolmogorovMathlib.AlgorithmicRandomness.EffectiveLaws` |
+| Theorem 36 | proved | `Kolmogorov.not_isMartinLofRandom_of_reChar`, `Kolmogorov.not_isMartinLofRandom_of_re_char_seq` | `KolmogorovMathlib.AlgorithmicRandomness.REChar`, `KolmogorovMathlib.AlgorithmicRandomness.EffectiveLaws` |
+| Theorem 37 | proved | `Kolmogorov.exists_isMartinLofRandom_uniform_computableInJump` | `KolmogorovMathlib.AlgorithmicRandomness.JumpRandom` |
+| Theorem 38 | proved | `Kolmogorov.isEffectivelyNull_iff_exists_uniformlyEffectiveOpen_bound` | `KolmogorovMathlib.AlgorithmicRandomness.DeficiencyCore` |
+| Theorem 39 | proved | `Kolmogorov.exists_maximal_mlDeficiency`, `Kolmogorov.IsMaximalMLDeficiencyTest`, `Kolmogorov.mlDeficiency` | `KolmogorovMathlib.AlgorithmicRandomness.DeficiencyCore` |
+| Theorem 40 | proved | `Kolmogorov.lowerSemicomputableFun_characterizations` | `KolmogorovMathlib.AlgorithmicRandomness.LSCCharacterizations.Characterization` |
+| Theorem 41 | proved | `Kolmogorov.exists_maximal_probability_bounded_test` | `KolmogorovMathlib.AlgorithmicRandomness.ProbabilityBounded` |
+| Theorem 42 | proved | `Kolmogorov.exists_maximal_expectation_bounded_test`, `Kolmogorov.exists_maximal_lsc_integral_le_one` | `KolmogorovMathlib.AlgorithmicRandomness.ExpectationBounded`, `KolmogorovMathlib.AlgorithmicRandomness.ExpectationMixture` |
+| Theorem 43 | proved | `Kolmogorov.deficiency_bounds`, `Kolmogorov.deficiency_bounds_sharp` | `KolmogorovMathlib.AlgorithmicRandomness.DeficiencyComparison` |
+| Problem 67 | proved | `Kolmogorov.strongLaw_bernoulli` | `KolmogorovMathlib.AlgorithmicRandomness.StrongLaw` |
+| Problem 69 | proved | `Kolmogorov.isEffectivelyNull_iff_rational_bound`, `Kolmogorov.isEffectivelyNull_iff_strict_bound` | `KolmogorovMathlib.AlgorithmicRandomness.EffectiveOpenNormalForm` |
+| Problem 70 | proved | `Kolmogorov.isEffectivelyNull_iff_initial_segment`, `Kolmogorov.IsUniformlyInitialSegmentEnumeration` | `KolmogorovMathlib.AlgorithmicRandomness.EffectiveOpenNormalForm` |
+| Problem 71 | proved | `Kolmogorov.isEffectivelyNull_iff_decidable` | `KolmogorovMathlib.AlgorithmicRandomness.EffectiveOpenNormalForm` |
+| Theorem 56 | proved | `Kolmogorov.prefixComplexityWeight_le_universalSemimeasure`, `Kolmogorov.universalSemimeasure_equiv_prefixComplexity` | `KolmogorovMathlib.AlgorithmicProbability.UniversalSemimeasure` |
+| Theorem 57 | proved | `Kolmogorov.KPPlain_kraft_sum_le_one`, `Kolmogorov.prefixComplexityWeight_isSemimeasure` | `KolmogorovMathlib.Prefix.Properties.StableAliasesSUVTheorem`, `KolmogorovMathlib.AlgorithmicProbability.UniversalSemimeasure` |
+| Theorem 58 | proved | `Kolmogorov.lowerSemicomputableSemimeasure_le_prefixComplexityWeight`, `Kolmogorov.universalSemimeasure_equiv_prefixComplexity` | `KolmogorovMathlib.AlgorithmicProbability.UniversalSemimeasure` |
+| Theorem 60 | proved | `Kolmogorov.KPPair_le_KPPlain_add_KPPlain` | `KolmogorovMathlib.Prefix.Properties.Part01` |
+| Theorem 61 | proved | `Kolmogorov.KPPair_self_complexity_le`, `Kolmogorov.KPPlain_left_le_KPPair` | `KolmogorovMathlib.Prefix.Properties.StableAliasesSUVTheorem`, `KolmogorovMathlib.Prefix.Properties.Part01` |
+| Theorem 62 | proved | `Kolmogorov.KPPlain_le_iff_tsum_two_pow_neg_ne_top`, `Kolmogorov.KPPlain_le_of_tsum_two_pow_neg_ne_top`, `Kolmogorov.tsum_two_pow_neg_ne_top_of_KPPlain_le`, `Kolmogorov.isUpperSemicomputableNat_KPNat_toNat` | `KolmogorovMathlib.Prefix.UpperSemicomputableBound`, `KolmogorovMathlib.Solomonoff.Domination.KPNatUpper` |
+| Theorem 63 | proved | `Kolmogorov.KPPlain_le_length_add_KPPlain_length`, `Kolmogorov.card_KPPlain_lt_length_add_KPPlain_sub_le`, `Kolmogorov.sum_complexityWeight_stringsOfLength_le` | `KolmogorovMathlib.Prefix.Properties.StableAliasesSUVTheorem`, `KolmogorovMathlib.Prefix.CountingBound` |
+| Theorem 64 | proved | `Kolmogorov.card_KPPlain_le_upper_bound`, `Kolmogorov.card_KPPlain_le_lower_bound_faithful` | `KolmogorovMathlib.Prefix.TotalCountingBound` |
+| Theorem 65 | proved | `Kolmogorov.KPPlain_le_plainK_add_KPPlain_plainK` | `KolmogorovMathlib.Prefix.Properties.StableAliasesSUVTheorem` |
+| Theorem 66 | proved | `Kolmogorov.KPPair_le_KPPlain_add_KP`, `Kolmogorov.KPPair_chain_upper_weak` | `KolmogorovMathlib.Prefix.Properties.Part01`, `KolmogorovMathlib.Prefix.Symmetry` |
+| Theorem 67 | proved | `Kolmogorov.KPPair_symmetryOfInformation_staged`, `Kolmogorov.KPPair_chain_upper`, `Kolmogorov.KPPair_chain_lower`, `Kolmogorov.KPCondPair_symmetryOfInformation_staged` | `KolmogorovMathlib.Prefix.ConditionalSymmetry`, `KolmogorovMathlib.Prefix.Symmetry` |
+| Theorem 70 | proved | `Kolmogorov.prefix_basic_three_blocks`, `Kolmogorov.two_mul_KP_triple_le` | `KolmogorovMathlib.Complexity.Tuples.PrefixOneTerm`, `KolmogorovMathlib.Prefix.PairComplexity` |
+| Problem 103 | proved | `Kolmogorov.KPPair_le_KPPlain_add_KPPlain`, `Kolmogorov.blockingRead_iff_computable_prefixFree` | `KolmogorovMathlib.Prefix.Properties.Part01`, `KolmogorovMathlib.Prefix.BlockingReadMachines` |
+| Problem 167 | proved | `Kolmogorov.PointToSet.middleThirds_dimensions` | `KolmogorovMathlib.PointToSet.Examples.MiddleThirds` |
+| Problem 172 | proved | `Kolmogorov.PointToSet.middleThirds_dimensions` | `KolmogorovMathlib.PointToSet.Examples.MiddleThirds` |
+| Problem 186 | proved | `Kolmogorov.exists_isMartinLofRandom_preimage` | `KolmogorovMathlib.MonotoneComplexity.Dimension.ChangeOfMeasure.DigressionP183` |
+| Theorem 1 | proved | `Kolmogorov.exists_isOptimalConditional`, `Kolmogorov.isOptimalConditional` | `KolmogorovMathlib.Core.Invariance`, `KolmogorovMathlib.Core.Basic` |
+| Theorem 2 | proved | `Kolmogorov.plainK_le_length` | `KolmogorovMathlib.Complexity.Properties` |
+| Theorem 3 | proved | `Kolmogorov.InformationLogic.plainK_le_of_mem_partrec`, `Kolmogorov.plainK_map_le` | `KolmogorovMathlib.InformationLogic.Bridges`, `KolmogorovMathlib.Complexity.Properties` |
+| Theorem 4 | proved | `Kolmogorov.plainK_pair_le_add_two_log`, `Kolmogorov.plainK_append_le_pairPlainK` | `KolmogorovMathlib.Complexity.PairComplexity.Basic`, `KolmogorovMathlib.CommonInformation.Splitting` |
+| Theorem 5 | proved | `Kolmogorov.card_compressibleWordsLt`, `Kolmogorov.compressibleWords` | `KolmogorovMathlib.Complexity.Incompressibility` |
+| Theorem 17 | proved | `Kolmogorov.exists_isOptimalConditional` | `KolmogorovMathlib.Core.Invariance` |
+| Theorem 21 | proved | `Kolmogorov.tuple_chain_rule`, `Kolmogorov.condK_pairCode_symmetryOfInformation_values`, `Kolmogorov.plainK_pair_le_add_two_log_add_condK`, `Kolmogorov.plainK_add_condK_le_plainK_pair_add_three_log` | `KolmogorovMathlib.Complexity.Tuples.ChainRule`, `KolmogorovMathlib.CommonInformation.ConditionalIndependence.Part01`, `KolmogorovMathlib.Complexity.PairComplexity.ConditionalMinimality`, `KolmogorovMathlib.Complexity.ConditionalComplexity.Continuity` |
+| Theorem 22 | proved | `Kolmogorov.condK_pairCode_symmetryOfInformation_values`, `Kolmogorov.plainK_add_condK_le_plainK_pair_add_three_log`, `Kolmogorov.plainK_pair_le_add_two_log_add_condK` | `KolmogorovMathlib.CommonInformation.ConditionalIndependence.Part01`, `KolmogorovMathlib.Complexity.ConditionalComplexity.Continuity`, `KolmogorovMathlib.Complexity.PairComplexity.ConditionalMinimality` |
+| Theorem 23 | proved | `Kolmogorov.plainK_add_condK_symmetry`, `Kolmogorov.condK_pairCode_symmetryOfInformation_values` | `KolmogorovMathlib.AlgorithmicStatistics.StrongModels.PlainSymmetry`, `KolmogorovMathlib.CommonInformation.ConditionalIndependence.Part01` |
+| Theorem 24 | proved | `Kolmogorov.condK_pairCode_submodularity_values`, `Kolmogorov.StrongMerging.upperSubmodularity`, `Kolmogorov.holdsForEntropies_iff_holdsForComplexitiesCplx`, `Kolmogorov.holdsForEntropies_of_isShannonType`, `Kolmogorov.basicInequality` | `KolmogorovMathlib.CommonInformation.ConditionalIndependence.Part01`, `KolmogorovMathlib.StrongMerging.Coding.Chain`, `KolmogorovMathlib.InformationInequalities.Typization.Romashchenko`, `KolmogorovMathlib.InformationInequalities.Ingleton`, `KolmogorovMathlib.InformationInequalities.Basic` |
+| Theorem 25 | proved | `Kolmogorov.condK_pairCode_symmetryOfInformation_values`, `Kolmogorov.condK_pairCode_chain_upper_values`, `Kolmogorov.condK_pairCode_chain_lower_values` | `KolmogorovMathlib.CommonInformation.ConditionalIndependence.Part01` |
+| Problem 151 | proved | `Kolmogorov.plainK_prefix_le_length_sub_logb_infinitely_often`, `Kolmogorov.plainK_markedExpand_le` | `KolmogorovMathlib.MonotoneComplexity.PlainPrefixDips` |
+| Theorem 248 | proved | `Kolmogorov.first_nonstochastic_existence`, `Kolmogorov.KPPlain_uncovered_string`, `Kolmogorov.exists_partrec_uncovered_selector` | `KolmogorovMathlib.AlgorithmicStatistics.Selector` |
+| Theorem 253 | proved | `Kolmogorov.exists_string_with_profile`, `Kolmogorov.StandardMachine.realize_curve` | `KolmogorovMathlib.AlgorithmicStatistics.TwoPart.Realization.ProfileExistenceTail`, `KolmogorovMathlib.Interface.StandardMachine` |
+| Theorem 255 | proved | `Kolmogorov.improving_descriptions_both`, `Kolmogorov.improving_descriptions_complexity_thm`, `Kolmogorov.improving_descriptions_size_thm` | `KolmogorovMathlib.AlgorithmicStatistics.TwoPart.CurveRealization`, `KolmogorovMathlib.AlgorithmicStatistics.TwoPart.PaperTheorems` |
+| Theorem 256 | proved | `Kolmogorov.descriptionFamily_improves_i_of_high_condK`, `Kolmogorov.descriptionFamily_improves_j_of_high_condK`, `Kolmogorov.fullFamily`, `Kolmogorov.fullFamily_hasPolynomialOverhead`, `Kolmogorov.inDescriptionProfileIn_fullFamily_iff` | `KolmogorovMathlib.Restricted.MinimalRestrictedDescriptions`, `KolmogorovMathlib.Restricted.Family` |
+| Theorem 257 | proved | `Kolmogorov.prop_family_curve` | `KolmogorovMathlib.Restricted.FamilyCurve` |
+| Theorem 260 | proved | `Kolmogorov.randomness_optimality` | `KolmogorovMathlib.AlgorithmicStatistics.TwoPart.OptimalityDeficiency` |
+| Theorem 262 | proved | `Kolmogorov.prop_better_std`, `Kolmogorov.standard_description_simple_given_x` | `KolmogorovMathlib.AlgorithmicStatistics.BoundedLists.StandardBlock.PrefixEquiv`, `KolmogorovMathlib.AlgorithmicStatistics.BoundedLists.StandardBlock.Part02` |
+| Problem 356 | proved | `Kolmogorov.hamming_probabilistic_cover` | `KolmogorovMathlib.Restricted.Examples.HammingBalls.Part01` |
+| Problem 357 | proved | `Kolmogorov.hammingFamily`, `Kolmogorov.hammingFamily_hasPolynomialOverhead`, `Kolmogorov.hammingFamily_cover` | `KolmogorovMathlib.Restricted.Examples.HammingBalls.Part02` |
+| Problem 358 | proved | `Kolmogorov.prop_hamming_gap` | `KolmogorovMathlib.Restricted.HammingGap.HelperLemmasHammingVolume` |

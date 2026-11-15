@@ -12,19 +12,13 @@ The development is based on Mathlib's computability infrastructure. Decompressor
 
 ## What Is Formalized
 
-- **The SUV book:** selected results on plain, prefix and monotone complexity,
-  algorithmic probability and randomness, Shannon entropy, information inequalities,
-  common information and multisource information theory.
-- **SUV Chapters 6, 8, 9 and 13:** the general scheme for complexities (decision complexity
-  `KR`, description modes, conditions given by sets and oracles), applications of complexity
-  (crossing sequences, multihead automata, laws of large numbers, forbidden substrings, the
-  Lovász local lemma), frequency and game approaches to randomness (selection rules,
-  martingales, gales, change of measure) and the complexity of problems compared with
-  intuitionistic logic; every numbered item of these chapters except Problem 207 is
-  formalized, six of them only in part or in a weaker form, as the chapter notes
-  [`docs/suv_chapter_06.md`](docs/suv_chapter_06.md),
-  [`docs/suv_chapters_08_09.md`](docs/suv_chapters_08_09.md) and
-  [`docs/suv_chapter_13.md`](docs/suv_chapter_13.md) record.
+- **The SUV book:** essentially the whole book, Chapters 1-14: plain, conditional, prefix
+  and monotone complexity, a priori probability, Martin-Löf randomness, the general scheme
+  for complexities, Shannon entropy, applications of complexity, frequency and game
+  approaches to randomness, information inequalities, common information, multisource
+  information theory, information and logic, and algorithmic statistics. Nearly all numbered
+  theorems and most of the problems are formalized;
+  [`docs/SUV_STATUS.md`](docs/SUV_STATUS.md) gives the state of every item.
 - **Algorithmic statistics:** finite-set and distribution models, stochasticity
   profiles, restricted descriptions and strong sufficient statistics, following
   the Vereshchagin-Shen survey.
@@ -73,8 +67,9 @@ The development is based on Mathlib's computability infrastructure. Decompressor
   statistics, its matching obstruction and the questions of survey Section 7.9.
 
 The [detailed overview](docs/RESULTS.md) lists the main theorems and their modules.
-The [SUV coverage table](docs/SUV_COVERAGE.md) records exactly which book items
-are covered and which are not.
+The [SUV status](docs/SUV_STATUS.md) counts the book items by chapter and lists
+those that are not formalized in full; the [SUV coverage table](docs/SUV_COVERAGE.md)
+records which declaration covers which item.
 
 ## Build
 
