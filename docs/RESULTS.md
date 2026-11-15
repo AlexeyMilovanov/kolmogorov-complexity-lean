@@ -622,6 +622,67 @@ the pairwise argument is constructed as a lower semicomputable continuous semime
 than asserted to be a computable measure. Every correction is recorded in the blueprint map
 with the line numbers of the arXiv source.
 
+## Truth-Table Reductions to the Random Strings
+
+`KolmogorovMathlib/RandomStrings/TTMeet2014/` formalizes Theorem 4.1 of M. Cai, R. G. Downey,
+R. Epstein, S. Lempp and J. S. Miller, *Random strings and truth-table degrees of Turing complete
+c.e. sets* (Logical Methods in Computer Science 10(3:15), 2014;
+[arXiv:1408.5636](https://arxiv.org/abs/1408.5636)). The notes
+[`docs/random_strings_tt_meet_2014.md`](random_strings_tt_meet_2014.md) relate the statements to
+the paper and contain the source map, the module map and the deviations from the printed
+construction. The oracle of an optimal prefix machine `U` is
+`prefixRandom U = {x | |x| ≤ K_U(x)}` (with the threshold in `ℕ∞`), where `U` is optimal in the
+additive sense (`IsOptimalPrefixConditional`). `TTReducible X R` is classical unbounded
+truth-table reducibility: a total computable generator of finite truth tables that evaluate
+correctly on `R`; it is not the polynomial-time class `PolyTimeTT`. All declarations are in the
+namespace `Kolmogorov.RandomStrings.TTMeet`.
+
+### What is proved
+
+* **Theorem 4.1.** `theorem_4_1`: for every set `X` of bit strings that is not computable there
+  is an optimal prefix machine `U` with `¬ TTReducible X (prefixRandom U)`.
+  `theorem_4_1_unconditional` is the same statement for the paper's unconditional universal
+  machines (`IsUniversalMachine U`, oracle `randomOf U`). `ttMeet_iff_computable`: `X` is
+  tt-reducible to `prefixRandom U` for every optimal `U` iff `X` is computable; as in the paper,
+  the reduction may depend on `U`.
+* **Three machines.** `exists_three_machines`: if `X` is not computable and
+  `TTReducible X (prefixRandom V)` for an optimal `V`, there are three optimal machines `U j`
+  (`j : Fin 3`) such that no single computable table generator is a tt-reduction of `X` to all
+  three sets `prefixRandom (U j)`. `theorem_4_1` follows by Posner's trick (`posner_combine`),
+  which combines three per-oracle reductions of `X` into one.
+* **Lemma 4.3.** `lemma_4_3`: for a valid stage input `I` (the opponent's compressions and a
+  computable approximation of `X`, `I.Valid`, `Approximates I X`) and a noncomputable `X`, every
+  requirement `R_i` eventually stops acting and is satisfied (`StopsActing I i ∧ ReqSatisfied I X i`).
+  `no_common_reduction`: under the same hypotheses, no total computable table generator computes
+  `X` from all three final oracles `finalR I j` of the construction.
+* **Lemma 4.4.** `lemma_4_4`: on each of the three boards the strings compressed by the
+  construction cost at most `3/32`.
+* **Corollaries.** `computablePred_of_forall_polyTime`: a set polynomial-time (adaptively)
+  reducible to `prefixRandom U` for every optimal `U` is computable, through the inclusion of
+  `P^B` in tt (`ttReducible_of_polyTimeOracle`); no converse is claimed.
+  `mem_EXPSPACE_of_forall_polyTime` combines this with the Allender-Friedman-Gasarch theorem
+  above, so the decidability hypothesis of `dec_inter_polyTime_prefixRandom_subset_EXPSPACE` can
+  be dropped.
+
+The main theorems depend only on `propext`, `Classical.choice` and `Quot.sound`.
+
+### Deviations from the printed proof
+
+The optimal machines come from the library's exact realization
+`K_{U'} = min (K_V + 5, F + 3)`, so `theorem_4_1` provides an additively optimal `U`, not one of
+the syntactic form `U_j (000 σ) = V (σ)` used in the paper; the budgets are scaled accordingly
+(the opponent's total is `1/32` instead of `1/8`). The printed proof of Lemma 4.3, as read here, does not treat opponent
+moves between two examinations, when no game is in progress; such a move can change the agreed
+value on all three boards at once. `ParityExample.lean` machine-checks the game-theoretic core
+of this observation (`parity_forced`, `symmetric_value_flips`); a failure of the printed
+construction is only sketched in the notes and is not machine-checked, and this reading
+of the printed proof has not been confirmed with the authors. The formal construction
+remembers the agreed value with a base stage per board and plays the move of Case 3b at every
+visit (`examineTop`, `baseline_invariant`, `agreed_nested`). The accounting of Lemma 4.4 is
+repaired against double counting of an opponent move by lower-priority requirements
+(`pendingHit`, `charged_pairwise_disjoint`). Theorem 4.1 itself is proved for the repaired
+construction.
+
 ## Project Layout
 
 ```text
@@ -653,6 +714,7 @@ KolmogorovMathlib/
 │   ├── Upper/
 │   └── Lower/
 ├── RandomStrings/               # Resource-bounded reductions to random strings: oracle machines, complexity classes, the Allender–Friedman–Gasarch EXPSPACE theorem
+│   ├── TTMeet2014/              # Cai-Downey-Epstein-Lempp-Miller: the sets tt-reducible to the random strings of every optimal prefix machine are the computable sets
 │   └── Plain/                   # Milovanov's theorem: an optimal plain decompressor whose C-random strings do not compute the halting language in polynomial time
 ├── Oracle/                      # Oracle prefix machines, relative prefix complexity K^A, relative Kraft-Chaitin coding
 ├── PointToSet/                  # Point-to-set principles in dynamical systems: pressure, Barreira-Schmeling

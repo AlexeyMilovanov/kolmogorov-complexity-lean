@@ -50,6 +50,15 @@ The development is based on Mathlib's computability infrastructure. Decompressor
   (`Kolmogorov.MDLPrediction.predictor_merges_on_random`, `pathwise_sq_bound`,
   `expected_sq_bound`, `class_pathwise_sq_polynomial`, `class_expected_sq_polynomial`,
   `uniformPrefixDropFalse` in `KolmogorovMathlib/MDLPrediction/`).
+- **Truth-table reductions to the random strings:** the theorem of Cai, Downey, Epstein,
+  Lempp and Miller (*Logical Methods in Computer Science*, 2014, Theorem 4.1) that for every
+  noncomputable set `X` there is an optimal prefix machine `U` such that `X` is not
+  truth-table reducible to the set of `K_U`-random strings, so that the sets tt-reducible to
+  the random strings of every optimal prefix machine are exactly the computable sets; the
+  construction is modified where the printed proof of Lemma 4.3 appears to have a gap (a
+  reading not confirmed with the authors, see the notes)
+  (`Kolmogorov.RandomStrings.TTMeet.theorem_4_1`, `theorem_4_1_unconditional`,
+  `ttMeet_iff_computable` in `KolmogorovMathlib/RandomStrings/TTMeet2014/`).
 - **New strong-merging results:** the square-root merger of two strong sufficient
   statistics, its matching obstruction and the questions of survey Section 7.9.
 
