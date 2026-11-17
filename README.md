@@ -41,8 +41,7 @@ The development is based on Mathlib's computability infrastructure. Decompressor
 - **Point-to-set principles in dynamical systems:** Dinowitz's characterizations of
   topological pressure, Barreira-Schmeling dimension and, for conformal systems, Hausdorff
   and packing dimension as minima over oracles of suprema of pointwise Kolmogorov-complexity
-  quantities, and the Bowen equations, following a corrected blueprint with counterexamples
-  to the printed claims that fail (`Kolmogorov.PointToSet.lowerPressure_pointToSet`,
+  quantities, and the Bowen equations (`Kolmogorov.PointToSet.lowerPressure_pointToSet`,
   `bsPointToSet`, `dimensionTheorem` in `KolmogorovMathlib/PointToSet/`, built on the oracle
   prefix complexity of `KolmogorovMathlib/Oracle/`).
 - **Prediction and MDL for infinite sequences:** Milovanov's theorems (*Theory of Computing
