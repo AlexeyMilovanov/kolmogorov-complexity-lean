@@ -62,6 +62,9 @@ The development is based on Mathlib's computability infrastructure. Decompressor
   reading not confirmed with the authors, see the notes)
   (`Kolmogorov.RandomStrings.TTMeet.theorem_4_1`, `theorem_4_1_unconditional`,
   `ttMeet_iff_computable` in `KolmogorovMathlib/RandomStrings/TTMeet2014/`).
+- **Stability under relativization:** the results of An. A. Muchnik and A. E. Romashchenko,
+  *Stability of properties of Kolmogorov complexity under relativization* (*Problems of
+  Information Transmission* 46(1), 2010), in `KolmogorovMathlib/Relativization/`.
 - **New strong-merging results:** the square-root merger of two strong sufficient
   statistics, its matching obstruction and the questions of survey Section 7.9.
 

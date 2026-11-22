@@ -47,6 +47,7 @@ COMPLETE = [
     'KolmogorovMathlib/MDLPrediction',
     'KolmogorovMathlib/PointToSet',
     'KolmogorovMathlib/RandomStrings',
+    'KolmogorovMathlib/Relativization',
     'KolmogorovMathlib/Restricted',
     'KolmogorovMathlib/Solomonoff',
     'KolmogorovMathlib/StoppingComplexity',

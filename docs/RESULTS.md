@@ -798,6 +798,42 @@ repaired against double counting of an opponent move by lower-priority requireme
 (`pendingHit`, `charged_pairwise_disjoint`). Theorem 4.1 itself is proved for the repaired
 construction.
 
+## Stability of Kolmogorov Complexity Properties under Relativization
+
+`KolmogorovMathlib/Relativization/` formalizes An. A. Muchnik and A. E. Romashchenko, *Stability
+of properties of Kolmogorov complexity under relativization* (Problems of Information
+Transmission 46(1), 2010). The notes
+[`docs/muchnik_romashchenko_2010.md`](muchnik_romashchenko_2010.md) relate the statements to the
+paper and contain the module map, the conventions and the deviations from the printed text. An
+oracle is a string `z` put into every condition; complexities are plain complexities with
+respect to an optimal decompressor, and `O(log N)` is `logSlack c N` with an existentially
+quantified constant. All declarations are in the namespace `Kolmogorov.Relativization`.
+
+### What is proved
+
+* **Quantifier-free formulae.** `proposition1`, `theorem3`: if `I(x̄ : z) ≤ δ`, the complexity
+  profiles of `x̄` with and without the oracle `z` differ by at most `δ + O(log K(x̄, z))`.
+* **Existential formulae.** `theorem4`: if `I(x̄ : z) ≤ δ`, then for every `ȳ` there is `ȳ'` such
+  that the profile of `⟨x̄, ȳ⟩` and the profile of `⟨x̄, ȳ'⟩` relative to `z` differ by at most
+  `δ + O(log K(x̄, ȳ, z))`. `theorem5`: for a stochastic tuple `x̄` the same holds with the two
+  sides exchanged (the profile of `⟨x̄, ȳ⟩` relative to `z` against the plain profile of
+  `⟨x̄, ȳ'⟩`). `theorem4_extended` and `theorem5_extended` are the forms for the extended
+  profiles, which the proofs establish.
+* **Pairs with no equivalent stochastic pair.** `theorem6`: for positive reals
+  `α, β < γ < α + β` and every `C`, for all large `n` there are strings `x₁, x₂` with
+  complexities `αn`, `βn` and joint complexity `γn` up to `O(log n)` such that no
+  `(C log n, C log n)`-stochastic pair is `C`-equivalent to `⟨x₁, x₂⟩`.
+* **Common information.** `theorem2`: for every `f(N) = o(N)` there is `g(N) = o(N)` such that
+  `q` bits of common information of `x₁, x₂` that can be extracted with an oracle `z` with
+  `I(x̄ : z) ≤ f(N)` at threshold `f(N)` can be extracted without the oracle at threshold
+  `g(N)`, where `N = K(x₁, x₂, z)`.
+* **Lemmas.** `lemma1`, `lemma2` (typization and clones), `lemma3_relativized` with
+  `lemma3_part1`, `lemma3_part2`, `lemma4` (combinatorial entropy), `lemma5`, `lemma6` (standard
+  covers of bunches and semi-bunches).
+* **The conjectures.** Conjectures 2 and 3 of the paper are open; `Conjecture2` and
+  `Conjecture3` are propositions and are not asserted. `conjecture2_of_conjecture3` proves that
+  Conjecture 3 implies Conjecture 2.
+
 ## Project Layout
 
 ```text
@@ -838,6 +874,7 @@ KolmogorovMathlib/
 ├── Oracle/                      # Oracle prefix machines, relative prefix complexity K^A, relative Kraft-Chaitin coding
 ├── PointToSet/                  # Point-to-set principles in dynamical systems: pressure, Barreira-Schmeling
 │                                #   dimension, Bowen equations, conformal dimension theorem
+├── Relativization/              # Muchnik and Romashchenko: stability of complexity properties under relativization
 ├── Restricted/                  # Description families and restricted profiles from Section 6
 │   ├── FamilyCurve/             # Effective multiscale construction and general curve realization
 │   └── Examples/                # Cylinders, masks, and Hamming-ball families
