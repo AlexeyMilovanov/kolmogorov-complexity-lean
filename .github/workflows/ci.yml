@@ -9,6 +9,10 @@ on:
     branches: [main]
   pull_request:
   workflow_dispatch:
+  schedule:
+    # Once a week.  GitHub deletes a cache that nothing has read for seven
+    # days, and without its cache the documentation job starts from nothing.
+    - cron: '17 3 * * 1'
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -85,14 +89,17 @@ jobs:
 
   docs:
     name: documentation
+    # After the build job, so that its output can be restored below and the
+    # library is not compiled a second time here.
+    needs: build
     runs-on: ubuntu-latest
     timeout-minutes: 600
     steps:
       - name: Check out
         uses: actions/checkout@v4
 
-      # Same three steps as the build job, in the same order: without elan
-      # there is no `lake` on the runner and `lake exe cache get` cannot run.
+      # Same steps as the build job, in the same order: without elan there is
+      # no `lake` on the runner and `lake exe cache get` cannot run.
       - name: Install elan
         run: |
           set -euo pipefail
@@ -104,28 +111,95 @@ jobs:
       - name: Report toolchain
         run: bash scripts/ci_local.sh toolchain
 
-      - name: Cache the build output
-        uses: actions/cache@v4
+      - name: Restore the build output
+        # The key and the path list are those of the build job.  A cache is
+        # found only under the path list it was saved with, so the two lists
+        # must stay identical.
+        uses: actions/cache/restore@v4
         with:
-          # A key of its own: this job additionally holds `doc-gen4` and its
-          # dependencies, and the documentation build itself.
-          key: lake-docs-${{ runner.os }}-${{ hashFiles('lake-manifest.json', 'lean-toolchain', 'docbuild/lakefile.toml') }}-${{ github.sha }}
+          key: lake-${{ runner.os }}-${{ hashFiles('lake-manifest.json', 'lean-toolchain') }}-${{ github.sha }}
           restore-keys: |
-            lake-docs-${{ runner.os }}-${{ hashFiles('lake-manifest.json', 'lean-toolchain', 'docbuild/lakefile.toml') }}-
             lake-${{ runner.os }}-${{ hashFiles('lake-manifest.json', 'lean-toolchain') }}-
           path: |
             .lake/build
             .lake/packages
+
+      - name: Name the documentation cache
+        # The key ends in the run, so every run saves its own state (see the
+        # save step) and the most recent one is restored.
+        #
+        # The key also records the order in which the file system of the runner
+        # lists a directory.  A package behind `doc-gen4` compiles a C library
+        # from the files of a directory in that order, and the order differs
+        # between runner images.  Under another order the library is built
+        # again, and after it `doc-gen4` and all the documentation.  So a state
+        # saved under the same order is preferred to a more recent one.
+        id: docs-cache
+        run: |
+          probe="$RUNNER_TEMP/listing-order"
+          mkdir -p "$probe"
+          touch "$probe"/{a,b,c,d,e,f,g,h}
+          order=$(ls -U "$probe" | tr -d '\n')
+          prefix="lake-docs-${{ runner.os }}-${{ hashFiles('lake-manifest.json', 'lean-toolchain', 'docbuild/lakefile.toml', 'docbuild/lake-manifest.json') }}"
+          {
+            echo "prefix=$prefix"
+            echo "ordered=$prefix-$order"
+            echo "key=$prefix-$order-${{ github.sha }}-${{ github.run_id }}-${{ github.run_attempt }}"
+          } >>"$GITHUB_OUTPUT"
+
+      - name: Restore the documentation output
+        # What this job adds to the build output: the documentation itself and
+        # the packages that only `docbuild/lake-manifest.json` lists.
+        uses: actions/cache/restore@v4
+        with:
+          key: ${{ steps.docs-cache.outputs.key }}
+          restore-keys: |
+            ${{ steps.docs-cache.outputs.ordered }}-${{ github.sha }}-
+            ${{ steps.docs-cache.outputs.ordered }}-
+            ${{ steps.docs-cache.outputs.prefix }}-
+          path: |
             docbuild/.lake
+            .lake/packages/doc-gen4
+            .lake/packages/leansqlite
+            .lake/packages/UnicodeBasic
+            .lake/packages/BibtexQuery
+            .lake/packages/MD4Lean
 
       - name: Fetch the Mathlib cache
         run: bash scripts/ci_local.sh cache
+
+      - name: Allow memory overcommit
+        # While the documentation jobs run, `lake` holds about a hundred
+        # threads and reserves about 100 GiB of address space in regions of up
+        # to 55 GiB, of which it uses about 1 GiB.  Starting a process
+        # duplicates the reservations, and under the default setting the kernel
+        # refuses any region larger than RAM plus swap.  The build then stops
+        # with "resource exhausted (error code: 12, not enough memory)" while
+        # most of the memory is free.
+        run: sudo sysctl -w vm.overcommit_memory=1
 
       - name: Build the documentation
         # `doc-gen4` is required from the side package `docbuild/`, so that the
         # main build never depends on it.  `:docs` covers the imports too, so
         # this builds Mathlib's documentation as well: it is the long job.
+        id: docs
         run: bash scripts/ci_local.sh docs
+
+      - name: Save the documentation output
+        # Also after a failed build: what was generated is kept, and the next
+        # run continues from it instead of starting again.  Not after a
+        # cancelled one, which may have been stopped in the middle of a write.
+        if: always() && (steps.docs.outcome == 'success' || steps.docs.outcome == 'failure')
+        uses: actions/cache/save@v4
+        with:
+          key: ${{ steps.docs-cache.outputs.key }}
+          path: |
+            docbuild/.lake
+            .lake/packages/doc-gen4
+            .lake/packages/leansqlite
+            .lake/packages/UnicodeBasic
+            .lake/packages/BibtexQuery
+            .lake/packages/MD4Lean
 
       - name: Upload the documentation
         uses: actions/upload-artifact@v4

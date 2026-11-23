@@ -28,6 +28,14 @@ The `:docs` target also generates documentation for transitive imports,
 including Mathlib, so this build needs more time and disk space than the
 library build alone.
 
+The build can stop with `resource exhausted (error code: 12, not enough
+memory)` while most of the memory is free.  While the documentation jobs run,
+`lake` reserves far more address space than it uses (measured in CI: about
+100 GiB in regions of up to 55 GiB, with about 1 GiB in use), and under the
+default overcommit setting Linux refuses to start a process from it when a
+region is larger than RAM plus swap.  `sudo sysctl -w vm.overcommit_memory=1`
+lifts the refusal; CI sets it before the build.
+
 `lake update doc-gen4` ends by running Mathlib's post-update hook
 (`lake exe cache get`), which can fail here with "Failed to prune ProofWidgets
 cloud release" even though the dependency resolution itself succeeded and
